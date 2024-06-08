@@ -1,0 +1,6 @@
+[submodule "Engine/vendor/glfw"]
+	path = Engine/vendor/glfw
+	url = https://github.com/Alcano22/glfw.git
+[submodule "Engine/vendor/spdlog"]
+	path = Engine/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git
