@@ -1,4 +1,7 @@
-﻿#include "Application.h"
+﻿#include "bfpch.h"
+#include "Application.h"
+
+#include "Log.h"
 
 Application::Application()
 	: m_Window(new Window())
@@ -7,6 +10,10 @@ Application::Application()
 
 void Application::Run()
 {
+	Log::Init();
+	
 	m_Window->Run();
+
+	delete m_Window;
 }
 

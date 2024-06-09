@@ -4,12 +4,12 @@
 
 class Application
 {
-private:
-	Window* m_Window;
 public:
 	Application();
 	
 	void Run();
 	
 	Window* GetWindow() const { return m_Window; }
+private:
+	Window* m_Window;
 };

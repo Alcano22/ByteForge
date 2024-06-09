@@ -1,3 +1,5 @@
+include "Dependencies.lua"
+
 workspace "ByteForge"
     architecture "x86_64"
     startproject "Engine"
@@ -21,4 +23,6 @@ workspace "ByteForge"
     group ""
 
     group "Dependencies"
+        include "Engine/vendor/glfw"
+        include "Engine/vendor/Glad"
     group ""

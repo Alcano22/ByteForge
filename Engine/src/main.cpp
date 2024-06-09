@@ -1,4 +1,5 @@
-﻿#include "Core/Application.h"
+﻿#include "bfpch.h"
+#include "Core/Application.h"
 
 int main()
 {
