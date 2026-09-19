@@ -1,0 +1,36 @@
+# Build-Ausgaben
+build/
+build-test/
+cmake-build-*/
+out/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# vcpkg (lokal installierte Packages, nie committen — nur vcpkg.json gehört ins Repo)
+vcpkg_installed/
+vcpkg_installed.json
+
+# CMake User-Presets (persönliche, nicht geteilte Presets, z.B. lokale Pfade)
+CMakeUserPresets.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Generierte Kontext-Datei deines Scripts
+context.txt
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

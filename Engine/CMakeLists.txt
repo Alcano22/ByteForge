@@ -1,0 +1,86 @@
+find_package(glfw3 CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(directx-dxc CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+
+add_library(Engine SHARED
+        src/Core/Log.cpp
+        src/Core/Application.cpp
+        src/Core/Window.cpp
+        src/Core/LayerStack.cpp
+        src/Renderer/RendererAPI.cpp
+        src/Renderer/GraphicsContext.cpp
+        src/Renderer/SwapchainSettings.cpp
+        src/Renderer/Buffer.cpp
+        src/Renderer/UniformBuffer.cpp
+        src/Renderer/Shader.cpp
+        src/Renderer/Renderer.cpp
+        src/Renderer/Camera.cpp
+        src/ImGui/ImGuiLayer.cpp
+        src/ImGui/ImGuiRenderer.cpp
+        src/Renderer/OrthographicCamera.cpp
+        src/Platform/Vulkan/VulkanContext.cpp
+        src/Platform/Vulkan/VulkanInstance.cpp
+        src/Platform/Vulkan/VulkanDevice.cpp
+        src/Platform/Vulkan/VulkanAllocator.cpp
+        src/Platform/Vulkan/VulkanBuffer.cpp
+        src/Platform/Vulkan/VulkanVertexBuffer.cpp
+        src/Platform/Vulkan/VulkanIndexBuffer.cpp
+        src/Platform/Vulkan/VulkanUniformBuffer.cpp
+        src/Platform/Vulkan/VulkanSwapchain.cpp
+        src/Platform/Vulkan/VulkanRenderPass.cpp
+        src/Platform/Vulkan/VulkanHelpers.cpp
+        src/Platform/Vulkan/VulkanShaderCompiler.cpp
+        src/Platform/Vulkan/VulkanShader.cpp
+        src/Platform/Vulkan/VulkanShaderProgram.cpp
+        src/Platform/Vulkan/VulkanPipeline.cpp
+        src/Platform/Vulkan/VulkanFramebuffers.cpp
+        src/Platform/Vulkan/VulkanCommandPool.cpp
+        src/Platform/Vulkan/VulkanSyncObjects.cpp
+        src/Platform/Vulkan/VulkanRenderer.cpp
+        src/Platform/Vulkan/VulkanDescriptorSetLayout.cpp
+        src/Platform/Vulkan/VulkanDescriptorPool.cpp
+        src/Platform/Vulkan/VulkanImGuiRenderer.cpp
+)
+
+target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)
+
+target_compile_definitions(Engine PUBLIC
+        $<$<CONFIG:Debug>:BYTEFORGE_DEBUG>
+)
+
+target_include_directories(Engine
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(Engine PUBLIC
+        glfw
+        Vulkan::Vulkan
+        GPUOpen::VulkanMemoryAllocator
+        glm::glm
+        spdlog::spdlog
+        Microsoft::DirectXShaderCompiler
+        imgui::imgui
+)
+
+if (UNIX AND NOT APPLE)
+    add_custom_command(TARGET Engine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -f
+            "$<TARGET_FILE_DIR:Microsoft::DirectXShaderCompiler>/libdxildll.so"
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "libdxil.so"
+            "$<TARGET_FILE_DIR:Microsoft::DirectXShaderCompiler>/libdxildll.so"
+        COMMENT "Working around broken libdxildll.so SONAME in directx-dxc"
+    )
+endif()
+
+set_target_properties(Engine PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+)

@@ -1,0 +1,23 @@
+{
+  "name": "byte-forge",
+  "version": "0.1.0",
+  "dependencies": [
+    "glfw3",
+    {
+      "name": "vulkan-loader",
+      "features": ["xcb", "xlib", "wayland"]
+    },
+    "vulkan",
+    "vulkan-memory-allocator",
+    "glm",
+    "spdlog",
+    "directx-dxc",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "vulkan-binding"
+      ]
+    }
+  ]
+}
