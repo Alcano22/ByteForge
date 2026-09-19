@@ -2,14 +2,17 @@
 
 #include "Engine/Core/NonCopyable.h"
 #include "Engine/Renderer/Pipeline.h"
+#include "Platform/Vulkan/VulkanShaderReflection.h"
 
 #include <vulkan/vulkan.h>
+
+#include <optional>
 
 namespace ByteForge
 {
     class VulkanDevice;
     class VulkanShaderProgram;
-    struct ShaderReflection;
+    class VulkanDescriptorSetLayout;
     struct ReflectedPushConstants;
 
     class VulkanPipeline : public Pipeline, NonCopyable
@@ -20,15 +23,26 @@ namespace ByteForge
 
         [[nodiscard]] VkPipeline GetHandle() const { return m_Pipeline; }
         [[nodiscard]] VkPipelineLayout GetLayoutHandle() const { return m_PipelineLayout; }
+
+        [[nodiscard]] VkDescriptorSetLayout GetMaterialSetLayout() const;
+        [[nodiscard]] const ReflectedDescriptorBinding* GetMaterialBinding() const
+        {
+            return m_MaterialBinding ? &*m_MaterialBinding : nullptr;
+        }
+
         [[nodiscard]] VkShaderStageFlags GetPushConstantStages() const { return m_PushConstantStages; }
         [[nodiscard]] uint32_t GetPushConstantSize() const { return m_PushConstantSize; }
 
     private:
+        void CreateMaterialSetLayout(const ShaderReflection& reflection);
         void CreatePipelineLayout(const ReflectedPushConstants& pushConstants);
         void CreatePipeline(const PipelineSpec& spec, const VulkanShaderProgram& shader);
 
     private:
         const VulkanDevice& m_Device;
+
+        Scope<VulkanDescriptorSetLayout> m_MaterialSetLayout;
+        std::optional<ReflectedDescriptorBinding> m_MaterialBinding;
 
         VkPipelineLayout m_PipelineLayout = nullptr;
         VkPipeline m_Pipeline = nullptr;

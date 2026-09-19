@@ -37,6 +37,7 @@ namespace ByteForge
 
     void VulkanFrameData::BeginFrame()
     {
+        ++m_FrameNumber;
         m_SceneIndex = 0;
         WriteCurrentScene(CameraUniforms{});
     }

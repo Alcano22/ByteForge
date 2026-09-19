@@ -2,7 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Renderer/Mesh.h"
-#include "Engine/Renderer/Pipeline.h"
+#include "Engine/Renderer/Material.h"
 #include "Engine/Renderer/Camera.h"
 
 #include <cstddef>
@@ -18,16 +18,16 @@ namespace ByteForge
 
         static void BeginScene(const Camera& camera);
 
-        static void Submit(const Ref<Pipeline>& pipeline, const Ref<Mesh>& mesh) { SubmitRaw(pipeline, mesh, {}); }
+        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh) { SubmitRaw(material, mesh, {}); }
 
         template<typename T>
-        static void Submit(const Ref<Pipeline>& pipeline, const Ref<Mesh>& mesh, const T& pushConstants)
+        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh, const T& pushConstants)
         {
             static_assert(std::is_trivially_copyable_v<T>, "Push constant data must be trivially copyable");
-            SubmitRaw(pipeline, mesh, std::as_bytes(std::span(&pushConstants, 1)));
+            SubmitRaw(material, mesh, std::as_bytes(std::span(&pushConstants, 1)));
         }
 
-        static void SubmitRaw(const Ref<Pipeline>& pipeline, const Ref<Mesh>& mesh,
+        static void SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,
                               std::span<const std::byte> pushConstants);
 
         static void EndFrame();

@@ -15,6 +15,7 @@ namespace ByteForge
     class VulkanInstance;
     class VulkanDevice;
     class VulkanAllocator;
+    class VulkanDescriptorAllocator;
     class VulkanSwapchain;
     class VulkanRenderPass;
     class VulkanFramebuffers;
@@ -43,6 +44,7 @@ namespace ByteForge
         [[nodiscard]] VulkanRenderPass& GetRenderPass() const { return *m_RenderPass; }
         [[nodiscard]] VulkanRenderPass& GetImGuiRenderPass() const { return *m_ImGuiRenderPass; }
         [[nodiscard]] VulkanRenderer& GetRenderer() const { return *m_Renderer; }
+        [[nodiscard]] VulkanDescriptorAllocator& GetDescriptorAllocator() const { return *m_DescriptorAllocator; }
         [[nodiscard]] VulkanFrameData& GetFrameData() const { return *m_FrameData; }
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
 
@@ -61,6 +63,7 @@ namespace ByteForge
         VkSurfaceKHR m_Surface = nullptr;
         Scope<VulkanDevice> m_Device;
         Scope<VulkanAllocator> m_Allocator;
+        Scope<VulkanDescriptorAllocator> m_DescriptorAllocator;
         Scope<VulkanSwapchain> m_Swapchain;
         Scope<VulkanRenderPass> m_RenderPass;
         Scope<VulkanFramebuffers> m_Framebuffers;

@@ -4,12 +4,14 @@
 #include "Platform/Vulkan/VulkanRenderPass.h"
 #include "Platform/Vulkan/VulkanShaderProgram.h"
 #include "Platform/Vulkan/VulkanFrameData.h"
+#include "Platform/Vulkan/VulkanDescriptorSetLayout.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/CameraUniforms.h"
 
 #include <array>
 #include <format>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -82,24 +84,37 @@ namespace ByteForge
         {
             for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
             {
-                const bool isCameraBinding = binding.Set == 0 && binding.Binding == 0
-                                          && binding.Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                const bool isUniformBuffer = binding.Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-                if (!isCameraBinding)
+                if (binding.Set == 0 && binding.Binding == 0 && isUniformBuffer)
                 {
-                    throw std::runtime_error(std::format(
-                        "Unsupported shader resource '{}' (set {}, binding {}): set 0, binding 0 is reserved for "
-                        "the camera uniform buffer, other resources are not supported yet",
-                        binding.Name, binding.Set, binding.Binding));
+                    if (binding.Size > sizeof(CameraUniforms))
+                    {
+                        throw std::runtime_error(std::format(
+                            "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
+                            "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(CameraUniforms)));
+                    }
+                    continue;
                 }
 
-                if (binding.Size > sizeof(CameraUniforms))
-                {
-                    throw std::runtime_error(std::format(
-                        "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} bytes "
-                        "(see CameraUniforms.h)", binding.Name, binding.Size, sizeof(CameraUniforms)));
-                }
+                if (binding.Set == 1 && binding.Binding == 0 && isUniformBuffer) continue;
+
+                throw std::runtime_error(std::format(
+                    "Unsupported shader resource '{}' (set {}, binding {}): for now only a uniform buffer at "
+                    "set 0, binding 0 (camera) and at set 1, binding 0 (material parameters) is supported",
+                    binding.Name, binding.Set, binding.Binding));
             }
+        }
+
+        const ReflectedDescriptorBinding* FindMaterialBinding(const ShaderReflection& reflection)
+        {
+            for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
+            {
+                if (binding.Set == 1)
+                    return &binding;
+            }
+
+            return nullptr;
         }
     }
 
@@ -114,6 +129,7 @@ namespace ByteForge
         ValidateVertexLayout(reflection, spec.VertexLayout);
 
         ValidateShaderResources(reflection);
+        CreateMaterialSetLayout(reflection);
         CreatePipelineLayout(reflection.PushConstants);
         CreatePipeline(spec, shader);
 
@@ -127,6 +143,27 @@ namespace ByteForge
 
         if (m_PipelineLayout != nullptr)
             vkDestroyPipelineLayout(m_Device.GetHandle(), m_PipelineLayout, nullptr);
+    }
+
+    VkDescriptorSetLayout VulkanPipeline::GetMaterialSetLayout() const
+    {
+        return m_MaterialSetLayout ? m_MaterialSetLayout->GetHandle() : nullptr;
+    }
+
+    void VulkanPipeline::CreateMaterialSetLayout(const ShaderReflection& reflection)
+    {
+        const ReflectedDescriptorBinding* binding = FindMaterialBinding(reflection);
+        if (binding == nullptr) return;
+
+        const VkDescriptorSetLayoutBinding layoutBinding{
+            .binding         = binding->Binding,
+            .descriptorType  = binding->Type,
+            .descriptorCount = 1,
+            .stageFlags      = binding->Stages
+        };
+
+        m_MaterialSetLayout = MakeScope<VulkanDescriptorSetLayout>(m_Device, std::span(&layoutBinding, 1));
+        m_MaterialBinding = *binding;
     }
 
     void VulkanPipeline::CreatePipelineLayout(const ReflectedPushConstants& pushConstants)
@@ -152,12 +189,15 @@ namespace ByteForge
             .size       = pushConstants.Size
         };
 
-        const VkDescriptorSetLayout frameSetLayout = VulkanContext::Get().GetFrameData().GetLayoutHandle();
+        const std::array<VkDescriptorSetLayout, 2> setLayouts{
+            VulkanContext::Get().GetFrameData().GetLayoutHandle(),
+            GetMaterialSetLayout()
+        };
 
         const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount         = 1,
-            .pSetLayouts            = &frameSetLayout,
+            .setLayoutCount         = m_MaterialSetLayout ? 2u : 1u,
+            .pSetLayouts            = setLayouts.data(),
             .pushConstantRangeCount = hasPushConstants ? 1u : 0u,
             .pPushConstantRanges    = hasPushConstants ? &pushConstantRange : nullptr
         };

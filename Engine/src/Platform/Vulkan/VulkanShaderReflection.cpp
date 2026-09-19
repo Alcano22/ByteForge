@@ -80,14 +80,26 @@ namespace ByteForge
             if (binding->count != 1)
                 throw std::runtime_error("Descriptor arrays are not supported yet");
 
-            result.Bindings.push_back({
+            ReflectedDescriptorBinding reflected{
                 .Name    = binding->name != nullptr ? binding->name : "",
                 .Set     = binding->set,
                 .Binding = binding->binding,
                 .Type    = static_cast<VkDescriptorType>(binding->descriptor_type),
                 .Stages  = vkStage,
                 .Size    = binding->block.size
-            });
+            };
+
+            for (uint32_t i = 0; i < binding->block.member_count; ++i)
+            {
+                const SpvReflectBlockVariable& member = binding->block.members[i];
+                reflected.Members.push_back({
+                    .Name   = member.name != nullptr ? member.name : "",
+                    .Offset = member.offset,
+                    .Size   = member.size
+                });
+            }
+
+            result.Bindings.push_back(std::move(reflected));
         }
 
         const auto pushConstantBlocks = Enumerate<SpvReflectBlockVariable>(

@@ -2,6 +2,7 @@
 #include "Platform/Vulkan/VulkanInstance.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanAllocator.h"
+#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanRenderPass.h"
 #include "Platform/Vulkan/VulkanFramebuffers.h"
@@ -37,6 +38,7 @@ namespace ByteForge
         m_Framebuffers.reset();
         m_RenderPass.reset();
         m_Swapchain.reset();
+        m_DescriptorAllocator.reset();
         m_Allocator.reset();
         m_Device.reset();
 
@@ -56,6 +58,7 @@ namespace ByteForge
         CreateSurface();
         m_Device = MakeScope<VulkanDevice>(m_Instance->GetHandle(), m_Surface);
         m_Allocator = MakeScope<VulkanAllocator>(m_Instance->GetHandle(), *m_Device);
+        m_DescriptorAllocator = MakeScope<VulkanDescriptorAllocator>(*m_Device);
         m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle);
         m_RenderPass = MakeScope<VulkanRenderPass>(*m_Device, m_Swapchain->GetImageFormat());
         m_Framebuffers = MakeScope<VulkanFramebuffers>(*m_Device, *m_Swapchain, *m_RenderPass);

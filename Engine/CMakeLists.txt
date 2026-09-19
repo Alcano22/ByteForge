@@ -21,6 +21,7 @@ add_library(Engine SHARED
         src/Renderer/Renderer.cpp
         src/Renderer/Camera.cpp
         src/Renderer/Pipeline.cpp
+        src/Renderer/Material.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/Renderer/OrthographicCamera.cpp
@@ -48,6 +49,8 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanDescriptorPool.cpp
         src/Platform/Vulkan/VulkanImGuiRenderer.cpp
         src/Platform/Vulkan/VulkanFrameData.cpp
+        src/Platform/Vulkan/VulkanDescriptorAllocator.cpp
+        src/Platform/Vulkan/VulkanMaterial.cpp
 )
 
 target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)

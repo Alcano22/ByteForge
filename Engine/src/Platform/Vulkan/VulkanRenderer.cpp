@@ -1,5 +1,3 @@
-#include "Platform/Vulkan/VulkanRenderer.h"
-
 #include "VulkanFrameData.h"
 #include "VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanDevice.h"
@@ -8,6 +6,9 @@
 #include "Platform/Vulkan/VulkanFramebuffers.h"
 #include "Platform/Vulkan/VulkanCommandPool.h"
 #include "Platform/Vulkan/VulkanSyncObjects.h"
+#include "Platform/Vulkan/VulkanRenderer.h"
+#include "Platform/Vulkan/VulkanPipeline.h"
+#include "Platform/Vulkan/VulkanMaterial.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 
 namespace ByteForge
@@ -83,12 +84,13 @@ namespace ByteForge
         return FrameResult::Ok;
     }
 
-    void VulkanRenderer::Submit(const VulkanPipeline& pipeline, const std::span<const std::byte> pushConstants,
+    void VulkanRenderer::Submit(const VulkanMaterial& material, const std::span<const std::byte> pushConstants,
                                 const VkBuffer vertexBuffer, const uint32_t vertexCount,
                                 const VkBuffer indexBuffer, const uint32_t indexCount) const
     {
         if (m_FrameSkipped) return;
 
+        const VulkanPipeline& pipeline = material.GetVulkanPipeline();
         const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
         const VkDescriptorSet frameSet = m_FrameData.GetSet(m_CurrentFrame);
         const uint32_t dynamicOffset = m_FrameData.GetDynamicOffset();
@@ -97,6 +99,13 @@ namespace ByteForge
 
         vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1, &frameSet, 1, &dynamicOffset);
+
+        if (const VkDescriptorSet materialSet = material.GetDescriptorSet(m_CurrentFrame);
+            materialSet != nullptr)
+        {
+            vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayout, 1, 1, &materialSet, 0, nullptr);
+        }
 
         if (!pushConstants.empty())
         {

@@ -8,6 +8,7 @@
 #include "Platform/Vulkan/VulkanIndexBuffer.h"
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
+#include "Platform/Vulkan/VulkanMaterial.h"
 
 #include <format>
 #include <memory>
@@ -28,12 +29,16 @@ namespace ByteForge
         });
     }
 
-    void Renderer::SubmitRaw(const Ref<Pipeline>& pipeline, const Ref<Mesh>& mesh,
+    void Renderer::SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,
                              const std::span<const std::byte> pushConstants)
     {
+        if (!material || !mesh)
+            throw std::runtime_error("Renderer::Submit: material and mesh must not be null");
+
         DispatchRHICall([&]
         {
-            const auto& vulkanPipeline = static_cast<const VulkanPipeline&>(*pipeline);
+            auto& vulkanMaterial = static_cast<VulkanMaterial&>(*material);
+            const VulkanPipeline& vulkanPipeline = vulkanMaterial.GetVulkanPipeline();
             const auto& vulkanVertexBuffer = static_cast<const VulkanVertexBuffer&>(*mesh->GetVertexBuffer());
 
             if (pushConstants.size() != vulkanPipeline.GetPushConstantSize())
@@ -52,7 +57,9 @@ namespace ByteForge
                 indexCount = indexBuffer.GetCount();
             }
 
-            VulkanContext::Get().GetRenderer().Submit(vulkanPipeline, pushConstants, vulkanVertexBuffer.GetHandle(),
+            vulkanMaterial.Flush();
+
+            VulkanContext::Get().GetRenderer().Submit(vulkanMaterial, pushConstants, vulkanVertexBuffer.GetHandle(),
                                                       mesh->GetVertexCount(), indexBufferHandle, indexCount);
         });
     }

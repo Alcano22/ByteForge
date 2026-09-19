@@ -12,6 +12,13 @@
 
 namespace ByteForge
 {
+    struct ReflectedBlockMember
+    {
+        std::string Name;
+        uint32_t Offset = 0;
+        uint32_t Size = 0;
+    };
+
     struct ReflectedDescriptorBinding
     {
         std::string Name;
@@ -20,6 +27,7 @@ namespace ByteForge
         VkDescriptorType Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         VkShaderStageFlags Stages = 0;
         uint32_t Size = 0;
+        std::vector<ReflectedBlockMember> Members;
     };
 
     struct ReflectedVertexInput

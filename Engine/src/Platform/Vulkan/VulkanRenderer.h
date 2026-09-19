@@ -17,7 +17,7 @@ namespace ByteForge
     class VulkanFramebuffers;
     class VulkanCommandPool;
     class VulkanSyncObjects;
-    class VulkanPipeline;
+    class VulkanMaterial;
     class VulkanFrameData;
 
     class VulkanRenderer : NonCopyable
@@ -31,7 +31,7 @@ namespace ByteForge
                        VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, uint32_t framesInFlight);
 
         FrameResult BeginFrame();
-        void Submit(const VulkanPipeline& pipeline, std::span<const std::byte> pushConstants,
+        void Submit(const VulkanMaterial& material, std::span<const std::byte> pushConstants,
                     VkBuffer vertexBuffer, uint32_t vertexCount,
                     VkBuffer indexBuffer = nullptr, uint32_t indexCount = 0) const;
         FrameResult EndFrame();
