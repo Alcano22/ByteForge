@@ -5,6 +5,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(directx-dxc CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(unofficial-spirv-reflect CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -19,6 +20,7 @@ add_library(Engine SHARED
         src/Renderer/Shader.cpp
         src/Renderer/Renderer.cpp
         src/Renderer/Camera.cpp
+        src/Renderer/Pipeline.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/Renderer/OrthographicCamera.cpp
@@ -36,6 +38,7 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanShaderCompiler.cpp
         src/Platform/Vulkan/VulkanShader.cpp
         src/Platform/Vulkan/VulkanShaderProgram.cpp
+        src/Platform/Vulkan/VulkanShaderReflection.cpp
         src/Platform/Vulkan/VulkanPipeline.cpp
         src/Platform/Vulkan/VulkanFramebuffers.cpp
         src/Platform/Vulkan/VulkanCommandPool.cpp
@@ -44,11 +47,13 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanDescriptorSetLayout.cpp
         src/Platform/Vulkan/VulkanDescriptorPool.cpp
         src/Platform/Vulkan/VulkanImGuiRenderer.cpp
+        src/Platform/Vulkan/VulkanFrameData.cpp
 )
 
 target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)
 
 target_compile_definitions(Engine PUBLIC
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
         $<$<CONFIG:Debug>:BYTEFORGE_DEBUG>
 )
 
@@ -61,12 +66,16 @@ target_include_directories(Engine
 
 target_link_libraries(Engine PUBLIC
         glfw
-        Vulkan::Vulkan
-        GPUOpen::VulkanMemoryAllocator
         glm::glm
         spdlog::spdlog
-        Microsoft::DirectXShaderCompiler
         imgui::imgui
+)
+
+target_link_libraries(Engine PRIVATE
+        Vulkan::Vulkan
+        GPUOpen::VulkanMemoryAllocator
+        Microsoft::DirectXShaderCompiler
+        unofficial::spirv-reflect
 )
 
 if (UNIX AND NOT APPLE)

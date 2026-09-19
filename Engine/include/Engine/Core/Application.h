@@ -8,6 +8,8 @@
 
 #include <memory>
 
+struct ImGuiContext;
+
 namespace ByteForge
 {
     class Event;
@@ -26,6 +28,7 @@ namespace ByteForge
         void EnableImGui();
 
         [[nodiscard]] Window& GetWindow() const { return *m_Window; }
+        [[nodiscard]] ImGuiContext* GetImGuiContext() const;
 
         static Application& Get() { return *s_Instance; }
 

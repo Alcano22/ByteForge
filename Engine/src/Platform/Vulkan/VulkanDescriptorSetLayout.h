@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <span>
+
 namespace ByteForge
 {
     class VulkanDevice;
@@ -11,7 +13,7 @@ namespace ByteForge
     class VulkanDescriptorSetLayout : NonCopyable
     {
     public:
-        VulkanDescriptorSetLayout(const VulkanDevice& device, VkShaderStageFlags stageFlags);
+        VulkanDescriptorSetLayout(const VulkanDevice& device, std::span<const VkDescriptorSetLayoutBinding> bindings);
         ~VulkanDescriptorSetLayout();
 
         [[nodiscard]] VkDescriptorSetLayout GetHandle() const { return m_Layout; }

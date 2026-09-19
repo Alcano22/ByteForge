@@ -1,4 +1,7 @@
 #include "Platform/Vulkan/VulkanRenderer.h"
+
+#include "VulkanFrameData.h"
+#include "VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanRenderPass.h"
@@ -6,17 +9,17 @@
 #include "Platform/Vulkan/VulkanCommandPool.h"
 #include "Platform/Vulkan/VulkanSyncObjects.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
-#include "Engine/Core/Log.h"
 
 namespace ByteForge
 {
     VulkanRenderer::VulkanRenderer(VulkanDevice& device, VulkanSwapchain& swapchain, VulkanRenderPass& renderPass,
                                    VulkanFramebuffers& framebuffers, VulkanRenderPass& imguiRenderPass,
                                    VulkanFramebuffers& imguiFramebuffers, VulkanCommandPool& commandPool,
-                                   VulkanSyncObjects& syncObjects, const uint32_t framesInFlight)
+                                   VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData,
+                                   const uint32_t framesInFlight)
         : m_Device(device), m_Swapchain(&swapchain), m_RenderPass(renderPass), m_Framebuffers(&framebuffers),
           m_ImGuiRenderPass(imguiRenderPass), m_ImGuiFramebuffers(&imguiFramebuffers), m_CommandPool(commandPool),
-          m_SyncObjects(syncObjects), m_FramesInFlight(framesInFlight) {}
+          m_SyncObjects(syncObjects), m_FrameData(frameData), m_FramesInFlight(framesInFlight) {}
 
     VulkanRenderer::FrameResult VulkanRenderer::BeginFrame()
     {
@@ -80,20 +83,26 @@ namespace ByteForge
         return FrameResult::Ok;
     }
 
-    void VulkanRenderer::Submit(const VkPipeline pipeline, const VkPipelineLayout pipelineLayout,
-                                const VkDescriptorSet descriptorSet, const glm::mat4& pushConstantData,
+    void VulkanRenderer::Submit(const VulkanPipeline& pipeline, const std::span<const std::byte> pushConstants,
                                 const VkBuffer vertexBuffer, const uint32_t vertexCount,
                                 const VkBuffer indexBuffer, const uint32_t indexCount) const
     {
         if (m_FrameSkipped) return;
 
-        vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
+        const VkDescriptorSet frameSet = m_FrameData.GetSet(m_CurrentFrame);
+        const uint32_t dynamicOffset = m_FrameData.GetDynamicOffset();
+
+        vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
 
         vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+                                pipelineLayout, 0, 1, &frameSet, 1, &dynamicOffset);
 
-        vkCmdPushConstants(m_CurrentCommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                           0, sizeof(glm::mat4), &pushConstantData);
+        if (!pushConstants.empty())
+        {
+            vkCmdPushConstants(m_CurrentCommandBuffer, pipelineLayout, pipeline.GetPushConstantStages(),
+                               0, static_cast<uint32_t>(pushConstants.size()), pushConstants.data());
+        }
 
         const VkBuffer vertexBuffers[] = { vertexBuffer };
         constexpr VkDeviceSize offsets[] = { 0 };

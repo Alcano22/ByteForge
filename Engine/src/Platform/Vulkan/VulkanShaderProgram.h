@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Engine/Renderer/Shader.h"
-#include "Engine/Core/Core.h"
+#include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/Vulkan/VulkanShaderReflection.h"
 
 #include <vulkan/vulkan.h>
 
@@ -9,30 +10,18 @@
 
 namespace ByteForge
 {
-    class VulkanPipeline;
-    class VulkanDescriptorSetLayout;
-    class VulkanDescriptorPool;
-    class VulkanUniformBuffer;
-
     class VulkanShaderProgram : public Shader
     {
     public:
-        VulkanShaderProgram(const std::string& vertexSrc, const std::string& fragmentSrc,
-                            const BufferLayout& vertexLayout, uint32_t uniformBufferSize,
-                            uint32_t uniformStageFlags, uint32_t pushConstantStageFlags,
-                            uint32_t pushConstantSize);
-        ~VulkanShaderProgram() override;
+        VulkanShaderProgram(const std::string& vertexSrc, const std::string& fragmentSrc);
 
-        void SetUniformData(const void* data, uint32_t size) override;
-
-        [[nodiscard]] VkPipeline GetPipelineHandle() const;
-        [[nodiscard]] VkPipelineLayout GetPipelineLayoutHandle() const;
-        [[nodiscard]] VkDescriptorSet GetDescriptorSet(uint32_t frameIndex) const;
+        [[nodiscard]] VkShaderModule GetVertexModule() const { return m_Vertex.GetHandle(); }
+        [[nodiscard]] VkShaderModule GetFragmentModule() const { return m_Fragment.GetHandle(); }
+        [[nodiscard]] const ShaderReflection& GetReflection() const { return m_Reflection; }
 
     private:
-        Scope<VulkanDescriptorSetLayout> m_DescriptorSetLayout;
-        Scope<VulkanPipeline> m_Pipeline;
-        Scope<VulkanUniformBuffer> m_UniformBuffer;
-        Scope<VulkanDescriptorPool> m_DescriptorPool;
+        VulkanShader m_Vertex;
+        VulkanShader m_Fragment;
+        ShaderReflection m_Reflection;
     };
 }

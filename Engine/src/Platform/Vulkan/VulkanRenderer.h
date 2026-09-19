@@ -6,6 +6,9 @@
 
 #include <glm/glm.hpp>
 
+#include <span>
+#include <cstddef>
+
 namespace ByteForge
 {
     class VulkanDevice;
@@ -14,6 +17,8 @@ namespace ByteForge
     class VulkanFramebuffers;
     class VulkanCommandPool;
     class VulkanSyncObjects;
+    class VulkanPipeline;
+    class VulkanFrameData;
 
     class VulkanRenderer : NonCopyable
     {
@@ -23,11 +28,11 @@ namespace ByteForge
         VulkanRenderer(VulkanDevice& device, VulkanSwapchain& swapchain, VulkanRenderPass& renderPass,
                        VulkanFramebuffers& framebuffers, VulkanRenderPass& imguiRenderPass,
                        VulkanFramebuffers& imguiFramebuffers, VulkanCommandPool& commandPool,
-                       VulkanSyncObjects& syncObjects, uint32_t framesInFlight);
+                       VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, uint32_t framesInFlight);
 
         FrameResult BeginFrame();
-        void Submit(VkPipeline pipeline, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet,
-                    const glm::mat4& pushConstantData, VkBuffer vertexBuffer, uint32_t vertexCount,
+        void Submit(const VulkanPipeline& pipeline, std::span<const std::byte> pushConstants,
+                    VkBuffer vertexBuffer, uint32_t vertexCount,
                     VkBuffer indexBuffer = nullptr, uint32_t indexCount = 0) const;
         FrameResult EndFrame();
 
@@ -56,6 +61,7 @@ namespace ByteForge
         VulkanFramebuffers* m_ImGuiFramebuffers;
         VulkanCommandPool& m_CommandPool;
         VulkanSyncObjects& m_SyncObjects;
+        const VulkanFrameData& m_FrameData;
 
         uint32_t m_FramesInFlight;
         uint32_t m_CurrentFrame = 0;

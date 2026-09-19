@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Renderer/Buffer.h"
+
 #include <vulkan/vulkan.h>
 
 #include <stdexcept>
@@ -24,6 +26,8 @@ namespace ByteForge
     };
 
     const char* VkResultToString(VkResult result);
+
+    VkFormat ShaderDataTypeToVkFormat(ShaderDataType type);
 }
 
 #define VK_CHECK(expr) \

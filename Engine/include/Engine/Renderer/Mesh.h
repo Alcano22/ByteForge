@@ -26,6 +26,6 @@ namespace ByteForge
     private:
         Ref<VertexBuffer> m_VertexBuffer;
         Ref<IndexBuffer> m_IndexBuffer;
-        uint32_t m_VertexCount;
+        uint32_t m_VertexCount = 0;
     };
 }

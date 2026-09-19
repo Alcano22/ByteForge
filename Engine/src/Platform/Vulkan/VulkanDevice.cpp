@@ -36,11 +36,11 @@ namespace ByteForge
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 
-        std::multimap<uint32_t, VkPhysicalDevice, std::greater<>> candidates;
+        std::multimap<uint64_t, VkPhysicalDevice, std::greater<>> candidates;
 
         for (VkPhysicalDevice device : devices)
         {
-            const uint32_t score = RateDeviceSuitability(device);
+            const uint64_t score = RateDeviceSuitability(device);
 
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(device, &props);
@@ -61,7 +61,7 @@ namespace ByteForge
         CORE_INFO("Selected GPU: {} (score: {})", props.deviceName, candidates.begin()->first);
     }
 
-    uint32_t VulkanDevice::RateDeviceSuitability(const VkPhysicalDevice device) const
+    uint64_t VulkanDevice::RateDeviceSuitability(const VkPhysicalDevice device) const
     {
         if (!IsDeviceSuitable(device))
             return 0;
@@ -69,17 +69,16 @@ namespace ByteForge
         VkPhysicalDeviceProperties props;
         vkGetPhysicalDeviceProperties(device, &props);
 
-        uint32_t score = 0;
+        uint64_t typeRank = 1;
 
         switch (props.deviceType)
         {
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:   score += 10000; break;
-            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:    score += 1000;  break;
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: score += 500;   break;
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:   typeRank = 5; break;
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: typeRank = 4; break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:    typeRank = 3; break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:            typeRank = 2; break;
             default: break;
         }
-
-        score += props.limits.maxImageDimension2D;
 
         VkPhysicalDeviceMemoryProperties memProps;
         vkGetPhysicalDeviceMemoryProperties(device, &memProps);
@@ -91,9 +90,9 @@ namespace ByteForge
                 deviceLocalMemory += memProps.memoryHeaps[i].size;
         }
 
-        score += static_cast<uint32_t>(deviceLocalMemory / (1024 * 1024));
+        const uint64_t deviceLocalMebibytes = deviceLocalMemory / (1024 * 1024);
 
-        return score;
+        return (typeRank << 32) | deviceLocalMebibytes;
     }
 
     bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice device) const

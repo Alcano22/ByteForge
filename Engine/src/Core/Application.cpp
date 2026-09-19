@@ -5,6 +5,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <imgui.h>
+
 namespace ByteForge
 {
     Application* Application::s_Instance = nullptr;
@@ -21,6 +23,8 @@ namespace ByteForge
 
     Application::~Application()
     {
+        Renderer::WaitIdle();
+
         if (m_ImGuiLayer)
             m_ImGuiLayer->OnDetach();
 
@@ -29,6 +33,8 @@ namespace ByteForge
 
     void Application::Run()
     {
+        m_LastFrameTime = static_cast<float>(glfwGetTime());
+
         while (m_IsRunning && !m_Window->ShouldClose())
         {
             const float time = static_cast<float>(glfwGetTime());
@@ -86,5 +92,10 @@ namespace ByteForge
 
             (*it)->OnEvent(event);
         }
+    }
+
+    ImGuiContext* Application::GetImGuiContext() const
+    {
+        return m_ImGuiLayer ? ImGui::GetCurrentContext() : nullptr;
     }
 }

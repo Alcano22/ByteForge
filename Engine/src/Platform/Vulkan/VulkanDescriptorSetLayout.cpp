@@ -5,20 +5,13 @@
 namespace ByteForge
 {
     VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(const VulkanDevice& device,
-                                                         const VkShaderStageFlags stageFlags)
+                                                         const std::span<const VkDescriptorSetLayoutBinding> bindings)
         : m_Device(device)
     {
-        const VkDescriptorSetLayoutBinding uboBinding{
-            .binding         = 0,
-            .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .stageFlags      = stageFlags
-        };
-
         const VkDescriptorSetLayoutCreateInfo layoutInfo{
             .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindings    = &uboBinding
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings    = bindings.data()
         };
 
         VK_CHECK(vkCreateDescriptorSetLayout(m_Device.GetHandle(), &layoutInfo, nullptr, &m_Layout));

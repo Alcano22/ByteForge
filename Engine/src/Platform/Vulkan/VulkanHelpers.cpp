@@ -35,4 +35,25 @@ namespace ByteForge
             default:                             return "UNKNOWN_VK_RESULT";
         }
     }
+
+    VkFormat ShaderDataTypeToVkFormat(const ShaderDataType type)
+    {
+        switch (type)
+        {
+            case ShaderDataType::Float:  return VK_FORMAT_R32_SFLOAT;
+            case ShaderDataType::Float2: return VK_FORMAT_R32G32_SFLOAT;
+            case ShaderDataType::Float3: return VK_FORMAT_R32G32B32_SFLOAT;
+            case ShaderDataType::Float4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case ShaderDataType::Int:    return VK_FORMAT_R32_SINT;
+            case ShaderDataType::Int2:   return VK_FORMAT_R32G32_SINT;
+            case ShaderDataType::Int3:   return VK_FORMAT_R32G32B32_SINT;
+            case ShaderDataType::Int4:   return VK_FORMAT_R32G32B32A32_SINT;
+            case ShaderDataType::Bool:   return VK_FORMAT_R8_UINT;
+            case ShaderDataType::Mat3:
+            case ShaderDataType::Mat4:
+            case ShaderDataType::None:   break;
+        }
+
+        throw std::runtime_error("Unsupported ShaderDataType for vertex attribute");
+    }
 }

@@ -21,8 +21,8 @@ namespace ByteForge
         void CreateInstance();
         void SetupDebugMessenger();
 
-        [[nodiscard]] bool CheckValidationLayerSupport() const;
-        [[nodiscard]] std::vector<const char*> GetRequiredExtensions() const;
+        [[nodiscard]] static bool CheckValidationLayerSupport();
+        [[nodiscard]] static std::vector<const char*> GetRequiredExtensions();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                             VkDebugUtilsMessageTypeFlagsEXT messageType,

@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/VulkanFramebuffers.h"
 #include "Platform/Vulkan/VulkanCommandPool.h"
 #include "Platform/Vulkan/VulkanSyncObjects.h"
+#include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
@@ -28,6 +29,7 @@ namespace ByteForge
         s_Instance = nullptr;
 
         m_Renderer.reset();
+        m_FrameData.reset();
         m_SyncObjects.reset();
         m_CommandPool.reset();
         m_ImGuiFramebuffers.reset();
@@ -63,9 +65,11 @@ namespace ByteForge
         m_SyncObjects = MakeScope<VulkanSyncObjects>(*m_Device, MaxFramesInFlight,
                                                      static_cast<uint32_t>(m_Swapchain->GetImages().size()));
 
+        m_FrameData = MakeScope<VulkanFrameData>(*m_Device);
+
         m_Renderer = MakeScope<VulkanRenderer>(*m_Device, *m_Swapchain, *m_RenderPass, *m_Framebuffers,
                                                *m_ImGuiRenderPass, *m_ImGuiFramebuffers,
-                                               *m_CommandPool, *m_SyncObjects, MaxFramesInFlight);
+                                               *m_CommandPool, *m_SyncObjects, *m_FrameData, MaxFramesInFlight);
     }
 
     void VulkanContext::BeginFrame()
@@ -81,6 +85,8 @@ namespace ByteForge
             RecreateSwapchain();
             m_Renderer->BeginFrame();
         }
+
+        m_FrameData->BeginFrame();
     }
 
     void VulkanContext::EndFrame()

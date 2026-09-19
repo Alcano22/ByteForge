@@ -20,6 +20,7 @@ namespace ByteForge
     class VulkanFramebuffers;
     class VulkanCommandPool;
     class VulkanSyncObjects;
+    class VulkanFrameData;
     class VulkanRenderer;
 
     class VulkanContext : public GraphicsContext
@@ -42,6 +43,7 @@ namespace ByteForge
         [[nodiscard]] VulkanRenderPass& GetRenderPass() const { return *m_RenderPass; }
         [[nodiscard]] VulkanRenderPass& GetImGuiRenderPass() const { return *m_ImGuiRenderPass; }
         [[nodiscard]] VulkanRenderer& GetRenderer() const { return *m_Renderer; }
+        [[nodiscard]] VulkanFrameData& GetFrameData() const { return *m_FrameData; }
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
 
         static VulkanContext& Get() { return *s_Instance; }
@@ -66,6 +68,7 @@ namespace ByteForge
         Scope<VulkanFramebuffers> m_ImGuiFramebuffers;
         Scope<VulkanCommandPool> m_CommandPool;
         Scope<VulkanSyncObjects> m_SyncObjects;
+        Scope<VulkanFrameData> m_FrameData;
         Scope<VulkanRenderer> m_Renderer;
 
         bool m_FramebufferResized = false;

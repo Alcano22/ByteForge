@@ -4,6 +4,7 @@
 #include <Engine/Event/Event.h>
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Shader.h>
+#include <Engine/Renderer/Pipeline.h>
 #include <Engine/Renderer/Mesh.h>
 #include <Engine/Renderer/Buffer.h>
 #include <Engine/Renderer/OrthographicCamera.h>
@@ -84,9 +85,9 @@ public:
         auto indexBuffer = ByteForge::IndexBuffer::Create(indices);
 
         m_TriangleMesh = ByteForge::MakeRef<ByteForge::Mesh>(vertexBuffer, indexBuffer);
-        m_TriangleShader = ByteForge::Shader::Create(vertexSrc, fragmentSrc, layout, sizeof(glm::mat4),
-                                                     ByteForge::ShaderStageVertex, ByteForge::ShaderStageVertex,
-                                                     sizeof(glm::mat4));
+
+        const auto shader = ByteForge::Shader::Create(vertexSrc, fragmentSrc);
+        m_TrianglePipeline = ByteForge::Pipeline::Create({ .Shader = shader, .VertexLayout = layout });
     }
 
     void OnUpdate(const ByteForge::Timestep ts) override
@@ -94,15 +95,14 @@ public:
         m_Time += ts.GetSeconds();
 
         m_Camera.SetPosition({ glm::sin(m_Time) * 0.5f, 0.0f, 0.0f });
-        const glm::mat4 viewProjection = m_Camera.GetViewProjection();
-        m_TriangleShader->SetUniformData(&viewProjection, sizeof(viewProjection));
+        ByteForge::Renderer::BeginScene(m_Camera);
 
         constexpr glm::mat4 leftTransform = glm::translate(glm::mat4(1.0f), { -0.6f, 0.0f, 0.0f });
-        ByteForge::Renderer::Submit(m_TriangleShader, m_TriangleMesh, leftTransform);
+        ByteForge::Renderer::Submit(m_TrianglePipeline, m_TriangleMesh, leftTransform);
 
         const glm::mat4 rightTransform = glm::translate(glm::mat4(1.0f), { 0.6f, 0.0f, 0.0f })
                                        * glm::rotate(glm::mat4(1.0f), m_Time, { 0.0f, 0.0f, 1.0f });
-        ByteForge::Renderer::Submit(m_TriangleShader, m_TriangleMesh, rightTransform);
+        ByteForge::Renderer::Submit(m_TrianglePipeline, m_TriangleMesh, rightTransform);
     }
 
     void OnEvent(ByteForge::Event& event) override
@@ -112,7 +112,7 @@ public:
     }
 
 private:
-    ByteForge::Ref<ByteForge::Shader> m_TriangleShader;
+    ByteForge::Ref<ByteForge::Pipeline> m_TrianglePipeline;
     ByteForge::Ref<ByteForge::Mesh> m_TriangleMesh;
     ByteForge::OrthographicCamera m_Camera;
     float m_Time = 0.0f;

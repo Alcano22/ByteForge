@@ -44,7 +44,7 @@ namespace ByteForge
         [[nodiscard]] bool IsDeviceSuitable(VkPhysicalDevice device) const;
         [[nodiscard]] bool CheckDeviceExtensionSupport(VkPhysicalDevice device) const;
         [[nodiscard]] QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
-        [[nodiscard]] uint32_t RateDeviceSuitability(VkPhysicalDevice device) const;
+        [[nodiscard]] uint64_t RateDeviceSuitability(VkPhysicalDevice device) const;
 
     private:
         VkInstance m_Instance;

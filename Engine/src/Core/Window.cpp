@@ -19,11 +19,13 @@ namespace ByteForge
             if (context)
                 return context;
 
-            if (!glfwInit())
+            glfwSetErrorCallback([](const int code, const char* description)
             {
-                CORE_CRITICAL("Failed to initialize GLFW");
-                return nullptr;
-            }
+                CORE_ERROR("GLFW error {}: {}", code, description);
+            });
+
+            if (!glfwInit())
+                throw std::runtime_error("Failed to initialize GLFW");
 
             static int s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
@@ -39,7 +41,6 @@ namespace ByteForge
         m_Data.Height = props.Height;
 
         m_GlfwContext = AcquireGlfwContext();
-        if (!m_GlfwContext) return;
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -52,10 +53,7 @@ namespace ByteForge
         );
 
         if (!rawWindow)
-        {
-            CORE_CRITICAL("Failed to create GLFW window");
-            return;
-        }
+            throw std::runtime_error("Failed to create GLFW window");
 
         m_Window = WrapScope(rawWindow, GlfwWindowDestroyer{});
 

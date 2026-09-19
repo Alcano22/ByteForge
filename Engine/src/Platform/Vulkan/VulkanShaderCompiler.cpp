@@ -3,13 +3,14 @@
 #endif
 
 #include "Platform/Vulkan/VulkanShaderCompiler.h"
+#include "Platform/Vulkan/VulkanShader.h"
 #include "Engine/Core/Log.h"
 
 #include <directx-dxc/dxcapi.h>
 
 #include <stdexcept>
-
-#include "VulkanShader.h"
+#include <format>
+#include <string>
 
 namespace ByteForge
 {
@@ -96,13 +97,19 @@ namespace ByteForge
         IDxcBlobUtf8* rawErrors = nullptr;
         result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&rawErrors), nullptr);
         const ComScope<IDxcBlobUtf8> errors(rawErrors, ComDeleter<IDxcBlobUtf8>{});
+
+        std::string errorText;
         if (errors && errors->GetStringLength() > 0)
-            CORE_WARN("[DXC] {}", errors->GetStringPointer());
+            errorText = errors->GetStringPointer();
 
         HRESULT compileStatus = S_OK;
         result->GetStatus(&compileStatus);
         if (FAILED(compileStatus))
-            throw std::runtime_error("HLSL shader failed to compile");
+            throw std::runtime_error(std::format("{} shader failed to compile:\n{}",
+                                                 stage == ShaderStage::Vertex ? "Vertex" : "Fragment", errorText));
+
+        if (!errorText.empty())
+            CORE_WARN("[DXC] {}", errorText);
 
         IDxcBlob* rawObject = nullptr;
         result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&rawObject), nullptr);

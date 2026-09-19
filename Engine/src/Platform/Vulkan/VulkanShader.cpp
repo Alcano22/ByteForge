@@ -13,6 +13,7 @@ namespace ByteForge
         : m_Device(device)
     {
         const std::vector<uint32_t> spirv = VulkanShaderCompiler::Get().Compile(source, stage, entryPoint);
+        m_Reflection = ShaderReflection::Reflect(spirv, stage);
 
         const VkShaderModuleCreateInfo createInfo{
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

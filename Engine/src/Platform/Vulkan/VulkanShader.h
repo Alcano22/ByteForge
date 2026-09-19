@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Renderer/ShaderStage.h"
+#include "Platform/Vulkan/VulkanShaderReflection.h"
 
 #include <vulkan/vulkan.h>
 
@@ -24,9 +25,11 @@ namespace ByteForge
         VulkanShader& operator=(VulkanShader&&) = delete;
 
         [[nodiscard]] VkShaderModule GetHandle() const { return m_Module; }
+        [[nodiscard]] const ShaderReflection& GetReflection() const { return m_Reflection; }
 
     private:
         const VulkanDevice& m_Device;
         VkShaderModule m_Module = nullptr;
+        ShaderReflection m_Reflection;
     };
 }
