@@ -7,7 +7,10 @@
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanCommandPool.h"
 #include "Platform/Vulkan/VulkanSyncObjects.h"
+#include "Platform/Vulkan/VulkanVertexBuffer.h"
+#include "Platform/Vulkan/VulkanIndexBuffer.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
+#include "Engine/Renderer/Mesh.h"
 
 #include <format>
 #include <stdexcept>
@@ -70,58 +73,37 @@ namespace ByteForge
         return FrameResult::Ok;
     }
 
-    void VulkanRenderer::Submit(const VulkanMaterial& material, const std::span<const std::byte> pushConstants,
-                                const VkBuffer vertexBuffer, const uint32_t vertexCount,
-                                const VkBuffer indexBuffer, const uint32_t indexCount)
+    void VulkanRenderer::Submit(Material& material, const Mesh& mesh, const std::span<const std::byte> pushConstants)
     {
+        auto& vulkanMaterial = static_cast<VulkanMaterial&>(material);
+        const VulkanPipeline& pipeline = vulkanMaterial.GetVulkanPipeline();
+
+        if (pushConstants.size() != pipeline.GetPushConstantSize())
+        {
+            throw std::runtime_error(std::format("Renderer::Submit: got {} bytes of push constant data, "
+                                                 "but the shader expects {}",
+                                                 pushConstants.size(), pipeline.GetPushConstantSize()));
+        }
+
+        const auto& vertexBuffer = static_cast<const VulkanVertexBuffer&>(*mesh.GetVertexBuffer());
+
+        const VkBuffer vertexBufferHandle = vertexBuffer.GetHandleForDraw();
+
+        VkBuffer indexBufferHandle = nullptr;
+        uint32_t indexCount = 0;
+        if (mesh.HasIndexBuffer())
+        {
+            const auto& indexBuffer = static_cast<const VulkanIndexBuffer&>(*mesh.GetIndexBuffer());
+            indexBufferHandle = indexBuffer.GetHandle();
+            indexCount = indexBuffer.GetCount();
+        }
+
+        vulkanMaterial.Flush();
+
         if (m_FrameSkipped) return;
 
-        const VulkanPipeline& pipeline = material.GetVulkanPipeline();
-
-        if (m_ActivePass == Pass::None)
-            BeginSwapchainPass();
-
-        if (pipeline.GetColorFormat() != m_ActiveColorFormat || pipeline.GetDepthFormat() != m_ActiveDepthFormat)
-        {
-            throw std::runtime_error(std::format(
-                "Renderer::Submit: the pipeline renders into {} / {} (color / depth), but the active pass has "
-                "{} / {}; set PipelineSpec::ColorFormat and DepthFormat to match the render target",
-                VkFormatToString(pipeline.GetColorFormat()), VkFormatToString(pipeline.GetDepthFormat()),
-                VkFormatToString(m_ActiveColorFormat), VkFormatToString(m_ActiveDepthFormat)));
-        }
-
-        const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
-        const VkDescriptorSet frameSet = m_FrameData.GetSet(m_CurrentFrame);
-        const uint32_t dynamicOffset = m_FrameData.GetDynamicOffset();
-
-        vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
-
-        vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1, &frameSet, 1, &dynamicOffset);
-
-        if (const VkDescriptorSet materialSet = material.GetDescriptorSet(m_CurrentFrame);
-            materialSet != nullptr)
-        {
-            vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipelineLayout, 1, 1, &materialSet, 0, nullptr);
-        }
-
-        if (!pushConstants.empty())
-        {
-            vkCmdPushConstants(m_CurrentCommandBuffer, pipelineLayout, pipeline.GetPushConstantStages(),
-                               0, static_cast<uint32_t>(pushConstants.size()), pushConstants.data());
-        }
-
-        const VkBuffer vertexBuffers[] = { vertexBuffer };
-        constexpr VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(m_CurrentCommandBuffer, 0, 1, vertexBuffers, offsets);
-
-        if (indexBuffer != nullptr)
-        {
-            vkCmdBindIndexBuffer(m_CurrentCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_CurrentCommandBuffer, indexCount, 1, 0, 0, 0);
-        } else
-            vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
+        RecordDraw(vulkanMaterial, pushConstants, vertexBufferHandle,
+                   mesh.GetVertexCount(), indexBufferHandle, indexCount);
     }
 
     VulkanRenderer::FrameResult VulkanRenderer::EndFrame()
@@ -181,7 +163,7 @@ namespace ByteForge
         return FrameResult::Ok;
     }
 
-    void VulkanRenderer::BeginRenderTarget(const VulkanRenderTarget& target)
+    void VulkanRenderer::BeginRenderTarget(const RenderTarget& renderTarget)
     {
         if (m_FrameSkipped) return;
 
@@ -190,6 +172,8 @@ namespace ByteForge
             throw std::runtime_error("Renderer::BeginRenderTarget: render targets cannot be nested, "
                                      "call EndRenderTarget first");
         }
+
+        const auto& target = static_cast<const VulkanRenderTarget&>(renderTarget);
 
         EndRendering();
 
@@ -244,6 +228,58 @@ namespace ByteForge
     {
         if (!m_FrameSkipped)
             EndRendering();
+    }
+
+    void VulkanRenderer::RecordDraw(const VulkanMaterial& material, const std::span<const std::byte> pushConstants,
+                                    const VkBuffer vertexBuffer, const uint32_t vertexCount,
+                                    const VkBuffer indexBuffer, const uint32_t indexCount)
+    {
+        const VulkanPipeline& pipeline = material.GetVulkanPipeline();
+
+        if (m_ActivePass == Pass::None)
+            BeginSwapchainPass();
+
+        if (pipeline.GetColorFormat() != m_ActiveColorFormat || pipeline.GetDepthFormat() != m_ActiveDepthFormat)
+        {
+            throw std::runtime_error(std::format(
+                "Renderer::Submit: the pipeline renders into {} / {} (color / depth), but the active pass has "
+                "{} / {}; set PipelineSpec::ColorFormat and DepthFormat to match the render target",
+                VkFormatToString(pipeline.GetColorFormat()), VkFormatToString(pipeline.GetDepthFormat()),
+                VkFormatToString(m_ActiveColorFormat), VkFormatToString(m_ActiveDepthFormat)));
+        }
+
+        const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
+        const VkDescriptorSet frameSet = m_FrameData.GetSet(m_CurrentFrame);
+        const uint32_t dynamicOffset = m_FrameData.GetDynamicOffset();
+
+        vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
+
+        vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipelineLayout, 0, 1, &frameSet, 1, &dynamicOffset);
+
+        if (const VkDescriptorSet materialSet = material.GetDescriptorSet(m_CurrentFrame);
+            materialSet != nullptr)
+        {
+            vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayout, 1, 1, &materialSet, 0, nullptr);
+        }
+
+        if (!pushConstants.empty())
+        {
+            vkCmdPushConstants(m_CurrentCommandBuffer, pipelineLayout, pipeline.GetPushConstantStages(),
+                               0, static_cast<uint32_t>(pushConstants.size()), pushConstants.data());
+        }
+
+        const VkBuffer vertexBuffers[] = { vertexBuffer };
+        constexpr VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(m_CurrentCommandBuffer, 0, 1, vertexBuffers, offsets);
+
+        if (indexBuffer != nullptr)
+        {
+            vkCmdBindIndexBuffer(m_CurrentCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(m_CurrentCommandBuffer, indexCount, 1, 0, 0, 0);
+        } else
+            vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
     }
 
     void VulkanRenderer::BeginSwapchainPass()

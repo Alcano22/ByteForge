@@ -4,11 +4,15 @@
 
 #include <vulkan/vulkan.h>
 
-#include <span>
 #include <cstddef>
+#include <span>
 
 namespace ByteForge
 {
+    class Material;
+    class Mesh;
+    class RenderTarget;
+
     class VulkanDevice;
     class VulkanSwapchain;
     class VulkanCommandPool;
@@ -26,14 +30,10 @@ namespace ByteForge
                        VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, uint32_t framesInFlight);
 
         FrameResult BeginFrame();
-
-        void Submit(const VulkanMaterial& material, std::span<const std::byte> pushConstants,
-                    VkBuffer vertexBuffer, uint32_t vertexCount,
-                    VkBuffer indexBuffer = nullptr, uint32_t indexCount = 0);
-
+        void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants);
         FrameResult EndFrame();
 
-        void BeginRenderTarget(const VulkanRenderTarget& target);
+        void BeginRenderTarget(const RenderTarget& renderTarget);
         void EndRenderTarget();
 
         void BeginImGuiRendering();
@@ -47,6 +47,9 @@ namespace ByteForge
 
     private:
         enum class Pass { None, Swapchain, Target, ImGui };
+
+        void RecordDraw(const VulkanMaterial& material, std::span<const std::byte> pushConstants,
+                        VkBuffer vertexBuffer, uint32_t vertexCount, VkBuffer indexBuffer, uint32_t indexCount);
 
         void BeginSwapchainPass();
         void EnsureSwapchainCleared();
