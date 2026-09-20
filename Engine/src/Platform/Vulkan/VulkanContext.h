@@ -23,6 +23,7 @@ namespace ByteForge
     class VulkanFrameData;
     class VulkanRenderer;
     class VulkanDeletionQueue;
+    class VulkanSamplerCache;
 
     class VulkanContext : public GraphicsContext
     {
@@ -46,6 +47,7 @@ namespace ByteForge
         [[nodiscard]] VulkanRenderer& GetRenderer() const { return *m_Renderer; }
         [[nodiscard]] VulkanFrameData& GetFrameData() const { return *m_FrameData; }
         [[nodiscard]] VulkanDeletionQueue& GetDeletionQueue() const { return *m_DeletionQueue; }
+        [[nodiscard]] VulkanSamplerCache& GetSamplerCache() const { return *m_SamplerCache; }
 
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
         [[nodiscard]] bool IsInFrame() const { return m_InFrame; }
@@ -75,6 +77,7 @@ namespace ByteForge
         Scope<VulkanFrameData> m_FrameData;
         Scope<VulkanRenderer> m_Renderer;
         Scope<VulkanDeletionQueue> m_DeletionQueue;
+        Scope<VulkanSamplerCache> m_SamplerCache;
 
         bool m_FramebufferResized = false;
         bool m_InFrame = false;

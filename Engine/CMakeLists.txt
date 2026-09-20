@@ -6,6 +6,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(directx-dxc CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(unofficial-spirv-reflect CONFIG REQUIRED)
+find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -23,6 +24,7 @@ add_library(Engine SHARED
         src/Renderer/Pipeline.cpp
         src/Renderer/Material.cpp
         src/Renderer/RenderTarget.cpp
+        src/Renderer/Texture2D.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/Renderer/OrthographicCamera.cpp
@@ -55,6 +57,8 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanPerFrameBuffer.cpp
         src/Platform/Vulkan/VulkanImage.cpp
         src/Platform/Vulkan/VulkanRenderTarget.cpp
+        src/Platform/Vulkan/VulkanTexture2D.cpp
+        src/Platform/Vulkan/VulkanSamplerCache.cpp
 )
 
 target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)
@@ -69,6 +73,7 @@ target_include_directories(Engine
             ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${STB_INCLUDE_DIRS}
 )
 
 target_link_libraries(Engine PUBLIC

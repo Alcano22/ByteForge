@@ -45,7 +45,7 @@ namespace ByteForge
             .imageType     = VK_IMAGE_TYPE_2D,
             .format        = spec.Format,
             .extent        = { spec.Width, spec.Height, 1 },
-            .mipLevels     = 1,
+            .mipLevels     = spec.MipLevels,
             .arrayLayers   = 1,
             .samples       = VK_SAMPLE_COUNT_1_BIT,
             .tiling        = VK_IMAGE_TILING_OPTIMAL,
@@ -54,8 +54,8 @@ namespace ByteForge
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
         };
 
-        constexpr VmaAllocationCreateInfo allocInfo{
-            .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+        const VmaAllocationCreateInfo allocInfo{
+            .flags = spec.DedicatedMemory ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0u,
             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
         };
 
@@ -69,7 +69,11 @@ namespace ByteForge
                 .image            = m_Image,
                 .viewType         = VK_IMAGE_VIEW_TYPE_2D,
                 .format           = format,
-                .subresourceRange = { .aspectMask = spec.Aspect, .levelCount = 1, .layerCount = 1 }
+                .subresourceRange = {
+                    .aspectMask = spec.Aspect,
+                    .levelCount = spec.MipLevels,
+                    .layerCount = 1
+                }
             };
 
             VkImageView view = nullptr;

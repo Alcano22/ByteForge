@@ -1,9 +1,10 @@
 #include "Platform/Vulkan/VulkanUploader.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanDevice.h"
+#include "Platform/Vulkan/VulkanImage.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 
-#include <cstdint>
+#include <algorithm>
 #include <stdexcept>
 
 namespace ByteForge
@@ -61,6 +62,86 @@ namespace ByteForge
                 .size      = size
             };
             vkCmdCopyBuffer(commandBuffer, staging.GetHandle(), destination.GetHandle(), 1, &region);
+        });
+    }
+
+    void VulkanUploader::UploadTexture(const VulkanImage& image, const uint32_t width, const uint32_t height,
+                                       const uint32_t mipLevels, const void* pixels, const size_t size)
+    {
+        const VulkanBuffer staging(m_Allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        staging.SetData(pixels, size);
+
+        const VkImage handle = image.GetHandle();
+
+        SubmitAndWait([&](const VkCommandBuffer commandBuffer)
+        {
+            CmdImageBarrier(commandBuffer, handle,
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+                            VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                            VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels);
+
+            const VkBufferImageCopy region{
+                .bufferOffset     = 0,
+                .imageSubresource = {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .mipLevel       = 0,
+                    .baseArrayLayer = 0,
+                    .layerCount     = 1
+                },
+                .imageExtent      = { width, height, 1 }
+            };
+            vkCmdCopyBufferToImage(commandBuffer, staging.GetHandle(), handle,
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+            int mipWidth = static_cast<int>(width);
+            int mipHeight = static_cast<int>(height);
+
+            for (uint32_t level = 1; level < mipLevels; ++level)
+            {
+                CmdImageBarrier(commandBuffer, handle,
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+                                VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1);
+
+                const int nextWidth = std::max(mipWidth / 2, 1);
+                const int nextHeight = std::max(mipHeight / 2, 1);
+
+                const VkImageBlit blit{
+                    .srcSubresource = {
+                        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .mipLevel       = level - 1,
+                        .baseArrayLayer = 0,
+                        .layerCount     = 1
+                    },
+                    .srcOffsets = { { 0, 0, 0 }, { mipWidth, mipHeight, 1 } },
+                    .dstSubresource = {
+                        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .mipLevel       = level,
+                        .baseArrayLayer = 0,
+                        .layerCount     = 1
+                    },
+                    .dstOffsets = { { 0, 0, 0 }, { nextWidth, nextHeight, 1 } }
+                };
+                vkCmdBlitImage(commandBuffer, handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+
+                CmdImageBarrier(commandBuffer, handle,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                                VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1);
+
+                mipWidth = nextWidth;
+                mipHeight = nextHeight;
+            }
+
+            CmdImageBarrier(commandBuffer, handle,
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                            VK_IMAGE_ASPECT_COLOR_BIT, mipLevels - 1, 1);
         });
     }
 

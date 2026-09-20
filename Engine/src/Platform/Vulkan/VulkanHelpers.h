@@ -38,7 +38,8 @@ namespace ByteForge
                          VkImageLayout oldLayout, VkImageLayout newLayout,
                          VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
                          VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
-                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
+                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                         uint32_t baseMipLevel = 0, uint32_t levelCount = 1);
 }
 
 #define VK_CHECK(expr) \

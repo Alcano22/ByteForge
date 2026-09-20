@@ -10,6 +10,7 @@
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
 #include "Platform/Vulkan/VulkanDeletionQueue.h"
+#include "Platform/Vulkan/VulkanSamplerCache.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
@@ -40,6 +41,7 @@ namespace ByteForge
         m_DescriptorAllocator.reset();
         m_Uploader.reset();
         m_Allocator.reset();
+        m_SamplerCache.reset();
         m_Device.reset();
 
         if (m_Surface != nullptr && m_Instance)
@@ -59,6 +61,7 @@ namespace ByteForge
         m_Instance = MakeScope<VulkanInstance>();
         CreateSurface();
         m_Device = MakeScope<VulkanDevice>(m_Instance->GetHandle(), m_Surface);
+        m_SamplerCache = MakeScope<VulkanSamplerCache>(*m_Device);
         m_Allocator = MakeScope<VulkanAllocator>(m_Instance->GetHandle(), *m_Device);
         m_Uploader = MakeScope<VulkanUploader>(*m_Device, *m_Allocator);
         m_DescriptorAllocator = MakeScope<VulkanDescriptorAllocator>(*m_Device);

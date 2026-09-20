@@ -75,10 +75,11 @@ namespace ByteForge
     {
         switch (format)
         {
-            case ImageFormat::None:       return VK_FORMAT_UNDEFINED;
-            case ImageFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-            case ImageFormat::Depth32F:   return VK_FORMAT_D32_SFLOAT;
-            case ImageFormat::Swapchain:  break;
+            case ImageFormat::None:        return VK_FORMAT_UNDEFINED;
+            case ImageFormat::RGBA8_SRGB:  return VK_FORMAT_R8G8B8A8_SRGB;
+            case ImageFormat::RGBA8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+            case ImageFormat::Depth32F:    return VK_FORMAT_D32_SFLOAT;
+            case ImageFormat::Swapchain:   break;
         }
 
         throw std::runtime_error("ImageFormat::Swapchain is only valid for PipelineSpec::ColorFormat");
@@ -98,7 +99,8 @@ namespace ByteForge
                          const VkImageLayout oldLayout, const VkImageLayout newLayout,
                          const VkPipelineStageFlags2 srcStage, const VkAccessFlags2 srcAccess,
                          const VkPipelineStageFlags2 dstStage, const VkAccessFlags2 dstAccess,
-                         const VkImageAspectFlags aspect)
+                         const VkImageAspectFlags aspect, const uint32_t baseMipLevel,
+                         const uint32_t levelCount)
     {
         const VkImageMemoryBarrier2 barrier{
             .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -111,7 +113,12 @@ namespace ByteForge
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image               = image,
-            .subresourceRange    = { .aspectMask = aspect, .levelCount = 1, .layerCount = 1 }
+            .subresourceRange    = {
+                .aspectMask   = aspect,
+                .baseMipLevel = baseMipLevel,
+                .levelCount   = levelCount,
+                .layerCount   = 1
+            }
         };
 
         const VkDependencyInfo dependencyInfo{

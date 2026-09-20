@@ -9,13 +9,120 @@
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/RenderTarget.h>
 #include <Engine/Renderer/Shader.h>
+#include <Engine/Renderer/Texture2D.h>
 
 #include <imgui.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
+#include <cstddef>
+#include <exception>
+#include <string>
 #include <vector>
+
+namespace
+{
+    ByteForge::Ref<ByteForge::Texture2D> CreateCheckerTexture(const bool generateMips)
+    {
+        constexpr uint32_t size = 256;
+
+        std::vector<std::byte> pixels(static_cast<size_t>(size) * size * 4);
+        for (uint32_t y = 0; y < size; ++y)
+        {
+            for (uint32_t x = 0; x < size; ++x)
+            {
+                const auto value = static_cast<std::byte>(((x + y) % 2 == 0) ? 255 : 0);
+                const size_t index = (static_cast<size_t>(y) * size + x) * 4;
+                pixels[index + 0] = value;
+                pixels[index + 1] = value;
+                pixels[index + 2] = value;
+                pixels[index + 3] = std::byte{ 255 };
+            }
+        }
+
+        return ByteForge::Texture2D::Create(size, size, pixels, {
+            .Format       = ByteForge::ImageFormat::RGBA8_UNORM,
+            .GenerateMips = generateMips
+        });
+    }
+
+    void ShowTexture(ByteForge::Texture2D& texture, const ImVec2 size)
+    {
+        ImGui::Image(static_cast<ImTextureID>(texture.GetImGuiTextureId()), size);
+    }
+}
+
+class TexturePanel
+{
+public:
+    void Init()
+    {
+        m_CheckerMips = CreateCheckerTexture(true);
+        m_CheckerNoMips = CreateCheckerTexture(false);
+    }
+
+    void OnImGuiRender()
+    {
+        ImGui::Begin("Textures");
+
+        ImGui::SeparatorText("Mipmaps");
+        ImGui::SliderFloat("Display size", &m_DisplaySize, 8.0f, 256.0f, "%.0f px");
+
+        ImGui::BeginGroup();
+        ImGui::Text("With mips (%u levels)", m_CheckerMips->GetMipLevels());
+        ShowTexture(*m_CheckerMips, ImVec2(m_DisplaySize, m_DisplaySize));
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+
+        ImGui::BeginGroup();
+        ImGui::Text("Without mips (%u level)", m_CheckerNoMips->GetMipLevels());
+        ShowTexture(*m_CheckerNoMips, ImVec2(m_DisplaySize, m_DisplaySize));
+        ImGui::EndGroup();
+
+        ImGui::SeparatorText("Load from file");
+        ImGui::InputText("Path", m_Path, sizeof(m_Path));
+
+        if (ImGui::Button("Load"))
+        {
+            try
+            {
+                m_Loaded = ByteForge::Texture2D::Load(m_Path);
+                m_Error.clear();
+            }
+            catch (const std::exception& e)
+            {
+                m_Error = e.what();
+            }
+        }
+
+        if (!m_Error.empty())
+            ImGui::TextWrapped("%s", m_Error.c_str());
+
+        if (m_Loaded)
+        {
+            const uint32_t width = m_Loaded->GetWidth();
+            const uint32_t height = m_Loaded->GetHeight();
+
+            ImGui::Text("%ux%u, %u mip levels", width, height, m_Loaded->GetMipLevels());
+
+            const float scale = std::min(1.0f, 256.0f / static_cast<float>(std::max(width, height)));
+            ShowTexture(*m_Loaded, ImVec2(static_cast<float>(width) * scale, static_cast<float>(height) * scale));
+        }
+
+        ImGui::End();
+    }
+
+private:
+    ByteForge::Ref<ByteForge::Texture2D> m_CheckerMips;
+    ByteForge::Ref<ByteForge::Texture2D> m_CheckerNoMips;
+    ByteForge::Ref<ByteForge::Texture2D> m_Loaded;
+    std::string m_Error;
+    char m_Path[512] = "test_image.png";
+    float m_DisplaySize = 100.0f;
+};
 
 class EditorLayer : public ByteForge::Layer
 {
@@ -109,6 +216,8 @@ public:
         m_BackMaterial->Set("u_Tint", glm::vec4(0.4f, 0.7f, 1.0f, 1.0f));
 
         m_Target = CreateTarget(m_ViewportSize.x, m_ViewportSize.y);
+
+        m_TexturePanel.Init();
     }
 
     void OnUpdate(const ByteForge::Timestep ts) override
@@ -154,6 +263,8 @@ public:
 
         ImGui::End();
         ImGui::PopStyleVar();
+
+        m_TexturePanel.OnImGuiRender();
     }
 
 private:
@@ -168,6 +279,7 @@ private:
     ByteForge::Ref<ByteForge::Material> m_BackMaterial;
     ByteForge::Ref<ByteForge::RenderTarget> m_Target;
     ByteForge::OrthographicCamera m_Camera;
+    TexturePanel m_TexturePanel;
     glm::uvec2 m_ViewportSize{ 1280, 720 };
     float m_Time = 0.0f;
 };

@@ -19,6 +19,7 @@
         "vulkan-binding"
       ]
     },
-    "spirv-reflect"
+    "spirv-reflect",
+    "stb"
   ]
 }
