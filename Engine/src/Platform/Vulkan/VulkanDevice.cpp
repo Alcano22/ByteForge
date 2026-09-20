@@ -107,10 +107,11 @@ namespace ByteForge
             swapchainAdequate = !swapchainSupport.Formats.empty() && !swapchainSupport.PresentModes.empty();
         }
 
-        return indices.IsComplete() && extensionsSupported && swapchainAdequate;
+        return indices.IsComplete() && extensionsSupported &&
+               swapchainAdequate && CheckFeatureSupport(device);
     }
 
-    bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice device) const
+    bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice device)
     {
         uint32_t extensionCount = 0;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -126,6 +127,25 @@ namespace ByteForge
                         return std::strcmp(ext.extensionName, required) == 0;
                     });
             });
+    }
+
+    bool VulkanDevice::CheckFeatureSupport(const VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceProperties props;
+        vkGetPhysicalDeviceProperties(device, &props);
+        if (props.apiVersion < VK_API_VERSION_1_3)
+            return false;
+
+        VkPhysicalDeviceVulkan13Features features13{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES
+        };
+        VkPhysicalDeviceFeatures2 features2{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &features13
+        };
+        vkGetPhysicalDeviceFeatures2(device, &features2);
+
+        return features13.dynamicRendering && features13.synchronization2;
     }
 
     QueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice device) const
@@ -175,8 +195,15 @@ namespace ByteForge
 
         constexpr VkPhysicalDeviceFeatures deviceFeatures{};
 
+        VkPhysicalDeviceVulkan13Features features13{
+            .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = VK_TRUE,
+            .dynamicRendering = VK_TRUE
+        };
+
         VkDeviceCreateInfo createInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext                   = &features13,
             .queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size()),
             .pQueueCreateInfos       = queueCreateInfos.data(),
             .enabledExtensionCount   = static_cast<uint32_t>(DeviceExtensions.size()),

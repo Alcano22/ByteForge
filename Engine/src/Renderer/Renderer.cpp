@@ -9,6 +9,7 @@
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanMaterial.h"
+#include "Platform/Vulkan/VulkanRenderTarget.h"
 
 #include <format>
 #include <memory>
@@ -48,6 +49,8 @@ namespace ByteForge
                                                      pushConstants.size(), vulkanPipeline.GetPushConstantSize()));
             }
 
+            const VkBuffer vertexBufferHandle = vulkanVertexBuffer.GetHandleForDraw();
+
             VkBuffer indexBufferHandle = nullptr;
             uint32_t indexCount = 0;
             if (mesh->HasIndexBuffer())
@@ -59,7 +62,7 @@ namespace ByteForge
 
             vulkanMaterial.Flush();
 
-            VulkanContext::Get().GetRenderer().Submit(vulkanMaterial, pushConstants, vulkanVertexBuffer.GetHandle(),
+            VulkanContext::Get().GetRenderer().Submit(vulkanMaterial, pushConstants, vertexBufferHandle,
                                                       mesh->GetVertexCount(), indexBufferHandle, indexCount);
         });
     }
@@ -67,6 +70,22 @@ namespace ByteForge
     void Renderer::EndFrame()
     {
         DispatchRHICall([] { VulkanContext::Get().EndFrame(); });
+    }
+
+    void Renderer::BeginRenderTarget(const Ref<RenderTarget>& target)
+    {
+        if (!target)
+            throw std::runtime_error("Renderer::BeginRenderTarget: the render target must not be null");
+
+        DispatchRHICall([&]
+        {
+            VulkanContext::Get().GetRenderer().BeginRenderTarget(static_cast<const VulkanRenderTarget&>(*target));
+        });
+    }
+
+    void Renderer::EndRenderTarget()
+    {
+        DispatchRHICall([] { VulkanContext::Get().GetRenderer().EndRenderTarget(); });
     }
 
     void Renderer::OnWindowResized()

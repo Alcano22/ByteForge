@@ -8,22 +8,28 @@
 
 namespace ByteForge
 {
-    VulkanBuffer::VulkanBuffer(const VulkanAllocator& allocator,
-                               const VkDeviceSize size, const VkBufferUsageFlags usage)
+    VulkanBuffer::VulkanBuffer(const VulkanAllocator& allocator, const VkDeviceSize size,
+                               const VkBufferUsageFlags usage, const VulkanBufferMemory memory)
         : m_Allocator(allocator), m_Size(size)
     {
+        const bool deviceLocal = memory == VulkanBufferMemory::DeviceLocal;
+
         const VkBufferCreateInfo bufferInfo{
             .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size        = size,
-            .usage       = usage,
+            .usage       = deviceLocal ? usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT : usage,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE
         };
 
-        constexpr VmaAllocationCreateInfo allocInfo{
-            .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-                   | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-            .usage = VMA_MEMORY_USAGE_AUTO
-        };
+        VmaAllocationCreateInfo allocInfo{};
+        if (deviceLocal)
+            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        else
+        {
+            allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                            | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        }
 
         VmaAllocationInfo allocationInfo;
         VK_CHECK(vmaCreateBuffer(m_Allocator.GetHandle(), &bufferInfo, &allocInfo,
@@ -31,7 +37,12 @@ namespace ByteForge
 
         m_MappedData = allocationInfo.pMappedData;
 
-        CORE_INFO("Vulkan buffer created ({} bytes)", size);
+        VkMemoryPropertyFlags memFlags = 0;
+        vmaGetAllocationMemoryProperties(m_Allocator.GetHandle(), m_Allocation, &memFlags);
+
+        CORE_TRACE("Vulkan buffer created ({} bytes, {}{})", size,
+                   (memFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ? "device-local" : "system memory",
+                   (memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ? ", host-visible" : "");
     }
 
     VulkanBuffer::~VulkanBuffer()
@@ -42,9 +53,14 @@ namespace ByteForge
 
     void VulkanBuffer::SetData(const void* data, const size_t size, const size_t offset) const
     {
-        if (offset + size > m_Size)
+        if (m_MappedData == nullptr)
+            throw std::runtime_error("VulkanBuffer::SetData: buffer is not host-visible, use VulkanUploader");
+
+        if (offset > m_Size || size > m_Size - offset)
             throw std::runtime_error("VulkanBuffer::SetData: write exceeds buffer bounds");
 
         std::memcpy(static_cast<char*>(m_MappedData) + offset, data, size);
+
+        VK_CHECK(vmaFlushAllocation(m_Allocator.GetHandle(), m_Allocation, offset, size));
     }
 }

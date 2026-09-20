@@ -1,7 +1,7 @@
 #include "Platform/Vulkan/VulkanPipeline.h"
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDevice.h"
-#include "Platform/Vulkan/VulkanRenderPass.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanShaderProgram.h"
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanDescriptorSetLayout.h"
@@ -52,6 +52,18 @@ namespace ByteForge
             }
 
             throw std::runtime_error("Unknown FrontFace");
+        }
+
+        VkCompareOp ToVk(const CompareOp compareOp)
+        {
+            switch (compareOp)
+            {
+                case CompareOp::Less:        return VK_COMPARE_OP_LESS;
+                case CompareOp::LessOrEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
+                case CompareOp::Always:      return VK_COMPARE_OP_ALWAYS;
+            }
+
+            throw std::runtime_error("Unknown CompareOp");
         }
 
         VkPipelineColorBlendAttachmentState ToVkBlendAttachment(const BlendMode blendMode)
@@ -207,6 +219,20 @@ namespace ByteForge
 
     void VulkanPipeline::CreatePipeline(const PipelineSpec& spec, const VulkanShaderProgram& shader)
     {
+        m_ColorFormat = spec.ColorFormat == ImageFormat::Swapchain
+                      ? VulkanContext::Get().GetSwapchain().GetImageFormat()
+                      : ImageFormatToVk(spec.ColorFormat);
+        m_DepthFormat = ImageFormatToVk(spec.DepthFormat);
+
+        if (m_ColorFormat == VK_FORMAT_UNDEFINED)
+        {
+            throw std::runtime_error("PipelineSpec::ColorFormat must be set "
+                                     "(depth-only pipelines are not supported yet)");
+        }
+
+        if ((spec.DepthTest || spec.DepthWrite) && m_DepthFormat == VK_FORMAT_UNDEFINED)
+            throw std::runtime_error("PipelineSpec: depth test or depth write requires a DepthFormat");
+
         const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{
             VkPipelineShaderStageCreateInfo{
                 .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -297,8 +323,23 @@ namespace ByteForge
             .pAttachments    = &colorBlendAttachment
         };
 
+        const VkPipelineDepthStencilStateCreateInfo depthStencil{
+            .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable  = spec.DepthTest ? VK_TRUE : VK_FALSE,
+            .depthWriteEnable = spec.DepthWrite ? VK_TRUE : VK_FALSE,
+            .depthCompareOp   = ToVk(spec.DepthCompare)
+        };
+
+        const VkPipelineRenderingCreateInfo renderingInfo{
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount    = 1,
+            .pColorAttachmentFormats = &m_ColorFormat,
+            .depthAttachmentFormat   = m_DepthFormat
+        };
+
         const VkGraphicsPipelineCreateInfo pipelineInfo{
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext               = &renderingInfo,
             .stageCount          = static_cast<uint32_t>(shaderStages.size()),
             .pStages             = shaderStages.data(),
             .pVertexInputState   = &vertexInputInfo,
@@ -306,11 +347,10 @@ namespace ByteForge
             .pViewportState      = &viewportState,
             .pRasterizationState = &rasterizer,
             .pMultisampleState   = &multisampling,
+            .pDepthStencilState  = m_DepthFormat != VK_FORMAT_UNDEFINED ? &depthStencil : nullptr,
             .pColorBlendState    = &colorBlending,
             .pDynamicState       = &dynamicState,
-            .layout              = m_PipelineLayout,
-            .renderPass          = VulkanContext::Get().GetRenderPass().GetHandle(),
-            .subpass             = 0,
+            .layout              = m_PipelineLayout
         };
 
         VK_CHECK(vkCreateGraphicsPipelines(m_Device.GetHandle(), nullptr, 1, &pipelineInfo, nullptr, &m_Pipeline));

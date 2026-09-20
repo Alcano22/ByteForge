@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Renderer/Buffer.h"
+#include "Engine/Renderer/ImageFormat.h"
 
 #include <vulkan/vulkan.h>
 
@@ -28,6 +29,16 @@ namespace ByteForge
     const char* VkResultToString(VkResult result);
 
     VkFormat ShaderDataTypeToVkFormat(ShaderDataType type);
+
+    const char* VkFormatToString(VkFormat format);
+    VkFormat ImageFormatToVk(ImageFormat format);
+    VkFormat ToUnormEquivalent(VkFormat format);
+
+    void CmdImageBarrier(VkCommandBuffer commandBuffer, VkImage image,
+                         VkImageLayout oldLayout, VkImageLayout newLayout,
+                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 #define VK_CHECK(expr) \

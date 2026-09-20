@@ -2,14 +2,14 @@
 #include "Platform/Vulkan/VulkanInstance.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanAllocator.h"
+#include "Platform/Vulkan/VulkanUploader.h"
 #include "Platform/Vulkan/VulkanDescriptorAllocator.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanRenderPass.h"
-#include "Platform/Vulkan/VulkanFramebuffers.h"
 #include "Platform/Vulkan/VulkanCommandPool.h"
 #include "Platform/Vulkan/VulkanSyncObjects.h"
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
+#include "Platform/Vulkan/VulkanDeletionQueue.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
@@ -27,18 +27,18 @@ namespace ByteForge
         if (m_Device)
             m_Device->WaitIdle();
 
+        if (m_DeletionQueue)
+            m_DeletionQueue->Flush();
+
         s_Instance = nullptr;
 
         m_Renderer.reset();
         m_FrameData.reset();
         m_SyncObjects.reset();
         m_CommandPool.reset();
-        m_ImGuiFramebuffers.reset();
-        m_ImGuiRenderPass.reset();
-        m_Framebuffers.reset();
-        m_RenderPass.reset();
         m_Swapchain.reset();
         m_DescriptorAllocator.reset();
+        m_Uploader.reset();
         m_Allocator.reset();
         m_Device.reset();
 
@@ -52,31 +52,31 @@ namespace ByteForge
     {
         s_Instance = this;
 
+        m_DeletionQueue = MakeScope<VulkanDeletionQueue>(MaxFramesInFlight);
+
         CORE_INFO("Initializing Vulkan context");
 
         m_Instance = MakeScope<VulkanInstance>();
         CreateSurface();
         m_Device = MakeScope<VulkanDevice>(m_Instance->GetHandle(), m_Surface);
         m_Allocator = MakeScope<VulkanAllocator>(m_Instance->GetHandle(), *m_Device);
+        m_Uploader = MakeScope<VulkanUploader>(*m_Device, *m_Allocator);
         m_DescriptorAllocator = MakeScope<VulkanDescriptorAllocator>(*m_Device);
         m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle);
-        m_RenderPass = MakeScope<VulkanRenderPass>(*m_Device, m_Swapchain->GetImageFormat());
-        m_Framebuffers = MakeScope<VulkanFramebuffers>(*m_Device, *m_Swapchain, *m_RenderPass);
-        m_ImGuiRenderPass = MakeScope<VulkanRenderPass>(*m_Device, m_Swapchain->GetImGuiImageFormat(), true);
-        m_ImGuiFramebuffers = MakeScope<VulkanFramebuffers>(*m_Device, *m_Swapchain, *m_ImGuiRenderPass, true);
         m_CommandPool = MakeScope<VulkanCommandPool>(*m_Device, MaxFramesInFlight);
         m_SyncObjects = MakeScope<VulkanSyncObjects>(*m_Device, MaxFramesInFlight,
                                                      static_cast<uint32_t>(m_Swapchain->GetImages().size()));
 
         m_FrameData = MakeScope<VulkanFrameData>(*m_Device);
 
-        m_Renderer = MakeScope<VulkanRenderer>(*m_Device, *m_Swapchain, *m_RenderPass, *m_Framebuffers,
-                                               *m_ImGuiRenderPass, *m_ImGuiFramebuffers,
-                                               *m_CommandPool, *m_SyncObjects, *m_FrameData, MaxFramesInFlight);
+        m_Renderer = MakeScope<VulkanRenderer>(*m_Device, *m_Swapchain, *m_CommandPool,
+                                               *m_SyncObjects, *m_FrameData, MaxFramesInFlight);
     }
 
     void VulkanContext::BeginFrame()
     {
+        m_InFrame = true;
+
         if (m_FramebufferResized)
         {
             m_FramebufferResized = false;
@@ -90,11 +90,20 @@ namespace ByteForge
         }
 
         m_FrameData->BeginFrame();
+        m_DeletionQueue->Collect();
     }
 
     void VulkanContext::EndFrame()
     {
-        if (m_Renderer->EndFrame() == VulkanRenderer::FrameResult::NeedsRecreation)
+        m_InFrame = false;
+
+        const bool willSubmit = !m_Renderer->IsFrameSkipped();
+        const auto result = m_Renderer->EndFrame();
+
+        if (willSubmit)
+            m_DeletionQueue->OnFrameSubmitted();
+
+        if (result == VulkanRenderer::FrameResult::NeedsRecreation)
             RecreateSwapchain();
     }
 
@@ -117,15 +126,10 @@ namespace ByteForge
 
         m_Device->WaitIdle();
 
-        m_Framebuffers.reset();
-        m_ImGuiFramebuffers.reset();
         m_Swapchain.reset();
-
         m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle);
-        m_Framebuffers = MakeScope<VulkanFramebuffers>(*m_Device, *m_Swapchain, *m_RenderPass);
-        m_ImGuiFramebuffers = MakeScope<VulkanFramebuffers>(*m_Device, *m_Swapchain, *m_ImGuiRenderPass, true);
 
-        m_Renderer->UpdateSwapchainTargets(*m_Swapchain, *m_Framebuffers, *m_ImGuiFramebuffers);
+        m_Renderer->UpdateSwapchain(*m_Swapchain);
 
         CORE_INFO("Swapchain recreated ({}x{})", width, height);
     }

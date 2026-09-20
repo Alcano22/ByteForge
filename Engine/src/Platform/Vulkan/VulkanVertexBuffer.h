@@ -2,6 +2,10 @@
 
 #include "Engine/Renderer/Buffer.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
+#include "Platform/Vulkan/VulkanPerFrameBuffer.h"
+
+#include <cstdint>
+#include <limits>
 
 namespace ByteForge
 {
@@ -16,10 +20,12 @@ namespace ByteForge
         [[nodiscard]] const BufferLayout& GetLayout() const override { return m_Layout; }
         void SetLayout(const BufferLayout& layout) override { m_Layout = layout; }
 
-        [[nodiscard]] VkBuffer GetHandle() const { return m_Buffer.GetHandle(); }
+        [[nodiscard]] VkBuffer GetHandleForDraw() const;
 
     private:
-        VulkanBuffer m_Buffer;
+        Scope<VulkanBuffer> m_StaticBuffer;
+        Scope<VulkanPerFrameBuffer> m_StreamingBuffer;
         BufferLayout m_Layout;
+        uint64_t m_LastWriteFrame = std::numeric_limits<uint64_t>::max();
     };
 }

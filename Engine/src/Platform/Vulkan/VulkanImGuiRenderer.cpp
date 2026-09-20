@@ -2,7 +2,6 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanRenderPass.h"
 #include "Platform/Vulkan/VulkanRenderer.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
@@ -25,6 +24,8 @@ namespace ByteForge
 
         ImGui_ImplGlfw_InitForVulkan(windowHandle, true);
 
+        m_ColorFormat = context.GetSwapchain().GetImGuiImageFormat();
+
         ImGui_ImplVulkan_InitInfo initInfo{
             .ApiVersion = VK_API_VERSION_1_3,
             .Instance = context.GetInstanceHandle(),
@@ -36,7 +37,6 @@ namespace ByteForge
             .MinImageCount = 2,
             .ImageCount = static_cast<uint32_t>(context.GetSwapchain().GetImages().size()),
             .PipelineInfoMain = {
-                .RenderPass = context.GetImGuiRenderPass().GetHandle(),
                 .MSAASamples = VK_SAMPLE_COUNT_1_BIT
             },
             .CheckVkResultFn = [](const VkResult result)
@@ -44,6 +44,13 @@ namespace ByteForge
                 if (result != VK_SUCCESS)
                     throw VulkanException(result, "ImGui Vulkan backend call", __FILE__, __LINE__);
             }
+        };
+
+        initInfo.UseDynamicRendering = true;
+        initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount    = 1,
+            .pColorAttachmentFormats = &m_ColorFormat
         };
 
         ImGui_ImplVulkan_Init(&initInfo);
@@ -71,8 +78,8 @@ namespace ByteForge
         auto& renderer = VulkanContext::Get().GetRenderer();
         if (renderer.IsFrameSkipped()) return;
 
-        renderer.BeginImGuiRenderPass();
+        renderer.BeginImGuiRendering();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), renderer.GetCurrentCommandBuffer());
-        renderer.EndImGuiRenderPass();
+        renderer.EndImGuiRendering();
     }
 }

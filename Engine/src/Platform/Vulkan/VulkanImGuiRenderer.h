@@ -14,5 +14,8 @@ namespace ByteForge
 
         void NewFrame() override;
         void RenderDrawData() override;
+
+    private:
+        VkFormat m_ColorFormat = VK_FORMAT_UNDEFINED;
     };
 }

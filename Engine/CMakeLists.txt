@@ -22,6 +22,7 @@ add_library(Engine SHARED
         src/Renderer/Camera.cpp
         src/Renderer/Pipeline.cpp
         src/Renderer/Material.cpp
+        src/Renderer/RenderTarget.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/Renderer/OrthographicCamera.cpp
@@ -34,14 +35,12 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanIndexBuffer.cpp
         src/Platform/Vulkan/VulkanUniformBuffer.cpp
         src/Platform/Vulkan/VulkanSwapchain.cpp
-        src/Platform/Vulkan/VulkanRenderPass.cpp
         src/Platform/Vulkan/VulkanHelpers.cpp
         src/Platform/Vulkan/VulkanShaderCompiler.cpp
         src/Platform/Vulkan/VulkanShader.cpp
         src/Platform/Vulkan/VulkanShaderProgram.cpp
         src/Platform/Vulkan/VulkanShaderReflection.cpp
         src/Platform/Vulkan/VulkanPipeline.cpp
-        src/Platform/Vulkan/VulkanFramebuffers.cpp
         src/Platform/Vulkan/VulkanCommandPool.cpp
         src/Platform/Vulkan/VulkanSyncObjects.cpp
         src/Platform/Vulkan/VulkanRenderer.cpp
@@ -51,6 +50,11 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanFrameData.cpp
         src/Platform/Vulkan/VulkanDescriptorAllocator.cpp
         src/Platform/Vulkan/VulkanMaterial.cpp
+        src/Platform/Vulkan/VulkanDeletionQueue.cpp
+        src/Platform/Vulkan/VulkanUploader.cpp
+        src/Platform/Vulkan/VulkanPerFrameBuffer.cpp
+        src/Platform/Vulkan/VulkanImage.cpp
+        src/Platform/Vulkan/VulkanRenderTarget.cpp
 )
 
 target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)

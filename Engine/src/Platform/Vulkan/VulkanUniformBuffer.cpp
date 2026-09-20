@@ -4,21 +4,10 @@
 namespace ByteForge
 {
     VulkanUniformBuffer::VulkanUniformBuffer(const uint32_t size)
-        : m_Size(size)
-    {
-        const uint32_t framesInFlight = VulkanContext::GetFramesInFlight();
-        m_Buffers.reserve(framesInFlight);
-
-        for (uint32_t i = 0; i < framesInFlight; ++i)
-        {
-            m_Buffers.push_back(MakeScope<VulkanBuffer>(
-                VulkanContext::Get().GetAllocator(), size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
-        }
-    }
+        : m_Buffers(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), m_Size(size) {}
 
     void VulkanUniformBuffer::SetData(const void* data, const uint32_t size, const uint32_t offset)
     {
-        const uint32_t frame = VulkanContext::Get().GetCurrentFrameIndex();
-        m_Buffers[frame]->SetData(data, size, offset);
+        m_Buffers.SetData(data, size, offset);
     }
 }

@@ -56,4 +56,70 @@ namespace ByteForge
 
         throw std::runtime_error("Unsupported ShaderDataType for vertex attribute");
     }
+
+    const char* VkFormatToString(const VkFormat format)
+    {
+        switch (format)
+        {
+            case VK_FORMAT_UNDEFINED:      return "none";
+            case VK_FORMAT_B8G8R8A8_UNORM: return "B8G8R8A8_UNORM";
+            case VK_FORMAT_B8G8R8A8_SRGB:  return "B8G8R8A8_SRGB";
+            case VK_FORMAT_R8G8B8A8_UNORM: return "R8G8B8A8_UNORM";
+            case VK_FORMAT_R8G8B8A8_SRGB:  return "R8G8B8A8_SRGB";
+            case VK_FORMAT_D32_SFLOAT:     return "D32_SFLOAT";
+            default:                       return "another format";
+        }
+    }
+
+    VkFormat ImageFormatToVk(const ImageFormat format)
+    {
+        switch (format)
+        {
+            case ImageFormat::None:       return VK_FORMAT_UNDEFINED;
+            case ImageFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+            case ImageFormat::Depth32F:   return VK_FORMAT_D32_SFLOAT;
+            case ImageFormat::Swapchain:  break;
+        }
+
+        throw std::runtime_error("ImageFormat::Swapchain is only valid for PipelineSpec::ColorFormat");
+    }
+
+    VkFormat ToUnormEquivalent(const VkFormat format)
+    {
+        switch (format)
+        {
+            case VK_FORMAT_B8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_UNORM;
+            case VK_FORMAT_R8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_UNORM;
+            default:                      return format;
+        }
+    }
+
+    void CmdImageBarrier(const VkCommandBuffer commandBuffer, const VkImage image,
+                         const VkImageLayout oldLayout, const VkImageLayout newLayout,
+                         const VkPipelineStageFlags2 srcStage, const VkAccessFlags2 srcAccess,
+                         const VkPipelineStageFlags2 dstStage, const VkAccessFlags2 dstAccess,
+                         const VkImageAspectFlags aspect)
+    {
+        const VkImageMemoryBarrier2 barrier{
+            .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask        = srcStage,
+            .srcAccessMask       = srcAccess,
+            .dstStageMask        = dstStage,
+            .dstAccessMask       = dstAccess,
+            .oldLayout           = oldLayout,
+            .newLayout           = newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image               = image,
+            .subresourceRange    = { .aspectMask = aspect, .levelCount = 1, .layerCount = 1 }
+        };
+
+        const VkDependencyInfo dependencyInfo{
+            .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers    = &barrier
+        };
+
+        vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+    }
 }

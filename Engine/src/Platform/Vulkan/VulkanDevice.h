@@ -42,9 +42,11 @@ namespace ByteForge
         void CreateLogicalDevice();
 
         [[nodiscard]] bool IsDeviceSuitable(VkPhysicalDevice device) const;
-        [[nodiscard]] bool CheckDeviceExtensionSupport(VkPhysicalDevice device) const;
         [[nodiscard]] QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
         [[nodiscard]] uint64_t RateDeviceSuitability(VkPhysicalDevice device) const;
+
+        [[nodiscard]] static bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+        [[nodiscard]] static bool CheckFeatureSupport(VkPhysicalDevice device);
 
     private:
         VkInstance m_Instance;

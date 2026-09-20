@@ -3,6 +3,8 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Core/Log.h"
 
+#include <functional>
+
 namespace ByteForge
 {
     class BYTEFORGE_API RendererAPI
@@ -21,6 +23,8 @@ namespace ByteForge
         static API s_API;
     };
 
+    BYTEFORGE_API void DeferRHIDestroy(std::function<void()> destroy);
+
     template<typename TVulkan, typename TBase, typename... Args>
     Ref<TBase> CreateRHIObject(Args&&... args)
     {
@@ -30,7 +34,10 @@ namespace ByteForge
                 CORE_CRITICAL("RendererAPI::None is not supported");
                 return nullptr;
             case RendererAPI::API::Vulkan:
-                return MakeRef<TVulkan>(std::forward<Args>(args)...);
+                return Ref<TBase>(new TVulkan(std::forward<Args>(args)...), [](TBase* object)
+                {
+                    DeferRHIDestroy([object] { delete object; });
+                });
         }
 
         CORE_CRITICAL("Unknown RendererAPI");

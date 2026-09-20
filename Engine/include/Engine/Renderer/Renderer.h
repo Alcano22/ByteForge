@@ -4,6 +4,7 @@
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/Material.h"
 #include "Engine/Renderer/Camera.h"
+#include "Engine/Renderer/RenderTarget.h"
 
 #include <cstddef>
 #include <span>
@@ -31,6 +32,9 @@ namespace ByteForge
                               std::span<const std::byte> pushConstants);
 
         static void EndFrame();
+
+        static void BeginRenderTarget(const Ref<RenderTarget>& target);
+        static void EndRenderTarget();
 
         static void OnWindowResized();
 

@@ -11,19 +11,6 @@
 
 namespace ByteForge
 {
-    namespace
-    {
-        VkFormat ToUnormEquivalent(const VkFormat format)
-        {
-            switch (format)
-            {
-                case VK_FORMAT_B8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_UNORM;
-                case VK_FORMAT_R8G8B8A8_SRGB: return VK_FORMAT_R8G8B8A8_UNORM;
-                default:                      return format;
-            }
-        }
-    }
-
     SwapchainSupportDetails VulkanSwapchain::QuerySwapchainSupport(const VkPhysicalDevice device,
                                                                    const VkSurfaceKHR surface)
     {
