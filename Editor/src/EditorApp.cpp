@@ -115,6 +115,8 @@ public:
         ImGui::End();
     }
 
+    [[nodiscard]] const ByteForge::Ref<ByteForge::Texture2D>& GetLoaded() const { return m_Loaded; }
+
 private:
     ByteForge::Ref<ByteForge::Texture2D> m_CheckerMips;
     ByteForge::Ref<ByteForge::Texture2D> m_CheckerNoMips;
@@ -177,6 +179,54 @@ public:
             }
         )";
 
+        static constexpr const char* texturedVertexSrc = R"(
+            cbuffer CameraUBO : register(b0)
+            {
+                float4x4 u_ViewProjection;
+            };
+
+            struct PushConstants
+            {
+                float4x4 u_Model;
+            };
+            [[vk::push_constant]] PushConstants pc;
+
+            struct VSInput
+            {
+                float2 Position : POSITION;
+                float2 UV       : TEXCOORD0;
+            };
+
+            struct VSOutput
+            {
+                float4 Position : SV_Position;
+                float2 UV       : TEXCOORD0;
+            };
+
+            VSOutput main(VSInput input)
+            {
+                VSOutput output;
+                output.Position = mul(u_ViewProjection, mul(pc.u_Model, float4(input.Position, 0.0, 1.0)));
+                output.UV = input.UV;
+                return output;
+            }
+        )";
+
+        static constexpr const char* texturedFragmentSrc = R"(
+            [[vk::binding(0, 1)]] cbuffer MaterialUBO
+            {
+                float4 u_Tint;
+            };
+
+            [[vk::binding(1, 1)]] Texture2D u_Albedo;
+            [[vk::binding(2, 1)]] SamplerState u_AlbedoSampler;
+
+            float4 main(float2 uv : TEXCOORD0) : SV_Target
+            {
+                return u_Albedo.Sample(u_AlbedoSampler, uv) * u_Tint;
+            }
+        )";
+
         struct Vertex { glm::vec2 Position; glm::vec3 Color; };
 
         const std::vector<Vertex> vertices = {
@@ -215,6 +265,41 @@ public:
         m_BackMaterial = ByteForge::Material::Create(pipeline);
         m_BackMaterial->Set("u_Tint", glm::vec4(0.4f, 0.7f, 1.0f, 1.0f));
 
+        struct TexturedVertex { glm::vec2 Position; glm::vec2 UV; };
+
+        const std::vector<TexturedVertex> texturedVertices = {
+            { { -0.5f, -0.5f }, { 0.0f, 1.0f } },
+            { {  0.5f, -0.5f }, { 1.0f, 1.0f } },
+            { {  0.5f,  0.5f }, { 1.0f, 0.0f } },
+            { { -0.5f,  0.5f }, { 0.0f, 0.0f } },
+        };
+
+        const ByteForge::BufferLayout texturedLayout = {
+            { ByteForge::ShaderDataType::Float2, "Position" },
+            { ByteForge::ShaderDataType::Float2, "UV"       }
+        };
+
+        auto texturedVertexBuffer = ByteForge::VertexBuffer::Create(
+            texturedVertices.data(), static_cast<uint32_t>(texturedVertices.size() * sizeof(TexturedVertex)));
+        texturedVertexBuffer->SetLayout(texturedLayout);
+
+        m_TexturedMesh = ByteForge::MakeRef<ByteForge::Mesh>(texturedVertexBuffer,
+                                                             ByteForge::IndexBuffer::Create(indices));
+
+        const auto texturedShader = ByteForge::Shader::Create(texturedVertexSrc, texturedFragmentSrc);
+        const auto texturedPipeline = ByteForge::Pipeline::Create({
+            .Shader       = texturedShader,
+            .VertexLayout = texturedLayout,
+            .Blend        = ByteForge::BlendMode::Alpha,
+            .ColorFormat  = ByteForge::ImageFormat::RGBA8_SRGB,
+            .DepthFormat  = ByteForge::ImageFormat::Depth32F,
+            .DepthTest    = true,
+            .DepthWrite   = false
+        });
+
+        m_TexturedMaterial = ByteForge::Material::Create(texturedPipeline);
+        m_TexturedMaterial->Set("u_Tint", glm::vec4(1.0f));
+
         m_Target = CreateTarget(m_ViewportSize.x, m_ViewportSize.y);
 
         m_TexturePanel.Init();
@@ -239,6 +324,16 @@ public:
         const glm::mat4 backTransform = glm::translate(glm::mat4(1.0f), { 0.25f, 0.1f, -0.3f })
                                       * glm::rotate(glm::mat4(1.0f), m_Time, { 0.0f, 0.0f, 1.0f });
         ByteForge::Renderer::Submit(m_BackMaterial, m_QuadMesh, backTransform);
+
+        if (const auto& loaded = m_TexturePanel.GetLoaded())
+        {
+            m_TexturedMaterial->Set("u_Albedo", loaded);
+
+            const float aspect = static_cast<float>(loaded->GetWidth()) / static_cast<float>(loaded->GetHeight());
+            const glm::mat4 texturedTransform = glm::translate(glm::mat4(1.0f), { 0.0f, 0.0f, 0.6f })
+                                              * glm::scale(glm::mat4(1.0f), { aspect * 0.9f, 0.9f, 1.0f });
+            ByteForge::Renderer::Submit(m_TexturedMaterial, m_TexturedMesh, texturedTransform);
+        }
 
         ByteForge::Renderer::EndRenderTarget();
     }
@@ -275,8 +370,10 @@ private:
 
 private:
     ByteForge::Ref<ByteForge::Mesh> m_QuadMesh;
+    ByteForge::Ref<ByteForge::Mesh> m_TexturedMesh;
     ByteForge::Ref<ByteForge::Material> m_FrontMaterial;
     ByteForge::Ref<ByteForge::Material> m_BackMaterial;
+    ByteForge::Ref<ByteForge::Material> m_TexturedMaterial;
     ByteForge::Ref<ByteForge::RenderTarget> m_Target;
     ByteForge::OrthographicCamera m_Camera;
     TexturePanel m_TexturePanel;

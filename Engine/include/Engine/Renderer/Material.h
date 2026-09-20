@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Renderer/Pipeline.h"
+#include "Engine/Renderer/Texture2D.h"
 
 #include <cstddef>
 #include <span>
@@ -18,6 +19,10 @@ namespace ByteForge
         [[nodiscard]] virtual const Ref<Pipeline>& GetPipeline() const = 0;
 
         virtual void SetRaw(std::string_view name, std::span<const std::byte> data) = 0;
+
+        virtual void SetTexture(std::string_view name, const Ref<Texture2D>& texture) = 0;
+
+        void Set(const std::string_view name, const Ref<Texture2D>& texture) { SetTexture(name, texture); }
 
         template<typename T>
         void Set(const std::string_view name, const T& value)

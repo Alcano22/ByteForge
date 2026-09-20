@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <optional>
+#include <vector>
 
 namespace ByteForge
 {
@@ -25,9 +25,9 @@ namespace ByteForge
         [[nodiscard]] VkPipelineLayout GetLayoutHandle() const { return m_PipelineLayout; }
 
         [[nodiscard]] VkDescriptorSetLayout GetMaterialSetLayout() const;
-        [[nodiscard]] const ReflectedDescriptorBinding* GetMaterialBinding() const
+        [[nodiscard]] const std::vector<ReflectedDescriptorBinding>& GetMaterialBindings() const
         {
-            return m_MaterialBinding ? &*m_MaterialBinding : nullptr;
+            return m_MaterialBindings;
         }
 
         [[nodiscard]] VkShaderStageFlags GetPushConstantStages() const { return m_PushConstantStages; }
@@ -44,7 +44,7 @@ namespace ByteForge
         const VulkanDevice& m_Device;
 
         Scope<VulkanDescriptorSetLayout> m_MaterialSetLayout;
-        std::optional<ReflectedDescriptorBinding> m_MaterialBinding;
+        std::vector<ReflectedDescriptorBinding> m_MaterialBindings;
 
         VkPipelineLayout m_PipelineLayout = nullptr;
         VkPipeline m_Pipeline = nullptr;

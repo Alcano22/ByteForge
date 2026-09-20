@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <vector>
 
 namespace ByteForge
@@ -24,6 +25,7 @@ namespace ByteForge
         [[nodiscard]] const Ref<Pipeline>& GetPipeline() const override { return m_Pipeline; }
 
         void SetRaw(std::string_view name, std::span<const std::byte> data) override;
+        void SetTexture(std::string_view name, const Ref<Texture2D>& texture) override;
 
         void Flush();
 
@@ -32,10 +34,25 @@ namespace ByteForge
         [[nodiscard]] VkDescriptorSet GetDescriptorSet(uint32_t frameIndex) const;
 
     private:
+        [[nodiscard]] bool WasDrawnThisFrame() const;
+        void WriteTextureDescriptors(uint32_t frame) const;
+
+    private:
+        static constexpr uint32_t NoBinding = std::numeric_limits<uint32_t>::max();
+
+        struct TextureSlot
+        {
+            std::string Name;
+            uint32_t ImageBinding = 0;
+            uint32_t SamplerBinding = NoBinding;
+            Ref<Texture2D> Texture;
+        };
+
         Ref<Pipeline> m_Pipeline;
 
         std::vector<ReflectedBlockMember> m_Members;
         std::vector<std::byte> m_Shadow;
+        std::vector<TextureSlot> m_TextureSlots;
         std::vector<bool> m_FrameDirty;
         Scope<VulkanUniformBuffer> m_Buffer;
         std::vector<VkDescriptorSet> m_Sets;

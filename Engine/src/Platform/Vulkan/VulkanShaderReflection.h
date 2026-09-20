@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ByteForge
@@ -54,6 +55,16 @@ namespace ByteForge
         [[nodiscard]] static ShaderReflection Merge(const ShaderReflection& vertex,
                                                     const ShaderReflection& fragment);
     };
+
+    inline constexpr std::string_view SamplerNameSuffix = "Sampler";
+
+    [[nodiscard]] inline std::string_view TextureNameOfSampler(const std::string_view samplerName)
+    {
+        if (samplerName.size() <= SamplerNameSuffix.size() || !samplerName.ends_with(SamplerNameSuffix))
+            return {};
+
+        return samplerName.substr(0, samplerName.size() - SamplerNameSuffix.size());
+    }
 
     void ValidateVertexLayout(const ShaderReflection& reflection, const BufferLayout& layout);
 }

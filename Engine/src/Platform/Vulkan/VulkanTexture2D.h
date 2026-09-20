@@ -18,6 +18,8 @@ namespace ByteForge
         [[nodiscard]] uint32_t GetHeight() const override { return m_Height; }
         [[nodiscard]] uint32_t GetMipLevels() const override { return m_MipLevels; }
         [[nodiscard]] uint64_t GetImGuiTextureId() override;
+        [[nodiscard]] VkImageView GetView() const { return m_Image->GetView(); }
+        [[nodiscard]] VkSampler GetSampler() const { return m_Sampler; }
 
     private:
         uint32_t m_Width;

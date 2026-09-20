@@ -5,14 +5,17 @@
 #include "Platform/Vulkan/VulkanShaderProgram.h"
 #include "Platform/Vulkan/VulkanFrameData.h"
 #include "Platform/Vulkan/VulkanDescriptorSetLayout.h"
+#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/CameraUniforms.h"
 
+#include <algorithm>
 #include <array>
 #include <format>
 #include <span>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 namespace ByteForge
@@ -92,41 +95,99 @@ namespace ByteForge
             throw std::runtime_error("Unknown BlendMode");
         }
 
+        const char* DescriptorTypeName(const VkDescriptorType type)
+        {
+            switch (type)
+            {
+                case VK_DESCRIPTOR_TYPE_SAMPLER:                return "sampler";
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return "combined image sampler";
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:          return "sampled image";
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:          return "storage image";
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return "uniform buffer";
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:         return "storage buffer";
+                default:                                        return "descriptor";
+            }
+        }
+
         void ValidateShaderResources(const ShaderReflection& reflection)
         {
+            uint32_t uniformBuffers = 0;
+            uint32_t sampledImages = 0;
+            uint32_t samplers = 0;
+
             for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
             {
-                const bool isUniformBuffer = binding.Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-                if (binding.Set == 0 && binding.Binding == 0 && isUniformBuffer)
+                if (binding.Set == 0)
                 {
-                    if (binding.Size > sizeof(CameraUniforms))
+                    if (binding.Binding == 0 && binding.Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                     {
-                        throw std::runtime_error(std::format(
-                            "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
-                            "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(CameraUniforms)));
+                        if (binding.Size > sizeof(CameraUniforms))
+                        {
+                            throw std::runtime_error(std::format(
+                                "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
+                                "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(CameraUniforms)));
+                        }
+                        continue;
+                    }
+
+                    throw std::runtime_error(std::format(
+                        "Unsupported shader resource '{}' ({}, set 0, binding {}): set 0 only holds the camera "
+                        "uniform buffer at binding 0", binding.Name, DescriptorTypeName(binding.Type), binding.Binding));
+                }
+
+                if (binding.Set == 1)
+                {
+                    switch (binding.Type)
+                    {
+                        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: ++uniformBuffers; break;
+                        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:  ++sampledImages;  break;
+                        case VK_DESCRIPTOR_TYPE_SAMPLER:        ++samplers;       break;
+                        default:
+                            throw std::runtime_error(std::format(
+                                "Unsupported shader resource '{}' ({}, set 1, binding {}): materials support one "
+                                "uniform buffer, Texture2D and SamplerState resources",
+                                binding.Name, DescriptorTypeName(binding.Type), binding.Binding));
                     }
                     continue;
                 }
 
-                if (binding.Set == 1 && binding.Binding == 0 && isUniformBuffer) continue;
-
                 throw std::runtime_error(std::format(
-                    "Unsupported shader resource '{}' (set {}, binding {}): for now only a uniform buffer at "
-                    "set 0, binding 0 (camera) and at set 1, binding 0 (material parameters) is supported",
-                    binding.Name, binding.Set, binding.Binding));
+                    "Unsupported shader resource '{}' (set {}, binding {}): only set 0 (camera) and set 1 (material) "
+                    "are supported", binding.Name, binding.Set, binding.Binding));
             }
-        }
 
-        const ReflectedDescriptorBinding* FindMaterialBinding(const ShaderReflection& reflection)
-        {
-            for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
+            if (uniformBuffers > 1)
+                throw std::runtime_error("A material can have at most one uniform buffer (its parameters) in set 1");
+
+            if (sampledImages > VulkanDescriptorAllocator::MaxSampledImagesPerSet ||
+                samplers > VulkanDescriptorAllocator::MaxSamplersPerSet)
             {
-                if (binding.Set == 1)
-                    return &binding;
+                throw std::runtime_error(std::format(
+                    "A material supports at most {} textures and {} samplers, but the shader declares {} and {}",
+                    VulkanDescriptorAllocator::MaxSampledImagesPerSet, VulkanDescriptorAllocator::MaxSamplersPerSet,
+                    sampledImages, samplers));
             }
 
-            return nullptr;
+            for (const ReflectedDescriptorBinding& sampler : reflection.Bindings)
+            {
+                if (sampler.Set != 1 || sampler.Type != VK_DESCRIPTOR_TYPE_SAMPLER) continue;
+
+                const std::string_view textureName = TextureNameOfSampler(sampler.Name);
+                const bool hasTexture = !textureName.empty() &&
+                    std::ranges::any_of(reflection.Bindings, [&](const ReflectedDescriptorBinding& other)
+                    {
+                        return other.Set == 1 && other.Type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+                            && other.Name == textureName;
+                    });
+
+                if (!hasTexture)
+                {
+                    throw std::runtime_error(std::format(
+                        "Sampler '{}' (set 1, binding {}) does not belong to a texture: name a sampler "
+                        "after its texture plus the suffix '{}', e.g. 'u_AlbedoSampler' for 'u_Albedo'",
+                        sampler.Name, sampler.Binding, SamplerNameSuffix));
+                }
+            }
         }
     }
 
@@ -164,18 +225,24 @@ namespace ByteForge
 
     void VulkanPipeline::CreateMaterialSetLayout(const ShaderReflection& reflection)
     {
-        const ReflectedDescriptorBinding* binding = FindMaterialBinding(reflection);
-        if (binding == nullptr) return;
+        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
-        const VkDescriptorSetLayoutBinding layoutBinding{
-            .binding         = binding->Binding,
-            .descriptorType  = binding->Type,
-            .descriptorCount = 1,
-            .stageFlags      = binding->Stages
-        };
+        for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
+        {
+            if (binding.Set != 1) continue;
 
-        m_MaterialSetLayout = MakeScope<VulkanDescriptorSetLayout>(m_Device, std::span(&layoutBinding, 1));
-        m_MaterialBinding = *binding;
+            layoutBindings.push_back({
+                .binding         = binding.Binding,
+                .descriptorType  = binding.Type,
+                .descriptorCount = 1,
+                .stageFlags      = binding.Stages
+            });
+            m_MaterialBindings.push_back(binding);
+        }
+
+        if (layoutBindings.empty()) return;
+
+        m_MaterialSetLayout = MakeScope<VulkanDescriptorSetLayout>(m_Device, layoutBindings);
     }
 
     void VulkanPipeline::CreatePipelineLayout(const ReflectedPushConstants& pushConstants)

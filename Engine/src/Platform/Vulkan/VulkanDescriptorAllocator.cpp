@@ -3,6 +3,7 @@
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
+#include <array>
 #include <format>
 #include <stdexcept>
 
@@ -70,17 +71,18 @@ namespace ByteForge
 
     VkDescriptorPool VulkanDescriptorAllocator::CreatePool() const
     {
-        constexpr VkDescriptorPoolSize poolSize{
-            .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = SetsPerPool * UniformBuffersPerSet
-        };
+        constexpr std::array<VkDescriptorPoolSize, 3> poolSizes({
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SetsPerPool * MaxUniformBuffersPerSet },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  SetsPerPool * MaxSampledImagesPerSet  },
+            { VK_DESCRIPTOR_TYPE_SAMPLER,        SetsPerPool * MaxSamplersPerSet       }
+        });
 
         const VkDescriptorPoolCreateInfo poolInfo{
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
             .maxSets       = SetsPerPool,
-            .poolSizeCount = 1,
-            .pPoolSizes    = &poolSize
+            .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+            .pPoolSizes    = poolSizes.data()
         };
 
         VkDescriptorPool pool = nullptr;

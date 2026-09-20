@@ -27,12 +27,15 @@ namespace ByteForge
         VkResult TryAllocate(VkDescriptorPool pool, VkDescriptorSetLayout layout,
                              std::vector<VkDescriptorSet>& sets) const;
 
+    public:
+        static constexpr uint32_t SetsPerPool = 64;
+        static constexpr uint32_t MaxUniformBuffersPerSet = 4;
+        static constexpr uint32_t MaxSampledImagesPerSet = 8;
+        static constexpr uint32_t MaxSamplersPerSet = 8;
+
     private:
         const VulkanDevice& m_Device;
         std::vector<VkDescriptorPool> m_Pools;
         std::unordered_map<VkDescriptorSet, VkDescriptorPool> m_PoolOfSet;
-
-        static constexpr uint32_t SetsPerPool = 64;
-        static constexpr uint32_t UniformBuffersPerSet = 4;
     };
 }

@@ -2,6 +2,7 @@
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanUploader.h"
+#include "Platform/Vulkan/VulkanSamplerCache.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
@@ -47,16 +48,7 @@ namespace ByteForge
             });
         }
 
-        constexpr VkSamplerCreateInfo samplerInfo{
-            .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter    = VK_FILTER_LINEAR,
-            .minFilter    = VK_FILTER_LINEAR,
-            .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
-        };
-        VK_CHECK(vkCreateSampler(device.GetHandle(), &samplerInfo, nullptr, &m_Sampler));
+        m_Sampler = context.GetSamplerCache().Get(TextureFilter::Linear, TextureWrap::ClampToEdge);
 
         context.GetUploader().TransitionToShaderRead(m_Color->GetHandle());
 
@@ -67,9 +59,6 @@ namespace ByteForge
     {
         if (m_ImGuiTexture != nullptr && ImGui::GetCurrentContext() != nullptr)
             ImGui_ImplVulkan_RemoveTexture(m_ImGuiTexture);
-
-        if (m_Sampler != nullptr)
-            vkDestroySampler(VulkanContext::Get().GetDevice().GetHandle(), m_Sampler, nullptr);
     }
 
     uint64_t VulkanRenderTarget::GetImGuiTextureId()
