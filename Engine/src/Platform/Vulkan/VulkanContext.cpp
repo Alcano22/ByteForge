@@ -16,6 +16,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <utility>
+
 namespace ByteForge
 {
     VulkanContext* VulkanContext::s_Instance = nullptr;
@@ -83,14 +85,13 @@ namespace ByteForge
         if (m_FramebufferResized)
         {
             m_FramebufferResized = false;
-            RecreateSwapchain();
+
+            if (!SwapchainMatchesWindow())
+                RecreateSwapchain();
         }
 
-        if (m_Renderer->BeginFrame() == VulkanRenderer::FrameResult::NeedsRecreation)
-        {
-            RecreateSwapchain();
+        if (m_Renderer->BeginFrame() == VulkanRenderer::FrameResult::NeedsRecreation && RecreateSwapchain())
             m_Renderer->BeginFrame();
-        }
 
         m_FrameData->BeginFrame();
         m_DeletionQueue->Collect();
@@ -117,24 +118,40 @@ namespace ByteForge
         CORE_INFO("Vulkan surface created");
     }
 
-    void VulkanContext::RecreateSwapchain()
+    bool VulkanContext::RecreateSwapchain()
     {
         int width = 0, height = 0;
         glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+
         while (width == 0 || height == 0)
         {
-            glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+            if (glfwWindowShouldClose(m_WindowHandle))
+                return false;
+
             glfwWaitEvents();
+            glfwGetFramebufferSize(m_WindowHandle, &width, &height);
         }
 
         m_Device->WaitIdle();
 
-        m_Swapchain.reset();
-        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle);
+        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle, m_Swapchain->GetHandle());
 
+        m_SyncObjects->RecreateRenderFinished(static_cast<uint32_t>(m_Swapchain->GetImages().size()));
         m_Renderer->UpdateSwapchain(*m_Swapchain);
 
-        CORE_INFO("Swapchain recreated ({}x{})", width, height);
+        m_FramebufferResized = false;
+
+        CORE_INFO("Swapchain recreated ({}x{})", m_Swapchain->GetExtent().width, m_Swapchain->GetExtent().height);
+        return true;
+    }
+
+    bool VulkanContext::SwapchainMatchesWindow() const
+    {
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+
+        const VkExtent2D extent = m_Swapchain->GetExtent();
+        return static_cast<uint32_t>(width) == extent.width && static_cast<uint32_t>(height) == extent.height;
     }
 
     uint32_t VulkanContext::GetCurrentFrameIndex() const { return m_Renderer->GetCurrentFrameIndex(); }

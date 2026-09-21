@@ -20,6 +20,12 @@ namespace ByteForge
         [[nodiscard]] VkSemaphore GetRenderFinished(const size_t imageIndex) const { return m_RenderFinished[imageIndex]; }
         [[nodiscard]] VkFence GetInFlightFence(const size_t frame) const { return m_InFlightFences[frame]; }
 
+        void RecreateRenderFinished(uint32_t imageCount);
+
+    private:
+        void CreateRenderFinished(uint32_t imageCount);
+        void DestroyRenderFinished();
+
     private:
         const VulkanDevice& m_Device;
         std::vector<VkSemaphore> m_ImageAvailable;

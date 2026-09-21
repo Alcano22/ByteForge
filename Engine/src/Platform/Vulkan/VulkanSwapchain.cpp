@@ -37,7 +37,8 @@ namespace ByteForge
         return details;
     }
 
-    VulkanSwapchain::VulkanSwapchain(const VulkanDevice& device, const VkSurfaceKHR surface, GLFWwindow* windowHandle)
+    VulkanSwapchain::VulkanSwapchain(const VulkanDevice& device, const VkSurfaceKHR surface,
+                                     GLFWwindow* windowHandle, const VkSwapchainKHR oldSwapchain)
         : m_Device(device), m_Surface(surface)
     {
         const SwapchainSupportDetails support = QuerySwapchainSupport(m_Device.GetPhysicalDevice(), m_Surface);
@@ -74,7 +75,7 @@ namespace ByteForge
             .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode      = presentMode,
             .clipped          = VK_TRUE,
-            .oldSwapchain     = nullptr,
+            .oldSwapchain     = oldSwapchain,
         };
 
         const auto& indices = m_Device.GetQueueFamilyIndices();

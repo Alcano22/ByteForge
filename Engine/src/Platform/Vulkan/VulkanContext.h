@@ -60,7 +60,9 @@ namespace ByteForge
 
     private:
         void CreateSurface();
-        void RecreateSwapchain();
+        bool RecreateSwapchain();
+
+        [[nodiscard]] bool SwapchainMatchesWindow() const;
 
     private:
         GLFWwindow* m_WindowHandle;

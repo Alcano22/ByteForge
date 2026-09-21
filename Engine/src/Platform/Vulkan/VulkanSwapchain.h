@@ -22,7 +22,8 @@ namespace ByteForge
     class VulkanSwapchain : NonCopyable
     {
     public:
-        VulkanSwapchain(const VulkanDevice& device, VkSurfaceKHR surface, GLFWwindow* windowHandle);
+        VulkanSwapchain(const VulkanDevice& device, VkSurfaceKHR surface, GLFWwindow* windowHandle,
+                        VkSwapchainKHR oldSwapchain = nullptr);
         ~VulkanSwapchain();
 
         [[nodiscard]] VkSwapchainKHR GetHandle() const { return m_Swapchain; }
