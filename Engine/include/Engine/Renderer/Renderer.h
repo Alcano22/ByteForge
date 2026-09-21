@@ -5,6 +5,7 @@
 #include "Engine/Renderer/Material.h"
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/RenderTarget.h"
+#include "Engine/Renderer/DrawRange.h"
 
 #include <cstddef>
 #include <span>
@@ -19,17 +20,21 @@ namespace ByteForge
 
         static void BeginScene(const Camera& camera);
 
-        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh) { SubmitRaw(material, mesh, {}); }
+        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh, const DrawRange& range = {})
+        {
+            SubmitRaw(material, mesh, {}, range);
+        }
 
         template<typename T>
-        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh, const T& pushConstants)
+        static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh,
+                           const T& pushConstants, const DrawRange& range = {})
         {
             static_assert(std::is_trivially_copyable_v<T>, "Push constant data must be trivially copyable");
-            SubmitRaw(material, mesh, std::as_bytes(std::span(&pushConstants, 1)));
+            SubmitRaw(material, mesh, std::as_bytes(std::span(&pushConstants, 1)), range);
         }
 
         static void SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,
-                              std::span<const std::byte> pushConstants);
+                              std::span<const std::byte> pushConstants, const DrawRange& range = {});
 
         static void EndFrame();
 

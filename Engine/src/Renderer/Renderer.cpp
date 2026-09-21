@@ -24,14 +24,14 @@ namespace ByteForge
     }
 
     void Renderer::SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,
-                             const std::span<const std::byte> pushConstants)
+                             const std::span<const std::byte> pushConstants, const DrawRange& range)
     {
         if (!material || !mesh)
             throw std::runtime_error("Renderer::Submit: material and mesh must not be null");
 
         DispatchRHICall([&]
         {
-            VulkanContext::Get().GetRenderer().Submit(*material, *mesh, pushConstants);
+            VulkanContext::Get().GetRenderer().Submit(*material, *mesh, pushConstants, range);
         });
     }
 

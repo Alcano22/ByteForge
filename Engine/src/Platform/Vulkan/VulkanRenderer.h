@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/NonCopyable.h"
+#include "Engine/Renderer/DrawRange.h"
 
 #include <vulkan/vulkan.h>
 
@@ -30,7 +31,8 @@ namespace ByteForge
                        VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, uint32_t framesInFlight);
 
         FrameResult BeginFrame();
-        void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants);
+        void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants,
+                    const DrawRange& range);
         FrameResult EndFrame();
 
         void BeginRenderTarget(const RenderTarget& renderTarget);
@@ -49,7 +51,7 @@ namespace ByteForge
         enum class Pass { None, Swapchain, Target, ImGui };
 
         void RecordDraw(const VulkanMaterial& material, std::span<const std::byte> pushConstants,
-                        VkBuffer vertexBuffer, uint32_t vertexCount, VkBuffer indexBuffer, uint32_t indexCount);
+                        VkBuffer vertexBuffer, VkBuffer indexBuffer, const DrawRange& range);
 
         void BeginSwapchainPass();
         void EnsureSwapchainCleared();

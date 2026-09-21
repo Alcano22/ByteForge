@@ -20,6 +20,30 @@ namespace ByteForge
     namespace
     {
         constexpr VkClearColorValue SwapchainClearColor{ .float32 = { 0.01f, 0.01f, 0.01f, 1.0f } };
+
+        DrawRange ResolveDrawRange(const DrawRange& range, const uint32_t available, const bool indexed)
+        {
+            const char* unit = indexed ? "indices" : "vertices";
+
+            if (range.First > available)
+            {
+                throw std::runtime_error(std::format("Renderer::Submit: the draw range starts at {}, but the "
+                                                     "mesh has only {} {}", range.First, available, unit));
+            }
+
+            DrawRange resolved = range;
+            if (resolved.Count == 0)
+                resolved.Count = available - range.First;
+            else if (range.Count > available - range.First)
+            {
+                throw std::runtime_error(std::format("Renderer::Submit: the draw range [{}, {}) exceeds the {} {} "
+                                                     "of the mesh", range.First,
+                                                     static_cast<uint64_t>(range.First) + range.Count,
+                                                     available, unit));
+            }
+
+            return resolved;
+        }
     }
 
     VulkanRenderer::VulkanRenderer(VulkanDevice& device, VulkanSwapchain& swapchain,
@@ -73,7 +97,8 @@ namespace ByteForge
         return FrameResult::Ok;
     }
 
-    void VulkanRenderer::Submit(Material& material, const Mesh& mesh, const std::span<const std::byte> pushConstants)
+    void VulkanRenderer::Submit(Material& material, const Mesh& mesh, const std::span<const std::byte> pushConstants,
+                                const DrawRange& range)
     {
         auto& vulkanMaterial = static_cast<VulkanMaterial&>(material);
         const VulkanPipeline& pipeline = vulkanMaterial.GetVulkanPipeline();
@@ -90,20 +115,21 @@ namespace ByteForge
         const VkBuffer vertexBufferHandle = vertexBuffer.GetHandleForDraw();
 
         VkBuffer indexBufferHandle = nullptr;
-        uint32_t indexCount = 0;
+        uint32_t available = mesh.GetVertexCount();
         if (mesh.HasIndexBuffer())
         {
             const auto& indexBuffer = static_cast<const VulkanIndexBuffer&>(*mesh.GetIndexBuffer());
             indexBufferHandle = indexBuffer.GetHandle();
-            indexCount = indexBuffer.GetCount();
+            available = indexBuffer.GetCount();
         }
+
+        const DrawRange resolved = ResolveDrawRange(range, available, mesh.HasIndexBuffer());
 
         vulkanMaterial.Flush();
 
-        if (m_FrameSkipped) return;
+        if (m_FrameSkipped || resolved.Count == 0) return;
 
-        RecordDraw(vulkanMaterial, pushConstants, vertexBufferHandle,
-                   mesh.GetVertexCount(), indexBufferHandle, indexCount);
+        RecordDraw(vulkanMaterial, pushConstants, vertexBufferHandle, indexBufferHandle, resolved);
     }
 
     VulkanRenderer::FrameResult VulkanRenderer::EndFrame()
@@ -231,8 +257,8 @@ namespace ByteForge
     }
 
     void VulkanRenderer::RecordDraw(const VulkanMaterial& material, const std::span<const std::byte> pushConstants,
-                                    const VkBuffer vertexBuffer, const uint32_t vertexCount,
-                                    const VkBuffer indexBuffer, const uint32_t indexCount)
+                                    const VkBuffer vertexBuffer, const VkBuffer indexBuffer,
+                                    const DrawRange& range)
     {
         const VulkanPipeline& pipeline = material.GetVulkanPipeline();
 
@@ -277,9 +303,9 @@ namespace ByteForge
         if (indexBuffer != nullptr)
         {
             vkCmdBindIndexBuffer(m_CurrentCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_CurrentCommandBuffer, indexCount, 1, 0, 0, 0);
+            vkCmdDrawIndexed(m_CurrentCommandBuffer, range.Count, 1, range.First, range.VertexOffset, 0);
         } else
-            vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
+            vkCmdDraw(m_CurrentCommandBuffer, range.Count, 1, range.First, 0);
     }
 
     void VulkanRenderer::BeginSwapchainPass()

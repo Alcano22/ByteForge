@@ -17,7 +17,7 @@ namespace ByteForge
         VulkanContext::Get().GetUploader().UploadBuffer(*m_StaticBuffer, vertices, size);
     }
 
-    void VulkanVertexBuffer::SetData(const void* data, const uint32_t size)
+    void VulkanVertexBuffer::SetData(const void* data, const uint32_t size, const uint32_t offset)
     {
         if (!m_StreamingBuffer)
         {
@@ -25,7 +25,7 @@ namespace ByteForge
                                      "immutable, use VertexBuffer::Create(size) for per-frame data");
         }
 
-        m_StreamingBuffer->SetData(data, size);
+        m_StreamingBuffer->SetData(data, size, offset);
         m_LastWriteFrame = VulkanContext::Get().GetFrameData().GetFrameNumber();
     }
 
