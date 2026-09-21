@@ -10,7 +10,7 @@ namespace ByteForge
     enum class EventType
     {
         None = 0,
-        WindowClose, WindowResized,
+        WindowClose, WindowResized, FramebufferResized,
         KeyPressed, KeyReleased, KeyTyped,
         MouseButtonPressed, MouseButtonReleased, MouseScrolled, MouseMoved
     };

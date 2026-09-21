@@ -41,7 +41,7 @@ namespace ByteForge
         static void BeginRenderTarget(const Ref<RenderTarget>& target);
         static void EndRenderTarget();
 
-        static void OnWindowResized();
+        static void OnFramebufferResized();
 
         static void WaitIdle();
 

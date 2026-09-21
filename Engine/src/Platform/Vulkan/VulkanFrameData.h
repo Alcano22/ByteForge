@@ -34,7 +34,7 @@ namespace ByteForge
         void WriteCurrentScene(const CameraUniforms& uniforms) const;
 
     public:
-        static constexpr uint32_t MaxScenesPerFrame = 16;
+        static constexpr uint32_t MaxScenesPerFrame = 128;
 
     private:
         Scope<VulkanDescriptorSetLayout> m_Layout;

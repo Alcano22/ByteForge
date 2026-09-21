@@ -8,8 +8,15 @@
 
 #include <imgui.h>
 
+#include <algorithm>
+
 namespace ByteForge
 {
+    namespace
+    {
+        constexpr double MaxTimestep = 0.1;
+    }
+
     Application* Application::s_Instance = nullptr;
 
     Application::Application(const WindowProps& props)
@@ -34,12 +41,12 @@ namespace ByteForge
 
     void Application::Run()
     {
-        m_LastFrameTime = static_cast<float>(glfwGetTime());
+        m_LastFrameTime = glfwGetTime();
 
         while (m_IsRunning && !m_Window->ShouldClose())
         {
-            const float time = static_cast<float>(glfwGetTime());
-            const Timestep ts = time - m_LastFrameTime;
+            const double time = glfwGetTime();
+            const Timestep ts = static_cast<float>(std::min(time - m_LastFrameTime, MaxTimestep));
             m_LastFrameTime = time;
 
             if (m_ImGuiLayer)
@@ -91,18 +98,40 @@ namespace ByteForge
             return true;
         });
 
-        dispatcher.Dispatch<WindowResizedEvent>([](const WindowResizedEvent& e)
+        dispatcher.Dispatch<FramebufferResizedEvent>([](const FramebufferResizedEvent& e)
         {
             CORE_INFO("Window resized to {}x{}", e.GetWidth(), e.GetHeight());
-            Renderer::OnWindowResized();
+            Renderer::OnFramebufferResized();
             return false;
         });
+
+        if (m_ImGuiLayer && IsCapturedByImGui(event)) return;
 
         for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
         {
             if (event.Handled) break;
 
             (*it)->OnEvent(event);
+        }
+    }
+
+    bool Application::IsCapturedByImGui(const Event& event)
+    {
+        const ImGuiIO& io = ImGui::GetIO();
+
+        switch (event.GetEventType())
+        {
+            case EventType::KeyPressed:
+            case EventType::KeyTyped:
+                return io.WantCaptureKeyboard;
+
+            case EventType::MouseButtonPressed:
+            case EventType::MouseMoved:
+            case EventType::MouseScrolled:
+                return io.WantCaptureMouse;
+
+            default:
+                return false;
         }
     }
 

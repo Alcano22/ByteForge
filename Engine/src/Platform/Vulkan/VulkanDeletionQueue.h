@@ -3,7 +3,7 @@
 #include "Engine/Core/NonCopyable.h"
 
 #include <cstdint>
-#include <queue>
+#include <deque>
 #include <functional>
 
 namespace ByteForge

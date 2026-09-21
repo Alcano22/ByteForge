@@ -36,10 +36,12 @@ namespace ByteForge
 
         [[nodiscard]] uint32_t GetWidth() const { return m_Data.Width; }
         [[nodiscard]] uint32_t GetHeight() const { return m_Data.Height; }
+        [[nodiscard]] uint32_t GetFramebufferWidth() const { return m_Data.FramebufferWidth; }
+        [[nodiscard]] uint32_t GetFramebufferHeight() const { return m_Data.FramebufferHeight; }
         [[nodiscard]] GLFWwindow* GetNativeWindow() const { return m_Window.get(); }
 
     private:
-        void SetupCallbacks();
+        void SetupCallbacks() const;
 
     private:
         struct GlfwWindowDestroyer
@@ -52,6 +54,8 @@ namespace ByteForge
             std::string Title;
             uint32_t Width = 0;
             uint32_t Height = 0;
+            uint32_t FramebufferWidth = 0;
+            uint32_t FramebufferHeight = 0;
             EventCallbackFn EventCallback = [](Event&) {};
         };
 

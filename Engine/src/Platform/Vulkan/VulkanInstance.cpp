@@ -45,10 +45,8 @@ namespace ByteForge
 
     VulkanInstance::~VulkanInstance()
     {
-#ifdef BYTEFORGE_DEBUG
         if (m_DebugMessenger != nullptr)
             DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-#endif
 
         if (m_Instance != nullptr)
             vkDestroyInstance(m_Instance, nullptr);
@@ -57,8 +55,9 @@ namespace ByteForge
     void VulkanInstance::CreateInstance()
     {
 #ifdef BYTEFORGE_DEBUG
-        if (!CheckValidationLayerSupport())
-            throw std::runtime_error("Validation layers requested, but not available");
+        m_ValidationEnabled = CheckValidationLayerSupport();
+        if (!m_ValidationEnabled)
+            CORE_WARN("Continuing without Vulkan validation layers (install them, e.g. with the Vulkan SDK)");
 #endif
 
         constexpr VkApplicationInfo appInfo{
@@ -70,7 +69,7 @@ namespace ByteForge
             .apiVersion         = VK_API_VERSION_1_3
         };
 
-        const std::vector<const char*> extensions = GetRequiredExtensions();
+        const std::vector<const char*> extensions = GetRequiredExtensions(m_ValidationEnabled);
 
         VkInstanceCreateInfo createInfo{
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -79,12 +78,11 @@ namespace ByteForge
             .ppEnabledExtensionNames = extensions.data()
         };
 
-#ifdef BYTEFORGE_DEBUG
-        createInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
-        createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
-#else
-        createInfo.enabledLayerCount = 0;
-#endif
+        if (m_ValidationEnabled)
+        {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+            createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+        }
 
         VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_Instance));
 
@@ -93,9 +91,8 @@ namespace ByteForge
 
     void VulkanInstance::SetupDebugMessenger()
     {
-#ifndef BYTEFORGE_DEBUG
-        return;
-#else
+        if (!m_ValidationEnabled) return;
+
         constexpr VkDebugUtilsMessengerCreateInfoEXT createInfo{
             .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -109,7 +106,6 @@ namespace ByteForge
         VK_CHECK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
 
         CORE_INFO("Vulkan debug messenger attached");
-#endif
     }
 
     VkBool32 VulkanInstance::DebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -164,7 +160,7 @@ namespace ByteForge
         return true;
     }
 
-    std::vector<const char*> VulkanInstance::GetRequiredExtensions()
+    std::vector<const char*> VulkanInstance::GetRequiredExtensions(const bool validationEnabled)
     {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -174,9 +170,10 @@ namespace ByteForge
                                      "check the Vulkan loader's WSI extensions");
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-#ifdef BYTEFORGE_DEBUG
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+
+        if (validationEnabled)
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
         return extensions;
     }
 }

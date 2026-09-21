@@ -75,7 +75,6 @@ target_include_directories(Engine
             ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
-            ${STB_INCLUDE_DIRS}
 )
 
 target_link_libraries(Engine PUBLIC
@@ -85,7 +84,10 @@ target_link_libraries(Engine PUBLIC
         imgui::imgui
 )
 
+target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS})
+
 target_link_libraries(Engine PRIVATE
+        ByteForgeWarnings
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
         Microsoft::DirectXShaderCompiler

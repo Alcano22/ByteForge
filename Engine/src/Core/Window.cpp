@@ -57,6 +57,11 @@ namespace ByteForge
 
         m_Window = WrapScope(rawWindow, GlfwWindowDestroyer{});
 
+        int framebufferWidth = 0, framebufferHeight = 0;
+        glfwGetFramebufferSize(m_Window.get(), &framebufferWidth, &framebufferHeight);
+        m_Data.FramebufferWidth = static_cast<uint32_t>(framebufferWidth);
+        m_Data.FramebufferHeight = static_cast<uint32_t>(framebufferHeight);
+
         glfwSetWindowUserPointer(m_Window.get(), &m_Data);
         SetupCallbacks();
 
@@ -71,7 +76,7 @@ namespace ByteForge
     void Window::PollEvents() const { glfwPollEvents(); }
     bool Window::ShouldClose() const { return glfwWindowShouldClose(m_Window.get()); }
 
-    void Window::SetupCallbacks()
+    void Window::SetupCallbacks() const
     {
         glfwSetWindowCloseCallback(m_Window.get(), [](GLFWwindow* window)
         {
@@ -87,6 +92,16 @@ namespace ByteForge
             data.Height = static_cast<uint32_t>(height);
 
             WindowResizedEvent event(data.Width, data.Height);
+            data.EventCallback(event);
+        });
+
+        glfwSetFramebufferSizeCallback(m_Window.get(), [](GLFWwindow* window, const int width, const int height)
+        {
+            auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            data.FramebufferWidth = static_cast<uint32_t>(width);
+            data.FramebufferHeight = static_cast<uint32_t>(height);
+
+            FramebufferResizedEvent event(data.Width, data.Height);
             data.EventCallback(event);
         });
 

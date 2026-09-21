@@ -1,6 +1,8 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
+#include <Engine/Event/Event.h>
+#include <Engine/Event/ApplicationEvent.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Renderer/OrthographicCamera.h>
 #include <Engine/Renderer/Renderer2D.h>
@@ -70,8 +72,6 @@ public:
         using ByteForge::KeyCode;
         using ByteForge::MouseButton;
 
-        // Space toggles the pause on the press (one edge per key stroke). The counters in the panel show that
-        // pressed and released each fire once per stroke, and not at all while the key is held.
         if (Input::IsKeyPressed(KeyCode::Space))
         {
             m_Paused = !m_Paused;
@@ -84,7 +84,6 @@ public:
         if (!m_Paused)
             m_Time += ts.GetSeconds();
 
-        // WASD and the arrow keys pan while they are held.
         glm::vec2 direction{ 0.0f };
         if (Input::IsKeyDown(KeyCode::W) || Input::IsKeyDown(KeyCode::Up))    direction.y += 1.0f;
         if (Input::IsKeyDown(KeyCode::S) || Input::IsKeyDown(KeyCode::Down))  direction.y -= 1.0f;
@@ -97,8 +96,6 @@ public:
             m_CameraPosition += glm::vec3(direction * m_WorldCamera.GetSize() * 1.5f * ts.GetSeconds(), 0.0f);
         }
 
-        // Dragging with the left mouse button moves the world with the cursor. A pixel is 2 * size / height
-        // world units, and the mouse y axis points down.
         if (Input::IsMouseButtonDown(MouseButton::ButtonLeft))
         {
             const auto windowHeight = static_cast<float>(ByteForge::Application::Get().GetWindow().GetHeight());
@@ -108,7 +105,6 @@ public:
             m_CameraPosition += glm::vec3(-delta.x * worldPerPixel, delta.y * worldPerPixel, 0.0f);
         }
 
-        // The mouse wheel zooms.
         const float scroll = Input::GetScrollDelta().y;
         if (scroll != 0.0f)
             m_WorldCamera.SetSize(std::clamp(m_WorldCamera.GetSize() * (1.0f - scroll * 0.1f), 0.2f, 5.0f));
@@ -180,6 +176,22 @@ public:
         ImGui::Text("Blocked by ImGui: keyboard %s, mouse %s", Input::IsKeyboardBlocked() ? "yes" : "no",
                     Input::IsMouseBlocked() ? "yes" : "no");
         ImGui::End();
+    }
+
+    void OnEvent(ByteForge::Event& event) override
+    {
+        ByteForge::EventDispatcher dispatcher(event);
+
+        dispatcher.Dispatch<ByteForge::FramebufferResizedEvent>([this](const ByteForge::FramebufferResizedEvent& e)
+        {
+            if (e.GetWidth() == 0 || e.GetHeight() == 0)
+                return false;
+
+            const float aspectRatio = static_cast<float>(e.GetWidth()) / static_cast<float>(e.GetHeight());
+            m_WorldCamera.SetAspectRatio(aspectRatio);
+            m_HudCamera.SetAspectRatio(aspectRatio);
+            return false;
+        });
     }
 
 private:

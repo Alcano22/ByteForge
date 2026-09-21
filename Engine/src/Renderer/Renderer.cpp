@@ -56,7 +56,7 @@ namespace ByteForge
         DispatchRHICall([] { VulkanContext::Get().GetRenderer().EndRenderTarget(); });
     }
 
-    void Renderer::OnWindowResized()
+    void Renderer::OnFramebufferResized()
     {
         DispatchRHICall([] { VulkanContext::Get().NotifyFramebufferResized(); });
     }

@@ -35,13 +35,15 @@ namespace ByteForge
     private:
         void OnApplicationEvent(Event& event);
 
+        static bool IsCapturedByImGui(const Event& event);
+
     private:
         Scope<Window> m_Window;
         Scope<ImGuiLayer> m_ImGuiLayer;
         LayerStack m_LayerStack;
 
         bool m_IsRunning = true;
-        float m_LastFrameTime = 0.0f;
+        double m_LastFrameTime = 0.0f;
 
         static Application* s_Instance;
     };
