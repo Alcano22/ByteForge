@@ -10,6 +10,9 @@ namespace ByteForge
 {
     namespace
     {
+        constexpr glm::vec2 WholeTextureUVMin{ 0.0f, 0.0f };
+        constexpr glm::vec2 WholeTextureUVMax{ 1.0f, 1.0f };
+
         constexpr const char* VertexSource = R"(
             cbuffer CameraUBO : register(b0)
             {
@@ -140,29 +143,50 @@ namespace ByteForge
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
     {
-        SubmitQuad(position, size, 0.0f, m_WhiteTexture, color);
+        SubmitQuad(position, size, 0.0f, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
                               const Ref<Texture2D>& texture, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, 0.0f, texture, tint);
+        SubmitQuad(position, size, 0.0f, texture, WholeTextureUVMin, WholeTextureUVMax, tint);
+    }
+
+    void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
+                              const Ref<SubTexture2D>& subTexture, const glm::vec4& tint)
+    {
+        if (!subTexture)
+            throw std::runtime_error("Renderer2D::DrawQuad: the sub-texture must not be null");
+
+        SubmitQuad(position, size, 0.0f, subTexture->GetTexture(),
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size,
                                      const float rotation, const glm::vec4& color)
     {
-        SubmitQuad(position, size, rotation, m_WhiteTexture, color);
+        SubmitQuad(position, size, rotation, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
                                      const Ref<Texture2D>& texture, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, rotation, texture, tint);
+        SubmitQuad(position, size, rotation, texture, WholeTextureUVMin, WholeTextureUVMax, tint);
+    }
+
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+                                     const Ref<SubTexture2D>& subTexture, const glm::vec4& tint)
+    {
+        if (!subTexture)
+            throw std::runtime_error("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
+
+        SubmitQuad(position, size, rotation, subTexture->GetTexture(),
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
     }
 
     void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
-                                const Ref<Texture2D>& texture, const glm::vec4& color)
+                                const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
+                                const glm::vec4& color)
     {
         if (!m_InScene)
             throw std::runtime_error("Renderer2D: quads can only be drawn between BeginScene and EndScene");
@@ -185,8 +209,9 @@ namespace ByteForge
         static constexpr std::array<glm::vec2, VerticesPerQuad> corners{{
             { -0.5f, -0.5f }, { 0.5f, -0.5f }, { 0.5f, 0.5f }, { -0.5f, 0.5f }
         }};
-        static constexpr std::array<glm::vec2, VerticesPerQuad> uvs{{
-            { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f }
+
+        const std::array<glm::vec2, VerticesPerQuad> uvs{{
+            { uvMin.x, uvMax.y }, { uvMax.x, uvMax.y }, { uvMax.x, uvMin.y }, { uvMin.x, uvMin.y }
         }};
 
         const float sine = glm::sin(rotation);

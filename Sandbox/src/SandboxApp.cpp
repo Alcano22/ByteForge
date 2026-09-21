@@ -6,6 +6,7 @@
 #include <Engine/Input/Input.h>
 #include <Engine/Renderer/OrthographicCamera.h>
 #include <Engine/Renderer/Renderer2D.h>
+#include <Engine/Renderer/SubTexture2D.h>
 #include <Engine/Renderer/Texture2D.h>
 
 #include <imgui.h>
@@ -13,6 +14,7 @@
 #include <glm/glm.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -48,6 +50,56 @@ namespace
 
         return ByteForge::Texture2D::Create(size, size, pixels, { .Filter = ByteForge::TextureFilter::Nearest });
     }
+
+    ByteForge::Ref<ByteForge::Texture2D> CreateSpriteSheet()
+    {
+        constexpr uint32_t cols = 4, rows = 2, cellSize = 16;
+        constexpr uint32_t width = cols * cellSize, height = rows * cellSize;
+
+        static constexpr std::array<glm::vec3, cols * rows> palette = {{
+            { 0.9f, 0.2f, 0.2f }, { 0.9f, 0.6f, 0.1f }, { 0.9f, 0.9f, 0.1f }, { 0.3f, 0.9f, 0.2f },
+            { 0.1f, 0.8f, 0.7f }, { 0.2f, 0.4f, 0.9f }, { 0.6f, 0.2f, 0.9f }, { 0.9f, 0.2f, 0.7f },
+        }};
+
+        const auto toByte = [](const float value)
+        {
+            return static_cast<std::byte>(static_cast<uint8_t>(value * 255.0f + 0.5f));
+        };
+
+        std::vector<std::byte> pixels(static_cast<size_t>(width) * height * 4);
+        for (uint32_t y = 0; y < height; ++y)
+        {
+            for (uint32_t x = 0; x < width; ++x)
+            {
+                const uint32_t cellX = x / cellSize, cellY = y / cellSize;
+                const uint32_t cellIndex = cellY * cols + cellX;
+                const uint32_t localX = x % cellSize, localY = y % cellSize;
+
+                const bool border = localX == 0 || localY == 0 || localX == cellSize - 1 || localY == cellSize - 1;
+                const bool topLeftCorner     = localX < 4 && localY < 4;
+                const bool topRightCorner    = localX >= cellSize - 4 && localY < 4;
+                const bool bottomLeftCorner  = localX < 4 && localY >= cellSize - 4;
+                const bool bottomRightCorner = localX >= cellSize - 4 && localY >= cellSize - 4;
+                const bool corners[4] = { topLeftCorner, topRightCorner, bottomLeftCorner, bottomRightCorner };
+
+                glm::vec3 texel = palette[cellIndex] * (border ? 0.5f : 1.0f);
+                for (uint32_t i = 0; i < cellIndex % 5; ++i)
+                {
+                    if (corners[i % 4])
+                        texel = glm::vec3(1.0f);
+                }
+
+                const size_t index = (static_cast<size_t>(y) * width + x) * 4;
+                pixels[index + 0] = toByte(texel.r);
+                pixels[index + 1] = toByte(texel.g);
+                pixels[index + 2] = toByte(texel.b);
+                pixels[index + 3] = std::byte{ 255 };
+            }
+        }
+
+        return ByteForge::Texture2D::Create(width, height, pixels,
+                                            { .Filter = ByteForge::TextureFilter::Nearest, .GenerateMips = false });
+    }
 }
 
 class SandboxLayer : public ByteForge::Layer
@@ -64,6 +116,20 @@ public:
 
         m_TextureA = CreateTestTexture({ 1.0f, 0.6f, 0.1f });
         m_TextureB = CreateTestTexture({ 0.2f, 0.8f, 1.0f });
+
+        m_SpriteSheet = CreateSpriteSheet();
+
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            m_GridCells[i] = ByteForge::SubTexture2D::CreateFromGrid(m_SpriteSheet, { 16.0f, 16.0f },
+                                                                    { static_cast<float>(i % 4),
+                                                                      static_cast<float>(i / 4) });
+        }
+
+        m_PixelCell0 = ByteForge::SubTexture2D::CreateFromPixels(m_SpriteSheet, { 0.0f, 0.0f }, { 16.0f, 16.0f });
+
+        m_BigSprite = ByteForge::SubTexture2D::CreateFromGrid(m_SpriteSheet, { 16.0f, 16.0f }, { 0.0f, 0.0f },
+                                                              { 2.0f, 2.0f });
     }
 
     void OnUpdate(const ByteForge::Timestep ts) override
@@ -143,6 +209,20 @@ public:
 
         m_Renderer2D->DrawRotatedQuad({ 0.0f, 0.0f, 0.0f }, { 0.8f, 0.8f }, m_Time, { 1.0f, 1.0f, 1.0f, 0.5f });
 
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            const glm::vec3 position{ -1.4f + static_cast<float>(i) * 0.2f, -1.0f, 0.0f };
+            m_Renderer2D->DrawQuad(position, { 0.18f, 0.18f }, m_GridCells[i]);
+        }
+
+        m_Renderer2D->DrawQuad({ -1.4f, -1.25f, 0.0f }, { 0.18f, 0.18f }, m_PixelCell0);
+
+        const uint32_t animFrame = static_cast<uint32_t>(m_Time / 0.15f) % 8;
+        m_Renderer2D->DrawRotatedQuad({ 1.3f, -0.9f, 0.0f }, { 0.35f, 0.35f }, m_Time * 0.5f,
+                                      m_GridCells[animFrame], glm::vec4(1.0f));
+
+        m_Renderer2D->DrawQuad({ 1.3f, -0.35f, 0.0f }, { 0.5f, 0.5f }, m_BigSprite);
+
         m_Renderer2D->EndScene();
 
         m_Renderer2D->BeginScene(m_HudCamera);
@@ -198,6 +278,10 @@ private:
     ByteForge::Scope<ByteForge::Renderer2D> m_Renderer2D;
     ByteForge::Ref<ByteForge::Texture2D> m_TextureA;
     ByteForge::Ref<ByteForge::Texture2D> m_TextureB;
+    ByteForge::Ref<ByteForge::Texture2D> m_SpriteSheet;
+    std::array<ByteForge::Ref<ByteForge::SubTexture2D>, 8> m_GridCells;
+    ByteForge::Ref<ByteForge::SubTexture2D> m_PixelCell0;
+    ByteForge::Ref<ByteForge::SubTexture2D> m_BigSprite;
     ByteForge::OrthographicCamera m_WorldCamera;
     ByteForge::OrthographicCamera m_HudCamera;
     glm::vec3 m_CameraPosition{ 0.0f };

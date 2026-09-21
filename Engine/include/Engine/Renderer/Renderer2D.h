@@ -8,6 +8,7 @@
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/Pipeline.h"
 #include "Engine/Renderer/Texture2D.h"
+#include "Engine/Renderer/SubTexture2D.h"
 
 #include <glm/glm.hpp>
 
@@ -44,17 +45,22 @@ namespace ByteForge
         void DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color);
         void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                       const glm::vec4& tint = glm::vec4(1.0f));
+        void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subTexture,
+                      const glm::vec4& tint = glm::vec4(1.0f));
 
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
                              const glm::vec4& color);
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
                              const Ref<Texture2D>& texture, const glm::vec4& tint = glm::vec4(1.0f));
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
+                             const Ref<SubTexture2D>& subTexture, const glm::vec4& tint = glm::vec4(1.0f));
 
         [[nodiscard]] const Renderer2DStats& GetStats() const { return m_Stats; }
 
     private:
         void SubmitQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
-                        const Ref<Texture2D>& texture, const glm::vec4& color);
+                        const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
+                        const glm::vec4& color);
         void Flush();
 
         [[nodiscard]] Ref<Material> GetMaterial(const Ref<Texture2D>& texture);
