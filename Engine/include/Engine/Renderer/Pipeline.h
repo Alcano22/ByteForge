@@ -17,7 +17,7 @@ namespace ByteForge
 
     struct PipelineSpec
     {
-        Ref<Shader> Shader;
+        Ref<ByteForge::Shader> Shader;
         BufferLayout VertexLayout;
         PrimitiveTopology Topology = PrimitiveTopology::TriangleList;
         CullMode Cull = CullMode::None;
