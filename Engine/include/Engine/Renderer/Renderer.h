@@ -44,5 +44,7 @@ namespace ByteForge
         static void OnWindowResized();
 
         static void WaitIdle();
+
+        [[nodiscard]] static uint64_t GetFrameNumber();
     };
 }

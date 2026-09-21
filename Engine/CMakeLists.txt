@@ -25,6 +25,7 @@ add_library(Engine SHARED
         src/Renderer/Material.cpp
         src/Renderer/RenderTarget.cpp
         src/Renderer/Texture2D.cpp
+        src/Renderer/Renderer2D.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/Renderer/OrthographicCamera.cpp

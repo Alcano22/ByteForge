@@ -65,4 +65,11 @@ namespace ByteForge
     {
         DispatchRHICall([] { VulkanContext::Get().GetDevice().WaitIdle(); });
     }
+
+    uint64_t Renderer::GetFrameNumber()
+    {
+        uint64_t frame = 0;
+        DispatchRHICall([&] { frame = VulkanContext::Get().GetFrameData().GetFrameNumber(); });
+        return frame;
+    }
 }
