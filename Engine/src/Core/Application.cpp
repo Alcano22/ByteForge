@@ -1,6 +1,7 @@
 #include "Engine/Core/Application.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Event/ApplicationEvent.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Renderer/Renderer.h"
 
 #include <GLFW/glfw3.h>
@@ -41,6 +42,13 @@ namespace ByteForge
             const Timestep ts = time - m_LastFrameTime;
             m_LastFrameTime = time;
 
+            if (m_ImGuiLayer)
+            {
+                const ImGuiIO& io = ImGui::GetIO();
+                Input::SetKeyboardBlocked(io.WantCaptureKeyboard);
+                Input::SetMouseBlocked(io.WantCaptureMouse);
+            }
+
             Renderer::BeginFrame();
 
             for (const auto& layer : m_LayerStack)
@@ -55,6 +63,8 @@ namespace ByteForge
             }
 
             Renderer::EndFrame();
+
+            Input::EndFrame();
 
             m_Window->PollEvents();
         }
@@ -71,6 +81,8 @@ namespace ByteForge
 
     void Application::OnApplicationEvent(Event& event)
     {
+        Input::OnEvent(event);
+
         EventDispatcher dispatcher(event);
 
         dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent&)

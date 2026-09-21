@@ -17,7 +17,7 @@ namespace ByteForge
         vkGetPhysicalDeviceProperties(device.GetPhysicalDevice(), &props);
 
         const uint32_t alignment = static_cast<uint32_t>(props.limits.minUniformBufferOffsetAlignment);
-        m_SliceStride = static_cast<uint32_t>((sizeof(CameraUniforms) + alignment - 1) / alignment * alignment)2;
+        m_SliceStride = static_cast<uint32_t>((sizeof(CameraUniforms) + alignment - 1) / alignment * alignment);
 
         const VkDescriptorSetLayoutBinding binding{
             .binding         = 0,

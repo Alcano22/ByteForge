@@ -1,6 +1,7 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
+#include <Engine/Input/Input.h>
 #include <Engine/Renderer/OrthographicCamera.h>
 #include <Engine/Renderer/Renderer2D.h>
 #include <Engine/Renderer/Texture2D.h>
@@ -9,6 +10,7 @@
 
 #include <glm/glm.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -64,9 +66,60 @@ public:
 
     void OnUpdate(const ByteForge::Timestep ts) override
     {
-        m_Time += ts.GetSeconds();
+        using ByteForge::Input;
+        using ByteForge::KeyCode;
+        using ByteForge::MouseButton;
 
-        m_WorldCamera.SetPosition({ glm::sin(m_Time) * 0.2f, 0.0f, 0.0f });
+        // Space toggles the pause on the press (one edge per key stroke). The counters in the panel show that
+        // pressed and released each fire once per stroke, and not at all while the key is held.
+        if (Input::IsKeyPressed(KeyCode::Space))
+        {
+            m_Paused = !m_Paused;
+            ++m_SpacePressed;
+        }
+
+        if (Input::IsKeyReleased(KeyCode::Space))
+            ++m_SpaceReleased;
+
+        if (!m_Paused)
+            m_Time += ts.GetSeconds();
+
+        // WASD and the arrow keys pan while they are held.
+        glm::vec2 direction{ 0.0f };
+        if (Input::IsKeyDown(KeyCode::W) || Input::IsKeyDown(KeyCode::Up))    direction.y += 1.0f;
+        if (Input::IsKeyDown(KeyCode::S) || Input::IsKeyDown(KeyCode::Down))  direction.y -= 1.0f;
+        if (Input::IsKeyDown(KeyCode::D) || Input::IsKeyDown(KeyCode::Right)) direction.x += 1.0f;
+        if (Input::IsKeyDown(KeyCode::A) || Input::IsKeyDown(KeyCode::Left))  direction.x -= 1.0f;
+
+        if (direction != glm::vec2(0.0f))
+        {
+            direction = glm::normalize(direction);
+            m_CameraPosition += glm::vec3(direction * m_WorldCamera.GetSize() * 1.5f * ts.GetSeconds(), 0.0f);
+        }
+
+        // Dragging with the left mouse button moves the world with the cursor. A pixel is 2 * size / height
+        // world units, and the mouse y axis points down.
+        if (Input::IsMouseButtonDown(MouseButton::ButtonLeft))
+        {
+            const auto windowHeight = static_cast<float>(ByteForge::Application::Get().GetWindow().GetHeight());
+            const float worldPerPixel = 2.0f * m_WorldCamera.GetSize() / windowHeight;
+            const glm::vec2 delta = Input::GetMouseDelta();
+
+            m_CameraPosition += glm::vec3(-delta.x * worldPerPixel, delta.y * worldPerPixel, 0.0f);
+        }
+
+        // The mouse wheel zooms.
+        const float scroll = Input::GetScrollDelta().y;
+        if (scroll != 0.0f)
+            m_WorldCamera.SetSize(std::clamp(m_WorldCamera.GetSize() * (1.0f - scroll * 0.1f), 0.2f, 5.0f));
+
+        if (Input::IsKeyPressed(KeyCode::R))
+        {
+            m_CameraPosition = glm::vec3(0.0f);
+            m_WorldCamera.SetSize(1.0f);
+        }
+
+        m_WorldCamera.SetPosition(m_CameraPosition);
 
         m_Renderer2D->BeginScene(m_WorldCamera);
 
@@ -103,6 +156,9 @@ public:
 
     void OnImGuiRender() override
     {
+        using ByteForge::Input;
+        using ByteForge::KeyCode;
+
         const ByteForge::Renderer2DStats& stats = m_Renderer2D->GetStats();
         const float framerate = ImGui::GetIO().Framerate;
 
@@ -111,6 +167,18 @@ public:
         ImGui::Text("Quads: %u", stats.Quads);
         ImGui::Text("Draw calls: %u", stats.DrawCalls);
         ImGui::Text("Frame time: %.2f ms (%.0f FPS)", 1000.0f / framerate, framerate);
+
+        ImGui::SeparatorText("Input");
+        ImGui::TextUnformatted("WASD / arrows: pan, left drag: pan, wheel: zoom, Space: pause, R: reset");
+        ImGui::Text("Space: %s, pressed %u x, released %u x, paused: %s",
+                    Input::IsKeyDown(KeyCode::Space) ? "down" : "up", m_SpacePressed, m_SpaceReleased,
+                    m_Paused ? "yes" : "no");
+
+        const glm::vec2 mouse = Input::GetMousePosition();
+        const glm::vec2 delta = Input::GetMouseDelta();
+        ImGui::Text("Mouse: %.0f, %.0f (delta %.0f, %.0f)", mouse.x, mouse.y, delta.x, delta.y);
+        ImGui::Text("Blocked by ImGui: keyboard %s, mouse %s", Input::IsKeyboardBlocked() ? "yes" : "no",
+                    Input::IsMouseBlocked() ? "yes" : "no");
         ImGui::End();
     }
 
@@ -120,8 +188,12 @@ private:
     ByteForge::Ref<ByteForge::Texture2D> m_TextureB;
     ByteForge::OrthographicCamera m_WorldCamera;
     ByteForge::OrthographicCamera m_HudCamera;
+    glm::vec3 m_CameraPosition{ 0.0f };
     int m_GridSize = 40;
     float m_Time = 0.0f;
+    bool m_Paused = false;
+    uint32_t m_SpacePressed = 0;
+    uint32_t m_SpaceReleased = 0;
 };
 
 ByteForge::Application* ByteForge::CreateApplication()

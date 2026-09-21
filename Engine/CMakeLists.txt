@@ -13,6 +13,7 @@ add_library(Engine SHARED
         src/Core/Application.cpp
         src/Core/Window.cpp
         src/Core/LayerStack.cpp
+        src/Input/Input.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp
@@ -26,9 +27,9 @@ add_library(Engine SHARED
         src/Renderer/RenderTarget.cpp
         src/Renderer/Texture2D.cpp
         src/Renderer/Renderer2D.cpp
+        src/Renderer/OrthographicCamera.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
-        src/Renderer/OrthographicCamera.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp
         src/Platform/Vulkan/VulkanDevice.cpp
