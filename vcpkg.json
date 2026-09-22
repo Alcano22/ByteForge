@@ -20,6 +20,7 @@
       ]
     },
     "spirv-reflect",
-    "stb"
+    "stb",
+    "entt"
   ]
 }

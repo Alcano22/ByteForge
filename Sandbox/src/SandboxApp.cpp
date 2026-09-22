@@ -1,13 +1,16 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
-#include <Engine/Event/Event.h>
 #include <Engine/Event/ApplicationEvent.h>
+#include <Engine/Event/Event.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Renderer/OrthographicCamera.h>
 #include <Engine/Renderer/Renderer2D.h>
 #include <Engine/Renderer/SubTexture2D.h>
 #include <Engine/Renderer/Texture2D.h>
+#include <Engine/Scene/Components.h>
+#include <Engine/Scene/Entity.h>
+#include <Engine/Scene/Scene.h>
 
 #include <imgui.h>
 
@@ -17,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace
@@ -100,6 +104,23 @@ namespace
         return ByteForge::Texture2D::Create(width, height, pixels,
                                             { .Filter = ByteForge::TextureFilter::Nearest, .GenerateMips = false });
     }
+
+    ByteForge::Entity SpawnSprite(ByteForge::Scene& scene, const std::string& name, const glm::vec3& position,
+                                  const glm::vec2& scale, const ByteForge::Ref<ByteForge::SubTexture2D>& subTexture,
+                                  const glm::vec4& tint = glm::vec4(1.0f))
+    {
+        const ByteForge::Entity entity = scene.CreateEntity(name);
+
+        auto& transform = entity.GetComponent<ByteForge::TransformComponent>();
+        transform.Position = position;
+        transform.Scale = scale;
+
+        auto& sprite = entity.AddComponent<ByteForge::SpriteRendererComponent>();
+        sprite.SubTexture = subTexture;
+        sprite.Color = tint;
+
+        return entity;
+    }
 }
 
 class SandboxLayer : public ByteForge::Layer
@@ -114,22 +135,46 @@ public:
     {
         m_Renderer2D = ByteForge::MakeScope<ByteForge::Renderer2D>(ByteForge::Renderer2DSpec{ .MaxQuads = 50000 });
 
-        m_TextureA = CreateTestTexture({ 1.0f, 0.6f, 0.1f });
-        m_TextureB = CreateTestTexture({ 0.2f, 0.8f, 1.0f });
-
-        m_SpriteSheet = CreateSpriteSheet();
+        const auto textureA = CreateTestTexture({ 1.0f, 0.6f, 0.1f });
+        const auto textureB = CreateTestTexture({ 0.2f, 0.8f, 1.0f });
+        const auto spriteSheet = CreateSpriteSheet();
 
         for (uint32_t i = 0; i < 8; ++i)
         {
-            m_GridCells[i] = ByteForge::SubTexture2D::CreateFromGrid(m_SpriteSheet, { 16.0f, 16.0f },
+            m_GridCells[i] = ByteForge::SubTexture2D::CreateFromGrid(spriteSheet, { 16.0f, 16.0f },
                                                                     { static_cast<float>(i % 4),
                                                                       static_cast<float>(i / 4) });
         }
 
-        m_PixelCell0 = ByteForge::SubTexture2D::CreateFromPixels(m_SpriteSheet, { 0.0f, 0.0f }, { 16.0f, 16.0f });
+        SpawnSprite(m_WorldScene, "TextureA_1", { -1.35f, 0.5f, 0.0f }, { 0.6f, 0.6f },
+                   ByteForge::SubTexture2D::Create(textureA));
+        SpawnSprite(m_WorldScene, "TextureA_2", { -1.35f, -0.5f, 0.0f }, { 0.6f, 0.6f },
+                   ByteForge::SubTexture2D::Create(textureA));
+        SpawnSprite(m_WorldScene, "TextureB_1", { 1.35f, 0.5f, 0.0f }, { 0.6f, 0.6f },
+                   ByteForge::SubTexture2D::Create(textureB));
 
-        m_BigSprite = ByteForge::SubTexture2D::CreateFromGrid(m_SpriteSheet, { 16.0f, 16.0f }, { 0.0f, 0.0f },
-                                                              { 2.0f, 2.0f });
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            const glm::vec3 position{ -1.4f + static_cast<float>(i) * 0.2f, -1.0f, 0.0f };
+            SpawnSprite(m_WorldScene, "GridCell_" + std::to_string(i), position, { 0.18f, 0.18f }, m_GridCells[i]);
+        }
+
+        const auto pixelCell0 = ByteForge::SubTexture2D::CreateFromPixels(spriteSheet, { 0.0f, 0.0f }, { 16.0f, 16.0f });
+        SpawnSprite(m_WorldScene, "PixelCell0Check", { -1.4f, -1.25f, 0.0f }, { 0.18f, 0.18f }, pixelCell0);
+
+        const auto bigSprite = ByteForge::SubTexture2D::CreateFromGrid(spriteSheet, { 16.0f, 16.0f }, { 0.0f, 0.0f },
+                                                                       { 2.0f, 2.0f });
+        SpawnSprite(m_WorldScene, "BigSprite", { 1.3f, -0.35f, 0.0f }, { 0.5f, 0.5f }, bigSprite);
+
+        m_RotatingQuad = m_WorldScene.CreateEntity("RotatingQuad");
+        m_RotatingQuad.GetComponent<ByteForge::TransformComponent>().Scale = { 0.8f, 0.8f };
+        m_RotatingQuad.AddComponent<ByteForge::SpriteRendererComponent>().Color = { 1.0f, 1.0f, 1.0f, 0.5f };
+
+        m_AnimatedSprite = SpawnSprite(m_WorldScene, "AnimatedSprite", { 1.3f, -0.9f, 0.0f }, { 0.35f, 0.35f },
+                                       m_GridCells[0]);
+
+        SpawnSprite(m_HudScene, "HudMarker", { -1.6f, 0.85f, 0.0f }, { 0.2f, 0.2f },
+                   nullptr, { 1.0f, 0.2f, 0.2f, 1.0f });
     }
 
     void OnUpdate(const ByteForge::Timestep ts) override
@@ -183,6 +228,19 @@ public:
 
         m_WorldCamera.SetPosition(m_CameraPosition);
 
+        // No systems yet, so per-frame behavior is applied by hand: look the entity up again (cheap, it is
+        // just a stored handle) and mutate its components directly.
+        m_RotatingQuad.GetComponent<ByteForge::TransformComponent>().Rotation = m_Time;
+
+        auto& animatedTransform = m_AnimatedSprite.GetComponent<ByteForge::TransformComponent>();
+        animatedTransform.Rotation = m_Time * 0.5f;
+
+        const uint32_t animFrame = static_cast<uint32_t>(m_Time / 0.15f) % 8;
+        m_AnimatedSprite.GetComponent<ByteForge::SpriteRendererComponent>().SubTexture = m_GridCells[animFrame];
+
+        // The procedural color grid is bulk, generated content with no per-entity identity, so it stays on the
+        // raw Renderer2D path rather than becoming thousands of entities. It gets its own scene pass, since
+        // Scene::OnUpdate below owns its own BeginScene/EndScene span.
         m_Renderer2D->BeginScene(m_WorldCamera);
 
         const auto gridSize = static_cast<float>(m_GridSize);
@@ -203,31 +261,10 @@ public:
             }
         }
 
-        m_Renderer2D->DrawQuad({ -1.35f,  0.5f, 0.0f }, { 0.6f, 0.6f }, m_TextureA);
-        m_Renderer2D->DrawQuad({ -1.35f, -0.5f, 0.0f }, { 0.6f, 0.6f }, m_TextureA);
-        m_Renderer2D->DrawQuad({  1.35f,  0.5f, 0.0f }, { 0.6f, 0.6f }, m_TextureB);
-
-        m_Renderer2D->DrawRotatedQuad({ 0.0f, 0.0f, 0.0f }, { 0.8f, 0.8f }, m_Time, { 1.0f, 1.0f, 1.0f, 0.5f });
-
-        for (uint32_t i = 0; i < 8; ++i)
-        {
-            const glm::vec3 position{ -1.4f + static_cast<float>(i) * 0.2f, -1.0f, 0.0f };
-            m_Renderer2D->DrawQuad(position, { 0.18f, 0.18f }, m_GridCells[i]);
-        }
-
-        m_Renderer2D->DrawQuad({ -1.4f, -1.25f, 0.0f }, { 0.18f, 0.18f }, m_PixelCell0);
-
-        const uint32_t animFrame = static_cast<uint32_t>(m_Time / 0.15f) % 8;
-        m_Renderer2D->DrawRotatedQuad({ 1.3f, -0.9f, 0.0f }, { 0.35f, 0.35f }, m_Time * 0.5f,
-                                      m_GridCells[animFrame], glm::vec4(1.0f));
-
-        m_Renderer2D->DrawQuad({ 1.3f, -0.35f, 0.0f }, { 0.5f, 0.5f }, m_BigSprite);
-
         m_Renderer2D->EndScene();
 
-        m_Renderer2D->BeginScene(m_HudCamera);
-        m_Renderer2D->DrawQuad({ -1.6f, 0.85f, 0.0f }, { 0.2f, 0.2f }, { 1.0f, 0.2f, 0.2f, 1.0f });
-        m_Renderer2D->EndScene();
+        m_WorldScene.OnUpdate(*m_Renderer2D, m_WorldCamera);
+        m_HudScene.OnUpdate(*m_Renderer2D, m_HudCamera);
     }
 
     void OnImGuiRender() override
@@ -276,12 +313,11 @@ public:
 
 private:
     ByteForge::Scope<ByteForge::Renderer2D> m_Renderer2D;
-    ByteForge::Ref<ByteForge::Texture2D> m_TextureA;
-    ByteForge::Ref<ByteForge::Texture2D> m_TextureB;
-    ByteForge::Ref<ByteForge::Texture2D> m_SpriteSheet;
+    ByteForge::Scene m_WorldScene;
+    ByteForge::Scene m_HudScene;
+    ByteForge::Entity m_RotatingQuad;
+    ByteForge::Entity m_AnimatedSprite;
     std::array<ByteForge::Ref<ByteForge::SubTexture2D>, 8> m_GridCells;
-    ByteForge::Ref<ByteForge::SubTexture2D> m_PixelCell0;
-    ByteForge::Ref<ByteForge::SubTexture2D> m_BigSprite;
     ByteForge::OrthographicCamera m_WorldCamera;
     ByteForge::OrthographicCamera m_HudCamera;
     glm::vec3 m_CameraPosition{ 0.0f };

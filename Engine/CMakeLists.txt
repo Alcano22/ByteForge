@@ -7,6 +7,7 @@ find_package(directx-dxc CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(unofficial-spirv-reflect CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -14,6 +15,8 @@ add_library(Engine SHARED
         src/Core/Window.cpp
         src/Core/LayerStack.cpp
         src/Input/Input.cpp
+        src/Scene/UUID.cpp
+        src/Scene/Scene.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp
@@ -83,6 +86,7 @@ target_link_libraries(Engine PUBLIC
         glm::glm
         spdlog::spdlog
         imgui::imgui
+        EnTT::EnTT
 )
 
 target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS})
