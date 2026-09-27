@@ -36,6 +36,12 @@ namespace ByteForge
         }
 
         template<typename T>
+        [[nodiscard]] T* TryGetComponent() const
+        {
+            return IsValid() ? m_Scene->m_Registry.try_get<T>(m_Handle) : nullptr;
+        }
+
+        template<typename T>
         [[nodiscard]] bool HasComponent() const
         {
             return IsValid() && m_Scene->m_Registry.all_of<T>(m_Handle);
@@ -52,6 +58,7 @@ namespace ByteForge
 
         [[nodiscard]] UUID GetUUID() const { return GetComponent<UUIDComponent>().ID; }
         [[nodiscard]] const std::string& GetTag() const { return GetComponent<TagComponent>().Tag; }
+        [[nodiscard]] Scene& GetScene() const { return *m_Scene; }
 
         [[nodiscard]] bool IsValid() const { return m_Scene != nullptr && m_Scene->m_Registry.valid(m_Handle); }
         [[nodiscard]] explicit operator bool() const { return IsValid(); }
@@ -65,6 +72,7 @@ namespace ByteForge
 
     private:
         friend class Scene;
+        friend class Physics2DWorld;
 
         entt::entity m_Handle{ entt::null };
         Scene* m_Scene = nullptr;

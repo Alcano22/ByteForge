@@ -21,6 +21,7 @@
     },
     "spirv-reflect",
     "stb",
-    "entt"
+    "entt",
+    "box2d"
   ]
 }

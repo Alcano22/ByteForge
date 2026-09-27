@@ -8,6 +8,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(unofficial-spirv-reflect CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
+find_package(box2d CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -17,6 +18,8 @@ add_library(Engine SHARED
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
+        src/Scene/Components.cpp
+        src/Scene/Physics2DWorld.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp
@@ -97,6 +100,7 @@ target_link_libraries(Engine PRIVATE
         GPUOpen::VulkanMemoryAllocator
         Microsoft::DirectXShaderCompiler
         unofficial::spirv-reflect
+        box2d::box2d
 )
 
 if (UNIX AND NOT APPLE)

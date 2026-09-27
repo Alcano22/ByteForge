@@ -10,6 +10,7 @@ target_compile_options(ByteForgeWarnings INTERFACE
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wno-missing-field-initializers>
         $<$<CXX_COMPILER_ID:MSVC>:/W4>
 )
+target_compile_definitions(ByteForgeWarnings INTERFACE GLM_ENABLE_EXPERIMENTAL)
 
 option(BYTEFORGE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 if (BYTEFORGE_WARNINGS_AS_ERRORS)
