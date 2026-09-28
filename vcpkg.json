@@ -16,12 +16,14 @@
       "name": "imgui",
       "features": [
         "glfw-binding",
-        "vulkan-binding"
+        "vulkan-binding",
+        "docking-experimental"
       ]
     },
     "spirv-reflect",
     "stb",
     "entt",
-    "box2d"
+    "box2d",
+    "nlohmann-json"
   ]
 }

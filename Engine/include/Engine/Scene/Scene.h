@@ -27,12 +27,12 @@ namespace ByteForge
         Entity CreateEntity(const std::string& name = std::string());
         void DestroyEntity(Entity entity);
 
-        void OnUpdate(Timestep ts, Renderer2D& renderer2D, const Camera& camera);
+        void OnUpdateEditor(Timestep ts, Renderer2D& renderer, const Camera& camera);
+        void OnUpdateRuntime(Timestep ts, Renderer2D& renderer, const Camera& camera);
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
                                              float maxDistance) const;
 
-    private:
         template<typename... Components, typename Func>
         void Each(Func func)
         {
@@ -42,6 +42,11 @@ namespace ByteForge
                     Entity(handle, this), m_Registry.get<Components>(handle)...));
             }
         }
+
+        void Clear();
+
+    private:
+        void RenderScene(Renderer2D& renderer, const Camera& camera);
 
         static void DispatchSensorEvent(Entity self, Entity other, bool entered);
         static void DispatchCollisionEvent(Entity self, Entity other, bool entered);

@@ -9,6 +9,7 @@ find_package(unofficial-spirv-reflect CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(box2d CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -18,6 +19,7 @@ add_library(Engine SHARED
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
+        src/Scene/SceneSerializer.cpp
         src/Scene/Components.cpp
         src/Scene/Physics2DWorld.cpp
         src/Renderer/RendererAPI.cpp
@@ -90,6 +92,7 @@ target_link_libraries(Engine PUBLIC
         spdlog::spdlog
         imgui::imgui
         EnTT::EnTT
+        nlohmann_json::nlohmann_json
 )
 
 target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS})

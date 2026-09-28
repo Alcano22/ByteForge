@@ -1,384 +1,212 @@
+#include "Editor/EditorContext.h"
+#include "Editor/Panels/InspectorPanel.h"
+#include "Editor/Panels/SceneHierarchyPanel.h"
+#include "Editor/Panels/ViewportPanel.h"
+
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
-#include <Engine/Renderer/Buffer.h>
-#include <Engine/Renderer/Material.h>
-#include <Engine/Renderer/Mesh.h>
-#include <Engine/Renderer/OrthographicCamera.h>
-#include <Engine/Renderer/Pipeline.h>
-#include <Engine/Renderer/Renderer.h>
-#include <Engine/Renderer/RenderTarget.h>
-#include <Engine/Renderer/Shader.h>
-#include <Engine/Renderer/Texture2D.h>
-
-#include <imgui.h>
+#include <Engine/Core/Log.h>
+#include <Engine/Scene/Components.h>
+#include <Engine/Scene/Entity.h>
+#include <Engine/Scene/Scene.h>
+#include <Engine/Scene/SceneSerializer.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <algorithm>
-#include <cstddef>
-#include <exception>
-#include <string>
-#include <vector>
+#include <imgui.h>
 
 namespace
 {
-    ByteForge::Ref<ByteForge::Texture2D> CreateCheckerTexture(const bool generateMips)
+    ByteForge::Entity SpawnBox(ByteForge::Scene& scene, const std::string& name,
+                               const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
     {
-        constexpr uint32_t size = 256;
+        const ByteForge::Entity entity = scene.CreateEntity(name);
 
-        std::vector<std::byte> pixels(static_cast<size_t>(size) * size * 4);
-        for (uint32_t y = 0; y < size; ++y)
-        {
-            for (uint32_t x = 0; x < size; ++x)
-            {
-                const auto value = static_cast<std::byte>(((x + y) % 2 == 0) ? 255 : 0);
-                const size_t index = (static_cast<size_t>(y) * size + x) * 4;
-                pixels[index + 0] = value;
-                pixels[index + 1] = value;
-                pixels[index + 2] = value;
-                pixels[index + 3] = std::byte{ 255 };
-            }
-        }
+        auto& transform = entity.GetComponent<ByteForge::TransformComponent>();
+        transform.Position = position;
+        transform.Scale = size;
 
-        return ByteForge::Texture2D::Create(size, size, pixels, {
-            .Format       = ByteForge::ImageFormat::RGBA8_UNORM,
-            .GenerateMips = generateMips
-        });
+        entity.AddComponent<ByteForge::SpriteRendererComponent>().Color = color;
+
+        return entity;
     }
 
-    void ShowTexture(ByteForge::Texture2D& texture, const ImVec2 size)
+    template<typename T>
+    void PanelMenuItem(ByteForge::EditorContext& context, const char* label)
     {
-        ImGui::Image(static_cast<ImTextureID>(texture.GetImGuiTextureId()), size);
+        const bool open = context.IsOpen<T>();
+        if (ImGui::MenuItem(label, nullptr, open))
+        {
+            if (open)
+                context.Close<T>();
+            else
+                context.Open<T>();
+        }
     }
 }
-
-class TexturePanel
-{
-public:
-    void Init()
-    {
-        m_CheckerMips = CreateCheckerTexture(true);
-        m_CheckerNoMips = CreateCheckerTexture(false);
-    }
-
-    void OnImGuiRender()
-    {
-        ImGui::Begin("Textures");
-
-        ImGui::SeparatorText("Mipmaps");
-        ImGui::SliderFloat("Display size", &m_DisplaySize, 8.0f, 256.0f, "%.0f px");
-
-        ImGui::BeginGroup();
-        ImGui::Text("With mips (%u levels)", m_CheckerMips->GetMipLevels());
-        ShowTexture(*m_CheckerMips, ImVec2(m_DisplaySize, m_DisplaySize));
-        ImGui::EndGroup();
-
-        ImGui::SameLine();
-
-        ImGui::BeginGroup();
-        ImGui::Text("Without mips (%u level)", m_CheckerNoMips->GetMipLevels());
-        ShowTexture(*m_CheckerNoMips, ImVec2(m_DisplaySize, m_DisplaySize));
-        ImGui::EndGroup();
-
-        ImGui::SeparatorText("Load from file");
-        ImGui::InputText("Path", m_Path, sizeof(m_Path));
-
-        if (ImGui::Button("Load"))
-        {
-            try
-            {
-                m_Loaded = ByteForge::Texture2D::Load(m_Path);
-                m_Error.clear();
-            }
-            catch (const std::exception& e)
-            {
-                m_Error = e.what();
-            }
-        }
-
-        if (!m_Error.empty())
-            ImGui::TextWrapped("%s", m_Error.c_str());
-
-        if (m_Loaded)
-        {
-            const uint32_t width = m_Loaded->GetWidth();
-            const uint32_t height = m_Loaded->GetHeight();
-
-            ImGui::Text("%ux%u, %u mip levels", width, height, m_Loaded->GetMipLevels());
-
-            const float scale = std::min(1.0f, 256.0f / static_cast<float>(std::max(width, height)));
-            ShowTexture(*m_Loaded, ImVec2(static_cast<float>(width) * scale, static_cast<float>(height) * scale));
-        }
-
-        ImGui::End();
-    }
-
-    [[nodiscard]] const ByteForge::Ref<ByteForge::Texture2D>& GetLoaded() const { return m_Loaded; }
-
-private:
-    ByteForge::Ref<ByteForge::Texture2D> m_CheckerMips;
-    ByteForge::Ref<ByteForge::Texture2D> m_CheckerNoMips;
-    ByteForge::Ref<ByteForge::Texture2D> m_Loaded;
-    std::string m_Error;
-    char m_Path[512] = "test_image.png";
-    float m_DisplaySize = 100.0f;
-};
 
 class EditorLayer : public ByteForge::Layer
 {
 public:
     EditorLayer()
-        : Layer("EditorLayer"), m_Camera(1.0f, 1280.0f / 720.0f, -1.0f, 1.0f) {}
+        : Layer("EditorLayer") {}
 
     void OnAttach() override
     {
-        static constexpr const char* vertexSrc = R"(
-            cbuffer CameraUBO : register(b0)
-            {
-                float4x4 u_ViewProjection;
-            };
+        m_Context.ActiveScene = &m_Scene;
 
-            struct PushConstants
-            {
-                float4x4 u_Model;
-            };
-            [[vk::push_constant]] PushConstants pc;
+        m_Context.Open<ByteForge::ViewportPanel>();
+        m_Context.Open<ByteForge::SceneHierarchyPanel>();
+        m_Context.Open<ByteForge::InspectorPanel>();
 
-            struct VSInput
-            {
-                float2 Position : POSITION;
-                float3 Color    : COLOR;
-            };
+        ByteForge::Entity ground = SpawnBox(m_Scene, "Ground", { 0.0f, -3.0f, 0.0f }, { 16.0f, 1.0f }, { 0.35f, 0.35f, 0.4f, 1.0f });
+        ground.AddComponent<ByteForge::Rigidbody2DComponent>();
+        ground.AddComponent<ByteForge::BoxCollider2DComponent>().Size = { 16.0f, 1.0f };
 
-            struct VSOutput
-            {
-                float4 Position : SV_Position;
-                float3 Color    : COLOR;
-            };
+        ByteForge::Entity box1 = SpawnBox(m_Scene, "Box1", { -1.5f, 3.0f, 0.0f }, { 1.0f, 1.0f }, { 0.9f, 0.6f, 0.2f, 1.0f });
+        auto& box1Rb = box1.AddComponent<ByteForge::Rigidbody2DComponent>();
+        box1Rb.Type = ByteForge::Rigidbody2DComponent::BodyType::Dynamic;
+        box1.AddComponent<ByteForge::BoxCollider2DComponent>();
 
-            VSOutput main(VSInput input)
-            {
-                VSOutput output;
-                output.Position = mul(u_ViewProjection, mul(pc.u_Model, float4(input.Position, 0.0, 1.0)));
-                output.Color = input.Color;
-                return output;
-            }
-        )";
-
-        static constexpr const char* fragmentSrc = R"(
-            [[vk::binding(0, 1)]] cbuffer MaterialUBO
-            {
-                float4 u_Tint;
-            };
-
-            float4 main(float3 color : COLOR) : SV_Target
-            {
-                return float4(color * u_Tint.rgb, 1.0);
-            }
-        )";
-
-        static constexpr const char* texturedVertexSrc = R"(
-            cbuffer CameraUBO : register(b0)
-            {
-                float4x4 u_ViewProjection;
-            };
-
-            struct PushConstants
-            {
-                float4x4 u_Model;
-            };
-            [[vk::push_constant]] PushConstants pc;
-
-            struct VSInput
-            {
-                float2 Position : POSITION;
-                float2 UV       : TEXCOORD0;
-            };
-
-            struct VSOutput
-            {
-                float4 Position : SV_Position;
-                float2 UV       : TEXCOORD0;
-            };
-
-            VSOutput main(VSInput input)
-            {
-                VSOutput output;
-                output.Position = mul(u_ViewProjection, mul(pc.u_Model, float4(input.Position, 0.0, 1.0)));
-                output.UV = input.UV;
-                return output;
-            }
-        )";
-
-        static constexpr const char* texturedFragmentSrc = R"(
-            [[vk::binding(0, 1)]] cbuffer MaterialUBO
-            {
-                float4 u_Tint;
-            };
-
-            [[vk::binding(1, 1)]] Texture2D u_Albedo;
-            [[vk::binding(2, 1)]] SamplerState u_AlbedoSampler;
-
-            float4 main(float2 uv : TEXCOORD0) : SV_Target
-            {
-                return u_Albedo.Sample(u_AlbedoSampler, uv) * u_Tint;
-            }
-        )";
-
-        struct Vertex { glm::vec2 Position; glm::vec3 Color; };
-
-        const std::vector<Vertex> vertices = {
-            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-            { {  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-            { {  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f } },
-            { { -0.5f,  0.5f }, { 1.0f, 1.0f, 0.0f } },
-        };
-
-        const std::vector<uint32_t> indices = { 0, 1, 2, 2, 3, 0 };
-
-        const ByteForge::BufferLayout layout = {
-            { ByteForge::ShaderDataType::Float2, "Position" },
-            { ByteForge::ShaderDataType::Float3, "Color"    }
-        };
-
-        auto vertexBuffer = ByteForge::VertexBuffer::Create(vertices.data(),
-                                                            static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
-        vertexBuffer->SetLayout(layout);
-
-        m_QuadMesh = ByteForge::MakeRef<ByteForge::Mesh>(vertexBuffer, ByteForge::IndexBuffer::Create(indices));
-
-        const auto shader = ByteForge::Shader::Create(vertexSrc, fragmentSrc);
-        const auto pipeline = ByteForge::Pipeline::Create({
-            .Shader       = shader,
-            .VertexLayout = layout,
-            .ColorFormat  = ByteForge::ImageFormat::RGBA8_SRGB,
-            .DepthFormat  = ByteForge::ImageFormat::Depth32F,
-            .DepthTest    = true,
-            .DepthWrite   = true
-        });
-
-        m_FrontMaterial = ByteForge::Material::Create(pipeline);
-        m_FrontMaterial->Set("u_Tint", glm::vec4(1.0f));
-
-        m_BackMaterial = ByteForge::Material::Create(pipeline);
-        m_BackMaterial->Set("u_Tint", glm::vec4(0.4f, 0.7f, 1.0f, 1.0f));
-
-        struct TexturedVertex { glm::vec2 Position; glm::vec2 UV; };
-
-        const std::vector<TexturedVertex> texturedVertices = {
-            { { -0.5f, -0.5f }, { 0.0f, 1.0f } },
-            { {  0.5f, -0.5f }, { 1.0f, 1.0f } },
-            { {  0.5f,  0.5f }, { 1.0f, 0.0f } },
-            { { -0.5f,  0.5f }, { 0.0f, 0.0f } },
-        };
-
-        const ByteForge::BufferLayout texturedLayout = {
-            { ByteForge::ShaderDataType::Float2, "Position" },
-            { ByteForge::ShaderDataType::Float2, "UV"       }
-        };
-
-        auto texturedVertexBuffer = ByteForge::VertexBuffer::Create(
-            texturedVertices.data(), static_cast<uint32_t>(texturedVertices.size() * sizeof(TexturedVertex)));
-        texturedVertexBuffer->SetLayout(texturedLayout);
-
-        m_TexturedMesh = ByteForge::MakeRef<ByteForge::Mesh>(texturedVertexBuffer,
-                                                             ByteForge::IndexBuffer::Create(indices));
-
-        const auto texturedShader = ByteForge::Shader::Create(texturedVertexSrc, texturedFragmentSrc);
-        const auto texturedPipeline = ByteForge::Pipeline::Create({
-            .Shader       = texturedShader,
-            .VertexLayout = texturedLayout,
-            .Blend        = ByteForge::BlendMode::Alpha,
-            .ColorFormat  = ByteForge::ImageFormat::RGBA8_SRGB,
-            .DepthFormat  = ByteForge::ImageFormat::Depth32F,
-            .DepthTest    = true,
-            .DepthWrite   = false
-        });
-
-        m_TexturedMaterial = ByteForge::Material::Create(texturedPipeline);
-        m_TexturedMaterial->Set("u_Tint", glm::vec4(1.0f));
-
-        m_Target = CreateTarget(m_ViewportSize.x, m_ViewportSize.y);
-
-        m_TexturePanel.Init();
+        SpawnBox(m_Scene, "Box2", { 1.5f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.3f, 0.5f, 0.9f, 1.0f });
     }
 
-    void OnUpdate(const ByteForge::Timestep ts) override
-    {
-        m_Time += ts.GetSeconds();
-
-        if (m_ViewportSize.x != m_Target->GetWidth() || m_ViewportSize.y != m_Target->GetHeight())
-        {
-            m_Target = CreateTarget(m_ViewportSize.x, m_ViewportSize.y);
-            m_Camera.SetAspectRatio(static_cast<float>(m_ViewportSize.x) / static_cast<float>(m_ViewportSize.y));
-        }
-
-        ByteForge::Renderer::BeginRenderTarget(m_Target);
-        ByteForge::Renderer::BeginScene(m_Camera);
-
-        constexpr glm::mat4 frontTransform = glm::translate(glm::mat4(1.0f), { -0.25f, 0.0f, 0.3f });
-        ByteForge::Renderer::Submit(m_FrontMaterial, m_QuadMesh, frontTransform);
-
-        const glm::mat4 backTransform = glm::translate(glm::mat4(1.0f), { 0.25f, 0.1f, -0.3f })
-                                      * glm::rotate(glm::mat4(1.0f), m_Time, { 0.0f, 0.0f, 1.0f });
-        ByteForge::Renderer::Submit(m_BackMaterial, m_QuadMesh, backTransform);
-
-        if (const auto& loaded = m_TexturePanel.GetLoaded())
-        {
-            m_TexturedMaterial->Set("u_Albedo", loaded);
-
-            const float aspect = static_cast<float>(loaded->GetWidth()) / static_cast<float>(loaded->GetHeight());
-            const glm::mat4 texturedTransform = glm::translate(glm::mat4(1.0f), { 0.0f, 0.0f, 0.6f })
-                                              * glm::scale(glm::mat4(1.0f), { aspect * 0.9f, 0.9f, 1.0f });
-            ByteForge::Renderer::Submit(m_TexturedMaterial, m_TexturedMesh, texturedTransform);
-        }
-
-        ByteForge::Renderer::EndRenderTarget();
-    }
+    void OnUpdate(const ByteForge::Timestep ts) override { m_Context.OnUpdate(ts); }
 
     void OnImGuiRender() override
     {
-        ImGui::Begin("Hello, Editor!");
-        ImGui::Text("Render target: %ux%u", m_Target->GetWidth(), m_Target->GetHeight());
-        ImGui::End();
+        DrawDockSpace();
+        m_Context.OnImGuiRender();
+    }
 
+private:
+    void DrawDockSpace()
+    {
+        constexpr ImGuiWindowFlags hostFlags = ImGuiWindowFlags_MenuBar
+                                             | ImGuiWindowFlags_NoDocking
+                                             | ImGuiWindowFlags_NoTitleBar
+                                             | ImGuiWindowFlags_NoCollapse
+                                             | ImGuiWindowFlags_NoResize
+                                             | ImGuiWindowFlags_NoMove
+                                             | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                             | ImGuiWindowFlags_NoNavFocus;
+
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Viewport");
 
-        const ImVec2 available = ImGui::GetContentRegionAvail();
-        if (available.x >= 1.0f && available.y >= 1.0f)
+        ImGui::Begin("DockSpaceHost", nullptr, hostFlags);
+        ImGui::PopStyleVar(3);
+
+        if (ImGui::BeginMenuBar())
         {
-            m_ViewportSize = { static_cast<uint32_t>(available.x), static_cast<uint32_t>(available.y) };
+            if (ImGui::BeginMenu("File"))
+            {
+                const bool editing = m_Context.IsEditing();
+                if (ImGui::MenuItem("Save Scene", nullptr, false, editing))
+                    SaveScene();
+                if (ImGui::MenuItem("Load Scene", nullptr, false, editing))
+                    LoadScene();
+                ImGui::EndMenu();
+            }
 
-            const auto textureId = static_cast<ImTextureID>(m_Target->GetImGuiTextureId());
-            ImGui::Image(textureId, available);
+            if (ImGui::BeginMenu("View"))
+            {
+                PanelMenuItem<ByteForge::ViewportPanel>(m_Context, "Viewport");
+                PanelMenuItem<ByteForge::SceneHierarchyPanel>(m_Context, "Scene Hierarchy");
+                PanelMenuItem<ByteForge::InspectorPanel>(m_Context, "Inspector");
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
         }
 
+        DrawToolbar();
+
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
+            ImGui::DockSpace(ImGui::GetID("EditorDockSpace"));
+
         ImGui::End();
-        ImGui::PopStyleVar();
-
-        m_TexturePanel.OnImGuiRender();
     }
 
-private:
-    static ByteForge::Ref<ByteForge::RenderTarget> CreateTarget(const uint32_t width, const uint32_t height)
+    void DrawToolbar()
     {
-        return ByteForge::RenderTarget::Create({ .Width = width, .Height = height });
+        ImGui::Separator();
+
+        const float buttonHeight = ImGui::GetFrameHeight();
+        const float buttonWidth = buttonHeight * 2.5f;
+        const bool isEditing = m_Context.IsEditing();
+        const bool isPlaying = m_Context.IsPlaying();
+        const bool isPaused = m_Context.IsPaused();
+
+        const int buttonCount = isPaused ? 4 : 3;
+        const float groupWidth = buttonWidth * static_cast<float>(buttonCount)
+                               + ImGui::GetStyle().ItemSpacing.x * static_cast<float>(buttonCount - 1);
+        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - groupWidth) * 0.5f);
+
+        ImGui::BeginDisabled(isPlaying || isPaused);
+        if (ImGui::Button("Play", ImVec2(buttonWidth, buttonHeight)))
+            m_Context.OnScenePlay();
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(isEditing);
+        if (ImGui::Button(isPaused ? "Resume" : "Pause", ImVec2(buttonWidth, buttonHeight)))
+        {
+            if (isPaused)
+                m_Context.OnSceneResume();
+            else
+                m_Context.OnScenePause();
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(isEditing);
+        if (ImGui::Button("Stop", ImVec2(buttonWidth, buttonHeight)))
+            m_Context.OnSceneStop();
+        ImGui::EndDisabled();
+
+        if (isPaused)
+        {
+            ImGui::SameLine();
+            if (ImGui::Button("Step", ImVec2(buttonWidth, buttonHeight)))
+                m_Context.OnSceneStep();
+        }
+    }
+
+    void SaveScene()
+    {
+        try
+        {
+            ByteForge::SceneSerializer::SerializeToFile(m_Scene, "scene.json");
+            APP_INFO("Scene saved to 'scene.json'");
+        } catch (const std::exception& e)
+        {
+            APP_ERROR("Failed to save scene: {}", e.what());
+        }
+    }
+
+    void LoadScene()
+    {
+        if (!ByteForge::SceneSerializer::DeserializeFromFile(m_Scene, "scene.json"))
+        {
+            APP_ERROR("Failed to load scene from 'scene.json'");
+            return;
+        }
+
+        m_Context.SelectionContext = ByteForge::Entity{};
+        APP_INFO("Scene loaded from 'scene.json'");
     }
 
 private:
-    ByteForge::Ref<ByteForge::Mesh> m_QuadMesh;
-    ByteForge::Ref<ByteForge::Mesh> m_TexturedMesh;
-    ByteForge::Ref<ByteForge::Material> m_FrontMaterial;
-    ByteForge::Ref<ByteForge::Material> m_BackMaterial;
-    ByteForge::Ref<ByteForge::Material> m_TexturedMaterial;
-    ByteForge::Ref<ByteForge::RenderTarget> m_Target;
-    ByteForge::OrthographicCamera m_Camera;
-    TexturePanel m_TexturePanel;
-    glm::uvec2 m_ViewportSize{ 1280, 720 };
-    float m_Time = 0.0f;
+    ByteForge::EditorContext m_Context;
+    ByteForge::Scene m_Scene;
 };
 
 ByteForge::Application* ByteForge::CreateApplication()

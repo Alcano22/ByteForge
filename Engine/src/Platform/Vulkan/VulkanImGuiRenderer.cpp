@@ -20,6 +20,10 @@ namespace ByteForge
         const auto& device = context.GetDevice();
 
         ImGui::CreateContext();
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
         ImGui::StyleColorsDark();
 
         ImGui_ImplGlfw_InitForVulkan(windowHandle, true);

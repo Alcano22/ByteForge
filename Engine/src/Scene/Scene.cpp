@@ -7,6 +7,16 @@
 
 #include <stdexcept>
 
+namespace
+{
+    template<typename T>
+    void CopyComponent(entt::registry& dst, const entt::registry& src)
+    {
+        for (const auto entity : src.view<T>())
+            dst.emplace_or_replace<T>(entity, src.get<T>(entity));
+    }
+}
+
 namespace ByteForge
 {
     Scene::Scene()
@@ -29,7 +39,34 @@ namespace ByteForge
         m_Registry.destroy(entity.m_Handle);
     }
 
-    void Scene::OnUpdate(const Timestep ts, Renderer2D& renderer2D, const Camera& camera)
+    void Scene::RenderScene(Renderer2D& renderer, const Camera& camera)
+    {
+        renderer.BeginScene(camera);
+
+        const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
+        for (const auto handle : view)
+        {
+            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
+            if (spriteRenderer.SubTexture)
+            {
+                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
+                                         spriteRenderer.SubTexture, spriteRenderer.Color);
+            } else
+            {
+                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
+                                         spriteRenderer.Color);
+            }
+        }
+
+        renderer.EndScene();
+    }
+
+    void Scene::OnUpdateEditor(Timestep, Renderer2D& renderer, const Camera& camera)
+    {
+        RenderScene(renderer, camera);
+    }
+
+    void Scene::OnUpdateRuntime(const Timestep ts, Renderer2D& renderer, const Camera& camera)
     {
         m_PhysicsWorld->EnsureBodiesCreated(*this);
 
@@ -39,7 +76,7 @@ namespace ByteForge
 
             if (script.m_Instance == nullptr)
             {
-                throw std::runtime_error("Scene::OnUpdate: an entity has an unbound NativeScriptComponent; "
+                throw std::runtime_error("Scene::OnUpdateRuntime: an entity has an unbound NativeScriptComponent; "
                                          "call Bind<T>() right after AddComponent<NativeScriptComponent>()");
             }
 
@@ -55,22 +92,13 @@ namespace ByteForge
 
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
 
-        renderer2D.BeginScene(camera);
+        RenderScene(renderer, camera);
+    }
 
-        const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
-        for (const auto handle : view)
-        {
-            const auto& [transform, sprite] = view.get<TransformComponent, SpriteRendererComponent>(handle);
-
-            if (sprite.SubTexture)
-            {
-                renderer2D.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                           sprite.SubTexture, sprite.Color);
-            } else
-                renderer2D.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation, sprite.Color);
-        }
-
-        renderer2D.EndScene();
+    void Scene::Clear()
+    {
+        m_Registry.clear();
+        m_PhysicsWorld = MakeScope<Physics2DWorld>();
     }
 
     void Scene::DispatchSensorEvent(const Entity self, const Entity other, const bool entered)
