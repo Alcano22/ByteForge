@@ -2,6 +2,7 @@
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/Panels/ViewportPanel.h"
+#include "Editor/Panels/AssetsPanel.h"
 
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
@@ -65,6 +66,7 @@ public:
         m_Context.Open<ByteForge::ViewportPanel>();
         m_Context.Open<ByteForge::SceneHierarchyPanel>();
         m_Context.Open<ByteForge::InspectorPanel>();
+        m_Context.Open<ByteForge::AssetsPanel>();
 
         ByteForge::Entity ground = SpawnBox(m_Scene, "Ground", { 0.0f, -3.0f, 0.0f }, { 16.0f, 1.0f }, { 0.35f, 0.35f, 0.4f, 1.0f });
         ground.AddComponent<ByteForge::Rigidbody2DComponent>();
@@ -127,6 +129,7 @@ private:
                 PanelMenuItem<ByteForge::ViewportPanel>(m_Context, "Viewport");
                 PanelMenuItem<ByteForge::SceneHierarchyPanel>(m_Context, "Scene Hierarchy");
                 PanelMenuItem<ByteForge::InspectorPanel>(m_Context, "Inspector");
+                PanelMenuItem<ByteForge::AssetsPanel>(m_Context, "Assets");
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
