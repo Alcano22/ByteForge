@@ -64,7 +64,7 @@ namespace ByteForge
         } catch (const std::runtime_error&)
         {
             throw std::runtime_error(std::format("SubTexture2D::CreateFromGrid: cell ({}, {}) with size ({}, {}) "
-                                                 "cells exdeeds the {}x{} texture", coords.x, coords.y,
+                                                 "cells exceeds the {}x{} texture", coords.x, coords.y,
                                                  spriteSize.x, spriteSize.y, texture->GetWidth(), texture->GetHeight()));
         }
     }

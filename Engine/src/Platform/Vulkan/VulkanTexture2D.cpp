@@ -18,7 +18,7 @@ namespace ByteForge
 {
     VulkanTexture2D::VulkanTexture2D(const uint32_t width, const uint32_t height,
                                      const std::span<const std::byte> pixels, const TextureSettings& settings)
-        : m_Width(width), m_Height(height)
+        : m_Width(width), m_Height(height), m_Filter(settings.Filter)
     {
         if (width == 0 || height == 0)
             throw std::runtime_error("Texture2D: width and height must be greater than zero");
@@ -89,8 +89,7 @@ namespace ByteForge
             const VkImageView displayView = m_Image->GetAlternateView() != nullptr
                                           ? m_Image->GetAlternateView() : m_Image->GetView();
 
-            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(m_Sampler, displayView,
-                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(displayView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         return reinterpret_cast<uint64_t>(m_ImGuiTexture);

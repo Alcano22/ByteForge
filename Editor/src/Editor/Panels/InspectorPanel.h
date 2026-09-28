@@ -3,11 +3,14 @@
 #include "Editor/EditorPanel.h"
 
 #include <Engine/Scene/Entity.h>
+#include <Engine/Scene/UUID.h>
 
 #include <imgui.h>
 
 namespace ByteForge
 {
+    struct AssetMetadata;
+
     class InspectorPanel : public EditorPanel
     {
     public:
@@ -38,5 +41,8 @@ namespace ByteForge
                 ImGui::TreePop();
             }
         }
+
+        void DrawAsset(UUID handle) const;
+        void DrawTextureSettings(const AssetMetadata& metadata) const;
     };
 }

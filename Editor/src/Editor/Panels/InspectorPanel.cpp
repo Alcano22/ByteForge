@@ -1,15 +1,58 @@
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/EditorContext.h"
 
+#include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/AssetType.h>
+#include <Engine/Assets/AssetManager.h>
 #include <Engine/Scene/Components.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <magic_enum/magic_enum.hpp>
 
 #include <array>
 #include <cstring>
 #include <string>
+#include <span>
+#include <variant>
+
+namespace
+{
+    template<typename... Ts>
+    struct Overloaded : Ts...
+    {
+        using Ts::operator()...;
+    };
+
+    template<typename... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+
+    template<typename T>
+    bool EnumCombo(const char* label, T& value, const std::span<const T> options)
+    {
+        bool changed = false;
+
+        if (ImGui::BeginCombo(label, std::string(magic_enum::enum_name(value)).c_str()))
+        {
+            for (const T option : options)
+            {
+                const bool selected = option == value;
+                if (ImGui::Selectable(std::string(magic_enum::enum_name(option)).c_str(), selected) && !selected)
+                {
+                    value = option;
+                    changed = true;
+                }
+
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        return changed;
+    }
+}
 
 namespace ByteForge
 {
@@ -22,11 +65,17 @@ namespace ByteForge
             return;
         }
 
-        const Entity selection = GetContext().SelectionContext;
-        if (selection.IsValid())
-            DrawComponents(selection);
-        else
-            ImGui::TextDisabled("No entity selected");
+        std::visit(Overloaded{
+            [](std::monostate) { ImGui::TextDisabled("Nothing selected"); },
+            [](const Entity entity)
+            {
+                if (entity.IsValid())
+                    DrawComponents(entity);
+                else
+                    ImGui::TextDisabled("Nothing selected");
+            },
+            [this](const AssetSelection& asset) { DrawAsset(asset.Handle); }
+        }, GetContext().SelectionContext.Get());
 
         ImGui::End();
     }
@@ -96,5 +145,42 @@ namespace ByteForge
             ImGui::DragFloat("Restitution", &collider.Restitution, 0.02f, 0.0f, 1.0f);
             ImGui::Checkbox("Is Sensor", &collider.IsSensor);
         });
+    }
+
+    void InspectorPanel::DrawAsset(const UUID handle) const
+    {
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata))
+        {
+            ImGui::TextDisabled("Asset no longer exists");
+            return;
+        }
+
+        ImGui::TextUnformatted(metadata.Path.filename().string().c_str());
+        ImGui::TextDisabled("%s", AssetTypeToString(metadata.Type));
+        ImGui::Separator();
+
+        switch (metadata.Type)
+        {
+            case AssetType::Texture2D: DrawTextureSettings(metadata); break;
+            case AssetType::None:      break;
+        }
+    }
+
+    void InspectorPanel::DrawTextureSettings(const AssetMetadata& metadata) const
+    {
+        const TextureSettings* stored = metadata.GetSettings<TextureSettings>();
+        TextureSettings settings = stored != nullptr ? *stored : TextureSettings{};
+
+        constexpr std::array<ImageFormat, 2> formats{ ImageFormat::RGBA8_SRGB, ImageFormat::RGBA8_UNORM };
+
+        bool changed = false;
+        changed |= EnumCombo<ImageFormat>("Format", settings.Format, formats);
+        changed |= EnumCombo<TextureFilter>("Filter", settings.Filter, magic_enum::enum_values<TextureFilter>());
+        changed |= EnumCombo<TextureWrap>("Wrap", settings.Wrap, magic_enum::enum_values<TextureWrap>());
+        changed |= ImGui::Checkbox("Generate Mips", &settings.GenerateMips);
+
+        if (changed)
+            GetContext().ApplyTextureSettings(metadata.Handle, settings);
     }
 }

@@ -72,7 +72,7 @@ public:
         ground.AddComponent<ByteForge::Rigidbody2DComponent>();
         ground.AddComponent<ByteForge::BoxCollider2DComponent>().Size = { 16.0f, 1.0f };
 
-        ByteForge::Entity box1 = SpawnBox(m_Scene, "Box1", { -1.5f, 3.0f, 0.0f }, { 1.0f, 1.0f }, { 0.9f, 0.6f, 0.2f, 1.0f }, "checker.png");
+        ByteForge::Entity box1 = SpawnBox(m_Scene, "Box1", { -1.5f, 3.0f, 0.0f }, { 1.0f, 1.0f }, { 0.9f, 0.6f, 0.2f, 1.0f }, "textures/checker.png");
         auto& box1Rb = box1.AddComponent<ByteForge::Rigidbody2DComponent>();
         box1Rb.Type = ByteForge::Rigidbody2DComponent::BodyType::Dynamic;
         box1.AddComponent<ByteForge::BoxCollider2DComponent>();
@@ -210,7 +210,7 @@ private:
             return;
         }
 
-        m_Context.SelectionContext = ByteForge::Entity{};
+        m_Context.SelectionContext.ClearEntity();
         APP_INFO("Scene loaded from 'scene.json'");
     }
 

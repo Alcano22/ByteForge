@@ -1,9 +1,11 @@
 #include "Editor/Panels/AssetsPanel.h"
+#include "Editor/EditorContext.h"
 
+#include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
-#include <Engine/Core/Log.h>
+#include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
 
@@ -76,7 +78,6 @@ namespace ByteForge
         if (m_PendingDirectory)
         {
             m_CurrentDirectory = *m_PendingDirectory;
-            m_SelectedPath.clear();
             m_PendingDirectory.reset();
             m_RefreshRequested = true;
         }
@@ -128,10 +129,15 @@ namespace ByteForge
                 return a.IsDirectory;
             return a.Name < b.Name;
         });
+
+        for (Entry& entry : m_Entries)
+        {
+            if (!entry.IsDirectory && AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::None)
+                entry.Handle = AssetRegistry::Import(entry.Path);
+        }
     }
 
-    AssetsPanel::DirectoryNode AssetsPanel::BuildTree(const std::filesystem::path& root,
-                                                      const std::filesystem::path& relative)
+    AssetsPanel::DirectoryNode AssetsPanel::BuildTree(const fs::path& root, const fs::path& relative)
     {
         DirectoryNode node{ .Path = relative, .Name = relative.filename().string() };
 
@@ -200,30 +206,30 @@ namespace ByteForge
             ImGui::EndTable();
         }
 
-        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
-            m_SelectedPath.clear();
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+            !ImGui::IsAnyItemHovered() && GetContext().SelectionContext.GetAsset())
+            GetContext().SelectionContext.Clear();
     }
 
     void AssetsPanel::DrawItem(Entry& entry)
     {
         const ImVec2 thumbnailSize{ m_ThumbnailSize, m_ThumbnailSize };
-        const bool selected = entry.Path == m_SelectedPath;
+        const bool selected = entry.Handle && GetContext().SelectionContext.IsAsset(*entry.Handle);
 
         ImGui::PushID(entry.Name.c_str());
         ImGui::BeginGroup();
 
+        Ref<Texture2D> thumbnail;
         if (ImGui::IsRectVisible(thumbnailSize))
-            EnsureThumbnail(entry);
+            thumbnail = GetThumbnail(entry);
 
         if (selected)
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
 
         bool pressed;
-        if (entry.Thumbnail)
-        {
-            const auto textureId = static_cast<ImTextureID>(entry.Thumbnail->GetImGuiTextureId());
-            pressed = ImGui::ImageButton("##item", textureId, thumbnailSize);
-        } else
+        if (thumbnail)
+            pressed = UI::ImageButton("##item", thumbnail, thumbnailSize);
+        else
         {
             const std::string label = entry.IsDirectory ? "Folder" : entry.Path.extension().string();
             pressed = ImGui::Button(label.c_str(), ImVec2(thumbnailSize.x + ImGui::GetStyle().FramePadding.x * 2.0f,
@@ -233,10 +239,13 @@ namespace ByteForge
         if (selected)
             ImGui::PopStyleColor();
 
-        if (pressed)
-            m_SelectedPath = entry.Path;
+        if (pressed && entry.Handle)
+            GetContext().SelectionContext.SelectAsset(*entry.Handle);
 
-        if (entry.IsDirectory && ImGui::BeginDragDropSource())
+        if (entry.IsDirectory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            m_PendingDirectory = entry.Path;
+
+        if (!entry.IsDirectory && ImGui::BeginDragDropSource())
         {
             const std::string path = entry.Path.generic_string();
             ImGui::SetDragDropPayload(AssetPathPayload, path.c_str(), path.size() + 1);
@@ -252,25 +261,29 @@ namespace ByteForge
         ImGui::PopID();
     }
 
-    void AssetsPanel::EnsureThumbnail(Entry& entry)
+    Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
     {
-        if (entry.IsDirectory || entry.Thumbnail || entry.ThumbnailFailed) return;
+        if (entry.IsDirectory || entry.ThumbnailFailed)
+            return nullptr;
 
-        if (AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::Texture2D)
+        if (!entry.Handle || AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::Texture2D)
         {
             entry.ThumbnailFailed = true;
-            return;
+            return nullptr;
         }
 
+        Ref<Texture2D> texture;
         try
         {
-            entry.Thumbnail = AssetManager::LoadTexture2D(entry.Path);
+            texture = AssetManager::LoadTexture2D(*entry.Handle);
         } catch (const std::exception& e)
         {
             CORE_ERROR("AssetsPanel: could not load thumbnail for '{}': {}", entry.Path.string(), e.what());
         }
 
-        if (!entry.Thumbnail)
+        if (!texture)
             entry.ThumbnailFailed = true;
+
+        return texture;
     }
 }

@@ -17,6 +17,7 @@ namespace ByteForge
         [[nodiscard]] uint32_t GetWidth() const override { return m_Width; }
         [[nodiscard]] uint32_t GetHeight() const override { return m_Height; }
         [[nodiscard]] uint32_t GetMipLevels() const override { return m_MipLevels; }
+        [[nodiscard]] TextureFilter GetFilter() const override { return m_Filter; }
         [[nodiscard]] uint64_t GetImGuiTextureId() override;
         [[nodiscard]] VkImageView GetView() const { return m_Image->GetView(); }
         [[nodiscard]] VkSampler GetSampler() const { return m_Sampler; }
@@ -25,6 +26,7 @@ namespace ByteForge
         uint32_t m_Width;
         uint32_t m_Height;
         uint32_t m_MipLevels = 1;
+        TextureFilter m_Filter;
         Scope<VulkanImage> m_Image;
         VkSampler m_Sampler = nullptr;
         VkDescriptorSet m_ImGuiTexture = nullptr;

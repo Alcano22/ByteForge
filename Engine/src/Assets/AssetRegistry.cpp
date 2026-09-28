@@ -92,6 +92,23 @@ namespace ByteForge
         return s_AssetRoot / metadata.Path;
     }
 
+    bool AssetRegistry::SetSettings(const UUID handle, AssetSettings settings)
+    {
+        const auto it = s_Assets.find(handle);
+        if (it == s_Assets.end())
+            return false;
+
+        if (settings.index() != DefaultAssetSettings(it->second.Type).index())
+        {
+            CORE_ERROR("AssetRegistry::SetSettings: wrong settings type for '{}'", it->second.Path.string());
+            return false;
+        }
+
+        it->second.Settings = std::move(settings);
+        WriteMeta(s_AssetRoot / it->second.Path, it->second);
+        return true;
+    }
+
     void AssetRegistry::Clear()
     {
         s_AssetRoot.clear();

@@ -24,18 +24,18 @@ namespace ByteForge
         {
             context.ActiveScene->Each<TagComponent>([&context](const Entity entity, TagComponent& tag)
             {
-                const bool selected = entity == context.SelectionContext;
+                const bool selected = context.SelectionContext.IsEntity(entity);
 
                 const auto uuid = static_cast<uint64_t>(entity.GetUUID());
                 ImGui::PushID(reinterpret_cast<void*>(uuid));
                 if (ImGui::Selectable(tag.Tag.c_str(), selected))
-                    context.SelectionContext = entity;
+                    context.SelectionContext.Select(entity);
                 ImGui::PopID();
             });
         }
 
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
-            context.SelectionContext = {};
+            context.SelectionContext.Clear();
 
         ImGui::End();
     }

@@ -3,6 +3,7 @@
 #include "Editor/EditorPanel.h"
 
 #include <Engine/Core/Core.h>
+#include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
 #include <filesystem>
@@ -35,7 +36,7 @@ namespace ByteForge
             std::filesystem::path Path;
             std::string Name;
             bool IsDirectory = false;
-            Ref<Texture2D> Thumbnail;
+            std::optional<UUID> Handle;
             bool ThumbnailFailed = false;
         };
 
@@ -47,7 +48,7 @@ namespace ByteForge
         void DrawContent();
         void DrawItem(Entry& entry);
 
-        void EnsureThumbnail(Entry& entry);
+        [[nodiscard]] static Ref<Texture2D> GetThumbnail(Entry& entry);
 
         [[nodiscard]] static DirectoryNode BuildTree(const std::filesystem::path& root,
                                                      const std::filesystem::path& relative);
@@ -58,7 +59,6 @@ namespace ByteForge
         bool m_HasRoot = false;
 
         std::filesystem::path m_CurrentDirectory;
-        std::filesystem::path m_SelectedPath;
 
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

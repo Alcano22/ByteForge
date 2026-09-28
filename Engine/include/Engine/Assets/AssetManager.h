@@ -15,6 +15,8 @@ namespace ByteForge
         [[nodiscard]] static Ref<Texture2D> LoadTexture2D(UUID handle);
         [[nodiscard]] static Ref<Texture2D> LoadTexture2D(const std::filesystem::path& relativePath);
 
+        static Ref<Texture2D> Reload(UUID handle);
+
         [[nodiscard]] static UUID GetTextureHandle(const Ref<Texture2D>& texture);
 
         static void Clear();

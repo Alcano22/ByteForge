@@ -23,6 +23,8 @@ namespace ByteForge
 
         [[nodiscard]] static std::filesystem::path Resolve(UUID handle);
 
+        static bool SetSettings(UUID handle, AssetSettings settings);
+
         static void Clear();
 
     private:

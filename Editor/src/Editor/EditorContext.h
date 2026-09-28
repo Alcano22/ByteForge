@@ -2,10 +2,13 @@
 
 #include "Editor/EditorPanel.h"
 #include "Editor/SceneState.h"
+#include "Editor/Selection.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Core/Timestep.h>
 #include <Engine/Scene/Entity.h>
+#include <Engine/Scene/UUID.h>
+#include <Engine/Renderer/Texture2D.h>
 
 #include <nlohmann/json.hpp>
 
@@ -89,6 +92,8 @@ namespace ByteForge
             return true;
         }
 
+        void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
+
     private:
         template<typename T>
         [[nodiscard]] T* TryGet() const
@@ -104,7 +109,7 @@ namespace ByteForge
 
     public:
         Scene* ActiveScene = nullptr;
-        Entity SelectionContext;
+        Selection SelectionContext;
         SceneState State = SceneState::Edit;
 
     private:

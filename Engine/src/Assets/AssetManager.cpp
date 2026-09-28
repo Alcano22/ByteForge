@@ -38,6 +38,34 @@ namespace ByteForge
         return LoadTexture2D(AssetRegistry::Import(relativePath));
     }
 
+    Ref<Texture2D> AssetManager::Reload(const UUID handle)
+    {
+        const auto it = s_Textures.find(handle);
+        if (it == s_Textures.end())
+            return LoadTexture2D(handle);
+
+        Ref<Texture2D> previous = std::move(it->second);
+        s_Textures.erase(it);
+
+        Ref<Texture2D> reloaded;
+        try
+        {
+            reloaded = LoadTexture2D(handle);
+        } catch (...)
+        {
+            s_Textures.emplace(handle, std::move(previous));
+            throw;
+        }
+
+        if (!reloaded)
+        {
+            s_Textures.emplace(handle, previous);
+            return previous;
+        }
+
+        return reloaded;
+    }
+
     UUID AssetManager::GetTextureHandle(const Ref<Texture2D>& texture)
     {
         for (const auto& [handle, cached] : s_Textures)

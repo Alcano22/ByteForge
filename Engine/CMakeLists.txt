@@ -44,6 +44,7 @@ add_library(Engine SHARED
         src/Renderer/OrthographicCamera.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
+        src/ImGui/ImGuiWidgets.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp
         src/Platform/Vulkan/VulkanDevice.cpp
@@ -98,6 +99,7 @@ target_link_libraries(Engine PUBLIC
         imgui::imgui
         EnTT::EnTT
         nlohmann_json::nlohmann_json
+        magic_enum::magic_enum
 )
 
 target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS})
@@ -109,7 +111,6 @@ target_link_libraries(Engine PRIVATE
         Microsoft::DirectXShaderCompiler
         unofficial::spirv-reflect
         box2d::box2d
-        magic_enum::magic_enum
 )
 
 if (UNIX AND NOT APPLE)
