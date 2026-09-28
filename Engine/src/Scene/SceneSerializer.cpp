@@ -2,6 +2,7 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Components.h"
+#include "Engine/Assets/AssetManager.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -59,8 +60,25 @@ namespace ByteForge
 
             if (entity.HasComponent<SpriteRendererComponent>())
             {
-                const auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-                entityJson["spriteRenderer"] = { { "color", ToJson(spriteRenderer.Color) } };
+                const auto& sprite = entity.GetComponent<SpriteRendererComponent>();
+
+                nlohmann::json spriteJson;
+                spriteJson["color"] = ToJson(sprite.Color);
+
+                if (sprite.SubTexture)
+                {
+                    const UUID handle = AssetManager::GetTextureHandle(sprite.SubTexture->GetTexture());
+                    if (static_cast<uint64_t>(handle) != 0)
+                    {
+                        spriteJson["subTexture"] = {
+                            { "textureHandle", static_cast<uint64_t>(handle)         },
+                            { "uvMin",         ToJson(sprite.SubTexture->GetUVMin()) },
+                            { "uvMax",         ToJson(sprite.SubTexture->GetUVMax()) }
+                        };
+                    }
+                }
+
+                entityJson["spriteRenderer"] = std::move(spriteJson);
             }
 
             if (entity.HasComponent<Rigidbody2DComponent>())
@@ -131,6 +149,14 @@ namespace ByteForge
                 const auto& s = entityJson.at("spriteRenderer");
                 auto& sprite = entity.AddComponent<SpriteRendererComponent>();
                 sprite.Color = ToVec4(s.at("color"));
+
+                if (s.contains("subTexture"))
+                {
+                    const auto& st = s.at("subTexture");
+                    const UUID handle = UUID(st.at("textureHandle").get<uint64_t>());
+                    Ref<Texture2D> texture = AssetManager::LoadTexture2D(handle);
+                    sprite.SubTexture = MakeRef<SubTexture2D>(texture, ToVec2(st.at("uvMin")), ToVec2(st.at("uvMax")));
+                }
             }
 
             if (entityJson.contains("rigidbody2D"))

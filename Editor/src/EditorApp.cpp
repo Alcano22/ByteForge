@@ -11,14 +11,16 @@
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
+#include <Engine/Assets/AssetManager.h>
+#include <Engine/Assets/AssetRegistry.h>
 
 #include <glm/glm.hpp>
 #include <imgui.h>
 
 namespace
 {
-    ByteForge::Entity SpawnBox(ByteForge::Scene& scene, const std::string& name,
-                               const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
+    ByteForge::Entity SpawnBox(ByteForge::Scene& scene, const std::string& name, const glm::vec3& position,
+                               const glm::vec2& size, const glm::vec4& color, const std::string& texturePath = "")
     {
         const ByteForge::Entity entity = scene.CreateEntity(name);
 
@@ -26,7 +28,10 @@ namespace
         transform.Position = position;
         transform.Scale = size;
 
-        entity.AddComponent<ByteForge::SpriteRendererComponent>().Color = color;
+        auto& sprite = entity.AddComponent<ByteForge::SpriteRendererComponent>();
+        sprite.Color = color;
+        if (!texturePath.empty())
+            sprite.SubTexture = ByteForge::SubTexture2D::Create(ByteForge::AssetManager::LoadTexture2D(texturePath));
 
         return entity;
     }
@@ -53,6 +58,8 @@ public:
 
     void OnAttach() override
     {
+        ByteForge::AssetRegistry::Init("assets");
+
         m_Context.ActiveScene = &m_Scene;
 
         m_Context.Open<ByteForge::ViewportPanel>();
@@ -63,7 +70,7 @@ public:
         ground.AddComponent<ByteForge::Rigidbody2DComponent>();
         ground.AddComponent<ByteForge::BoxCollider2DComponent>().Size = { 16.0f, 1.0f };
 
-        ByteForge::Entity box1 = SpawnBox(m_Scene, "Box1", { -1.5f, 3.0f, 0.0f }, { 1.0f, 1.0f }, { 0.9f, 0.6f, 0.2f, 1.0f });
+        ByteForge::Entity box1 = SpawnBox(m_Scene, "Box1", { -1.5f, 3.0f, 0.0f }, { 1.0f, 1.0f }, { 0.9f, 0.6f, 0.2f, 1.0f }, "checker.png");
         auto& box1Rb = box1.AddComponent<ByteForge::Rigidbody2DComponent>();
         box1Rb.Type = ByteForge::Rigidbody2DComponent::BodyType::Dynamic;
         box1.AddComponent<ByteForge::BoxCollider2DComponent>();

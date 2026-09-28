@@ -22,6 +22,9 @@ add_library(Engine SHARED
         src/Scene/SceneSerializer.cpp
         src/Scene/Components.cpp
         src/Scene/Physics2DWorld.cpp
+        src/Assets/AssetManager.cpp
+        src/Assets/AssetType.cpp
+        src/Assets/AssetRegistry.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp

@@ -3,6 +3,7 @@
 #include "Engine/Event/ApplicationEvent.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Renderer.h"
+#include "Engine/Assets/AssetManager.h"
 
 #include <GLFW/glfw3.h>
 
@@ -32,6 +33,8 @@ namespace ByteForge
     Application::~Application()
     {
         Renderer::WaitIdle();
+
+        AssetManager::Clear();
 
         if (m_ImGuiLayer)
             m_ImGuiLayer->OnDetach();
