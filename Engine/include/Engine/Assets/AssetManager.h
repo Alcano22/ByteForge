@@ -12,10 +12,8 @@ namespace ByteForge
     class BYTEFORGE_API AssetManager
     {
     public:
-        [[nodiscard]] static Ref<Texture2D> LoadTexture2D(UUID handle, const TextureSettings& settings = {});
-
-        [[nodiscard]] static Ref<Texture2D> LoadTexture2D(const std::filesystem::path& relativePath,
-                                                          const TextureSettings& settings = {});
+        [[nodiscard]] static Ref<Texture2D> LoadTexture2D(UUID handle);
+        [[nodiscard]] static Ref<Texture2D> LoadTexture2D(const std::filesystem::path& relativePath);
 
         [[nodiscard]] static UUID GetTextureHandle(const Ref<Texture2D>& texture);
 

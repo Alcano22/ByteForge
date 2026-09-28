@@ -25,6 +25,7 @@ add_library(Engine SHARED
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
+        src/Assets/AssetSettings.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp

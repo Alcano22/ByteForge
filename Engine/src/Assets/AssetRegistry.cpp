@@ -57,6 +57,7 @@ namespace ByteForge
             metadata.Handle = UUID();
             metadata.Type = AssetTypeFromExtension(absolutePath.extension().string());
             metadata.Path = relativePath;
+            metadata.Settings = DefaultAssetSettings(metadata.Type);
             WriteMeta(absolutePath, metadata);
         } else
             metadata.Path = relativePath;
@@ -103,6 +104,7 @@ namespace ByteForge
         nlohmann::json data;
         data["uuid"] = static_cast<uint64_t>(metadata.Handle);
         data["type"] = AssetTypeToString(metadata.Type);
+        data["settings"] = SerializeAssetSettings(metadata.Settings);
 
         std::ofstream file(absolutePath.string() + MetaExtension);
         if (!file.is_open())
@@ -135,6 +137,8 @@ namespace ByteForge
 
         outMetadata.Handle = UUID(data.at("uuid").get<uint64_t>());
         outMetadata.Type = AssetTypeFromString(data.at("type").get<std::string>());
+        outMetadata.Settings = DeserializeAssetSettings(outMetadata.Type,
+                                                        data.value("settings", nlohmann::json::object()));
         return true;
     }
 }
