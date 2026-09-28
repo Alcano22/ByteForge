@@ -10,6 +10,7 @@ find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(box2d CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -108,6 +109,7 @@ target_link_libraries(Engine PRIVATE
         Microsoft::DirectXShaderCompiler
         unofficial::spirv-reflect
         box2d::box2d
+        magic_enum::magic_enum
 )
 
 if (UNIX AND NOT APPLE)

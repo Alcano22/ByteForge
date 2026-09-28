@@ -1,62 +1,32 @@
 #include "Engine/Assets/AssetSettings.h"
 #include "Engine/Core/Log.h"
 
-#include <array>
-#include <stdexcept>
+#include <magic_enum/magic_enum.hpp>
+
 #include <string>
-#include <string_view>
 #include <type_traits>
-#include <utility>
 
 namespace ByteForge
 {
     namespace
     {
-        template<typename T, size_t N>
-        using EnumTable = std::array<std::pair<std::string_view, T>, N>;
-
-        constexpr EnumTable<ImageFormat, 2> TextureFormats{{
-            { "RGBA8_SRGB",  ImageFormat::RGBA8_SRGB  },
-            { "RGBA8_UNORM", ImageFormat::RGBA8_UNORM }
-        }};
-
-        constexpr EnumTable<TextureFilter, 2> TextureFilters{{
-            { "Nearest", TextureFilter::Nearest },
-            { "Linear",  TextureFilter::Linear  }
-        }};
-
-        constexpr EnumTable<TextureWrap, 2> TextureWraps{{
-            { "Repeat",      TextureWrap::Repeat      },
-            { "ClampToEdge", TextureWrap::ClampToEdge }
-        }};
-
-        template<typename T, size_t N>
-        std::string NameOf(const EnumTable<T, N>& table, const T value)
-        {
-            for (const auto& [name, candidate] : table)
-            {
-                if (candidate == value)
-                    return std::string(name);
-            }
-
-            throw std::runtime_error("AssetSettings: enum value is not supported in .meta files");
-        }
-
-        template<typename T, size_t N>
-        T ValueOf(const EnumTable<T, N>& table, const nlohmann::json& data, const char* key, const T fallback)
+        template<typename T>
+        T EnumOr(const nlohmann::json& data, const char* key, const T fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
                 return fallback;
 
-            const std::string name = data.at(key).get<std::string>();
-            for (const auto& [candidate, value] : table)
-            {
-                if (candidate == name)
-                    return value;
-            }
+            const auto name = data.at(key).get<std::string>();
+            if (const auto value = magic_enum::enum_cast<T>(name))
+                return *value;
 
             CORE_WARN("AssetSettings: unknown value '{}' for '{}', using the default", name, key);
             return fallback;
+        }
+
+        bool IsSupportedTextureFormat(const ImageFormat format)
+        {
+            return format == ImageFormat::RGBA8_SRGB || format == ImageFormat::RGBA8_UNORM;
         }
     }
 
@@ -79,10 +49,10 @@ namespace ByteForge
             if constexpr (std::is_same_v<T, TextureSettings>)
             {
                 return nlohmann::json{
-                    { "format",       NameOf(TextureFormats, value.Format) },
-                    { "filter",       NameOf(TextureFilters, value.Filter) },
-                    { "wrap",         NameOf(TextureWraps,   value.Wrap)   },
-                    { "generateMips", value.GenerateMips                   }
+                    { "format",       std::string(magic_enum::enum_name(value.Format)) },
+                    { "filter",       std::string(magic_enum::enum_name(value.Filter)) },
+                    { "wrap",         std::string(magic_enum::enum_name(value.Wrap))   },
+                    { "generateMips", value.GenerateMips                               }
                 };
             } else
                 return nlohmann::json::object();
@@ -99,10 +69,18 @@ namespace ByteForge
             case AssetType::Texture2D:
             {
                 TextureSettings settings;
-                settings.Format       = ValueOf(TextureFormats, data, "format", settings.Format);
-                settings.Filter       = ValueOf(TextureFilters, data, "filter", settings.Filter);
-                settings.Wrap         = ValueOf(TextureWraps,   data, "wrap",   settings.Wrap);
+                settings.Format       = EnumOr(data, "format", settings.Format);
+                settings.Filter       = EnumOr(data, "filter", settings.Filter);
+                settings.Wrap         = EnumOr(data, "wrap",   settings.Wrap);
                 settings.GenerateMips = data.value("generateMips", settings.GenerateMips);
+
+                if (!IsSupportedTextureFormat(settings.Format))
+                {
+                    CORE_WARN("AssetSettings: '{}' is not a valid texture format, using the default",
+                              magic_enum::enum_name(settings.Format));
+                    settings.Format = TextureSettings{}.Format;
+                }
+
                 return settings;
             }
             case AssetType::None: break;

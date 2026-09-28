@@ -1,5 +1,7 @@
 #include "Engine/Assets/AssetType.h"
 
+#include <magic_enum/magic_enum.hpp>
+
 #include <algorithm>
 #include <cctype>
 
@@ -7,18 +9,12 @@ namespace ByteForge
 {
     const char* AssetTypeToString(const AssetType type)
     {
-        switch (type)
-        {
-            case AssetType::None:      return "None";
-            case AssetType::Texture2D: return "Texture2D";
-        }
-        return "None";
+        return magic_enum::enum_name(type).data();
     }
 
     AssetType AssetTypeFromString(const std::string& value)
     {
-        if (value == "Texture2D") return AssetType::Texture2D;
-        return AssetType::None;
+        return magic_enum::enum_cast<AssetType>(value).value_or(AssetType::None);
     }
 
     AssetType AssetTypeFromExtension(const std::string& extension)

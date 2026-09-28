@@ -24,6 +24,7 @@
     "stb",
     "entt",
     "box2d",
-    "nlohmann-json"
+    "nlohmann-json",
+    "magic-enum"
   ]
 }
