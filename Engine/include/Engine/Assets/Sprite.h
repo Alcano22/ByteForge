@@ -13,7 +13,7 @@ namespace ByteForge
     {
     public:
         explicit Sprite(Ref<TextureAsset> texture,
-                        const glm::vec2& uvMin = glm::vec2(0.0f), const glm::vec2& uvMax = glm::vec2(0.0f))
+                        const glm::vec2& uvMin = glm::vec2(0.0f), const glm::vec2& uvMax = glm::vec2(1.0f))
             : m_Texture(std::move(texture)), m_UVMin(uvMin), m_UVMax(uvMax)
         {
             if (!m_Texture)
