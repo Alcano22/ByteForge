@@ -26,6 +26,7 @@ namespace ByteForge
 
         Entity CreateEntity(const std::string& name = std::string());
         void DestroyEntity(Entity entity);
+        Entity DuplicateEntity(Entity source);
 
         void OnUpdateEditor(Timestep ts, Renderer2D& renderer, const Camera& camera);
         void OnUpdateRuntime(Timestep ts, Renderer2D& renderer, const Camera& camera);
@@ -47,6 +48,8 @@ namespace ByteForge
 
     private:
         void RenderScene(Renderer2D& renderer, const Camera& camera);
+
+        void ResetPhysicsWorld();
 
         static void DispatchSensorEvent(Entity self, Entity other, bool entered);
         static void DispatchCollisionEvent(Entity self, Entity other, bool entered);

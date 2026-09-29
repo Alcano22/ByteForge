@@ -2,6 +2,10 @@
 
 #include "Editor/EditorPanel.h"
 
+#include <Engine/Scene/Entity.h>
+
+#include <array>
+
 namespace ByteForge
 {
     class SceneHierarchyPanel : public EditorPanel
@@ -11,5 +15,18 @@ namespace ByteForge
             : EditorPanel(context, "Scene Hierarchy") {}
 
         void OnImGuiRender() override;
+
+    private:
+        void DrawEntity(Entity entity, TagComponent& tag);
+        void DrawCreateMenu() const;
+        void HandleShortcuts();
+
+        void BeginRename(Entity entity);
+        void DrawRenameField(TagComponent& tag);
+
+    private:
+        Entity m_RenameTarget;
+        std::array<char, 256> m_RenameBuffer{};
+        bool m_FocusRenameField = false;
     };
 }

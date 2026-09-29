@@ -208,7 +208,8 @@ namespace ByteForge::EditorUI
 
             const Ref<TextureAsset> candidate = AssetManager::LoadTexture2D(metadata.Handle);
             const ImVec2 thumbnailMin{ min.x, min.y + (rowHeight - PickerThumbnailSize) * 0.5f };
-            DrawAssetPreview(drawList, candidate.get(), thumbnailMin, ImVec2(PickerThumbnailSize, PickerThumbnailSize));
+            DrawAssetPreview(drawList, candidate.get(), thumbnailMin,
+                             ImVec2(PickerThumbnailSize, PickerThumbnailSize));
 
             const std::string name = metadata.Path.filename().string();
             const std::string folder = metadata.Path.has_parent_path()

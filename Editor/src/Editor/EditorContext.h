@@ -16,6 +16,8 @@
 #include <typeindex>
 #include <utility>
 #include <vector>
+#include <functional>
+#include <string>
 
 namespace ByteForge
 {
@@ -55,8 +57,10 @@ namespace ByteForge
             return existing != nullptr && existing->IsOpen();
         }
 
-        void OnUpdate(const Timestep ts) const
+        void OnUpdate(const Timestep ts)
         {
+            FlushDeferred();
+
             for (const auto& [type, panel] : m_Panels)
             {
                 if (panel->IsOpen())
@@ -94,6 +98,10 @@ namespace ByteForge
 
         static void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
 
+        void CreateEntity(std::string name, std::function<void(Entity)> setup = {});
+        void DuplicateEntity(Entity entity);
+        void DestroyEntity(Entity entity);
+
     private:
         template<typename T>
         [[nodiscard]] T* TryGet() const
@@ -107,6 +115,11 @@ namespace ByteForge
             return nullptr;
         }
 
+        void Defer(std::function<void()> action);
+        void FlushDeferred();
+
+        [[nodiscard]] std::string MakeUniqueName(const std::string& name) const;
+
     public:
         Scene* ActiveScene = nullptr;
         Selection SelectionContext;
@@ -117,5 +130,7 @@ namespace ByteForge
 
         nlohmann::json m_EditSceneSnapshot;
         bool m_StepRequested = false;
+
+        std::vector<std::function<void()>> m_Deferred;
     };
 }

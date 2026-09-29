@@ -1,6 +1,7 @@
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
+#include "Editor/StringUtils.h"
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
@@ -53,6 +54,32 @@ namespace
 
         return changed;
     }
+
+    struct ComponentDescriptor
+    {
+        const char* Name;
+        bool (*Has)(ByteForge::Entity);
+        void (*Add)(ByteForge::Entity);
+    };
+
+    template<typename T>
+    constexpr ComponentDescriptor Describe(const char* name)
+    {
+        return {
+            .Name = name,
+            .Has  = [](const ByteForge::Entity entity) { return entity.HasComponent<T>(); },
+            .Add  = [](const ByteForge::Entity entity) { entity.AddComponent<T>(); }
+        };
+    }
+
+    constexpr std::array AddableComponents{
+        Describe<ByteForge::SpriteRendererComponent>("Sprite Renderer"),
+        Describe<ByteForge::Rigidbody2DComponent>("Rigidbody 2D"),
+        Describe<ByteForge::BoxCollider2DComponent>("Box Collider 2D"),
+        Describe<ByteForge::CircleCollider2DComponent>("Circle Collider 2D")
+    };
+
+    constexpr const char* AddComponentPopupId = "##AddComponent";
 }
 
 namespace ByteForge
@@ -104,7 +131,7 @@ namespace ByteForge
             if (ImGui::DragFloat("Rotation", &rotationDeg, 0.5f))
                 transform.Rotation = glm::radians(rotationDeg);
             ImGui::DragFloat2("Scale", glm::value_ptr(transform.Scale), 0.1f);
-        });
+        }, false);
 
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [this](SpriteRendererComponent& spriteRenderer)
         {
@@ -149,6 +176,68 @@ namespace ByteForge
             ImGui::DragFloat("Restitution", &collider.Restitution, 0.02f, 0.0f, 1.0f);
             ImGui::Checkbox("Is Sensor", &collider.IsSensor);
         });
+    }
+
+    void InspectorPanel::DrawHeader(const Entity entity)
+    {
+        auto& tag = entity.GetComponent<TagComponent>();
+
+        std::array<char, 256> buffer{};
+        const size_t length = std::min(tag.Tag.size(), buffer.size() - 1);
+        std::memcpy(buffer.data(), tag.Tag.data(), length);
+        buffer[length] = '\0';
+
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float buttonWidth = ImGui::CalcTextSize("Add Component").x + style.FramePadding.x * 2.0f;
+
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x);
+        if (ImGui::InputText("##Tag", buffer.data(), buffer.size()))
+            tag.Tag = buffer.data();
+
+        ImGui::SameLine();
+        if (ImGui::Button("Add Component"))
+            ImGui::OpenPopup(AddComponentPopupId);
+
+        DrawAddComponentPopup(entity);
+    }
+
+    void InspectorPanel::DrawAddComponentPopup(const Entity entity)
+    {
+        if (!ImGui::BeginPopup(AddComponentPopupId)) return;
+
+        static std::array<char, 64> s_Filter{};
+        if (ImGui::IsWindowAppearing())
+        {
+            s_Filter.fill('\0');
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(220.0f);
+        const bool submitted = ImGui::InputTextWithHint("##search", "Search components...", s_Filter.data(),
+                                                        s_Filter.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::Separator();
+
+        const std::string_view query(s_Filter.data());
+        bool anyMatch = false;
+
+        for (const ComponentDescriptor& component : AddableComponents)
+        {
+            if (component.Has(entity) || !ContainsIgnoreCase(component.Name, query)) continue;
+
+            const bool pickedByEnter = submitted && !anyMatch;
+            anyMatch = true;
+
+            if (ImGui::Selectable(component.Name) || pickedByEnter)
+            {
+                component.Add(entity);
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        if (!anyMatch)
+            ImGui::TextDisabled(query.empty() ? "All components added" : "No components match");
+
+        ImGui::EndPopup();
     }
 
     void InspectorPanel::DrawAsset(const UUID handle) const

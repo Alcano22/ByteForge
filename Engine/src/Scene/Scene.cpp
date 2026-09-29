@@ -7,22 +7,38 @@
 
 #include <stdexcept>
 
-namespace
-{
-    template<typename T>
-    void CopyComponent(entt::registry& dst, const entt::registry& src)
-    {
-        for (const auto entity : src.view<T>())
-            dst.emplace_or_replace<T>(entity, src.get<T>(entity));
-    }
-}
-
 namespace ByteForge
 {
-    Scene::Scene()
-        : m_PhysicsWorld(MakeScope<Physics2DWorld>()) {}
+    namespace
+    {
+        template<typename... Components>
+        struct ComponentList {};
 
-    Scene::~Scene() = default;
+        using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, Rigidbody2DComponent,
+                                                   BoxCollider2DComponent, CircleCollider2DComponent>;
+
+        template<typename... Components>
+        void CopyComponents(ComponentList<Components...>, entt::registry& registry,
+                            const entt::entity source, const entt::entity target)
+        {
+            ([&]
+            {
+                if (const auto* component = registry.try_get<Components>(source))
+                {
+                    const Components copy = *component;
+                    registry.emplace_or_replace<Components>(target, copy);
+                }
+            }(), ...);
+        }
+    }
+
+    Scene::Scene() { ResetPhysicsWorld(); }
+
+    Scene::~Scene()
+    {
+        m_Registry.on_destroy<Rigidbody2DComponent>()
+                  .disconnect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
+    }
 
     Entity Scene::CreateEntity(const std::string& name)
     {
@@ -35,8 +51,17 @@ namespace ByteForge
 
     void Scene::DestroyEntity(const Entity entity)
     {
-        m_PhysicsWorld->OnEntityDestroyed(entity);
         m_Registry.destroy(entity.m_Handle);
+    }
+
+    Entity Scene::DuplicateEntity(const Entity source)
+    {
+        if (!source.IsValid() || source.m_Scene != this)
+            throw std::runtime_error("Scene::DuplicateEntity: the entity does not belong to this scene");
+
+        const Entity copy = CreateEntity(source.GetTag());
+        CopyComponents(DuplicableComponents{}, m_Registry, source.m_Handle, copy.m_Handle);
+        return copy;
     }
 
     void Scene::RenderScene(Renderer2D& renderer, const Camera& camera)
@@ -61,6 +86,16 @@ namespace ByteForge
         }
 
         renderer.EndScene();
+    }
+
+    void Scene::ResetPhysicsWorld()
+    {
+        auto destroyed = m_Registry.on_destroy<Rigidbody2DComponent>();
+        if (m_PhysicsWorld)
+            destroyed.disconnect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
+
+        m_PhysicsWorld = MakeScope<Physics2DWorld>();
+        destroyed.connect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
 
     void Scene::OnUpdateEditor(Timestep, Renderer2D& renderer, const Camera& camera)
@@ -100,7 +135,7 @@ namespace ByteForge
     void Scene::Clear()
     {
         m_Registry.clear();
-        m_PhysicsWorld = MakeScope<Physics2DWorld>();
+        ResetPhysicsWorld();
     }
 
     void Scene::DispatchSensorEvent(const Entity self, const Entity other, const bool entered)

@@ -2,7 +2,6 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/Sprite.h"
-#include "Engine/Renderer/SubTexture2D.h"
 #include "Engine/Scene/UUID.h"
 
 #include <glm/glm.hpp>
@@ -45,6 +44,22 @@ namespace ByteForge
         BodyType Type = BodyType::Static;
         bool FixedRotation = false;
         float GravityScale = 1.0f;
+
+        Rigidbody2DComponent() = default;
+
+        Rigidbody2DComponent(const Rigidbody2DComponent& other)
+            : Type(other.Type), FixedRotation(other.FixedRotation), GravityScale(other.GravityScale) {}
+
+        Rigidbody2DComponent& operator=(const Rigidbody2DComponent& other)
+        {
+            Type = other.Type;
+            FixedRotation = other.FixedRotation;
+            GravityScale = other.GravityScale;
+            return *this;
+        }
+
+        Rigidbody2DComponent(Rigidbody2DComponent&&) noexcept = default;
+        Rigidbody2DComponent& operator=(Rigidbody2DComponent&&) noexcept = default;
 
         [[nodiscard]] bool HasRuntimeBody() const { return m_RuntimeBodyId != 0; }
 
