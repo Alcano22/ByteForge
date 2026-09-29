@@ -1,5 +1,6 @@
 #include "Engine/Core/Application.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Core/JobSystem.h"
 #include "Engine/Event/ApplicationEvent.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Renderer.h"
@@ -25,6 +26,8 @@ namespace ByteForge
     {
         s_Instance = this;
 
+        JobSystem::Init();
+
         m_Window->SetEventCallback([this](Event& e) { OnApplicationEvent(e); });
 
         CORE_INFO("Application initialized");
@@ -39,6 +42,8 @@ namespace ByteForge
         if (m_ImGuiLayer)
             m_ImGuiLayer->OnDetach();
 
+        JobSystem::Shutdown();
+
         s_Instance = nullptr;
     }
 
@@ -48,6 +53,8 @@ namespace ByteForge
 
         while (m_IsRunning && !m_Window->ShouldClose())
         {
+            AssetManager::Update();
+
             const double time = glfwGetTime();
             const Timestep ts = static_cast<float>(std::min(time - m_LastFrameTime, MaxTimestep));
             m_LastFrameTime = time;

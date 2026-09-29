@@ -47,10 +47,12 @@ namespace ByteForge
         for (const auto handle : view)
         {
             const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
-            if (spriteRenderer.SubTexture)
+            if (spriteRenderer.Sprite)
             {
+                const Sprite& sprite = *spriteRenderer.Sprite;
                 renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                         spriteRenderer.SubTexture, spriteRenderer.Color);
+                                         sprite.GetTexture(), sprite.GetUVMin(), sprite.GetUVMax(),
+                                         spriteRenderer.Color);
             } else
             {
                 renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,

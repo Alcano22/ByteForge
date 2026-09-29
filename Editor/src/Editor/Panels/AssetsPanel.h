@@ -3,6 +3,7 @@
 #include "Editor/EditorPanel.h"
 
 #include <Engine/Core/Core.h>
+#include <Engine/Assets/TextureAsset.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
@@ -37,7 +38,7 @@ namespace ByteForge
             std::string Name;
             bool IsDirectory = false;
             std::optional<UUID> Handle;
-            bool ThumbnailFailed = false;
+            Ref<TextureAsset> Texture;
         };
 
         void ApplyPendingChanges();

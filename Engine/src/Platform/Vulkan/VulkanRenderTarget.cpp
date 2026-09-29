@@ -48,8 +48,6 @@ namespace ByteForge
             });
         }
 
-        m_Sampler = context.GetSamplerCache().Get(TextureFilter::Linear, TextureWrap::ClampToEdge);
-
         context.GetUploader().TransitionToShaderRead(m_Color->GetHandle());
 
         CORE_INFO("Render target created ({}x{})", spec.Width, spec.Height);
@@ -74,8 +72,7 @@ namespace ByteForge
             const VkImageView displayView = m_Color->GetAlternateView() != nullptr
                                           ? m_Color->GetAlternateView() : m_Color->GetView();
 
-            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(m_Sampler, displayView,
-                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(displayView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         return reinterpret_cast<uint64_t>(m_ImGuiTexture);

@@ -162,6 +162,12 @@ namespace ByteForge
                    subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
     }
 
+    void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
+                              const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint)
+    {
+        SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint);
+    }
+
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size,
                                      const float rotation, const glm::vec4& color)
     {
@@ -182,6 +188,13 @@ namespace ByteForge
 
         SubmitQuad(position, size, rotation, subTexture->GetTexture(),
                    subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
+    }
+
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+                                     const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
+                                     const glm::vec4& tint)
+    {
+        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint);
     }
 
     void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,

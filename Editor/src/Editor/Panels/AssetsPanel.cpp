@@ -263,27 +263,16 @@ namespace ByteForge
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
     {
-        if (entry.IsDirectory || entry.ThumbnailFailed)
+        if (entry.IsDirectory || !entry.Handle ||
+            AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::Texture2D)
             return nullptr;
 
-        if (!entry.Handle || AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::Texture2D)
-        {
-            entry.ThumbnailFailed = true;
+        if (!entry.Texture)
+            entry.Texture = AssetManager::LoadTexture2D(*entry.Handle);
+
+        if (entry.Texture->GetState() == AssetLoadState::Failed)
             return nullptr;
-        }
 
-        Ref<Texture2D> texture;
-        try
-        {
-            texture = AssetManager::LoadTexture2D(*entry.Handle);
-        } catch (const std::exception& e)
-        {
-            CORE_ERROR("AssetsPanel: could not load thumbnail for '{}': {}", entry.Path.string(), e.what());
-        }
-
-        if (!texture)
-            entry.ThumbnailFailed = true;
-
-        return texture;
+        return entry.Texture->GetTexture();
     }
 }

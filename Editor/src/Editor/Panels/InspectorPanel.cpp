@@ -108,7 +108,7 @@ namespace ByteForge
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](SpriteRendererComponent& spriteRenderer)
         {
             ImGui::ColorEdit4("Color", glm::value_ptr(spriteRenderer.Color));
-            ImGui::Text("SubTexture: %s", spriteRenderer.SubTexture ? "bound" : "none");
+            ImGui::Text("SubTexture: %s", spriteRenderer.Sprite ? "bound" : "none");
         });
 
         DrawComponent<Rigidbody2DComponent>("Rigidbody 2D", entity, [](Rigidbody2DComponent& rigidbody)

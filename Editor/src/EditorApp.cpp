@@ -32,7 +32,7 @@ namespace
         auto& sprite = entity.AddComponent<ByteForge::SpriteRendererComponent>();
         sprite.Color = color;
         if (!texturePath.empty())
-            sprite.SubTexture = ByteForge::SubTexture2D::Create(ByteForge::AssetManager::LoadTexture2D(texturePath));
+            sprite.Sprite = ByteForge::Sprite::Create(ByteForge::AssetManager::LoadTexture2D(texturePath));
 
         return entity;
     }

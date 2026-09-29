@@ -65,17 +65,13 @@ namespace ByteForge
                 nlohmann::json spriteJson;
                 spriteJson["color"] = ToJson(sprite.Color);
 
-                if (sprite.SubTexture)
+                if (sprite.Sprite)
                 {
-                    const UUID handle = AssetManager::GetTextureHandle(sprite.SubTexture->GetTexture());
-                    if (static_cast<uint64_t>(handle) != 0)
-                    {
-                        spriteJson["subTexture"] = {
-                            { "textureHandle", static_cast<uint64_t>(handle)         },
-                            { "uvMin",         ToJson(sprite.SubTexture->GetUVMin()) },
-                            { "uvMax",         ToJson(sprite.SubTexture->GetUVMax()) }
-                        };
-                    }
+                    spriteJson["sprite"] = {
+                        { "texture", static_cast<uint64_t>(sprite.Sprite->GetTextureAsset()->GetHandle()) },
+                        { "uvMin",   ToJson(sprite.Sprite->GetUVMin())                                    },
+                        { "uvMax",   ToJson(sprite.Sprite->GetUVMax())                                    }
+                    };
                 }
 
                 entityJson["spriteRenderer"] = std::move(spriteJson);
@@ -150,12 +146,11 @@ namespace ByteForge
                 auto& sprite = entity.AddComponent<SpriteRendererComponent>();
                 sprite.Color = ToVec4(s.at("color"));
 
-                if (s.contains("subTexture"))
+                if (s.contains("sprite"))
                 {
-                    const auto& st = s.at("subTexture");
-                    const UUID handle = UUID(st.at("textureHandle").get<uint64_t>());
-                    Ref<Texture2D> texture = AssetManager::LoadTexture2D(handle);
-                    sprite.SubTexture = MakeRef<SubTexture2D>(texture, ToVec2(st.at("uvMin")), ToVec2(st.at("uvMax")));
+                    const auto& sp = s.at("sprite");
+                    sprite.Sprite = MakeRef<Sprite>(AssetManager::LoadTexture2D(UUID(sp.at("texture").get<uint64_t>())),
+                                                    ToVec2(sp.at("uvMin")), ToVec2(sp.at("uvMax")));
                 }
             }
 

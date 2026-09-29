@@ -17,6 +17,7 @@ add_library(Engine SHARED
         src/Core/Application.cpp
         src/Core/Window.cpp
         src/Core/LayerStack.cpp
+        src/Core/JobSystem.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
@@ -42,6 +43,7 @@ add_library(Engine SHARED
         src/Renderer/SubTexture2D.cpp
         src/Renderer/Renderer2D.cpp
         src/Renderer/OrthographicCamera.cpp
+        src/Renderer/ImageDecoder.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp

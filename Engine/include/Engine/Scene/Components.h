@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Assets/Sprite.h"
 #include "Engine/Renderer/SubTexture2D.h"
 #include "Engine/Scene/UUID.h"
 
@@ -34,8 +35,7 @@ namespace ByteForge
     struct SpriteRendererComponent
     {
         glm::vec4 Color{ 1.0f };
-
-        Ref<SubTexture2D> SubTexture;
+        Ref<ByteForge::Sprite> Sprite;
     };
 
     struct BYTEFORGE_API Rigidbody2DComponent

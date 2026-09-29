@@ -92,7 +92,7 @@ namespace ByteForge
             return true;
         }
 
-        void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
+        static void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
 
     private:
         template<typename T>

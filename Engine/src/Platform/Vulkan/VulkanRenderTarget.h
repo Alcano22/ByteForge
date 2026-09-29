@@ -31,7 +31,6 @@ namespace ByteForge
         RenderTargetSpec m_Spec;
         Scope<VulkanImage> m_Color;
         Scope<VulkanImage> m_Depth;
-        VkSampler m_Sampler = nullptr;
         VkDescriptorSet m_ImGuiTexture = nullptr;
     };
 }

@@ -1,6 +1,5 @@
 #include "Editor/EditorContext.h"
 
-#include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scene/Scene.h>
@@ -49,26 +48,7 @@ namespace ByteForge
 
     void EditorContext::ApplyTextureSettings(const UUID handle, const TextureSettings& settings)
     {
-        try
-        {
-            const Ref<Texture2D> oldTexture = AssetManager::LoadTexture2D(handle);
-
-            if (!AssetRegistry::SetSettings(handle, settings)) return;
-
-            const Ref<Texture2D> newTexture = AssetManager::Reload(handle);
-            if (ActiveScene == nullptr || !oldTexture || !newTexture || oldTexture == newTexture) return;
-
-            ActiveScene->Each<SpriteRendererComponent>([&](Entity, SpriteRendererComponent& sprite)
-            {
-                if (sprite.SubTexture && sprite.SubTexture->GetTexture() == oldTexture)
-                {
-                    sprite.SubTexture = MakeRef<SubTexture2D>(newTexture, sprite.SubTexture->GetUVMin(),
-                                                              sprite.SubTexture->GetUVMax());
-                }
-            });
-        } catch (const std::exception& e)
-        {
-            APP_ERROR("Failed to apply texture settings: {}", e.what());
-        }
+        if (AssetRegistry::SetSettings(handle, settings))
+            AssetManager::Reload(handle);
     }
 }
