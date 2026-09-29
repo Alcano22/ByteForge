@@ -1,6 +1,7 @@
 add_executable(Editor
         src/EditorApp.cpp
         src/Editor/EditorContext.cpp
+        src/Editor/EditorWidgets.cpp
         src/Editor/Panels/InspectorPanel.cpp
         src/Editor/Panels/SceneHierarchyPanel.cpp
         src/Editor/Panels/ViewportPanel.cpp

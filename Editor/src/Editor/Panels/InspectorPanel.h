@@ -20,7 +20,7 @@ namespace ByteForge
         void OnImGuiRender() override;
 
     private:
-        static void DrawComponents(Entity entity);
+        void DrawComponents(Entity entity) const;
 
         template<typename T, typename UIFunction>
         static void DrawComponent(const char* name, Entity entity, UIFunction uiFunction)

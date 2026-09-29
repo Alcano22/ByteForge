@@ -4,6 +4,7 @@
 
 #include <Engine/Core/Core.h>
 #include <Engine/Assets/TextureAsset.h>
+#include <Engine/Assets/AssetType.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
@@ -14,8 +15,6 @@
 
 namespace ByteForge
 {
-    inline constexpr const char* AssetPathPayload = "ByteForge.AssetPath";
-
     class AssetsPanel : public EditorPanel
     {
     public:
@@ -37,6 +36,7 @@ namespace ByteForge
             std::filesystem::path Path;
             std::string Name;
             bool IsDirectory = false;
+            AssetType Type = AssetType::None;
             std::optional<UUID> Handle;
             Ref<TextureAsset> Texture;
         };

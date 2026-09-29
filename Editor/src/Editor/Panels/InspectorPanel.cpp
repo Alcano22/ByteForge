@@ -1,5 +1,6 @@
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
@@ -67,7 +68,7 @@ namespace ByteForge
 
         std::visit(Overloaded{
             [](std::monostate) { ImGui::TextDisabled("Nothing selected"); },
-            [](const Entity entity)
+            [this](const Entity entity)
             {
                 if (entity.IsValid())
                     DrawComponents(entity);
@@ -80,7 +81,7 @@ namespace ByteForge
         ImGui::End();
     }
 
-    void InspectorPanel::DrawComponents(const Entity entity)
+    void InspectorPanel::DrawComponents(const Entity entity) const
     {
         {
             auto& tag = entity.GetComponent<TagComponent>();
@@ -105,10 +106,13 @@ namespace ByteForge
             ImGui::DragFloat2("Scale", glm::value_ptr(transform.Scale), 0.1f);
         });
 
-        DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](SpriteRendererComponent& spriteRenderer)
+        DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [this](SpriteRendererComponent& spriteRenderer)
         {
             ImGui::ColorEdit4("Color", glm::value_ptr(spriteRenderer.Color));
-            ImGui::Text("SubTexture: %s", spriteRenderer.Sprite ? "bound" : "none");
+
+            Ref<TextureAsset> texture = spriteRenderer.Sprite ? spriteRenderer.Sprite->GetTextureAsset() : nullptr;
+            if (EditorUI::TextureAssetField("Texture", texture, GetContext().SelectionContext))
+                spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
         });
 
         DrawComponent<Rigidbody2DComponent>("Rigidbody 2D", entity, [](Rigidbody2DComponent& rigidbody)

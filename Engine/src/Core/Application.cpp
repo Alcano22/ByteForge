@@ -53,6 +53,8 @@ namespace ByteForge
 
         while (m_IsRunning && !m_Window->ShouldClose())
         {
+            m_Window->PollEvents();
+
             AssetManager::Update();
 
             const double time = glfwGetTime();
@@ -82,8 +84,6 @@ namespace ByteForge
             Renderer::EndFrame();
 
             Input::EndFrame();
-
-            m_Window->PollEvents();
         }
     }
 

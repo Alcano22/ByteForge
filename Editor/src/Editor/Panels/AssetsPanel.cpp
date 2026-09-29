@@ -1,5 +1,6 @@
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/AssetPayload.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
@@ -132,7 +133,10 @@ namespace ByteForge
 
         for (Entry& entry : m_Entries)
         {
-            if (!entry.IsDirectory && AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::None)
+            if (entry.IsDirectory) continue;
+
+            entry.Type = AssetTypeFromExtension(entry.Path.extension().string());
+            if (entry.Type != AssetType::None)
                 entry.Handle = AssetRegistry::Import(entry.Path);
         }
     }
@@ -245,10 +249,16 @@ namespace ByteForge
         if (entry.IsDirectory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             m_PendingDirectory = entry.Path;
 
-        if (!entry.IsDirectory && ImGui::BeginDragDropSource())
+        if (entry.Handle && ImGui::BeginDragDropSource())
         {
-            const std::string path = entry.Path.generic_string();
-            ImGui::SetDragDropPayload(AssetPathPayload, path.c_str(), path.size() + 1);
+            const AssetPayload payload{ .Handle = *entry.Handle, .Type = entry.Type };
+            ImGui::SetDragDropPayload(AssetPayloadType, &payload, sizeof(payload));
+
+            if (thumbnail)
+            {
+                UI::Image(thumbnail, ImVec2(32.0f, 32.0f));
+                ImGui::SameLine();
+            }
             ImGui::TextUnformatted(entry.Name.c_str());
             ImGui::EndDragDropSource();
         }
@@ -263,8 +273,7 @@ namespace ByteForge
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
     {
-        if (entry.IsDirectory || !entry.Handle ||
-            AssetTypeFromExtension(entry.Path.extension().string()) != AssetType::Texture2D)
+        if (!entry.Handle || entry.Type != AssetType::Texture2D)
             return nullptr;
 
         if (!entry.Texture)

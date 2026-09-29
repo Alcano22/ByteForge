@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace ByteForge
 {
@@ -22,6 +23,8 @@ namespace ByteForge
         [[nodiscard]] static UUID GetHandle(const std::filesystem::path& relativePath);
 
         [[nodiscard]] static std::filesystem::path Resolve(UUID handle);
+
+        [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
 
         static bool SetSettings(UUID handle, AssetSettings settings);
 

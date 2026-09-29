@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <fstream>
 
 namespace ByteForge
@@ -90,6 +91,19 @@ namespace ByteForge
             return {};
 
         return s_AssetRoot / metadata.Path;
+    }
+
+    std::vector<AssetMetadata> AssetRegistry::GetAssetsOfType(const AssetType type)
+    {
+        std::vector<AssetMetadata> result;
+        for (const auto& [handle, metadata] : s_Assets)
+        {
+            if (metadata.Type == type)
+                result.push_back(metadata);
+        }
+
+        std::ranges::sort(result, [](const AssetMetadata& a, const AssetMetadata& b) { return a.Path < b.Path; });
+        return result;
     }
 
     bool AssetRegistry::SetSettings(const UUID handle, AssetSettings settings)

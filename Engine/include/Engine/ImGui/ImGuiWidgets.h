@@ -9,4 +9,7 @@ namespace ByteForge::UI
 {
     BYTEFORGE_API void Image(const Ref<Texture2D>& texture, const ImVec2& size);
     BYTEFORGE_API bool ImageButton(const char* id, const Ref<Texture2D>& texture, const ImVec2& size);
+
+    BYTEFORGE_API void DrawImage(ImDrawList& drawList, const Ref<Texture2D>& texture,
+                                 const ImVec2& min, const ImVec2& max);
 }
