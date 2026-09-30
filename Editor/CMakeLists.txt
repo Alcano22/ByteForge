@@ -9,6 +9,9 @@ add_executable(Editor
         src/Editor/Panels/ViewportPanel.cpp
         src/Editor/Panels/AssetsPanel.cpp
         src/Editor/Panels/ConsolePanel.cpp
+        src/Editor/Commands/CommandHistory.cpp
+        src/Editor/Commands/EntityCommands.cpp
+        src/Editor/Commands/EntityEditTracker.cpp
 )
 
 target_include_directories(Editor PRIVATE src)

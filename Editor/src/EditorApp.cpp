@@ -21,6 +21,8 @@
 #include <glm/glm.hpp>
 #include <imgui.h>
 
+#include <format>
+
 namespace
 {
     ByteForge::Entity SpawnBox(ByteForge::Scene& scene, const std::string& name, const glm::vec3& position,
@@ -120,6 +122,8 @@ private:
         ImGui::Begin("DockSpaceHost", nullptr, hostFlags);
         ImGui::PopStyleVar(3);
 
+        HandleShortcuts();
+
         if (ImGui::BeginMenuBar())
         {
             if (ImGui::BeginMenu("File"))
@@ -132,6 +136,24 @@ private:
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Edit"))
+            {
+                const ByteForge::CommandHistory& history = m_Context.History;
+                const bool editing = m_Context.IsEditing();
+
+                const std::string undoLabel = history.CanUndo()
+                                            ? std::format("Undo {}###undo", history.GetUndoName()) : "Undo###undo";
+                const std::string redoLabel = history.CanRedo()
+                                            ? std::format("Redo {}###redo", history.GetRedoName()) : "Redo###redo";
+
+                if (ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, editing && history.CanUndo()))
+                    m_Context.Undo();
+                if (ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, editing && history.CanRedo()))
+                    m_Context.Redo();
+
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("View"))
             {
                 PanelMenuItem<ByteForge::ViewportPanel>(m_Context, "Viewport");
@@ -141,6 +163,15 @@ private:
                 PanelMenuItem<ByteForge::ConsolePanel>(m_Context, "Console");
                 ImGui::EndMenu();
             }
+
+            if (m_Context.History.IsDirty())
+            {
+                constexpr const char* label = "Unsaved changes";
+                const float width = ImGui::CalcTextSize(label).x;
+                ImGui::SameLine(ImGui::GetWindowWidth() - width - ImGui::GetStyle().ItemSpacing.x * 2.0f);
+                ImGui::TextDisabled("%s", label);
+            }
+
             ImGui::EndMenuBar();
         }
 
@@ -210,6 +241,21 @@ private:
         return pressed;
     }
 
+    void HandleShortcuts()
+    {
+        constexpr ImGuiInputFlags global = ImGuiInputFlags_RouteGlobal;
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, global))
+            m_Context.Undo();
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, global) ||
+            ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, global))
+            m_Context.Redo();
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, global) && m_Context.IsEditing())
+            SaveScene();
+    }
+
     void SaveScene()
     {
         try
@@ -220,6 +266,8 @@ private:
         {
             APP_ERROR("Failed to save scene: {}", e.what());
         }
+
+        m_Context.History.MarkClean();
     }
 
     void LoadScene()
@@ -232,6 +280,9 @@ private:
 
         m_Context.SelectionContext.ClearEntity();
         APP_INFO("Scene loaded from 'scene.json'");
+
+        m_Context.History.Clear();
+        m_Context.History.MarkClean();
     }
 
 private:

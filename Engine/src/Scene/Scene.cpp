@@ -64,6 +64,17 @@ namespace ByteForge
         return copy;
     }
 
+    Entity Scene::FindEntityByUUID(const UUID uuid)
+    {
+        for (const auto handle : m_Registry.view<UUIDComponent>())
+        {
+            if (static_cast<uint64_t>(m_Registry.get<UUIDComponent>(handle).ID) == static_cast<uint64_t>(uuid))
+                return Entity(handle, this);
+        }
+
+        return {};
+    }
+
     void Scene::RenderScene(Renderer2D& renderer, const Camera& camera)
     {
         renderer.BeginScene(camera);

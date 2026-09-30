@@ -1,4 +1,5 @@
 #include "Editor/EditorContext.h"
+#include "Editor/Commands/EntityCommands.h"
 
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -12,6 +13,7 @@
 #include <string_view>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 
 namespace ByteForge
 {
@@ -69,8 +71,23 @@ namespace ByteForge
             if (setup)
                 setup(entity);
 
+            RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene, std::format("Create '{}'", entity.GetTag()),
+                                                           SceneSerializer::SerializeEntity(entity)));
             SelectionContext.Select(entity);
         });
+    }
+
+    void EditorContext::RenameEntity(const Entity entity, std::string name)
+    {
+        if (!entity.IsValid() || name.empty() || entity.GetTag() == name) return;
+
+        nlohmann::json before = SceneSerializer::SerializeEntity(entity);
+        const std::string label = std::format("Rename '{}' to '{}'", entity.GetTag(), name);
+
+        entity.GetComponent<TagComponent>().Tag = std::move(name);
+
+        RecordIfEditing(MakeScope<ModifyEntityCommand>(entity.GetScene(), label, std::move(before),
+                                                       SceneSerializer::SerializeEntity(entity)));
     }
 
     void EditorContext::DuplicateEntity(const Entity entity)
@@ -81,6 +98,9 @@ namespace ByteForge
 
             const Entity copy = ActiveScene->DuplicateEntity(entity);
             copy.GetComponent<TagComponent>().Tag = MakeUniqueName(entity.GetTag());
+
+            RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene, std::format("Duplicate '{}'", entity.GetTag()),
+                                                           SceneSerializer::SerializeEntity(copy)));
             SelectionContext.Select(copy);
         });
     }
@@ -94,8 +114,35 @@ namespace ByteForge
             if (SelectionContext.IsEntity(entity))
                 SelectionContext.Clear();
 
-            ActiveScene->DestroyEntity(entity);
+            if (!IsEditing())
+            {
+                ActiveScene->DestroyEntity(entity);
+                return;
+            }
+
+            History.Execute(MakeScope<DestroyEntityCommand>(*ActiveScene, std::format("Delete '{}'", entity.GetTag()),
+                                                            SceneSerializer::SerializeEntity(entity)));
         });
+    }
+
+    bool EditorContext::Undo()
+    {
+        if (!IsEditing())
+            return false;
+
+        const bool undone = History.Undo();
+        DropInvalidSelection();
+        return undone;
+    }
+
+    bool EditorContext::Redo()
+    {
+        if (!IsEditing())
+            return false;
+
+        const bool redone = History.Redo();
+        DropInvalidSelection();
+        return redone;
     }
 
     void EditorContext::Defer(std::function<void()> action)
@@ -137,5 +184,17 @@ namespace ByteForge
             if (!taken.contains(candidate))
                 return candidate;
         }
+    }
+
+    void EditorContext::RecordIfEditing(Scope<EditorCommand> command)
+    {
+        if (IsEditing())
+            History.Record(std::move(command));
+    }
+
+    void EditorContext::DropInvalidSelection()
+    {
+        if (std::holds_alternative<Entity>(SelectionContext.Get()) && !SelectionContext.GetEntity().IsValid())
+            SelectionContext.Clear();
     }
 }

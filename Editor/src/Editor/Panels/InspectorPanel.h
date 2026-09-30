@@ -2,6 +2,7 @@
 
 #include "Editor/EditorPanel.h"
 #include "Editor/LogFormat.h"
+#include "Editor/Commands/EntityEditTracker.h"
 
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/UUID.h>
@@ -81,5 +82,8 @@ namespace ByteForge
         void DrawTextureSettings(const AssetMetadata& metadata) const;
 
         static void DrawLogEntry(const LogEntry& entry);
+
+    private:
+        EntityEditTracker m_EditTracker;
     };
 }

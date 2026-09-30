@@ -22,7 +22,7 @@ namespace ByteForge
         void HandleShortcuts();
 
         void BeginRename(Entity entity);
-        void DrawRenameField(TagComponent& tag);
+        void DrawRenameField();
 
     private:
         Entity m_RenameTarget;

@@ -99,17 +99,44 @@ namespace ByteForge
             return;
         }
 
+        CommandHistory& history = GetContext().History;
+
         std::visit(Overloaded{
-            [](std::monostate) { ImGui::TextDisabled("Nothing selected"); },
-            [this](const Entity entity)
+            [&](std::monostate)
             {
-                if (entity.IsValid())
-                    DrawComponents(entity);
-                else
-                    ImGui::TextDisabled("Nothing selected");
+                m_EditTracker.Flush(history);
+                ImGui::TextDisabled("Nothing selected");
             },
-            [this](const AssetSelection& asset) { DrawAsset(asset.Handle); },
-            [](const LogSelection& log) { DrawLogEntry(log.Entry); }
+            [&](const Entity entity)
+            {
+                if (!entity.IsValid())
+                {
+                    m_EditTracker.Flush(history);
+                    ImGui::TextDisabled("Nothing selected");
+                    return;
+                }
+
+                if (!GetContext().IsEditing())
+                {
+                    m_EditTracker.Cancel();
+                    DrawComponents(entity);
+                    return;
+                }
+
+                m_EditTracker.Begin(entity, history);
+                DrawComponents(entity);
+                m_EditTracker.End(entity, history);
+            },
+            [&](const AssetSelection& asset)
+            {
+                m_EditTracker.Flush(history);
+                DrawAsset(asset.Handle);
+            },
+            [&](const LogSelection& log)
+            {
+                m_EditTracker.Flush(history);
+                DrawLogEntry(log.Entry);
+            }
         }, GetContext().SelectionContext.Get());
 
         ImGui::End();

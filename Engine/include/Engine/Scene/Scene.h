@@ -5,6 +5,7 @@
 #include "Engine/Core/Timestep.h"
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/Renderer2D.h"
+#include "Engine/Scene/UUID.h"
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -27,6 +28,7 @@ namespace ByteForge
         Entity CreateEntity(const std::string& name = std::string());
         void DestroyEntity(Entity entity);
         Entity DuplicateEntity(Entity source);
+        [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
 
         void OnUpdateEditor(Timestep ts, Renderer2D& renderer, const Camera& camera);
         void OnUpdateRuntime(Timestep ts, Renderer2D& renderer, const Camera& camera);

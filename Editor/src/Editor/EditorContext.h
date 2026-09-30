@@ -5,6 +5,7 @@
 #include "Editor/Selection.h"
 #include "Editor/EditorIcons.h"
 #include "Editor/EditorFonts.h"
+#include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Core/Timestep.h>
@@ -101,8 +102,12 @@ namespace ByteForge
         static void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
 
         void CreateEntity(std::string name, std::function<void(Entity)> setup = {});
+        void RenameEntity(Entity entity, std::string name);
         void DuplicateEntity(Entity entity);
         void DestroyEntity(Entity entity);
+
+        bool Undo();
+        bool Redo();
 
     private:
         template<typename T>
@@ -122,9 +127,13 @@ namespace ByteForge
 
         [[nodiscard]] std::string MakeUniqueName(const std::string& name) const;
 
+        void RecordIfEditing(Scope<EditorCommand> command);
+        void DropInvalidSelection();
+
     public:
         Scene* ActiveScene = nullptr;
         Selection SelectionContext;
+        CommandHistory History;
         SceneState State = SceneState::Edit;
         EditorIcons Icons;
         EditorFonts Fonts;

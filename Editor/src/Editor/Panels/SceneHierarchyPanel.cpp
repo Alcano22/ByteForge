@@ -82,7 +82,7 @@ namespace ByteForge
 
         if (entity == m_RenameTarget)
         {
-            DrawRenameField(tag);
+            DrawRenameField();
             ImGui::PopID();
             return;
         }
@@ -169,7 +169,7 @@ namespace ByteForge
         m_FocusRenameField = true;
     }
 
-    void SceneHierarchyPanel::DrawRenameField(TagComponent& tag)
+    void SceneHierarchyPanel::DrawRenameField()
     {
         if (m_FocusRenameField)
         {
@@ -182,8 +182,8 @@ namespace ByteForge
 
         if (ImGui::IsItemDeactivated())
         {
-            if (!ImGui::IsKeyPressed(ImGuiKey_Escape) && m_RenameBuffer[0] != '\0')
-                tag.Tag = m_RenameBuffer.data();
+            if (!ImGui::IsKeyPressed(ImGuiKey_Escape))
+                GetContext().RenameEntity(m_RenameTarget, m_RenameBuffer.data());
 
             m_RenameTarget = {};
         }
