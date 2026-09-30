@@ -25,7 +25,6 @@ namespace ByteForge
         void EnsureBodiesCreated(Scene& scene) const;
         void Step(float ts, Scene& scene) const;
 
-        void OnEntityDestroyed(Entity entity) const;
         void OnRigidbodyDestroyed(entt::registry& registry, entt::entity handle) const;
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,

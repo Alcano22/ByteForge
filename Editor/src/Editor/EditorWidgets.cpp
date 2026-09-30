@@ -1,5 +1,6 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/AssetPayload.h"
+#include "Editor/StringUtils.h"
 
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -29,15 +30,6 @@ namespace ByteForge::EditorUI
         constexpr ImU32 CheckerLight = IM_COL32(88, 88, 88, 255);
         constexpr ImU32 CheckerDark  = IM_COL32(62, 62, 62, 255);
         constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
-
-        bool ContainsIgnoreCase(const std::string_view text, const std::string_view query)
-        {
-            if (query.empty())
-                return true;
-
-            const auto lower = [](const char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); };
-            return !std::ranges::search(text, query, {}, lower, lower).empty();
-        }
 
         ImVec2 FitToBounds(const Texture2D& texture, const ImVec2& bounds)
         {

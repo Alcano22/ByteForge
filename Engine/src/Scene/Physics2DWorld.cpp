@@ -108,15 +108,6 @@ namespace ByteForge
         }
     }
 
-    void Physics2DWorld::OnEntityDestroyed(const Entity entity) const
-    {
-        Rigidbody2DComponent* rigidbody = entity.TryGetComponent<Rigidbody2DComponent>();
-        if (rigidbody == nullptr || rigidbody->m_RuntimeBodyId == 0) return;
-
-        b2DestroyBody(b2LoadBodyId(rigidbody->m_RuntimeBodyId));
-        rigidbody->m_RuntimeBodyId = 0;
-    }
-
     void Physics2DWorld::OnRigidbodyDestroyed(entt::registry& registry, const entt::entity handle) const
     {
         auto& rigidbody = registry.get<Rigidbody2DComponent>(handle);

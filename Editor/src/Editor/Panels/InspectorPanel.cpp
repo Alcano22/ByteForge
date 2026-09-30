@@ -18,6 +18,9 @@
 #include <string>
 #include <span>
 #include <variant>
+#include <algorithm>
+#include <limits>
+#include <string_view>
 
 namespace
 {
@@ -110,17 +113,7 @@ namespace ByteForge
 
     void InspectorPanel::DrawComponents(const Entity entity) const
     {
-        {
-            auto& tag = entity.GetComponent<TagComponent>();
-
-            std::array<char, 256> buffer{};
-            const size_t length = std::min(tag.Tag.size(), buffer.size() - 1);
-            std::memcpy(buffer.data(), tag.Tag.data(), length);
-            buffer[length] = '\0';
-
-            if (ImGui::InputText("##Tag", buffer.data(), buffer.size()))
-                tag.Tag = buffer.data();
-        }
+        DrawHeader(entity);
 
         ImGui::Separator();
 
