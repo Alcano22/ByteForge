@@ -8,6 +8,7 @@ add_executable(Editor
         src/Editor/Panels/SceneHierarchyPanel.cpp
         src/Editor/Panels/ViewportPanel.cpp
         src/Editor/Panels/AssetsPanel.cpp
+        src/Editor/Panels/ConsolePanel.cpp
 )
 
 target_include_directories(Editor PRIVATE src)
