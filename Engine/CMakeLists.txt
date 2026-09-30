@@ -18,6 +18,7 @@ add_library(Engine SHARED
         src/Core/Window.cpp
         src/Core/LayerStack.cpp
         src/Core/JobSystem.cpp
+        src/Core/Platform.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
@@ -79,6 +80,16 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanTexture2D.cpp
         src/Platform/Vulkan/VulkanSamplerCache.cpp
 )
+
+if (WIN32)
+    target_sources(Engine PRIVATE src/Platform/Windows/WindowsPlatform.cpp)
+elseif (APPLE)
+    target_sources(Engine PRIVATE src/Platform/MacOS/MacOSPlatform.cpp)
+elseif (UNIX)
+    target_sources(Engine PRIVATE src/Platform/Linux/LinuxPlatform.cpp)
+else()
+    message(FATAL_ERROR "ByteForge: unsupported platform")
+endif()
 
 target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)
 
