@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <exception>
 #include <system_error>
+#include <variant>
 
 namespace ByteForge
 {
@@ -21,6 +22,25 @@ namespace ByteForge
     namespace
     {
         bool IsMetaFile(const fs::path& path) { return path.extension() == ".meta"; }
+
+        bool IsEmptyDirectory(const fs::path& path)
+        {
+            std::error_code ec;
+            for (const auto& child : fs::directory_iterator(path, ec))
+            {
+                if (!IsMetaFile(child.path()))
+                    return false;
+            }
+            return true;
+        }
+
+        ImVec2 FitToSquare(const Texture2D& texture, const float size)
+        {
+            const float width = static_cast<float>(texture.GetWidth());
+            const float height = static_cast<float>(texture.GetHeight());
+            const float scale = size / std::max(width, height);
+            return { width * scale, height * scale };
+        }
     }
 
     void AssetsPanel::OnImGuiRender()
@@ -117,10 +137,13 @@ namespace ByteForge
             if (IsMetaFile(name)) continue;
 
             std::error_code itemError;
+            const bool isDirectory = item.is_directory(itemError);
+
             m_Entries.push_back({
-                .Path        = m_CurrentDirectory / name,
-                .Name        = name.string(),
-                .IsDirectory = item.is_directory(itemError)
+                .Path             = m_CurrentDirectory / name,
+                .Name             = name.string(),
+                .IsDirectory      = isDirectory,
+                .IsDirectoryEmpty = isDirectory && IsEmptyDirectory(item.path())
             });
         }
 
@@ -196,6 +219,12 @@ namespace ByteForge
 
     void AssetsPanel::DrawContent()
     {
+        Selection& selection = GetContext().SelectionContext;
+
+        if (!m_SelectedPath.empty() && !std::holds_alternative<std::monostate>(selection.Get()))
+            m_SelectedPath.clear();
+
+
         const ImGuiStyle& style = ImGui::GetStyle();
         const float cellWidth = m_ThumbnailSize + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
         const int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / cellWidth));
@@ -210,43 +239,62 @@ namespace ByteForge
             ImGui::EndTable();
         }
 
-        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
-            !ImGui::IsAnyItemHovered() && GetContext().SelectionContext.GetAsset())
-            GetContext().SelectionContext.Clear();
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
+        {
+            m_SelectedPath.clear();
+            if (selection.GetAsset())
+                selection.Clear();
+        }
     }
 
     void AssetsPanel::DrawItem(Entry& entry)
     {
-        const ImVec2 thumbnailSize{ m_ThumbnailSize, m_ThumbnailSize };
-        const bool selected = entry.Handle && GetContext().SelectionContext.IsAsset(*entry.Handle);
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const bool selected = IsSelected(entry);
 
         ImGui::PushID(entry.Name.c_str());
-        ImGui::BeginGroup();
 
-        Ref<Texture2D> thumbnail;
-        if (ImGui::IsRectVisible(thumbnailSize))
-            thumbnail = GetThumbnail(entry);
+        const float padding = style.FramePadding.x;
+        const ImVec2 nameSize = ImGui::CalcTextSize(entry.Name.c_str(), nullptr, false, m_ThumbnailSize);
+        const ImVec2 tileSize{ m_ThumbnailSize + padding * 2.0f,
+                               m_ThumbnailSize + padding * 2.0f + style.ItemInnerSpacing.y + nameSize.y };
 
-        if (selected)
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        const ImVec2 tileMin = ImGui::GetCursorScreenPos();
+        const bool pressed = ImGui::InvisibleButton("##tile", tileSize);
+        const bool hovered = ImGui::IsItemHovered();
+        const ImVec2 tileMax = ImGui::GetItemRectMax();
 
-        bool pressed;
-        if (thumbnail)
-            pressed = UI::ImageButton("##item", thumbnail, thumbnailSize);
-        else
-        {
-            const std::string label = entry.IsDirectory ? "Folder" : entry.Path.extension().string();
-            pressed = ImGui::Button(label.c_str(), ImVec2(thumbnailSize.x + ImGui::GetStyle().FramePadding.x * 2.0f,
-                                                          thumbnailSize.y + ImGui::GetStyle().FramePadding.y * 2.0f));
-        }
+        ImDrawList& drawList = *ImGui::GetWindowDrawList();
 
         if (selected)
-            ImGui::PopStyleColor();
+            drawList.AddRectFilled(tileMin, tileMax, ImGui::GetColorU32(ImGuiCol_Header), style.FrameRounding);
 
-        if (pressed && entry.Handle)
-            GetContext().SelectionContext.SelectAsset(*entry.Handle);
+        Ref<Texture2D> image;
+        if (ImGui::IsItemVisible())
+            image = GetThumbnail(entry);
 
-        if (entry.IsDirectory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        const bool isIcon = image == nullptr;
+        if (isIcon)
+            image = GetContext().Icons.Get(GetIcon(entry));
+
+        const ImVec4 tint = isIcon ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+        const ImVec2 imageSize = FitToSquare(*image, m_ThumbnailSize);
+        const ImVec2 imageMin{ tileMin.x + padding + (m_ThumbnailSize - imageSize.x) * 0.5f,
+                               tileMin.y + padding + (m_ThumbnailSize - imageSize.y) * 0.5f };
+        UI::DrawImage(drawList, image, imageMin, ImVec2(imageMin.x + imageSize.x, imageMin.y + imageSize.y),
+                      ImGui::GetColorU32(tint));
+
+        const float nameOffset = nameSize.x < m_ThumbnailSize ? (m_ThumbnailSize - nameSize.x) * 0.5f : 0.0f;
+        const ImVec2 namePos{ tileMin.x + padding + nameOffset,
+                              tileMin.y + padding + m_ThumbnailSize + style.ItemInnerSpacing.y };
+        drawList.AddText(ImGui::GetFont(), ImGui::GetFontSize(), namePos, ImGui::GetColorU32(ImGuiCol_Text),
+                         entry.Name.c_str(), nullptr, m_ThumbnailSize);
+
+        if (pressed)
+            Select(entry);
+
+        if (entry.IsDirectory && hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             m_PendingDirectory = entry.Path;
 
         if (entry.Handle && ImGui::BeginDragDropSource())
@@ -254,21 +302,37 @@ namespace ByteForge
             const AssetPayload payload{ .Handle = *entry.Handle, .Type = entry.Type };
             ImGui::SetDragDropPayload(AssetPayloadType, &payload, sizeof(payload));
 
-            if (thumbnail)
-            {
-                UI::Image(thumbnail, ImVec2(32.0f, 32.0f));
-                ImGui::SameLine();
-            }
+            UI::Image(image, ImVec2(32.0f, 32.0f), tint);
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(entry.Name.c_str());
             ImGui::EndDragDropSource();
         }
 
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + thumbnailSize.x);
-        ImGui::TextUnformatted(entry.Name.c_str());
-        ImGui::PopTextWrapPos();
-
-        ImGui::EndGroup();
         ImGui::PopID();
+    }
+
+    bool AssetsPanel::IsSelected(const Entry& entry) const
+    {
+        if (entry.Handle)
+            return GetContext().SelectionContext.IsAsset(*entry.Handle);
+
+        return !m_SelectedPath.empty() && entry.Path == m_SelectedPath;
+    }
+
+    void AssetsPanel::Select(const Entry& entry)
+    {
+        Selection& selection = GetContext().SelectionContext;
+
+        if (entry.Handle)
+        {
+            m_SelectedPath.clear();
+            selection.SelectAsset(*entry.Handle);
+            return;
+        }
+
+        selection.Clear();
+        m_SelectedPath = entry.Path;
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
@@ -283,5 +347,13 @@ namespace ByteForge
             return nullptr;
 
         return entry.Texture->GetTexture();
+    }
+
+    EditorIcon AssetsPanel::GetIcon(const Entry& entry)
+    {
+        if (entry.IsDirectory)
+            return entry.IsDirectoryEmpty ? EditorIcon::FolderEmpty : EditorIcon::FolderFilled;
+
+        return EditorIcons::ForFile(entry.Path);
     }
 }

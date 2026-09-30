@@ -8,12 +8,14 @@
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Platform.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -60,6 +62,10 @@ public:
     void OnAttach() override
     {
         ByteForge::AssetRegistry::Init("assets");
+
+        const std::filesystem::path resourcesPath = ByteForge::Platform::GetExecutableDirectory() / "resources";
+        m_Context.Fonts.Load(resourcesPath / "fonts", 16.0f);
+        m_Context.Icons.Load(resourcesPath / "icons");
 
         m_Context.ActiveScene = &m_Scene;
 
@@ -145,49 +151,60 @@ private:
 
     void DrawToolbar()
     {
+        using ByteForge::EditorIcon;
+
         ImGui::Separator();
 
-        const float buttonHeight = ImGui::GetFrameHeight();
-        const float buttonWidth = buttonHeight * 2.5f;
-        const bool isEditing = m_Context.IsEditing();
-        const bool isPlaying = m_Context.IsPlaying();
-        const bool isPaused = m_Context.IsPaused();
-
-        const int buttonCount = isPaused ? 4 : 3;
-        const float groupWidth = buttonWidth * static_cast<float>(buttonCount)
-                               + ImGui::GetStyle().ItemSpacing.x * static_cast<float>(buttonCount - 1);
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float buttonWidth = ImGui::GetTextLineHeight() + style.FramePadding.x * 2.0f;
+        constexpr float buttonCount = 3.0f;
+        const float groupWidth = buttonWidth * buttonCount + style.ItemSpacing.x * (buttonCount - 1.0f);
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - groupWidth) * 0.5f);
 
-        ImGui::BeginDisabled(isPlaying || isPaused);
-        if (ImGui::Button("Play", ImVec2(buttonWidth, buttonHeight)))
-            m_Context.OnScenePlay();
-        ImGui::EndDisabled();
+        const bool isEditing = m_Context.IsEditing();
+        const bool isPaused = m_Context.IsPaused();
+
+        const EditorIcon playIcon = isEditing ? EditorIcon::PlayerPlay : EditorIcon::PlayerStop;
+        if (ToolbarButton("##playStop", playIcon, !isEditing, true, isEditing ? "Play" : "Stop"))
+        {
+            if (isEditing)
+                m_Context.OnScenePlay();
+            else
+                m_Context.OnSceneStop();
+        }
 
         ImGui::SameLine();
-
-        ImGui::BeginDisabled(isEditing);
-        if (ImGui::Button(isPaused ? "Resume" : "Pause", ImVec2(buttonWidth, buttonHeight)))
+        if (ToolbarButton("##pause", EditorIcon::PlayerPause, isPaused, !isEditing, isPaused ? "Resume" : "Pause"))
         {
             if (isPaused)
                 m_Context.OnSceneResume();
             else
                 m_Context.OnScenePause();
         }
-        ImGui::EndDisabled();
 
         ImGui::SameLine();
+        if (ToolbarButton("##step", EditorIcon::PlayerStep, false, isPaused, "Step one frame"))
+            m_Context.OnSceneStep();
+    }
 
-        ImGui::BeginDisabled(isEditing);
-        if (ImGui::Button("Stop", ImVec2(buttonWidth, buttonHeight)))
-            m_Context.OnSceneStop();
+    [[nodiscard]] bool ToolbarButton(const char* id, const ByteForge::EditorIcon icon, const bool active,
+                                     const bool enabled, const char* tooltip) const
+    {
+        const float iconSize = ImGui::GetTextLineHeight();
+
+        ImGui::BeginDisabled(!enabled);
+        if (active)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+        const bool pressed = ByteForge::UI::ImageButton(id, m_Context.Icons.Get(icon), ImVec2(iconSize, iconSize),
+                                                        ImGui::GetStyleColorVec4(ImGuiCol_Text));
+
+        if (active)
+            ImGui::PopStyleColor();
         ImGui::EndDisabled();
 
-        if (isPaused)
-        {
-            ImGui::SameLine();
-            if (ImGui::Button("Step", ImVec2(buttonWidth, buttonHeight)))
-                m_Context.OnSceneStep();
-        }
+        ImGui::SetItemTooltip("%s", tooltip);
+        return pressed;
     }
 
     void SaveScene()

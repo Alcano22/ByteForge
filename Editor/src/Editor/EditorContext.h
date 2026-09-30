@@ -3,6 +3,8 @@
 #include "Editor/EditorPanel.h"
 #include "Editor/SceneState.h"
 #include "Editor/Selection.h"
+#include "Editor/EditorIcons.h"
+#include "Editor/EditorFonts.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Core/Timestep.h>
@@ -124,6 +126,8 @@ namespace ByteForge
         Scene* ActiveScene = nullptr;
         Selection SelectionContext;
         SceneState State = SceneState::Edit;
+        EditorIcons Icons;
+        EditorFonts Fonts;
 
     private:
         std::vector<std::pair<std::type_index, Scope<EditorPanel>>> m_Panels;

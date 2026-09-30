@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Editor/EditorPanel.h"
+#include "Editor/EditorIcons.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Assets/TextureAsset.h>
@@ -36,6 +37,7 @@ namespace ByteForge
             std::filesystem::path Path;
             std::string Name;
             bool IsDirectory = false;
+            bool IsDirectoryEmpty = false;
             AssetType Type = AssetType::None;
             std::optional<UUID> Handle;
             Ref<TextureAsset> Texture;
@@ -49,10 +51,15 @@ namespace ByteForge
         void DrawContent();
         void DrawItem(Entry& entry);
 
+        [[nodiscard]] bool IsSelected(const Entry& entry) const;
+        void Select(const Entry& entry);
+
         [[nodiscard]] static Ref<Texture2D> GetThumbnail(Entry& entry);
 
         [[nodiscard]] static DirectoryNode BuildTree(const std::filesystem::path& root,
                                                      const std::filesystem::path& relative);
+
+        [[nodiscard]] static EditorIcon GetIcon(const Entry& entry);
 
     private:
         DirectoryNode m_Root;
@@ -60,6 +67,7 @@ namespace ByteForge
         bool m_HasRoot = false;
 
         std::filesystem::path m_CurrentDirectory;
+        std::filesystem::path m_SelectedPath;
 
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

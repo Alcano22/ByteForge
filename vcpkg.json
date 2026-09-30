@@ -17,7 +17,8 @@
       "features": [
         "glfw-binding",
         "vulkan-binding",
-        "docking-experimental"
+        "docking-experimental",
+        "freetype"
       ]
     },
     "spirv-reflect",

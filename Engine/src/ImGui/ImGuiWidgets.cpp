@@ -35,21 +35,26 @@ namespace ByteForge::UI
         };
     }
 
-    void Image(const Ref<Texture2D>& texture, const ImVec2& size)
+    void Image(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec4& tint)
     {
         const ScopedSamplerFilter filter(*ImGui::GetWindowDrawList(), texture->GetFilter());
-        ImGui::Image(static_cast<ImTextureID>(texture->GetImGuiTextureId()), size);
+        ImGui::ImageWithBg(static_cast<ImTextureID>(texture->GetImGuiTextureId()), size,
+                           ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f), tint);
     }
 
-    bool ImageButton(const char* id, const Ref<Texture2D>& texture, const ImVec2& size)
+    bool ImageButton(const char* id, const Ref<Texture2D>& texture, const ImVec2& size,
+                     const ImVec4& tint, const ImVec4& background)
     {
         const ScopedSamplerFilter filter(*ImGui::GetWindowDrawList(), texture->GetFilter());
-        return ImGui::ImageButton(id, static_cast<ImTextureID>(texture->GetImGuiTextureId()), size);
+        return ImGui::ImageButton(id, static_cast<ImTextureID>(texture->GetImGuiTextureId()), size,
+                                  ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), background, tint);
     }
 
-    void DrawImage(ImDrawList& drawList, const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max)
+    void DrawImage(ImDrawList& drawList, const Ref<Texture2D>& texture,
+                   const ImVec2& min, const ImVec2& max, const ImU32 tint)
     {
         const ScopedSamplerFilter filter(drawList, texture->GetFilter());
-        drawList.AddImage(static_cast<ImTextureID>(texture->GetImGuiTextureId()), min, max);
+        drawList.AddImage(static_cast<ImTextureID>(texture->GetImGuiTextureId()), min, max,
+                          ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), tint);
     }
 }

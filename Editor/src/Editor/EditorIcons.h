@@ -1,0 +1,41 @@
+#pragma once
+
+#include <Engine/Core/Core.h>
+#include <Engine/Renderer/Texture2D.h>
+
+#include <array>
+#include <cstddef>
+#include <filesystem>
+
+namespace ByteForge
+{
+    enum class EditorIcon
+    {
+        FolderFilled,
+        FolderEmpty,
+        FileGeneric,
+        FileText,
+        FileCode,
+        FileData,
+        FileFont,
+        FileAudio,
+        PlayerPlay,
+        PlayerPause,
+        PlayerStep,
+        PlayerStop,
+        Count
+    };
+
+    class EditorIcons
+    {
+    public:
+        void Load(const std::filesystem::path& directory);
+
+        [[nodiscard]] const Ref<Texture2D>& Get(EditorIcon icon) const;
+
+        [[nodiscard]] static EditorIcon ForFile(const std::filesystem::path& path);
+
+    private:
+        std::array<Ref<Texture2D>, static_cast<size_t>(EditorIcon::Count)> m_Icons;
+    };
+}
