@@ -6,9 +6,6 @@
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
-#include <imgui.h>
-#include <imgui_impl_vulkan.h>
-
 #include <algorithm>
 #include <bit>
 #include <format>
@@ -68,30 +65,5 @@ namespace ByteForge
         m_Sampler = context.GetSamplerCache().Get(settings.Filter, settings.Wrap);
 
         CORE_INFO("Texture created ({}x{}, mip levels: {})", width, height, m_MipLevels);
-    }
-
-    VulkanTexture2D::~VulkanTexture2D()
-    {
-        if (m_ImGuiTexture != nullptr && ImGui::GetCurrentContext() != nullptr)
-            ImGui_ImplVulkan_RemoveTexture(m_ImGuiTexture);
-    }
-
-    uint64_t VulkanTexture2D::GetImGuiTextureId()
-    {
-        if (m_ImGuiTexture == nullptr)
-        {
-            if (ImGui::GetCurrentContext() == nullptr)
-            {
-                throw std::runtime_error("Texture2D::GetImGuiTextureId: ImGui is not enabled, "
-                                         "call Application::EnableImGui() first");
-            }
-
-            const VkImageView displayView = m_Image->GetAlternateView() != nullptr
-                                          ? m_Image->GetAlternateView() : m_Image->GetView();
-
-            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(displayView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        }
-
-        return reinterpret_cast<uint64_t>(m_ImGuiTexture);
     }
 }

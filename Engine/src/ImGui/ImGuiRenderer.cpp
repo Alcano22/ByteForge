@@ -1,23 +1,22 @@
 #include "Engine/ImGui/ImGuiRenderer.h"
-#include "Engine/Renderer/RendererAPI.h"
-#include "Engine/Core/Log.h"
+#include "Renderer/RenderBackend.h"
 
-#include "Platform/Vulkan/VulkanImGuiRenderer.h"
+#include <stdexcept>
 
 namespace ByteForge
 {
+    ImGuiRenderer* ImGuiRenderer::s_Active = nullptr;
+
+    ImGuiRenderer& ImGuiRenderer::Get()
+    {
+        if (s_Active == nullptr)
+            throw std::runtime_error("ImGuiRenderer: ImGui is not enabled, call Application::EnableImGui() first");
+
+        return *s_Active;
+    }
+
     Scope<ImGuiRenderer> ImGuiRenderer::Create()
     {
-        switch (RendererAPI::GetAPI())
-        {
-            case RendererAPI::API::None:
-                CORE_CRITICAL("RendererAPI::None is not supported");
-                return nullptr;
-            case RendererAPI::API::Vulkan:
-                return MakeScope<VulkanImGuiRenderer>();
-        }
-
-        CORE_CRITICAL("Unknown RendererAPI");
-        return nullptr;
+        return RenderBackend::Get().CreateImGuiRenderer();
     }
 }

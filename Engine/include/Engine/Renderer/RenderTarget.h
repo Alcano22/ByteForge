@@ -26,8 +26,6 @@ namespace ByteForge
         [[nodiscard]] virtual uint32_t GetWidth() const = 0;
         [[nodiscard]] virtual uint32_t GetHeight() const = 0;
 
-        [[nodiscard]] virtual uint64_t GetImGuiTextureId() = 0;
-
         static Ref<RenderTarget> Create(const RenderTargetSpec& spec);
     };
 }

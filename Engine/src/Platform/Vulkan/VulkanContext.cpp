@@ -34,6 +34,7 @@ namespace ByteForge
             m_DeletionQueue->Flush();
 
         s_Instance = nullptr;
+        SetActive(nullptr);
 
         m_Renderer.reset();
         m_FrameData.reset();
@@ -55,6 +56,7 @@ namespace ByteForge
     void VulkanContext::Init()
     {
         s_Instance = this;
+        SetActive(this);
 
         m_DeletionQueue = MakeScope<VulkanDeletionQueue>(MaxFramesInFlight);
 

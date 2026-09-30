@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Renderer/GraphicsContext.h"
+#include "../../Renderer/RenderBackend.h"
 
 #include <vulkan/vulkan.h>
 
@@ -25,7 +25,7 @@ namespace ByteForge
     class VulkanDeletionQueue;
     class VulkanSamplerCache;
 
-    class VulkanContext : public GraphicsContext
+    class VulkanContext : public RenderBackend
     {
     public:
         explicit VulkanContext(GLFWwindow* windowHandle);
@@ -33,10 +33,38 @@ namespace ByteForge
 
         void Init() override;
 
-        void BeginFrame();
-        void EndFrame();
+        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(uint32_t size) override;
+        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(const void* vertices, uint32_t size) override;
 
-        void NotifyFramebufferResized() { m_FramebufferResized = true; }
+        [[nodiscard]] Ref<IndexBuffer> CreateIndexBuffer(std::span<const uint32_t> indices) override;
+
+        [[nodiscard]] Ref<UniformBuffer> CreateUniformBuffer(uint32_t size) override;
+
+        [[nodiscard]] Ref<Shader> CreateShader(const std::string& vertexSource,
+                                               const std::string& fragmentSource) override;
+
+        [[nodiscard]] Ref<Pipeline> CreatePipeline(const PipelineSpec& spec) override;
+
+        [[nodiscard]] Ref<Material> CreateMaterial(const Ref<Pipeline>& pipeline) override;
+
+        [[nodiscard]] Ref<Texture2D> CreateTexture2D(uint32_t width, uint32_t height,
+                                                     std::span<const std::byte> pixels,
+                                                     const TextureSettings& settings) override;
+
+        [[nodiscard]] Ref<RenderTarget> CreateRenderTarget(const RenderTargetSpec& spec) override;
+
+        [[nodiscard]] Scope<ImGuiRenderer> CreateImGuiRenderer() override;
+
+        void BeginFrame() override;
+        void EndFrame() override;
+        void BeginScene(const CameraUniforms& uniforms) override;
+        void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants,
+                    const DrawRange& range) override;
+        void BeginRenderTarget(const RenderTarget& target) override;
+        void EndRenderTarget() override;
+        void OnFramebufferResized() override { m_FramebufferResized = true; }
+        void WaitIdle() override;
+        [[nodiscard]] uint64_t GetFrameNumber() const override;
 
         [[nodiscard]] VkInstance GetInstanceHandle() const { return m_Instance->GetHandle(); }
         [[nodiscard]] VulkanDevice& GetDevice() const { return *m_Device; }

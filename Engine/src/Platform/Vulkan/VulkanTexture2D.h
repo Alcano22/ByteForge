@@ -12,15 +12,18 @@ namespace ByteForge
     public:
         VulkanTexture2D(uint32_t width, uint32_t height, std::span<const std::byte> pixels,
                         const TextureSettings& settings);
-        ~VulkanTexture2D() override;
 
         [[nodiscard]] uint32_t GetWidth() const override { return m_Width; }
         [[nodiscard]] uint32_t GetHeight() const override { return m_Height; }
         [[nodiscard]] uint32_t GetMipLevels() const override { return m_MipLevels; }
         [[nodiscard]] TextureFilter GetFilter() const override { return m_Filter; }
-        [[nodiscard]] uint64_t GetImGuiTextureId() override;
         [[nodiscard]] VkImageView GetView() const { return m_Image->GetView(); }
         [[nodiscard]] VkSampler GetSampler() const { return m_Sampler; }
+
+        [[nodiscard]] VkImageView GetDisplayView() const
+        {
+            return m_Image->GetAlternateView() != nullptr ? m_Image->GetAlternateView() : m_Image->GetView();
+        }
 
     private:
         uint32_t m_Width;
@@ -29,6 +32,5 @@ namespace ByteForge
         TextureFilter m_Filter;
         Scope<VulkanImage> m_Image;
         VkSampler m_Sampler = nullptr;
-        VkDescriptorSet m_ImGuiTexture = nullptr;
     };
 }

@@ -31,8 +31,6 @@ namespace ByteForge
         [[nodiscard]] virtual uint32_t GetMipLevels() const = 0;
         [[nodiscard]] virtual TextureFilter GetFilter() const = 0;
 
-        [[nodiscard]] virtual uint64_t GetImGuiTextureId() = 0;
-
         static Ref<Texture2D> Create(uint32_t width, uint32_t height, std::span<const std::byte> pixels,
                                      const TextureSettings& settings = {});
 

@@ -30,7 +30,6 @@ add_library(Engine SHARED
         src/Assets/AssetRegistry.cpp
         src/Assets/AssetSettings.cpp
         src/Renderer/RendererAPI.cpp
-        src/Renderer/GraphicsContext.cpp
         src/Renderer/SwapchainSettings.cpp
         src/Renderer/Buffer.cpp
         src/Renderer/UniformBuffer.cpp
@@ -45,9 +44,11 @@ add_library(Engine SHARED
         src/Renderer/Renderer2D.cpp
         src/Renderer/OrthographicCamera.cpp
         src/Renderer/ImageDecoder.cpp
+        src/Renderer/RenderBackend.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp
+        src/Platform/GraphicsContextFactory.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp
         src/Platform/Vulkan/VulkanDevice.cpp
@@ -79,6 +80,7 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanRenderTarget.cpp
         src/Platform/Vulkan/VulkanTexture2D.cpp
         src/Platform/Vulkan/VulkanSamplerCache.cpp
+        src/Platform/Vulkan/VulkanBackend.cpp
 )
 
 if (WIN32)

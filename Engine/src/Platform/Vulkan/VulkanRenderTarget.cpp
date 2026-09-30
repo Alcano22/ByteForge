@@ -6,9 +6,6 @@
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
 
-#include <imgui.h>
-#include <imgui_impl_vulkan.h>
-
 #include <stdexcept>
 
 namespace ByteForge
@@ -51,31 +48,6 @@ namespace ByteForge
         context.GetUploader().TransitionToShaderRead(m_Color->GetHandle());
 
         CORE_INFO("Render target created ({}x{})", spec.Width, spec.Height);
-    }
-
-    VulkanRenderTarget::~VulkanRenderTarget()
-    {
-        if (m_ImGuiTexture != nullptr && ImGui::GetCurrentContext() != nullptr)
-            ImGui_ImplVulkan_RemoveTexture(m_ImGuiTexture);
-    }
-
-    uint64_t VulkanRenderTarget::GetImGuiTextureId()
-    {
-        if (m_ImGuiTexture == nullptr)
-        {
-            if (ImGui::GetCurrentContext() == nullptr)
-            {
-                throw std::runtime_error("RenderTarget::GetImGuiTextureId: ImGui is not enabled, "
-                                         "call Application::EnableImGui() first");
-            }
-
-            const VkImageView displayView = m_Color->GetAlternateView() != nullptr
-                                          ? m_Color->GetAlternateView() : m_Color->GetView();
-
-            m_ImGuiTexture = ImGui_ImplVulkan_AddTexture(displayView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        }
-
-        return reinterpret_cast<uint64_t>(m_ImGuiTexture);
     }
 
     void VulkanRenderTarget::CmdTransitionForRendering(const VkCommandBuffer commandBuffer) const

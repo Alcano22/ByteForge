@@ -3,6 +3,7 @@
 
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Scene/Scene.h>
+#include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
 
@@ -77,8 +78,7 @@ namespace ByteForge
 
             m_ViewportSize = { static_cast<uint32_t>(imageSize.x), static_cast<uint32_t>(imageSize.y) };
 
-            const auto textureId = static_cast<ImTextureID>(m_Target->GetImGuiTextureId());
-            ImGui::Image(textureId, imageSize);
+            UI::Image(m_Target, imageSize);
         }
 
         ImGui::End();

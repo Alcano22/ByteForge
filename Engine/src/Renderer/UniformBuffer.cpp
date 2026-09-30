@@ -1,12 +1,10 @@
 #include "Engine/Renderer/UniformBuffer.h"
-#include "Engine/Renderer/RendererAPI.h"
-
-#include "Platform/Vulkan/VulkanUniformBuffer.h"
+#include "Renderer/RenderBackend.h"
 
 namespace ByteForge
 {
     Ref<UniformBuffer> UniformBuffer::Create(const uint32_t size)
     {
-        return CreateRHIObject<VulkanUniformBuffer, UniformBuffer>(size);
+        return RenderBackend::Get().CreateUniformBuffer(size);
     }
 }

@@ -1,12 +1,10 @@
 #include "Engine/Renderer/Material.h"
-#include "Engine/Renderer/RendererAPI.h"
-
-#include "Platform/Vulkan/VulkanMaterial.h"
+#include "Renderer/RenderBackend.h"
 
 namespace ByteForge
 {
     Ref<Material> Material::Create(const Ref<Pipeline>& pipeline)
     {
-        return CreateRHIObject<VulkanMaterial, Material>(pipeline);
+        return RenderBackend::Get().CreateMaterial(pipeline);
     }
 }
