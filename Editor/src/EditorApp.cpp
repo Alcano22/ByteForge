@@ -17,6 +17,7 @@
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
+#include <Engine/Scripting/NativeScripts.h>
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -54,6 +55,15 @@ namespace
                 context.Open<T>();
         }
     }
+
+    class Spinner : public ByteForge::ScriptableEntity
+    {
+    protected:
+        void OnUpdate(const ByteForge::Timestep ts) override
+        {
+            GetComponent<ByteForge::TransformComponent>().Rotation += ts.GetSeconds();
+        }
+    };
 }
 
 class EditorLayer : public ByteForge::Layer
@@ -64,6 +74,8 @@ public:
 
     void OnAttach() override
     {
+        ByteForge::NativeScripts::Register<Spinner>("Spinner");
+
         ByteForge::AssetRegistry::Init("assets");
 
         const std::filesystem::path resourcesPath = ByteForge::Platform::GetExecutableDirectory() / "resources";

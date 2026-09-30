@@ -48,6 +48,10 @@ add_library(Engine SHARED
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp
+        src/Scripting/ScriptEngine.cpp
+        src/Scripting/ScriptRuntime.cpp
+        src/Scripting/NativeScripts.cpp
+        src/Scripting/NativeScriptBackend.cpp
         src/Platform/GraphicsContextFactory.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp

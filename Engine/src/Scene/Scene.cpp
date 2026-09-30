@@ -1,9 +1,9 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
-#include "Engine/Scene/ScriptableEntity.h"
 #include "Engine/Scene/Physics2DWorld.h"
 #include "Engine/Scene/RaycastHit2D.h"
+#include "Scripting/ScriptRuntime.h"
 
 #include <stdexcept>
 
@@ -15,7 +15,7 @@ namespace ByteForge
         struct ComponentList {};
 
         using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, Rigidbody2DComponent,
-                                                   BoxCollider2DComponent, CircleCollider2DComponent>;
+                                                   BoxCollider2DComponent, CircleCollider2DComponent, ScriptComponent>;
 
         template<typename... Components>
         void CopyComponents(ComponentList<Components...>, entt::registry& registry,
@@ -36,6 +36,8 @@ namespace ByteForge
 
     Scene::~Scene()
     {
+        OnRuntimeStop();
+
         m_Registry.on_destroy<Rigidbody2DComponent>()
                   .disconnect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
@@ -116,59 +118,57 @@ namespace ByteForge
 
     void Scene::OnUpdateRuntime(const Timestep ts, Renderer2D& renderer, const Camera& camera)
     {
+        OnRuntimeStart();
+
         m_PhysicsWorld->EnsureBodiesCreated(*this);
-
-        for (const auto handle : m_Registry.view<NativeScriptComponent>())
-        {
-            NativeScriptComponent& script = m_Registry.get<NativeScriptComponent>(handle);
-
-            if (script.m_Instance == nullptr)
-            {
-                throw std::runtime_error("Scene::OnUpdateRuntime: an entity has an unbound NativeScriptComponent; "
-                                         "call Bind<T>() right after AddComponent<NativeScriptComponent>()");
-            }
-
-            if (!script.m_Created)
-            {
-                script.m_Instance->m_Entity = Entity(handle, this);
-                script.m_Instance->OnCreate();
-                script.m_Created = true;
-            }
-
-            script.m_Instance->OnUpdate(ts);
-        }
-
+        m_ScriptRuntime->Update(ts);
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
 
         RenderScene(renderer, camera);
     }
 
+    void Scene::OnRuntimeStart()
+    {
+        if (m_ScriptRuntime) return;
+
+        m_ScriptRuntime = MakeScope<ScriptRuntime>(*this);
+        m_ScriptRuntime->Start();
+    }
+
+    void Scene::OnRuntimeStop()
+    {
+        if (!m_ScriptRuntime) return;
+
+        m_ScriptRuntime->Stop();
+        m_ScriptRuntime.reset();
+    }
+
     void Scene::Clear()
     {
+        OnRuntimeStop();
+
         m_Registry.clear();
         ResetPhysicsWorld();
     }
 
     void Scene::DispatchSensorEvent(const Entity self, const Entity other, const bool entered)
     {
-        NativeScriptComponent* script = self.TryGetComponent<NativeScriptComponent>();
-        if (script == nullptr || script->m_Instance == nullptr || !script->m_Created) return;
-
-        if (entered)
-            script->m_Instance->OnSensorEnter(other);
-        else
-            script->m_Instance->OnSensorExit(other);
+        Scene& scene = self.GetScene();
+        if (scene.m_ScriptRuntime)
+        {
+            scene.m_ScriptRuntime->DispatchContact(self.m_Handle,
+                entered ? ContactEvent::SensorEnter : ContactEvent::SensorExit, other);
+        }
     }
 
     void Scene::DispatchCollisionEvent(const Entity self, const Entity other, const bool entered)
     {
-        NativeScriptComponent* script = self.TryGetComponent<NativeScriptComponent>();
-        if (script == nullptr || script->m_Instance == nullptr || !script->m_Created) return;
-
-        if (entered)
-            script->m_Instance->OnCollisionEnter(other);
-        else
-            script->m_Instance->OnCollisionExit(other);
+        Scene& scene = self.GetScene();
+        if (scene.m_ScriptRuntime)
+        {
+            scene.m_ScriptRuntime->DispatchContact(self.m_Handle,
+                entered ? ContactEvent::CollisionEnter : ContactEvent::CollisionExit, other);
+        }
     }
 
     RaycastHit2D Scene::Raycast2D(const glm::vec2& origin, const glm::vec2& direction,

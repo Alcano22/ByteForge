@@ -22,6 +22,7 @@ namespace ByteForge
         if (State != SceneState::Edit || ActiveScene == nullptr) return;
 
         m_EditSceneSnapshot = SceneSerializer::Serialize(*ActiveScene);
+        ActiveScene->OnRuntimeStart();
         SelectionContext.ClearEntity();
         State = SceneState::Play;
     }
@@ -30,6 +31,7 @@ namespace ByteForge
     {
         if (State == SceneState::Edit || ActiveScene == nullptr) return;
 
+        ActiveScene->OnRuntimeStop();
         SceneSerializer::Deserialize(*ActiveScene, m_EditSceneSnapshot);
         m_EditSceneSnapshot = nlohmann::json();
         m_StepRequested = false;

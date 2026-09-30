@@ -8,12 +8,9 @@
 
 #include <string>
 #include <utility>
-#include <type_traits>
 
 namespace ByteForge
 {
-    class ScriptableEntity;
-
     struct UUIDComponent
     {
         UUID ID;
@@ -102,38 +99,8 @@ namespace ByteForge
         bool IsSensor = false;
     };
 
-    struct BYTEFORGE_API NativeScriptComponent
+    struct ScriptComponent
     {
-        NativeScriptComponent() = default;
-        ~NativeScriptComponent();
-
-        NativeScriptComponent(const NativeScriptComponent&) = delete;
-        NativeScriptComponent& operator=(const NativeScriptComponent&) = delete;
-        NativeScriptComponent(NativeScriptComponent&& other) noexcept;
-        NativeScriptComponent& operator=(NativeScriptComponent&& other) noexcept;
-
-        template<typename T>
-        T& Bind()
-        {
-            static_assert(std::is_base_of_v<ScriptableEntity, T>,
-                          "NativeScriptComponent::Bind: T must derive from ScriptableEntity");
-            static_assert(std::is_default_constructible_v<T>,
-                          "NativeScriptComponent::Bind: T must be default-constructible");
-
-            Reset();
-
-            auto* instance = new T();
-            m_Instance = instance;
-            return *instance;
-        }
-
-    private:
-        friend class Scene;
-
-        void Reset();
-
-    private:
-        ScriptableEntity* m_Instance = nullptr;
-        bool m_Created = false;
+        std::string ClassName;
     };
 }

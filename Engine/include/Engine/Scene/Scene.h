@@ -18,6 +18,7 @@ namespace ByteForge
     class Entity;
     class Physics2DWorld;
     struct RaycastHit2D;
+    class ScriptRuntime;
 
     class BYTEFORGE_API Scene : NonCopyable
     {
@@ -32,6 +33,11 @@ namespace ByteForge
 
         void OnUpdateEditor(Timestep ts, Renderer2D& renderer, const Camera& camera);
         void OnUpdateRuntime(Timestep ts, Renderer2D& renderer, const Camera& camera);
+
+        void OnRuntimeStart();
+        void OnRuntimeStop();
+
+        [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
                                              float maxDistance) const;
@@ -59,8 +65,10 @@ namespace ByteForge
     private:
         friend class Entity;
         friend class Physics2DWorld;
+        friend class ScriptRuntime;
 
         entt::registry m_Registry;
         Scope<Physics2DWorld> m_PhysicsWorld;
+        Scope<ScriptRuntime> m_ScriptRuntime;
     };
 }

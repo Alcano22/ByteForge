@@ -1,5 +1,4 @@
 #include "Engine/Scene/Components.h"
-#include "Engine/Scene/ScriptableEntity.h"
 
 #include <box2d/box2d.h>
 
@@ -44,39 +43,5 @@ namespace ByteForge
         RequireRuntimeBody("ApplyLinearImpulseToCenter");
 
         b2Body_ApplyLinearImpulseToCenter(b2LoadBodyId(m_RuntimeBodyId), { impulse.x, impulse.y }, wake);
-    }
-
-    NativeScriptComponent::~NativeScriptComponent() { Reset(); }
-
-    NativeScriptComponent::NativeScriptComponent(NativeScriptComponent&& other) noexcept
-    {
-        *this = std::move(other);
-    }
-
-    NativeScriptComponent& NativeScriptComponent::operator=(NativeScriptComponent&& other) noexcept
-    {
-        if (this == &other)
-            return *this;
-
-        Reset();
-
-        m_Instance = other.m_Instance;
-        m_Created = other.m_Created;
-        other.m_Instance = nullptr;
-        other.m_Created = false;
-
-        return *this;
-    }
-
-    void NativeScriptComponent::Reset()
-    {
-        if (m_Instance == nullptr) return;
-
-        if (m_Created)
-            m_Instance->OnDestroy();
-
-        delete m_Instance;
-        m_Instance = nullptr;
-        m_Created = false;
     }
 }

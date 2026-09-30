@@ -32,8 +32,7 @@ namespace ByteForge
         virtual void OnCollisionExit(Entity) {}
 
     private:
-        friend class Scene;
-        friend struct NativeScriptComponent;
+        friend class NativeScriptInstance;
 
         Entity m_Entity;
     };

@@ -1,0 +1,96 @@
+#include "Engine/Scripting/ScriptEngine.h"
+#include "Engine/Core/Log.h"
+#include "Scripting/NativeScriptBackend.h"
+
+#include <algorithm>
+#include <exception>
+#include <stdexcept>
+#include <utility>
+
+namespace ByteForge
+{
+    ScriptEngine* ScriptEngine::s_Instance = nullptr;
+
+    ScriptEngine::ScriptEngine()
+    {
+        if (s_Instance != nullptr)
+            throw std::runtime_error("ScriptEngine: only one instance may exist");
+
+        s_Instance = this;
+        RegisterBackend(MakeScope<NativeScriptBackend>());
+    }
+
+    ScriptEngine::~ScriptEngine()
+    {
+        m_Backends.clear();
+        s_Instance = nullptr;
+    }
+
+    ScriptEngine& ScriptEngine::Get()
+    {
+        if (s_Instance == nullptr)
+            throw std::runtime_error("ScriptEngine: no instance exists, it is created by the Application");
+
+        return *s_Instance;
+    }
+
+    void ScriptEngine::RegisterBackend(Scope<ScriptBackend> backend)
+    {
+        if (!backend)
+            throw std::runtime_error("ScriptEngine::RegisterBackend: the backend must not be null");
+
+        CORE_INFO("Script backend '{}' registered", backend->GetName());
+        m_Backends.push_back(std::move(backend));
+    }
+
+    ScriptBackend* ScriptEngine::FindBackend(const std::string_view className) const
+    {
+        for (const auto& backend : m_Backends)
+        {
+            if (backend->HasClass(className))
+                return backend.get();
+        }
+        return nullptr;
+    }
+
+    std::vector<ScriptClassInfo> ScriptEngine::GetClasses() const
+    {
+        std::vector<ScriptClassInfo> classes;
+        for (const auto& backend : m_Backends)
+        {
+            for (std::string& name : backend->GetClassNames())
+                classes.push_back({ .Name = std::move(name), .Backend = std::string(backend->GetName()) });
+        }
+
+        std::ranges::sort(classes, {}, &ScriptClassInfo::Name);
+        return classes;
+    }
+
+    void ScriptEngine::OnRuntimeStart(Scene& scene) const
+    {
+        for (const auto& backend : m_Backends)
+        {
+            try
+            {
+                backend->OnRuntimeStart(scene);
+            } catch (const std::exception& e)
+            {
+                CORE_ERROR("Script backend '{}' failed to start: {}", backend->GetName(), e.what());
+            }
+        }
+    }
+
+    void ScriptEngine::OnRuntimeStop(Scene& scene) const
+    {
+        for (const auto& backend : m_Backends)
+        {
+            try
+            {
+                backend->OnRuntimeStop(scene);
+            } catch (const std::exception& e)
+            {
+                CORE_ERROR("Script backend '{}' failed to stop: {}", backend->GetName(), e.what());
+            }
+        }
+    }
+}

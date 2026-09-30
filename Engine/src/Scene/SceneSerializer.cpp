@@ -52,6 +52,7 @@ namespace
         RemoveIfPresent<Rigidbody2DComponent>(entity);
         RemoveIfPresent<BoxCollider2DComponent>(entity);
         RemoveIfPresent<CircleCollider2DComponent>(entity);
+        RemoveIfPresent<ScriptComponent>(entity);
     }
 
     void ReadComponents(const Entity entity, const nlohmann::json& entityJson)
@@ -113,6 +114,9 @@ namespace
             collider.Restitution = c.value("restitution", 0.0f);
             collider.IsSensor = c.value("isSensor", false);
         }
+
+        if (entityJson.contains("script"))
+            entity.AddComponent<ScriptComponent>(entityJson.at("script").value("class", std::string()));
     }
 }
 
@@ -237,6 +241,9 @@ namespace ByteForge
                 { "isSensor",    collider.IsSensor       }
             };
         }
+
+        if (entity.HasComponent<ScriptComponent>())
+            entityJson["script"] = { { "class", entity.GetComponent<ScriptComponent>().ClassName } };
 
         return entityJson;
     }

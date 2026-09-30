@@ -8,6 +8,7 @@
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Scene/Components.h>
+#include <Engine/Scripting/ScriptEngine.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -82,7 +83,8 @@ namespace
         Describe<ByteForge::SpriteRendererComponent>("Sprite Renderer"),
         Describe<ByteForge::Rigidbody2DComponent>("Rigidbody 2D"),
         Describe<ByteForge::BoxCollider2DComponent>("Box Collider 2D"),
-        Describe<ByteForge::CircleCollider2DComponent>("Circle Collider 2D")
+        Describe<ByteForge::CircleCollider2DComponent>("Circle Collider 2D"),
+        Describe<ByteForge::ScriptComponent>("Script")
     };
 
     constexpr const char* AddComponentPopupId = "##AddComponent";
@@ -199,6 +201,45 @@ namespace ByteForge
             ImGui::DragFloat("Friction", &collider.Friction, 0.02f, 0.0f, 1.0f);
             ImGui::DragFloat("Restitution", &collider.Restitution, 0.02f, 0.0f, 1.0f);
             ImGui::Checkbox("Is Sensor", &collider.IsSensor);
+        });
+
+        DrawComponent<ScriptComponent>("Script", entity, [](ScriptComponent& script)
+        {
+            const std::vector<ScriptClassInfo> classes = ScriptEngine::Get().GetClasses();
+            const bool known = script.ClassName.empty() ||
+                               std::ranges::any_of(classes, [&](const ScriptClassInfo& info)
+                               {
+                                   return info.Name == script.ClassName;
+                               });
+
+            constexpr ImVec4 errorColor{ 0.95f, 0.40f, 0.40f, 1.0f };
+            const char* preview = script.ClassName.empty() ? "None" : script.ClassName.c_str();
+
+            if (!known)
+                ImGui::PushStyleColor(ImGuiCol_Text, errorColor);
+            const bool open = ImGui::BeginCombo("Class", preview);
+            if (!known)
+                ImGui::PopStyleColor();
+
+            if (open)
+            {
+                if (ImGui::Selectable("None", script.ClassName.empty()))
+                    script.ClassName.clear();
+
+                for (const ScriptClassInfo& info : classes)
+                {
+                    if (ImGui::Selectable(info.Name.c_str(), info.Name == script.ClassName))
+                        script.ClassName = info.Name;
+
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("%s", info.Backend.c_str());
+                }
+
+                ImGui::EndCombo();
+            }
+
+            if (!known)
+                ImGui::TextColored(errorColor, "Class '%s' not found", script.ClassName.c_str());
         });
     }
 

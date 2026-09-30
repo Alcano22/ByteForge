@@ -13,6 +13,7 @@ struct ImGuiContext;
 namespace ByteForge
 {
     class Event;
+    class ScriptEngine;
 
     class BYTEFORGE_API Application : NonCopyable
     {
@@ -40,6 +41,7 @@ namespace ByteForge
     private:
         Scope<Window> m_Window;
         Scope<ImGuiLayer> m_ImGuiLayer;
+        Scope<ScriptEngine> m_ScriptEngine;
         LayerStack m_LayerStack;
 
         bool m_IsRunning = true;
