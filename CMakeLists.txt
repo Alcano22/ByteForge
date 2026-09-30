@@ -21,5 +21,6 @@ if (BYTEFORGE_WARNINGS_AS_ERRORS)
 endif()
 
 add_subdirectory(Engine)
+add_subdirectory(ScriptCore)
 add_subdirectory(Editor)
 add_subdirectory(Sandbox)

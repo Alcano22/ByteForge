@@ -26,6 +26,7 @@
     "entt",
     "box2d",
     "nlohmann-json",
-    "magic-enum"
+    "magic-enum",
+    "nethost"
   ]
 }

@@ -36,6 +36,9 @@ namespace ByteForge
         [[nodiscard]] static ScriptEngine& Get();
 
     private:
+        void TryRegisterCSharpBackend();
+
+    private:
         std::vector<Scope<ScriptBackend>> m_Backends;
 
         static ScriptEngine* s_Instance;

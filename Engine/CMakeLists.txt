@@ -11,6 +11,7 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(box2d CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(unofficial-nethost CONFIG REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -52,6 +53,9 @@ add_library(Engine SHARED
         src/Scripting/ScriptRuntime.cpp
         src/Scripting/NativeScripts.cpp
         src/Scripting/NativeScriptBackend.cpp
+        src/Scripting/CSharp/DotNetHost.cpp
+        src/Scripting/CSharp/CSharpScriptBackend.cpp
+        src/Scripting/CSharp/ScriptGlue.cpp
         src/Platform/GraphicsContextFactory.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp
@@ -130,6 +134,8 @@ target_link_libraries(Engine PRIVATE
         Microsoft::DirectXShaderCompiler
         unofficial::spirv-reflect
         box2d::box2d
+        unofficial::nethost::nethost
+        ${CMAKE_DL_LIBS}
 )
 
 if (UNIX AND NOT APPLE)

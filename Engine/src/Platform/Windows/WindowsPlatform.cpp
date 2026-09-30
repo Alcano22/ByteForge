@@ -1,4 +1,5 @@
 #include "Platform/PlatformDetail.h"
+#include "Platform/SharedLibrary.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #   define WIN32_LEAN_AND_MEAN
@@ -11,6 +12,30 @@
 #include <format>
 #include <stdexcept>
 #include <string>
+
+namespace ByteForge
+{
+    SharedLibrary::SharedLibrary(const std::filesystem::path& path)
+        : m_Handle(LoadLibaryW(path.c_str()))
+    {
+        if (m_Handle == nullptr)
+        {
+            throw std::runtime_error(std::format("Platform: cannot load '{}' (error {})",
+                                                 path.string(), GetLastError()));
+        }
+    }
+
+    SharedLibrary::~SharedLibrary()
+    {
+        if (m_Handle != nullptr)
+            FreeLibrary(static_cast<HMODULE>(m_Handle));
+    }
+
+    void* SharedLibrary::GetSymbol(const char* name) const
+    {
+        return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(m_Handle), name));
+    }
+}
 
 namespace ByteForge::Platform::Detail
 {

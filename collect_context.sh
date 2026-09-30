@@ -9,7 +9,10 @@ PRUNE_EXPR=(
        -o -path "*/_deps*" \
        -o -path "*/.git*" \
        -o -path "*/.idea*" \
+       -o -path "*/.vscode*" \
        -o -path "*/vendor*" \
+       -o -path "*/bin" \
+       -o -path "*/obj" \
     \) -prune -o
 )
 
@@ -23,7 +26,7 @@ echo "" >> "$OUT"
 echo "=== FILE CONTENTS ===" >> "$OUT"
 
 find . "${PRUNE_EXPR[@]}" -type f -print \
-  | grep -E '\.(hpp|h|cpp|cmake)$|CMakeLists\.txt$' \
+  | grep -E '\.(hpp|h|cpp|cmake|cs|csproj|sln|props|targets)$|CMakeLists\.txt$' \
   | sort \
   | while read -r file; do
       echo "" >> "$OUT"

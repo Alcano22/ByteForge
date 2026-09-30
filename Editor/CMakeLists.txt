@@ -24,3 +24,12 @@ add_custom_command(TARGET Editor POST_BUILD
                 $<TARGET_FILE_DIR:Editor>/resources
         COMMENT "Copying editor resources"
 )
+
+add_dependencies(Editor ScriptCore)
+
+add_custom_command(TARGET Editor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+                ${CMAKE_BINARY_DIR}/ScriptCore
+                $<TARGET_FILE_DIR:Editor>/ScriptCore
+        COMMENT "Copying ScriptCore"
+)

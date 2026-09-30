@@ -1,11 +1,14 @@
 #include "Engine/Scripting/ScriptEngine.h"
+#include "Engine/Core/Platform.h"
 #include "Engine/Core/Log.h"
 #include "Scripting/NativeScriptBackend.h"
+#include "Scripting/CSharp/CSharpScriptBackend.h"
 
 #include <algorithm>
 #include <exception>
 #include <stdexcept>
 #include <utility>
+#include <filesystem>
 
 namespace ByteForge
 {
@@ -18,6 +21,7 @@ namespace ByteForge
 
         s_Instance = this;
         RegisterBackend(MakeScope<NativeScriptBackend>());
+        TryRegisterCSharpBackend();
     }
 
     ScriptEngine::~ScriptEngine()
@@ -91,6 +95,26 @@ namespace ByteForge
             {
                 CORE_ERROR("Script backend '{}' failed to stop: {}", backend->GetName(), e.what());
             }
+        }
+    }
+
+    void ScriptEngine::TryRegisterCSharpBackend()
+    {
+        const std::filesystem::path directory = Platform::GetExecutableDirectory() / "ScriptCore";
+
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(directory / "ScriptCore.dll", error))
+        {
+            CORE_INFO("C# scripting unavailable: no ScriptCore next to the executable");
+            return;
+        }
+
+        try
+        {
+            RegisterBackend(MakeScope<CSharpScriptBackend>(directory));
+        } catch (const std::exception& e)
+        {
+            CORE_ERROR("C# scripting unavailable: {}", e.what());
         }
     }
 }

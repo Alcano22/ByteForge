@@ -3,6 +3,8 @@ build/
 build-test/
 cmake-build-*/
 out/
+ScriptCore/bin/
+ScriptCore/obj/
 
 # CMake
 CMakeCache.txt
