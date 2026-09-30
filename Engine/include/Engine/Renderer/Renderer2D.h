@@ -34,6 +34,8 @@ namespace ByteForge
         uint32_t Quads = 0;
     };
 
+    // Colors and tints are in sRGB, exactly as a color picker shows them. When rendering into an
+    // sRGB target they are converted to linear, so the hardware's sRGB encoding restores them.
     class BYTEFORGE_API Renderer2D : NonCopyable
     {
     public:
@@ -100,6 +102,7 @@ namespace ByteForge
         uint32_t m_BatchStart = 0;
         Ref<Texture2D> m_CurrentTexture;
         bool m_InScene = false;
+        bool m_LinearizeColors = false;
 
         Renderer2DStats m_Stats;
 

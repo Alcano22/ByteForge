@@ -5,6 +5,7 @@
 #include <format>
 #include <limits>
 #include <stdexcept>
+#include <cmath>
 
 namespace ByteForge
 {
@@ -52,6 +53,16 @@ namespace ByteForge
                 return u_Texture.Sample(u_TextureSampler, uv) * color;
             }
         )";
+
+        float SrgbToLinear(const float channel)
+        {
+            return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
+        }
+
+        glm::vec4 SrgbToLinear(const glm::vec4& color)
+        {
+            return { SrgbToLinear(color.r), SrgbToLinear(color.g), SrgbToLinear(color.b), color.a };
+        }
     }
 
     Renderer2D::Renderer2D(const Renderer2DSpec& spec)
@@ -67,6 +78,8 @@ namespace ByteForge
             throw std::runtime_error(std::format("Renderer2DSpec::MaxQuads must be between 1 and {}",
                                                  maxSupportedQuads));
         }
+
+        m_LinearizeColors = spec.ColorFormat == ImageFormat::RGBA8_SRGB;
 
         const BufferLayout layout = {
             { ShaderDataType::Float3, "Position" },
@@ -227,6 +240,8 @@ namespace ByteForge
             { uvMin.x, uvMax.y }, { uvMax.x, uvMax.y }, { uvMax.x, uvMin.y }, { uvMin.x, uvMin.y }
         }};
 
+        const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(color) : color;
+
         const float sine = glm::sin(rotation);
         const float cosine = glm::cos(rotation);
 
@@ -239,7 +254,7 @@ namespace ByteForge
             vertices[i] = {
                 .Position = { position.x + rotated.x, position.y + rotated.y, position.z },
                 .UV       = uvs[i],
-                .Color    = color
+                .Color    = vertexColor
             };
         }
 
