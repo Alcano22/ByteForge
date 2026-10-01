@@ -31,6 +31,24 @@ namespace ByteForge
     {
         return dlsym(m_Handle, name);
     }
+
+    Platform::ProcessResult Platform::RunProcess(const std::string& command)
+    {
+        const std::string merged = command + " 2>&1";
+
+        FILE* pipe = popen(merged.c_str(), "r");
+        if (pipe == nullptr)
+            throw std::runtime_error(std::format("Platform: cannot run '{}'", command));
+
+        ProcessResult result;
+        std::array<char, 4096> buffer{};
+        while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+            result.Output += buffer.data();
+
+        const int status = pclose(pipe);
+        result.ExitCode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+        return result;
+    }
 }
 
 namespace ByteForge::Platform::Detail

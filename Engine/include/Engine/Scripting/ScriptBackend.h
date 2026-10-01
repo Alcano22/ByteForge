@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <filesystem>
 
 namespace ByteForge
 {
@@ -35,6 +36,8 @@ namespace ByteForge
         [[nodiscard]] virtual bool HasClass(std::string_view className) const = 0;
 
         [[nodiscard]] virtual Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) = 0;
+
+        virtual bool LoadModule(const std::filesystem::path&) { return false; }
 
         virtual void OnRuntimeStart(Scene&) {}
         virtual void OnRuntimeStop(Scene&) {}

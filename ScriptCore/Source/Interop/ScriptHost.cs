@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -8,6 +9,8 @@ namespace ByteForge.Interop;
 internal static unsafe class ScriptHost
 {
     private static readonly Dictionary<string, Type> s_Classes = new();
+    private static GameAssemblyContext? s_GameContext;
+    private static Assembly? s_GameAssembly;
 
     internal static int ClassCount => s_Classes.Count;
 
@@ -78,6 +81,45 @@ internal static unsafe class ScriptHost
         {
             Log.Error($"Could not release a script instance: {e}");
         }
+    }
+
+    [UnmanagedCallersOnly]
+    public static int LoadGameAssembly(byte* path)
+    {
+        try
+        {
+            string file = Marshal.PtrToStringUTF8((IntPtr)path) ?? string.Empty;
+
+            UnloadGameAssembly();
+
+            var context = new GameAssemblyContext();
+
+            using FileStream assembly = File.OpenRead(file);
+            string symbolsFile = Path.ChangeExtension(file, ".pdb");
+            using FileStream? symbols = File.Exists(symbolsFile) ? File.OpenRead(symbolsFile) : null;
+
+            s_GameAssembly = context.LoadFromStream(assembly, symbols);
+            s_GameContext = context;
+
+            DiscoverClasses([typeof(ScriptBehaviour).Assembly, s_GameAssembly]);
+            Log.Info($"Loaded {s_GameAssembly.GetName().Name} ({ClassCount} script classes)");
+            return 0;
+        } catch (Exception e)
+        {
+            Native.ReportException(e);
+            return 1;
+        }
+    }
+
+    private static void UnloadGameAssembly()
+    {
+        if (s_GameContext == null) return;
+
+        s_Classes.Clear();
+        s_GameAssembly = null;
+
+        s_GameContext.Unload();
+        s_GameContext = null;
     }
 
     [UnmanagedCallersOnly]

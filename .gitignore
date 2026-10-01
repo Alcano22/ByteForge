@@ -5,6 +5,9 @@ cmake-build-*/
 out/
 ScriptCore/bin/
 ScriptCore/obj/
+/GameScripts.csproj
+/obj/
+/.byteforge/
 
 # CMake
 CMakeCache.txt

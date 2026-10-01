@@ -57,6 +57,16 @@ namespace ByteForge
         return nullptr;
     }
 
+    ScriptBackend* ScriptEngine::FindBackendByName(const std::string_view name) const
+    {
+        for (const auto& backend : m_Backends)
+        {
+            if (backend->GetName() == name)
+                return backend.get();
+        }
+        return nullptr;
+    }
+
     std::vector<ScriptClassInfo> ScriptEngine::GetClasses() const
     {
         std::vector<ScriptClassInfo> classes;

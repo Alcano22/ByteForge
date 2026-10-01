@@ -1,4 +1,5 @@
 #include "Editor/EditorContext.h"
+#include "Editor/ScriptProject.h"
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/Panels/ViewportPanel.h"
@@ -77,6 +78,8 @@ public:
         ByteForge::NativeScripts::Register<Spinner>("Spinner");
 
         ByteForge::AssetRegistry::Init("assets");
+
+        m_ScriptProject.Reload();
 
         const std::filesystem::path resourcesPath = ByteForge::Platform::GetExecutableDirectory() / "resources";
         m_Context.Fonts.Load(resourcesPath / "fonts", 16.0f);
@@ -163,6 +166,13 @@ private:
                 if (ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, editing && history.CanRedo()))
                     m_Context.Redo();
 
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Scripts"))
+            {
+                if (ImGui::MenuItem("Reload Scripts", "Ctrl+R", false, m_Context.IsEditing()))
+                    m_ScriptProject.Reload();
                 ImGui::EndMenu();
             }
 
@@ -266,6 +276,9 @@ private:
 
         if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, global) && m_Context.IsEditing())
             SaveScene();
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_R, global) && m_Context.IsEditing())
+            m_ScriptProject.Reload();
     }
 
     void SaveScene()
@@ -300,6 +313,7 @@ private:
 private:
     ByteForge::EditorContext m_Context;
     ByteForge::Scene m_Scene;
+    ByteForge::ScriptProject m_ScriptProject{ std::filesystem::current_path() };
 };
 
 ByteForge::Application* ByteForge::CreateApplication()

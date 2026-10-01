@@ -75,6 +75,7 @@ namespace ByteForge
         resolve(m_Functions.GetClassNames, ScriptHostType, "GetClassNames");
         resolve(m_Functions.CreateInstance, ScriptHostType, "CreateInstance");
         resolve(m_Functions.DestroyInstance, ScriptHostType, "DestroyInstance");
+        resolve(m_Functions.LoadGameAssembly, ScriptHostType, "LoadGameAssembly");
         resolve(m_Functions.OnCreate, ScriptHostType, "OnCreate");
         resolve(m_Functions.OnUpdate, ScriptHostType, "OnUpdate");
         resolve(m_Functions.OnDestroy, ScriptHostType, "OnDestroy");
@@ -106,6 +107,21 @@ namespace ByteForge
             throw std::runtime_error(ScriptGlue::TakeManagedException());
 
         return MakeScope<CSharpScriptInstance>(m_Functions, handle);
+    }
+
+    bool CSharpScriptBackend::LoadModule(const std::filesystem::path& path)
+    {
+        const std::u8string file = path.u8string();
+
+        if (m_Functions.LoadGameAssembly(reinterpret_cast<const char*>(file.c_str())) != 0)
+        {
+            CORE_ERROR("Could not load C# assembly '{}': {}", path.string(), ScriptGlue::TakeManagedException());
+            return false;
+        }
+
+        m_ClassNames.clear();
+        m_Functions.GetClassNames(&CollectClassName, &m_ClassNames);
+        return true;
     }
 
     void CSharpScriptBackend::OnRuntimeStart(Scene& scene) { ScriptGlue::SetScene(&scene); }

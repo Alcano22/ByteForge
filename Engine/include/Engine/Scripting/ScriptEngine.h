@@ -27,6 +27,7 @@ namespace ByteForge
         void RegisterBackend(Scope<ScriptBackend> backend);
 
         [[nodiscard]] ScriptBackend* FindBackend(std::string_view className) const;
+        [[nodiscard]] ScriptBackend* FindBackendByName(std::string_view name) const;
 
         [[nodiscard]] std::vector<ScriptClassInfo> GetClasses() const;
 

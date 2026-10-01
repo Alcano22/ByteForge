@@ -73,8 +73,8 @@ namespace ByteForge
             { ".ini",  EditorIcon::FileText  }, { ".cfg",  EditorIcon::FileText  },
 
             { ".cpp",  EditorIcon::FileCode  }, { ".h",    EditorIcon::FileCode  }, { ".hpp",  EditorIcon::FileCode  },
-            { ".c",    EditorIcon::FileCode  }, { ".hlsl", EditorIcon::FileCode  }, { ".glsl", EditorIcon::FileCode  },
-            { ".lua",  EditorIcon::FileCode  }, { ".py",   EditorIcon::FileCode  },
+            { ".c",    EditorIcon::FileCode  }, { ".cs",   EditorIcon::FileCode  }, { ".hlsl", EditorIcon::FileCode  },
+            { ".glsl", EditorIcon::FileCode  }, { ".lua",  EditorIcon::FileCode  }, { ".py",   EditorIcon::FileCode  },
 
             { ".json", EditorIcon::FileData  }, { ".xml",  EditorIcon::FileData  }, { ".yaml", EditorIcon::FileData  },
             { ".yml",  EditorIcon::FileData  }, { ".toml", EditorIcon::FileData  }, { ".csv",  EditorIcon::FileData  },

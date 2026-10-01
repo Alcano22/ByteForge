@@ -35,6 +35,22 @@ namespace ByteForge
     {
         return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(m_Handle), name));
     }
+
+    Platform::ProcessResult Platform::RunProcess(const std::string& command)
+    {
+        const std::string merged = command + " 2>&1";
+
+        FILE* pipe = _popen(merged.c_str(), "r");
+        if (pipe == nullptr)
+            throw std::runtime_error(std::format("Platform: cannot run '{}'", command));
+
+        ProcessResult result;
+        std::array<char, 4096> buffer{};
+        while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+            result.Output += buffer.data();
+
+        return _pclose(pipe);
+    }
 }
 
 namespace ByteForge::Platform::Detail

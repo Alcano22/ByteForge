@@ -4,6 +4,7 @@ add_executable(Editor
         src/Editor/EditorWidgets.cpp
         src/Editor/EditorIcons.cpp
         src/Editor/EditorFonts.cpp
+        src/Editor/ScriptProject.cpp
         src/Editor/Panels/InspectorPanel.cpp
         src/Editor/Panels/SceneHierarchyPanel.cpp
         src/Editor/Panels/ViewportPanel.cpp
