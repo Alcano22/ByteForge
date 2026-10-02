@@ -30,6 +30,7 @@ namespace ByteForge
         [[nodiscard]] ScriptBackend* FindBackendByName(std::string_view name) const;
 
         [[nodiscard]] std::vector<ScriptClassInfo> GetClasses() const;
+        [[nodiscard]] std::span<const ScriptFieldInfo> GetFields(std::string_view className) const;
 
         void OnRuntimeStart(Scene& scene) const;
         void OnRuntimeStop(Scene& scene) const;

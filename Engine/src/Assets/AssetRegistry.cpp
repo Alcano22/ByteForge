@@ -61,7 +61,20 @@ namespace ByteForge
             metadata.Settings = DefaultAssetSettings(metadata.Type);
             WriteMeta(absolutePath, metadata);
         } else
+        {
             metadata.Path = relativePath;
+
+            if (metadata.Type == AssetType::None)
+            {
+                const AssetType detected = AssetTypeFromExtension(absolutePath.extension().string());
+                if (detected != AssetType::None)
+                {
+                    metadata.Type = detected;
+                    metadata.Settings = DefaultAssetSettings(detected);
+                    WriteMeta(absolutePath, metadata);
+                }
+            }
+        }
 
         s_Assets[metadata.Handle] = metadata;
         s_PathToHandle[key] = metadata.Handle;

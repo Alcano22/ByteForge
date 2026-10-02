@@ -19,6 +19,7 @@ namespace ByteForge
     class Physics2DWorld;
     struct RaycastHit2D;
     class ScriptRuntime;
+    class ScriptInstance;
 
     class BYTEFORGE_API Scene : NonCopyable
     {
@@ -36,6 +37,8 @@ namespace ByteForge
 
         void OnRuntimeStart();
         void OnRuntimeStop();
+
+        [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity) const;
 
         [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }
 

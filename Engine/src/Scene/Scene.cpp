@@ -143,6 +143,11 @@ namespace ByteForge
         m_ScriptRuntime.reset();
     }
 
+    ScriptInstance* Scene::FindScriptInstance(const Entity entity) const
+    {
+        return m_ScriptRuntime ? m_ScriptRuntime->FindInstance(entity.m_Handle) : nullptr;
+    }
+
     void Scene::Clear()
     {
         OnRuntimeStop();

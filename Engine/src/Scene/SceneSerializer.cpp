@@ -8,6 +8,9 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <optional>
+#include <type_traits>
+#include <variant>
 
 namespace
 {
@@ -20,6 +23,37 @@ namespace
     glm::vec2 ToVec2(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>() }; }
     glm::vec3 ToVec3(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>() }; }
     glm::vec4 ToVec4(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>(), j.at(3).get<float>() }; }
+
+    nlohmann::json ToJson(const ScriptValue& value)
+    {
+        return std::visit([]<typename T>(const T& v) -> nlohmann::json
+        {
+            if constexpr (std::is_arithmetic_v<T>)
+                return v;
+            else
+                return ToJson(v);
+        }, value);
+    }
+
+    std::optional<ScriptValue> ReadScriptValue(const nlohmann::json& fieldJson)
+    {
+        const std::optional<ScriptFieldType> type = ParseScriptFieldType(fieldJson.value("type", std::string()));
+        if (!type || !fieldJson.contains("value"))
+            return std::nullopt;
+
+        const nlohmann::json& v = fieldJson.at("value");
+        switch (*type)
+        {
+            case ScriptFieldType::Bool:    return v.get<bool>();
+            case ScriptFieldType::Int:     return v.get<int32_t>();
+            case ScriptFieldType::Float:   return v.get<float>();
+            case ScriptFieldType::Double:  return v.get<double>();
+            case ScriptFieldType::Vector2: return ToVec2(v);
+            case ScriptFieldType::Vector3: return ToVec3(v);
+            case ScriptFieldType::Vector4: return ToVec4(v);
+        }
+        return std::nullopt;
+    }
 
     const char* ToString(const Rigidbody2DComponent::BodyType type)
     {
@@ -116,7 +150,19 @@ namespace
         }
 
         if (entityJson.contains("script"))
-            entity.AddComponent<ScriptComponent>(entityJson.at("script").value("class", std::string()));
+        {
+            const auto& scriptJson = entityJson.at("script");
+            auto& script = entity.AddComponent<ScriptComponent>(scriptJson.value("class", std::string()));
+
+            if (scriptJson.contains("fields"))
+            {
+                for (const auto& [name, fieldJson] : scriptJson.at("fields").items())
+                {
+                    if (std::optional<ScriptValue> value = ReadScriptValue(fieldJson))
+                        script.Fields.insert_or_assign(name, std::move(*value));
+                }
+            }
+        }
     }
 }
 
@@ -243,7 +289,20 @@ namespace ByteForge
         }
 
         if (entity.HasComponent<ScriptComponent>())
-            entityJson["script"] = { { "class", entity.GetComponent<ScriptComponent>().ClassName } };
+        {
+            const auto& script = entity.GetComponent<ScriptComponent>();
+
+            nlohmann::json fields = nlohmann::json::object();
+            for (const auto& [name, value] : script.Fields)
+            {
+                fields[name] = {
+                    { "type",  std::string(ScriptFieldTypeName(GetFieldType(value))) },
+                    { "value", ToJson(value)                                         }
+                };
+            }
+
+            entityJson["script"] = { { "class", script.ClassName }, { "fields", std::move(fields) } };
+        }
 
         return entityJson;
     }

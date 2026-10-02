@@ -31,6 +31,8 @@ namespace ByteForge
 
         void DispatchContact(entt::entity self, ContactEvent event, Entity other);
 
+        [[nodiscard]] ScriptInstance* FindInstance(entt::entity handle) const;
+
     private:
         void Sync();
 

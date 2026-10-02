@@ -3,12 +3,15 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/LogFormat.h"
 #include "Editor/StringUtils.h"
+#include "Editor/AssetPayload.h"
+#include "Editor/ScriptProject.h"
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scripting/ScriptEngine.h>
+#include <Engine/Scripting/ScriptField.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -25,73 +28,229 @@
 #include <string_view>
 #include <filesystem>
 #include <format>
-
-namespace
-{
-    template<typename... Ts>
-    struct Overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-
-    template<typename... Ts>
-    Overloaded(Ts...) -> Overloaded<Ts...>;
-
-    template<typename T>
-    bool EnumCombo(const char* label, T& value, const std::span<const T> options)
-    {
-        bool changed = false;
-
-        if (ImGui::BeginCombo(label, std::string(magic_enum::enum_name(value)).c_str()))
-        {
-            for (const T option : options)
-            {
-                const bool selected = option == value;
-                if (ImGui::Selectable(std::string(magic_enum::enum_name(option)).c_str(), selected) && !selected)
-                {
-                    value = option;
-                    changed = true;
-                }
-
-                if (selected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
-
-        return changed;
-    }
-
-    struct ComponentDescriptor
-    {
-        const char* Name;
-        bool (*Has)(ByteForge::Entity);
-        void (*Add)(ByteForge::Entity);
-    };
-
-    template<typename T>
-    constexpr ComponentDescriptor Describe(const char* name)
-    {
-        return {
-            .Name = name,
-            .Has  = [](const ByteForge::Entity entity) { return entity.HasComponent<T>(); },
-            .Add  = [](const ByteForge::Entity entity) { entity.AddComponent<T>(); }
-        };
-    }
-
-    constexpr std::array AddableComponents{
-        Describe<ByteForge::SpriteRendererComponent>("Sprite Renderer"),
-        Describe<ByteForge::Rigidbody2DComponent>("Rigidbody 2D"),
-        Describe<ByteForge::BoxCollider2DComponent>("Box Collider 2D"),
-        Describe<ByteForge::CircleCollider2DComponent>("Circle Collider 2D"),
-        Describe<ByteForge::ScriptComponent>("Script")
-    };
-
-    constexpr const char* AddComponentPopupId = "##AddComponent";
-}
+#include <cctype>
+#include <optional>
+#include <expected>
 
 namespace ByteForge
 {
+    namespace
+    {
+        constexpr ImVec4 ScriptErrorColor{ 0.95f, 0.40f, 0.40f, 1.0f };
+
+        void AssignScript(ScriptComponent& script, std::string className)
+        {
+            if (script.ClassName == className) return;
+
+            script.ClassName = std::move(className);
+            script.Fields.clear();
+        }
+
+        std::optional<std::string> AcceptScriptDrop()
+        {
+            const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
+            if (!dragged || dragged->Type != AssetType::Script)
+                return std::nullopt;
+
+            ImDrawList& drawList = *ImGui::GetWindowDrawList();
+            const ImVec2 min = ImGui::GetItemRectMin();
+            const ImVec2 max = ImGui::GetItemRectMax();
+            const float rounding = ImGui::GetStyle().FrameRounding;
+
+            drawList.AddRect(min, max, ImGui::GetColorU32(ImGuiCol_DragDropTarget, 0.35f), rounding);
+
+            if (!ImGui::BeginDragDropTarget())
+                return std::nullopt;
+
+            std::optional<std::string> dropped;
+            constexpr ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery
+                                               | ImGuiDragDropFlags_AcceptNoDrawDefaultRect
+                                               | ImGuiDragDropFlags_AcceptNoPreviewTooltip;
+
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayloadType, flags))
+            {
+                const std::expected<std::string, std::string> className =
+                    ScriptProject::FindClassForAsset(UUID(dragged->Handle));
+
+                const ImU32 color = className ? ImGui::GetColorU32(ImGuiCol_DragDropTarget)
+                                              : ImGui::GetColorU32(ScriptErrorColor);
+                drawList.AddRect(min, max, color, rounding, 0, 2.0f);
+
+                if (ImGui::BeginTooltip())
+                {
+                    if (className)
+                        ImGui::Text("Script: %s", className->c_str());
+                    else
+                        ImGui::TextColored(ScriptErrorColor, "%s", className.error().c_str());
+                    ImGui::EndTooltip();
+                }
+
+                if (className && payload->IsDelivery())
+                    dropped = *className;
+            }
+
+            ImGui::EndDragDropTarget();
+            return dropped;
+        }
+
+        void DrawScriptDropZone(const Entity entity)
+        {
+            const ImVec2 available = ImGui::GetContentRegionAvail();
+            ImGui::Dummy(ImVec2(available.x, std::max(available.y, ImGui::GetFrameHeight() * 3.0f)));
+
+            if (std::optional<std::string> className = AcceptScriptDrop())
+            {
+                auto& script = entity.HasComponent<ScriptComponent>()
+                             ? entity.GetComponent<ScriptComponent>()
+                             : entity.AddComponent<ScriptComponent>();
+                AssignScript(script, std::move(*className));
+            }
+        }
+
+        template<typename... Ts>
+        struct Overloaded : Ts...
+        {
+            using Ts::operator()...;
+        };
+
+        template<typename... Ts>
+        Overloaded(Ts...) -> Overloaded<Ts...>;
+
+        std::string NicifyName(std::string_view name)
+        {
+            while (name.starts_with('_'))
+                name.remove_prefix(1);
+
+            std::string result;
+            result.reserve(name.size() + 4);
+
+            for (size_t i = 0; i < name.size(); ++i)
+            {
+                const auto c = static_cast<unsigned char>(name[i]);
+                if (i > 0 && std::isupper(c) && !std::isupper(static_cast<unsigned char>(name[i - 1])))
+                    result += ' ';
+
+                result += static_cast<char>(i == 0 ? std::toupper(c) : c);
+            }
+            return result;
+        }
+
+        bool DrawScriptValue(const char* label, ScriptValue& value)
+        {
+            return std::visit(Overloaded{
+                [&](bool& v)      { return ImGui::Checkbox(label, &v); },
+                [&](int32_t& v)   { return ImGui::DragInt(label, &v); },
+                [&](float& v)     { return ImGui::DragFloat(label, &v, 0.1f); },
+                [&](double& v)    { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
+                [&](glm::vec2& v) { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
+                [&](glm::vec3& v) { return ImGui::DragFloat3(label, glm::value_ptr(v), 0.1f); },
+                [&](glm::vec4& v) { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); }
+            }, value);
+        }
+
+        void DrawScriptFields(const Entity entity, ScriptComponent& script)
+        {
+            const std::span<const ScriptFieldInfo> fields = ScriptEngine::Get().GetFields(script.ClassName);
+            if (fields.empty()) return;
+
+            ImGui::SeparatorText("Fields");
+
+            Scene& scene = entity.GetScene();
+            ScriptInstance* live = scene.FindScriptInstance(entity);
+
+            for (const ScriptFieldInfo& field : fields)
+            {
+                ImGui::PushID(field.Name.c_str());
+                const std::string label = NicifyName(field.Name);
+
+                if (scene.IsRunning())
+                {
+                    std::optional<ScriptValue> value = live != nullptr ? live->GetField(field.Name) : std::nullopt;
+                    if (value)
+                    {
+                        if (DrawScriptValue(label.c_str(), *value))
+                            live->SetField(field.Name, *value);
+                    } else
+                    {
+                        ScriptValue fallback = field.Default;
+                        ImGui::BeginDisabled();
+                        DrawScriptValue(label.c_str(), fallback);
+                        ImGui::EndDisabled();
+                    }
+                } else
+                {
+                    const auto it = script.Fields.find(field.Name);
+                    const bool overridden = it != script.Fields.end() && GetFieldType(it->second) == field.Type;
+
+                    ScriptValue value = overridden ? it->second : field.Default;
+                    if (DrawScriptValue(label.c_str(), value))
+                        script.Fields.insert_or_assign(field.Name, std::move(value));
+
+                    if (ImGui::BeginPopupContextItem("##FieldMenu"))
+                    {
+                        if (ImGui::MenuItem("Reset to Default", nullptr, false, overridden))
+                            script.Fields.erase(field.Name);
+                        ImGui::EndPopup();
+                    }
+                }
+
+                ImGui::PopID();
+            }
+        }
+
+        template<typename T>
+        bool EnumCombo(const char* label, T& value, const std::span<const T> options)
+        {
+            bool changed = false;
+
+            if (ImGui::BeginCombo(label, std::string(magic_enum::enum_name(value)).c_str()))
+            {
+                for (const T option : options)
+                {
+                    const bool selected = option == value;
+                    if (ImGui::Selectable(std::string(magic_enum::enum_name(option)).c_str(), selected) && !selected)
+                    {
+                        value = option;
+                        changed = true;
+                    }
+
+                    if (selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            return changed;
+        }
+
+        struct ComponentDescriptor
+        {
+            const char* Name;
+            bool (*Has)(Entity);
+            void (*Add)(Entity);
+        };
+
+        template<typename T>
+        constexpr ComponentDescriptor Describe(const char* name)
+        {
+            return {
+                .Name = name,
+                .Has  = [](const Entity entity) { return entity.HasComponent<T>(); },
+                .Add  = [](const Entity entity) { entity.AddComponent<T>(); }
+            };
+        }
+
+        constexpr std::array AddableComponents{
+            Describe<SpriteRendererComponent>("Sprite Renderer"),
+            Describe<Rigidbody2DComponent>("Rigidbody 2D"),
+            Describe<BoxCollider2DComponent>("Box Collider 2D"),
+            Describe<CircleCollider2DComponent>("Circle Collider 2D"),
+            Describe<ScriptComponent>("Script")
+        };
+
+        constexpr const char* AddComponentPopupId = "##AddComponent";
+    }
+
     void InspectorPanel::OnImGuiRender()
     {
         if (!m_Open) return;
@@ -203,7 +362,7 @@ namespace ByteForge
             ImGui::Checkbox("Is Sensor", &collider.IsSensor);
         });
 
-        DrawComponent<ScriptComponent>("Script", entity, [](ScriptComponent& script)
+        DrawComponent<ScriptComponent>("Script", entity, [entity](ScriptComponent& script)
         {
             const std::vector<ScriptClassInfo> classes = ScriptEngine::Get().GetClasses();
             const bool known = script.ClassName.empty() ||
@@ -212,11 +371,10 @@ namespace ByteForge
                                    return info.Name == script.ClassName;
                                });
 
-            constexpr ImVec4 errorColor{ 0.95f, 0.40f, 0.40f, 1.0f };
             const char* preview = script.ClassName.empty() ? "None" : script.ClassName.c_str();
 
             if (!known)
-                ImGui::PushStyleColor(ImGuiCol_Text, errorColor);
+                ImGui::PushStyleColor(ImGuiCol_Text, ScriptErrorColor);
             const bool open = ImGui::BeginCombo("Class", preview);
             if (!known)
                 ImGui::PopStyleColor();
@@ -224,23 +382,28 @@ namespace ByteForge
             if (open)
             {
                 if (ImGui::Selectable("None", script.ClassName.empty()))
-                    script.ClassName.clear();
+                    AssignScript(script, {});
 
                 for (const ScriptClassInfo& info : classes)
                 {
                     if (ImGui::Selectable(info.Name.c_str(), info.Name == script.ClassName))
-                        script.ClassName = info.Name;
+                        AssignScript(script, info.Name);
 
                     ImGui::SameLine();
                     ImGui::TextDisabled("%s", info.Backend.c_str());
                 }
 
                 ImGui::EndCombo();
-            }
+            } else if (std::optional<std::string> className = AcceptScriptDrop())
+                AssignScript(script, std::move(*className));
 
             if (!known)
-                ImGui::TextColored(errorColor, "Class '%s' not found", script.ClassName.c_str());
+                ImGui::TextColored(ScriptErrorColor, "Class '%s' not found", script.ClassName.c_str());
+
+            DrawScriptFields(entity, script);
         });
+
+        DrawScriptDropZone(entity);
     }
 
     void InspectorPanel::DrawHeader(const Entity entity)

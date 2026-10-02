@@ -3,11 +3,13 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/Sprite.h"
 #include "Engine/Scene/UUID.h"
+#include "Engine/Scripting/ScriptField.h"
 
 #include <glm/glm.hpp>
 
 #include <string>
 #include <utility>
+#include <map>
 
 namespace ByteForge
 {
@@ -102,5 +104,6 @@ namespace ByteForge
     struct ScriptComponent
     {
         std::string ClassName;
+        std::map<std::string, ScriptValue, std::less<>> Fields;
     };
 }

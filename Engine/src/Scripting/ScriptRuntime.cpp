@@ -12,6 +12,22 @@
 
 namespace ByteForge
 {
+    namespace
+    {
+        void ApplyFields(const ScriptBackend& backend, const std::string& className,
+                         ScriptInstance& script, const ScriptComponent& component)
+        {
+            for (const ScriptFieldInfo& field : backend.GetFields(className))
+            {
+                const auto it = component.Fields.find(field.Name);
+                if (it == component.Fields.end() || GetFieldType(it->second) != field.Type) continue;
+
+                if (!script.SetField(field.Name, it->second))
+                    CORE_WARN("Could not set field '{}' of script '{}'", field.Name, className);
+            }
+        }
+    }
+
     ScriptRuntime::ScriptRuntime(Scene& scene)
         : m_Scene(scene)
     {
@@ -69,6 +85,14 @@ namespace ByteForge
         Invoke(self, "OnContact", [event, other](ScriptInstance& script) { script.OnContact(event, other); });
     }
 
+    ScriptInstance* ScriptRuntime::FindInstance(const entt::entity handle) const
+    {
+        const auto it = m_Instances.find(handle);
+        if (it == m_Instances.end() || it->second.Failed)
+            return nullptr;
+        return it->second.Script.get();
+    }
+
     void ScriptRuntime::Sync()
     {
         entt::registry& registry = m_Scene.m_Registry;
@@ -108,6 +132,7 @@ namespace ByteForge
             try
             {
                 instance.Script = backend->CreateInstance(className, entity);
+                ApplyFields(*backend, className, *instance.Script, entity.GetComponent<ScriptComponent>());
             } catch (const std::exception& e)
             {
                 instance.Failed = true;

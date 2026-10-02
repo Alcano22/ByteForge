@@ -24,6 +24,8 @@ namespace ByteForge
 
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".tga")
             return AssetType::Texture2D;
+        if (ext == ".cs")
+            return AssetType::Script;
 
         return AssetType::None;
     }

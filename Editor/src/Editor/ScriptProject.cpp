@@ -2,6 +2,7 @@
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
 #include <chrono>
@@ -12,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -122,5 +124,39 @@ namespace ByteForge
         APP_INFO("C# scripts built in {} ms", elapsed.count());
 
         return backend->LoadModule(GetOutputDirectory() / "GameScripts.dll");
+    }
+
+    std::expected<std::string, std::string> ScriptProject::FindClassForAsset(const UUID scriptAsset)
+    {
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(scriptAsset, metadata) || metadata.Type != AssetType::Script)
+            return std::unexpected("Not a script asset");
+
+        const std::string fileName = metadata.Path.filename().string();
+        const std::string expected = metadata.Path.stem().string();
+
+        std::vector<std::string> matches;
+        for (const ScriptClassInfo& info : ScriptEngine::Get().GetClasses())
+        {
+            if (info.Backend != "C#") continue;
+
+            const std::string_view name = info.Name;
+            if (name.substr(name.find_last_of('.') + 1) == expected)
+                matches.push_back(info.Name);
+        }
+
+        if (matches.empty())
+            return std::unexpected(std::format("No script class named '{}' in {} (class and file name must match, "
+                                               "or the scripts need a reload)", expected, fileName));
+
+        if (matches.size() > 1)
+        {
+            std::string list;
+            for (const std::string& match : matches)
+                list += (list.empty() ? "" : ", ") + match;
+            return std::unexpected(std::format("'{}' is ambiguous: {}", expected, list));
+        }
+
+        return std::move(matches.front());
     }
 }

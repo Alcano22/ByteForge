@@ -10,7 +10,8 @@ namespace ByteForge
     enum class AssetType : uint8_t
     {
         None = 0,
-        Texture2D
+        Texture2D,
+        Script
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

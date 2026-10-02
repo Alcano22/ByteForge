@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <set>
 #include <string>
 
 namespace ByteForge
@@ -16,7 +15,12 @@ namespace ByteForge
     public:
         struct ManagedFunctions
         {
+            using FieldSink = void (*)(const char* name, int type, const void* value, void* userData);
+
             void (CORECLR_DELEGATE_CALLTYPE* GetClassNames)(void (*sink)(const char*, void*), void* userData) = nullptr;
+            void (CORECLR_DELEGATE_CALLTYPE* GetClassFields)(const char* className, FieldSink sink, void* userData) = nullptr;
+            int (CORECLR_DELEGATE_CALLTYPE* GetField)(void* instance, const char* name, int* type, void* value) = nullptr;
+            int (CORECLR_DELEGATE_CALLTYPE* SetField)(void* instance, const char* name, int type, const void* value) = nullptr;
             void* (CORECLR_DELEGATE_CALLTYPE* CreateInstance)(const char* className, uint64_t entity) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* DestroyInstance)(void* instance) = nullptr;
             int (CORECLR_DELEGATE_CALLTYPE* LoadGameAssembly)(const char* path) = nullptr;
@@ -31,6 +35,7 @@ namespace ByteForge
         [[nodiscard]] std::string_view GetName() const override { return "C#"; }
         [[nodiscard]] std::vector<std::string> GetClassNames() const override;
         [[nodiscard]] bool HasClass(std::string_view className) const override;
+        [[nodiscard]] std::span<const ScriptFieldInfo> GetFields(std::string_view) const override;
 
         [[nodiscard]] Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) override;
 
@@ -40,8 +45,11 @@ namespace ByteForge
         void OnRuntimeStop(Scene& scene) override;
 
     private:
+        void RefreshClasses();
+
+    private:
         DotNetHost m_Host;
         ManagedFunctions m_Functions;
-        std::set<std::string, std::less<>> m_ClassNames;
+        std::map<std::string, std::vector<ScriptFieldInfo>, std::less<>> m_Classes;
     };
 }

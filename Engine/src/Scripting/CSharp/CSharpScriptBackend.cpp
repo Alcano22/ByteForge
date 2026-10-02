@@ -6,6 +6,12 @@
 
 #include <format>
 #include <stdexcept>
+#include <array>
+#include <cstddef>
+#include <cstring>
+#include <set>
+#include <type_traits>
+#include <variant>
 
 namespace ByteForge
 {
@@ -16,11 +22,75 @@ namespace ByteForge
 
         using InitializeFn = int (CORECLR_DELEGATE_CALLTYPE*)(const NativeAPI* api);
 
+        constexpr size_t FieldValueSize = 16;
+        using FieldBuffer = std::array<std::byte, FieldValueSize>;
+
+        static_assert(sizeof(glm::vec4) == FieldValueSize, "glm::vec4 must match System.Numerics.Vector4");
+
+        template<typename T>
+        T Load(const void* data)
+        {
+            T value;
+            std::memcpy(&value, data, sizeof(T));
+            return value;
+        }
+
+        ScriptValue ReadValue(const ScriptFieldType type, const void* data)
+        {
+            switch (type)
+            {
+                case ScriptFieldType::Bool:    return Load<uint8_t>(data) != 0;
+                case ScriptFieldType::Int:     return Load<int32_t>(data);
+                case ScriptFieldType::Float:   return Load<float>(data);
+                case ScriptFieldType::Double:  return Load<double>(data);
+                case ScriptFieldType::Vector2: return Load<glm::vec2>(data);
+                case ScriptFieldType::Vector3: return Load<glm::vec3>(data);
+                case ScriptFieldType::Vector4: return Load<glm::vec4>(data);
+            }
+            throw std::runtime_error("Unknown script field type");
+        }
+
+        void WriteValue(const ScriptValue& value, void* data)
+        {
+            std::visit([data]<typename T>(const T& v)
+            {
+                if constexpr (std::is_same_v<T, bool>)
+                {
+                    const uint8_t byte = v ? 1 : 0;
+                    std::memcpy(data, &byte, sizeof(byte));
+                } else
+                {
+                    static_assert(sizeof(T) <= FieldValueSize);
+                    std::memcpy(data, &v, sizeof(T));
+                }
+            }, value);
+        }
+
+        bool IsValidFieldType(const int type)
+        {
+            return type >= 0 && static_cast<size_t>(type) < ScriptFieldTypeCount;
+        }
+
         void CollectClassName(const char* name, void* userData)
         {
             try
             {
                 static_cast<std::set<std::string, std::less<>>*>(userData)->emplace(name);
+            } catch (...) {}
+        }
+
+        void CollectField(const char* name, const int type, const void* value, void* userData)
+        {
+            if (!IsValidFieldType(type)) return;
+
+            try
+            {
+                const auto fieldType = static_cast<ScriptFieldType>(type);
+                static_cast<std::vector<ScriptFieldInfo>*>(userData)->push_back({
+                    .Name    = name,
+                    .Type    = fieldType,
+                    .Default = ReadValue(fieldType, value)
+                });
             } catch (...) {}
         }
 
@@ -44,6 +114,29 @@ namespace ByteForge
             {
                 Check(m_Functions.OnContact(m_Handle, static_cast<int>(event),
                                             static_cast<uint64_t>(other.GetUUID())));
+            }
+
+            std::optional<ScriptValue> GetField(const std::string_view name) const override
+            {
+                const std::string fieldName(name);
+                alignas(16) FieldBuffer buffer{};
+                int type = -1;
+
+                if (m_Functions.GetField(m_Handle, fieldName.c_str(), &type, buffer.data()) != 0 ||
+                    !IsValidFieldType(type))
+                    return std::nullopt;
+
+                return ReadValue(static_cast<ScriptFieldType>(type), buffer.data());
+            }
+
+            bool SetField(const std::string_view name, const ScriptValue& value) override
+            {
+                const std::string fieldName(name);
+                alignas(16) FieldBuffer buffer{};
+                WriteValue(value, buffer.data());
+
+                return m_Functions.SetField(m_Handle, fieldName.c_str(),
+                                            static_cast<int>(GetFieldType(value)), buffer.data()) == 0;
             }
 
         private:
@@ -73,6 +166,9 @@ namespace ByteForge
         resolve(initialize, BootstrapType, "Initialize");
 
         resolve(m_Functions.GetClassNames, ScriptHostType, "GetClassNames");
+        resolve(m_Functions.GetClassFields, ScriptHostType, "GetClassFields");
+        resolve(m_Functions.GetField, ScriptHostType, "GetField");
+        resolve(m_Functions.SetField, ScriptHostType, "SetField");
         resolve(m_Functions.CreateInstance, ScriptHostType, "CreateInstance");
         resolve(m_Functions.DestroyInstance, ScriptHostType, "DestroyInstance");
         resolve(m_Functions.LoadGameAssembly, ScriptHostType, "LoadGameAssembly");
@@ -85,17 +181,38 @@ namespace ByteForge
         if (const int result = initialize(&api); result != 0)
             throw std::runtime_error(std::format("ScriptCore initialization failed (code {})", result));
 
-        m_Functions.GetClassNames(&CollectClassName, &m_ClassNames);
+        RefreshClasses();
+    }
+
+    void CSharpScriptBackend::RefreshClasses()
+    {
+        std::set<std::string, std::less<>> names;
+        m_Functions.GetClassNames(&CollectClassName, &names);
+
+        m_Classes.clear();
+        for (const std::string& name : names)
+            m_Functions.GetClassFields(name.c_str(), &CollectField, &m_Classes[name]);
     }
 
     std::vector<std::string> CSharpScriptBackend::GetClassNames() const
     {
-        return { m_ClassNames.begin(), m_ClassNames.end() };
+        std::vector<std::string> names;
+        names.reserve(m_Classes.size());
+        for (const auto& [name, fields] : m_Classes)
+            names.push_back(name);
+        return names;
     }
 
     bool CSharpScriptBackend::HasClass(const std::string_view className) const
     {
-        return m_ClassNames.contains(className);
+        return m_Classes.contains(className);
+    }
+
+    std::span<const ScriptFieldInfo> CSharpScriptBackend::GetFields(const std::string_view className) const
+    {
+        const auto it = m_Classes.find(className);
+        return it != m_Classes.end() ? std::span<const ScriptFieldInfo>(it->second)
+                                     : std::span<const ScriptFieldInfo>{};
     }
 
     Scope<ScriptInstance> CSharpScriptBackend::CreateInstance(const std::string_view className, const Entity entity)
@@ -119,11 +236,10 @@ namespace ByteForge
             return false;
         }
 
-        m_ClassNames.clear();
-        m_Functions.GetClassNames(&CollectClassName, &m_ClassNames);
+        RefreshClasses();
         return true;
     }
 
     void CSharpScriptBackend::OnRuntimeStart(Scene& scene) { ScriptGlue::SetScene(&scene); }
-    void CSharpScriptBackend::OnRuntimeStop(Scene& scene) { ScriptGlue::SetScene(nullptr); }
+    void CSharpScriptBackend::OnRuntimeStop(Scene&) { ScriptGlue::SetScene(nullptr); }
 }

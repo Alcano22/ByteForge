@@ -80,6 +80,12 @@ namespace ByteForge
         return classes;
     }
 
+    std::span<const ScriptFieldInfo> ScriptEngine::GetFields(const std::string_view className) const
+    {
+        const ScriptBackend* backend = FindBackend(className);
+        return backend != nullptr ? backend->GetFields(className) : std::span<const ScriptFieldInfo>{};
+    }
+
     void ScriptEngine::OnRuntimeStart(Scene& scene) const
     {
         for (const auto& backend : m_Backends)

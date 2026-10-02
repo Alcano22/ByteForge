@@ -1,6 +1,10 @@
 #pragma once
 
+#include <Engine/Scene/UUID.h>
+
 #include <filesystem>
+#include <expected>
+#include <string>
 
 namespace ByteForge
 {
@@ -12,6 +16,8 @@ namespace ByteForge
         void GenerateProjectFile() const;
 
         bool Reload() const;
+
+        [[nodiscard]] static std::expected<std::string, std::string> FindClassForAsset(UUID scriptAsset);
 
     private:
         [[nodiscard]] std::filesystem::path GetProjectFile() const { return m_Root / "GameScripts.csproj"; }
