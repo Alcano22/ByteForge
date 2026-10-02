@@ -107,17 +107,34 @@ namespace ByteForge
 
     namespace EditorActions
     {
-        const EditorAction SaveScene{
-            .Name           = "Save Scene",
-            .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_S,
-            .Execute        = [](EditorContext& context) { SaveSceneToFile(context); },
+        const EditorAction NewScene{
+            .Name           = "New Scene",
+            .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_N,
+            .Execute        = [](EditorContext& context) { context.Dialogs.RequestNew(); },
             .CanExecute     = IsEditingScene,
             .DisabledReason = OnlyWhileEditing
         };
 
-        const EditorAction LoadScene{
-            .Name           = "Load Scene",
-            .Execute        = [](EditorContext& context) { LoadSceneFromFile(context); },
+        const EditorAction OpenScene{
+            .Name           = "Open Scene...",
+            .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_O,
+            .Execute        = [](EditorContext& context) { context.Dialogs.RequestOpenPicker(); },
+            .CanExecute     = IsEditingScene,
+            .DisabledReason = OnlyWhileEditing
+        };
+
+        const EditorAction SaveScene{
+            .Name           = "Save Scene",
+            .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_S,
+            .Execute        = [](EditorContext& context) { context.Dialogs.RequestSave(); },
+            .CanExecute     = IsEditingScene,
+            .DisabledReason = OnlyWhileEditing
+        };
+
+        const EditorAction SaveSceneAs{
+            .Name           = "Save Scene As...",
+            .Shortcut       = ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+            .Execute        = [](EditorContext& context) { context.Dialogs.RequestSaveAs(); },
             .CanExecute     = IsEditingScene,
             .DisabledReason = OnlyWhileEditing
         };
@@ -198,8 +215,9 @@ namespace ByteForge
 
         std::span<const EditorAction* const> All()
         {
-            static const std::array<const EditorAction*, 8> actions{
-                &SaveScene, &LoadScene, &Undo, &Redo, &TogglePlay, &TogglePause, &Step, &ReloadScripts
+            static constexpr std::array<const EditorAction*, 10> actions{
+                &SaveScene, &OpenScene, &SaveScene, &SaveSceneAs,
+                &Undo, &Redo, &TogglePlay, &TogglePause, &Step, &ReloadScripts
             };
             return actions;
         }

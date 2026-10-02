@@ -6,6 +6,8 @@
 #include "Editor/EditorIcons.h"
 #include "Editor/EditorFonts.h"
 #include "Editor/ScriptProject.h"
+#include "Editor/SceneDocument.h"
+#include "Editor/SceneDialogs.h"
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
@@ -65,6 +67,7 @@ namespace ByteForge
         void OnUpdate(const Timestep ts)
         {
             Scripts.Update(IsEditing());
+            Document.Update();
             FlushDeferred();
 
             for (const auto& [type, panel] : m_Panels)
@@ -143,6 +146,8 @@ namespace ByteForge
 
     public:
         Scene* ActiveScene = nullptr;
+        SceneDocument Document{ *this };
+        SceneDialogs Dialogs{ *this };
         Selection SelectionContext;
         CommandHistory History;
         SceneState State = SceneState::Edit;

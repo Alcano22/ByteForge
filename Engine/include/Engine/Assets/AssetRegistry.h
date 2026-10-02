@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
 
 namespace ByteForge
 {
@@ -16,6 +17,7 @@ namespace ByteForge
         static void Init(const std::filesystem::path& assetRoot);
 
         [[nodiscard]] static const std::filesystem::path& GetAssetRoot() { return s_AssetRoot; }
+        [[nodiscard]] static uint64_t GetRevision() { return s_Revision; }
 
         static UUID Import(const std::filesystem::path& relativePath);
 
@@ -38,5 +40,7 @@ namespace ByteForge
         static std::filesystem::path s_AssetRoot;
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
+
+        static uint64_t s_Revision;
     };
 }

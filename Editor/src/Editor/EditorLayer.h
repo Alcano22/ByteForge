@@ -15,6 +15,8 @@ namespace ByteForge
 
         void OnAttach() override;
 
+        void OnEvent(Event& event) override;
+
         void OnUpdate(Timestep ts) override;
         void OnImGuiRender() override;
 

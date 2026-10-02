@@ -76,6 +76,14 @@ namespace ByteForge
     void Window::PollEvents() const { glfwPollEvents(); }
     bool Window::ShouldClose() const { return glfwWindowShouldClose(m_Window.get()); }
 
+    void Window::SetTitle(const std::string& title)
+    {
+        if (title == m_Data.Title) return;
+
+        m_Data.Title = title;
+        glfwSetWindowTitle(m_Window.get(), title.c_str());
+    }
+
     void Window::SetupCallbacks() const
     {
         glfwSetWindowCloseCallback(m_Window.get(), [](GLFWwindow* window)

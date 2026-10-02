@@ -26,6 +26,8 @@ namespace ByteForge
             return AssetType::Texture2D;
         if (ext == ".cs")
             return AssetType::Script;
+        if (ext == ".bfscene")
+            return AssetType::Scene;
 
         return AssetType::None;
     }

@@ -21,6 +21,8 @@ namespace ByteForge
     std::unordered_map<UUID, AssetMetadata> AssetRegistry::s_Assets;
     std::unordered_map<std::string, UUID> AssetRegistry::s_PathToHandle;
 
+    uint64_t AssetRegistry::s_Revision = 0;
+
     void AssetRegistry::Init(const std::filesystem::path& assetRoot)
     {
         Clear();
@@ -78,6 +80,7 @@ namespace ByteForge
 
         s_Assets[metadata.Handle] = metadata;
         s_PathToHandle[key] = metadata.Handle;
+        ++s_Revision;
         return metadata.Handle;
     }
 
@@ -141,6 +144,7 @@ namespace ByteForge
         s_AssetRoot.clear();
         s_Assets.clear();
         s_PathToHandle.clear();
+        ++s_Revision;
     }
 
     void AssetRegistry::WriteMeta(const std::filesystem::path& absolutePath, const AssetMetadata& metadata)

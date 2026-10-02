@@ -19,6 +19,7 @@ namespace ByteForge
         constexpr std::array<std::string_view, IconCount> IconFiles{
             "folder_filled.png", "folder_empty.png",
             "file_generic.png", "file_text.png", "file_code.png", "file_data.png", "file_font.png", "file_audio.png",
+            "file_scene.png",
             "player_play.png", "player_pause.png", "player_step.png", "player_stop.png"
         };
 
@@ -69,20 +70,22 @@ namespace ByteForge
     EditorIcon EditorIcons::ForFile(const std::filesystem::path& path)
     {
         static const std::unordered_map<std::string_view, EditorIcon> icons{
-            { ".txt",  EditorIcon::FileText  }, { ".md",   EditorIcon::FileText  }, { ".log",  EditorIcon::FileText  },
-            { ".ini",  EditorIcon::FileText  }, { ".cfg",  EditorIcon::FileText  },
+            { ".txt",     EditorIcon::FileText  }, { ".md",   EditorIcon::FileText  }, { ".log",  EditorIcon::FileText  },
+            { ".ini",     EditorIcon::FileText  }, { ".cfg",  EditorIcon::FileText  },
 
-            { ".cpp",  EditorIcon::FileCode  }, { ".h",    EditorIcon::FileCode  }, { ".hpp",  EditorIcon::FileCode  },
-            { ".c",    EditorIcon::FileCode  }, { ".cs",   EditorIcon::FileCode  }, { ".hlsl", EditorIcon::FileCode  },
-            { ".glsl", EditorIcon::FileCode  }, { ".lua",  EditorIcon::FileCode  }, { ".py",   EditorIcon::FileCode  },
+            { ".cpp",     EditorIcon::FileCode  }, { ".h",    EditorIcon::FileCode  }, { ".hpp",  EditorIcon::FileCode  },
+            { ".c",       EditorIcon::FileCode  }, { ".cs",   EditorIcon::FileCode  }, { ".hlsl", EditorIcon::FileCode  },
+            { ".glsl",    EditorIcon::FileCode  }, { ".lua",  EditorIcon::FileCode  }, { ".py",   EditorIcon::FileCode  },
 
-            { ".json", EditorIcon::FileData  }, { ".xml",  EditorIcon::FileData  }, { ".yaml", EditorIcon::FileData  },
-            { ".yml",  EditorIcon::FileData  }, { ".toml", EditorIcon::FileData  }, { ".csv",  EditorIcon::FileData  },
+            { ".json",    EditorIcon::FileData  }, { ".xml",  EditorIcon::FileData  }, { ".yaml", EditorIcon::FileData  },
+            { ".yml",     EditorIcon::FileData  }, { ".toml", EditorIcon::FileData  }, { ".csv",  EditorIcon::FileData  },
 
-            { ".ttf",  EditorIcon::FileFont  }, { ".otf",  EditorIcon::FileFont  },
+            { ".ttf",     EditorIcon::FileFont  }, { ".otf",  EditorIcon::FileFont  },
 
-            { ".wav",  EditorIcon::FileAudio }, { ".ogg",  EditorIcon::FileAudio }, { ".mp3",  EditorIcon::FileAudio },
-            { ".flac", EditorIcon::FileAudio }
+            { ".wav",     EditorIcon::FileAudio }, { ".ogg",  EditorIcon::FileAudio }, { ".mp3",  EditorIcon::FileAudio },
+            { ".flac",    EditorIcon::FileAudio },
+
+            { ".bfscene", EditorIcon::FileScene }
         };
 
         std::string extension = path.extension().string();

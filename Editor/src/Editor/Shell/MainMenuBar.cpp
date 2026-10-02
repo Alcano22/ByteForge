@@ -50,8 +50,11 @@ namespace ByteForge
         {
             if (ImGui::BeginMenu("File"))
             {
+                ActionMenuItem(context, EditorActions::NewScene);
+                ActionMenuItem(context, EditorActions::OpenScene);
+                ImGui::Separator();
                 ActionMenuItem(context, EditorActions::SaveScene);
-                ActionMenuItem(context, EditorActions::LoadScene);
+                ActionMenuItem(context, EditorActions::SaveSceneAs);
                 ImGui::EndMenu();
             }
 

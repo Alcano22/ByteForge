@@ -171,6 +171,7 @@ namespace ByteForge
     nlohmann::json SceneSerializer::Serialize(Scene& scene)
     {
         nlohmann::json data;
+        data["version"] = 1;
         data["entities"] = nlohmann::json::array();
 
         scene.Each<UUIDComponent>([&data](const Entity entity, const UUIDComponent&)

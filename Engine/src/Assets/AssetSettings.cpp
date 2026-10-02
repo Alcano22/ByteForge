@@ -36,6 +36,7 @@ namespace ByteForge
         {
             case AssetType::Texture2D: return TextureSettings{};
             case AssetType::Script:    return std::monostate{};
+            case AssetType::Scene:     return std::monostate{};
             case AssetType::None:      break;
         }
         return std::monostate{};
@@ -84,8 +85,9 @@ namespace ByteForge
 
                 return settings;
             }
-            case AssetType::Script: return std::monostate{};
-            case AssetType::None: break;
+            case AssetType::Script:    return std::monostate{};
+            case AssetType::Scene:     return std::monostate{};
+            case AssetType::None:      break;
         }
 
         return std::monostate{};

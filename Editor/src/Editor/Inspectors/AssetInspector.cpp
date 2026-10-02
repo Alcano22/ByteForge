@@ -23,7 +23,7 @@ namespace ByteForge::EditorUI
         }
     }
 
-    void DrawAssetInspector(const UUID handle)
+    void DrawAssetInspector(const UUID handle, EditorContext& context)
     {
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(handle, metadata))
@@ -40,6 +40,11 @@ namespace ByteForge::EditorUI
         {
             case AssetType::Texture2D: DrawTextureAssetInspector(metadata); break;
             case AssetType::Script:    DrawScriptAssetInspector(handle);    break;
+            case AssetType::Scene:
+                if (ImGui::Button("Open Scene"))
+                    context.Dialogs.RequestOpen(handle);
+                ImGui::TextDisabled("or double-click it in the Assets panel");
+                break;
             case AssetType::None:      break;
         }
     }

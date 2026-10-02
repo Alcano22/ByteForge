@@ -36,8 +36,10 @@ namespace ByteForge
 
     namespace EditorActions
     {
+        extern const EditorAction NewScene;
+        extern const EditorAction OpenScene;
         extern const EditorAction SaveScene;
-        extern const EditorAction LoadScene;
+        extern const EditorAction SaveSceneAs;
 
         extern const EditorAction Undo;
         extern const EditorAction Redo;

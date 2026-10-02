@@ -1,5 +1,4 @@
 #include "Editor/EditorLayer.h"
-#include "Editor/DemoContent.h"
 #include "Editor/Shell/EditorShell.h"
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/Panels/ConsolePanel.h"
@@ -7,8 +6,10 @@
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/Panels/ViewportPanel.h"
 
-#include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Event/ApplicationEvent.h>
+#include <Engine/Event/Event.h>
 
 #include <filesystem>
 
@@ -16,7 +17,6 @@ namespace ByteForge
 {
     void EditorLayer::OnAttach()
     {
-        DemoContent::RegisterScripts();
         AssetRegistry::Init("assets");
 
         m_Context.Scripts.RequestReload();
@@ -27,13 +27,23 @@ namespace ByteForge
 
         m_Context.ActiveScene = &m_Scene;
 
+        if (!m_Context.Document.OpenLast())
+            m_Context.Document.New();
+
         m_Context.Open<ViewportPanel>();
         m_Context.Open<SceneHierarchyPanel>();
         m_Context.Open<InspectorPanel>();
         m_Context.Open<AssetsPanel>();
         m_Context.Open<ConsolePanel>();
+    }
 
-        DemoContent::Populate(m_Scene);
+    void EditorLayer::OnEvent(Event& event)
+    {
+        EventDispatcher dispatcher(event);
+        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent&)
+        {
+            return m_Context.Dialogs.RequestQuit();
+        });
     }
 
     void EditorLayer::OnUpdate(const Timestep ts)

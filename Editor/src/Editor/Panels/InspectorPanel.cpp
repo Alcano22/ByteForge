@@ -64,7 +64,7 @@ namespace ByteForge
             [&](const AssetSelection& asset)
             {
                 m_EditTracker.Flush(history);
-                EditorUI::DrawAssetInspector(asset.Handle);
+                EditorUI::DrawAssetInspector(asset.Handle, GetContext());
             },
             [&](const LogSelection& log)
             {

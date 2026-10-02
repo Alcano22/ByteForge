@@ -34,6 +34,10 @@ namespace ByteForge
 
         void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
 
+        void SetTitle(const std::string& title);
+
+        void CancelClose() const { glfwSetWindowShouldClose(m_Window.get(), GLFW_FALSE); }
+
         [[nodiscard]] uint32_t GetWidth() const { return m_Data.Width; }
         [[nodiscard]] uint32_t GetHeight() const { return m_Data.Height; }
         [[nodiscard]] uint32_t GetFramebufferWidth() const { return m_Data.FramebufferWidth; }

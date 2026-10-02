@@ -28,6 +28,8 @@ namespace ByteForge
 
         void EnableImGui();
 
+        void Close() { m_IsRunning = false; }
+
         [[nodiscard]] Window& GetWindow() const { return *m_Window; }
         [[nodiscard]] ImGuiContext* GetImGuiContext() const;
 

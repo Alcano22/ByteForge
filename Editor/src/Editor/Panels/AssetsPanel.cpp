@@ -46,6 +46,9 @@ namespace ByteForge
     {
         if (!m_Open) return;
 
+        if (AssetRegistry::GetRevision() != m_SeenAssetRevision)
+            m_RefreshRequested = true;
+
         ApplyPendingChanges();
 
         if (!ImGui::Begin(GetName().c_str(), &m_Open))
@@ -162,6 +165,8 @@ namespace ByteForge
             if (entry.Type != AssetType::None)
                 entry.Handle = AssetRegistry::Import(entry.Path);
         }
+
+        m_SeenAssetRevision = AssetRegistry::GetRevision();
     }
 
     AssetsPanel::DirectoryNode AssetsPanel::BuildTree(const fs::path& root, const fs::path& relative)
@@ -290,8 +295,8 @@ namespace ByteForge
         if (pressed)
             Select(entry);
 
-        if (entry.IsDirectory && hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-            m_PendingDirectory = entry.Path;
+        if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            Activate(entry);
 
         if (entry.Handle && ImGui::BeginDragDropSource())
         {
@@ -336,6 +341,14 @@ namespace ByteForge
         }
 
         m_LocalSelection = LocalSelection{ .Path = entry.Path, .Revision = selection.GetRevision() };
+    }
+
+    void AssetsPanel::Activate(const Entry& entry)
+    {
+        if (entry.IsDirectory)
+            m_PendingDirectory = entry.Path;
+        else if (entry.Type == AssetType::Scene && entry.Handle)
+            GetContext().Dialogs.RequestOpen(*entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)

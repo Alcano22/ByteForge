@@ -7,7 +7,8 @@ add_executable(Editor
         src/Editor/ScriptProject.cpp
         src/Editor/EditorLayer.cpp
         src/Editor/EditorActions.cpp
-        src/Editor/DemoContent.cpp
+        src/Editor/SceneDocument.cpp
+        src/Editor/SceneDialogs.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp
         src/Editor/Shell/Toolbar.cpp

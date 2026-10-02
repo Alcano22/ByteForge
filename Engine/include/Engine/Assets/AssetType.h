@@ -11,7 +11,8 @@ namespace ByteForge
     {
         None = 0,
         Texture2D,
-        Script
+        Script,
+        Scene
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

@@ -55,6 +55,7 @@ namespace ByteForge
         [[nodiscard]] bool IsSelected(const Entry& entry) const;
         [[nodiscard]] const std::filesystem::path* GetLocalSelection() const;
         void Select(const Entry& entry);
+        void Activate(const Entry& entry);
 
         [[nodiscard]] static Ref<Texture2D> GetThumbnail(Entry& entry);
 
@@ -76,6 +77,7 @@ namespace ByteForge
             uint64_t Revision = 0;
         };
         std::optional<LocalSelection> m_LocalSelection;
+        uint64_t m_SeenAssetRevision = 0;
 
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

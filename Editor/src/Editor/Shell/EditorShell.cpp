@@ -39,6 +39,8 @@ namespace ByteForge
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
             ImGui::DockSpace(ImGui::GetID("EditorDockSpace"));
 
+        context.Dialogs.Draw();
+
         ImGui::End();
     }
 }

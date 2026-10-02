@@ -116,6 +116,19 @@ namespace ByteForge
             return false;
         });
 
+        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e)
+        {
+            for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
+                (*it)->OnEvent(e);
+
+            if (e.Handled)
+                m_Window->CancelClose();
+            else
+                m_IsRunning = false;
+
+            return true;
+        });
+
         if (m_ImGuiLayer && IsCapturedByImGui(event)) return;
 
         for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
