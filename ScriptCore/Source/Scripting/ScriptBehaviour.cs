@@ -2,7 +2,7 @@ namespace ByteForge;
 
 public abstract class ScriptBehaviour
 {
-    public Entity Entity { get; internal set; } = null;
+    public Entity Entity { get; internal set; } = null!;
 
     public Transform Transform => Entity.Transform;
 

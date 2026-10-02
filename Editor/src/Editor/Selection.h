@@ -26,10 +26,10 @@ namespace ByteForge
     public:
         using Value = std::variant<std::monostate, Entity, AssetSelection, LogSelection>;
 
-        void Clear() { m_Value = std::monostate{}; }
-        void Select(const Entity entity) { m_Value = entity; }
-        void SelectAsset(const UUID handle) { m_Value = AssetSelection{ handle }; }
-        void SelectLogEntry(LogEntry entry) { m_Value = LogSelection{ std::move(entry) }; }
+        void Clear() { Set(std::monostate{}); }
+        void Select(const Entity entity) { Set(entity); }
+        void SelectAsset(const UUID handle) { Set(AssetSelection{ handle }); }
+        void SelectLogEntry(LogEntry entry) { Set(LogSelection{ std::move(entry) }); }
 
         void ClearEntity()
         {
@@ -38,6 +38,7 @@ namespace ByteForge
         }
 
         [[nodiscard]] const Value& Get() const { return m_Value; }
+        [[nodiscard]] uint64_t GetRevision() const { return m_Revision; }
 
         [[nodiscard]] Entity GetEntity() const
         {
@@ -78,6 +79,14 @@ namespace ByteForge
         }
 
     private:
+        void Set(Value value)
+        {
+            m_Value = std::move(value);
+            ++m_Revision;
+        }
+
+    private:
         Value m_Value;
+        uint64_t m_Revision = 0;
     };
 }

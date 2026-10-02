@@ -13,6 +13,11 @@ add_executable(Editor
         src/Editor/Commands/CommandHistory.cpp
         src/Editor/Commands/EntityCommands.cpp
         src/Editor/Commands/EntityEditTracker.cpp
+        src/Editor/Inspectors/ComponentInspectors.cpp
+        src/Editor/Inspectors/ScriptInspector.cpp
+        src/Editor/Inspectors/AssetInspector.cpp
+        src/Editor/Inspectors/TextureSettingsEditor.cpp
+        src/Editor/Inspectors/LogEntryInspector.cpp
 )
 
 target_include_directories(Editor PRIVATE src)

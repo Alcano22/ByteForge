@@ -29,7 +29,6 @@ namespace ByteForge::EditorUI
 
         constexpr ImU32 CheckerLight = IM_COL32(88, 88, 88, 255);
         constexpr ImU32 CheckerDark  = IM_COL32(62, 62, 62, 255);
-        constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
 
         ImVec2 FitToBounds(const Texture2D& texture, const ImVec2& bounds)
         {

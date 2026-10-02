@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <exception>
 #include <system_error>
-#include <variant>
 
 namespace ByteForge
 {
@@ -100,6 +99,7 @@ namespace ByteForge
         {
             m_CurrentDirectory = *m_PendingDirectory;
             m_PendingDirectory.reset();
+            m_LocalSelection.reset();
             m_RefreshRequested = true;
         }
 
@@ -221,10 +221,6 @@ namespace ByteForge
     {
         Selection& selection = GetContext().SelectionContext;
 
-        if (!m_SelectedPath.empty() && !std::holds_alternative<std::monostate>(selection.Get()))
-            m_SelectedPath.clear();
-
-
         const ImGuiStyle& style = ImGui::GetStyle();
         const float cellWidth = m_ThumbnailSize + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
         const int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / cellWidth));
@@ -241,7 +237,7 @@ namespace ByteForge
 
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
         {
-            m_SelectedPath.clear();
+            m_LocalSelection.reset();
             if (selection.GetAsset())
                 selection.Clear();
         }
@@ -314,10 +310,18 @@ namespace ByteForge
 
     bool AssetsPanel::IsSelected(const Entry& entry) const
     {
-        if (entry.Handle)
-            return GetContext().SelectionContext.IsAsset(*entry.Handle);
+        if (const fs::path* local = GetLocalSelection())
+            return entry.Path == *local;
 
-        return !m_SelectedPath.empty() && entry.Path == m_SelectedPath;
+        return entry.Handle && GetContext().SelectionContext.IsAsset(*entry.Handle);
+    }
+
+    const std::filesystem::path* AssetsPanel::GetLocalSelection() const
+    {
+        if (!m_LocalSelection || m_LocalSelection->Revision != GetContext().SelectionContext.GetRevision())
+            return nullptr;
+
+        return &m_LocalSelection->Path;
     }
 
     void AssetsPanel::Select(const Entry& entry)
@@ -326,13 +330,12 @@ namespace ByteForge
 
         if (entry.Handle)
         {
-            m_SelectedPath.clear();
+            m_LocalSelection.reset();
             selection.SelectAsset(*entry.Handle);
             return;
         }
 
-        selection.Clear();
-        m_SelectedPath = entry.Path;
+        m_LocalSelection = LocalSelection{ .Path = entry.Path, .Revision = selection.GetRevision() };
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)

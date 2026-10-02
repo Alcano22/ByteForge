@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace ByteForge
 {
@@ -52,6 +53,7 @@ namespace ByteForge
         void DrawItem(Entry& entry);
 
         [[nodiscard]] bool IsSelected(const Entry& entry) const;
+        [[nodiscard]] const std::filesystem::path* GetLocalSelection() const;
         void Select(const Entry& entry);
 
         [[nodiscard]] static Ref<Texture2D> GetThumbnail(Entry& entry);
@@ -67,7 +69,13 @@ namespace ByteForge
         bool m_HasRoot = false;
 
         std::filesystem::path m_CurrentDirectory;
-        std::filesystem::path m_SelectedPath;
+
+        struct LocalSelection
+        {
+            std::filesystem::path Path;
+            uint64_t Revision = 0;
+        };
+        std::optional<LocalSelection> m_LocalSelection;
 
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;
