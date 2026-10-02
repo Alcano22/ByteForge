@@ -5,6 +5,12 @@ add_executable(Editor
         src/Editor/EditorIcons.cpp
         src/Editor/EditorFonts.cpp
         src/Editor/ScriptProject.cpp
+        src/Editor/EditorLayer.cpp
+        src/Editor/EditorActions.cpp
+        src/Editor/DemoContent.cpp
+        src/Editor/Shell/EditorShell.cpp
+        src/Editor/Shell/MainMenuBar.cpp
+        src/Editor/Shell/Toolbar.cpp
         src/Editor/Panels/InspectorPanel.cpp
         src/Editor/Panels/SceneHierarchyPanel.cpp
         src/Editor/Panels/ViewportPanel.cpp

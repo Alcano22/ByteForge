@@ -2,6 +2,7 @@
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/JobSystem.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
@@ -14,6 +15,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <exception>
+#include <future>
 
 namespace ByteForge
 {
@@ -98,32 +101,82 @@ namespace ByteForge
         APP_INFO("Generated {}", file.filename().string());
     }
 
-    bool ScriptProject::Reload() const
+    void ScriptProject::RequestReload()
     {
-        ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#");
-        if (backend == nullptr)
+        if (IsBuilding())
+        {
+            m_ReloadQueued = true;
+            return;
+        }
+
+        StartBuild();
+    }
+
+    void ScriptProject::Update(const bool canLoad)
+    {
+        if (!IsBuilding() || !canLoad) return;
+        if (m_Build.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
+
+        FinishBuild();
+
+        if (m_ReloadQueued)
+        {
+            m_ReloadQueued = false;
+            StartBuild();
+        }
+    }
+
+    float ScriptProject::GetBuildSeconds() const
+    {
+        if (!IsBuilding())
+            return 0.0f;
+
+        return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_BuildStart).count();
+    }
+
+    void ScriptProject::StartBuild()
+    {
+        if (ScriptEngine::Get().FindBackendByName("C#") == nullptr)
         {
             APP_WARN("C# scripting is unavailable, game scripts are not built");
-            return false;
+            return;
         }
 
         GenerateProjectFile();
 
-        const auto start = std::chrono::steady_clock::now();
-        const Platform::ProcessResult result = Platform::RunProcess(std::format(
-            "dotnet build {} -c Debug -o {} --nologo -v quiet", Quote(GetProjectFile()), Quote(GetOutputDirectory())));
+        std::string command = std::format("dotnet build {} -c Debug -o {} --nologo -v quiet",
+                                          Quote(GetProjectFile()), Quote(GetOutputDirectory()));
+
+        m_BuildStart = std::chrono::steady_clock::now();
+
+        m_Build = JobSystem::Submit([command = std::move(command)] { return Platform::RunProcess(command); });
+    }
+
+    void ScriptProject::FinishBuild()
+    {
+        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - m_BuildStart);
+
+        Platform::ProcessResult result;
+        try
+        {
+            result = m_Build.get();
+        } catch (const std::exception& e)
+        {
+            APP_ERROR("C# build could not run: {}", e.what());
+            return;
+        }
 
         if (result.ExitCode != 0)
         {
             ReportBuildOutput(result.Output);
-            return false;
+            return;
         }
 
-        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start);
         APP_INFO("C# scripts built in {} ms", elapsed.count());
 
-        return backend->LoadModule(GetOutputDirectory() / "GameScripts.dll");
+        if (ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#"))
+            backend->LoadModule(GetOutputDirectory() / "GameScripts.dll");
     }
 
     std::expected<std::string, std::string> ScriptProject::FindClassForAsset(const UUID scriptAsset)

@@ -5,6 +5,7 @@
 #include "Editor/Selection.h"
 #include "Editor/EditorIcons.h"
 #include "Editor/EditorFonts.h"
+#include "Editor/ScriptProject.h"
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
@@ -21,6 +22,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <filesystem>
 
 namespace ByteForge
 {
@@ -62,6 +64,7 @@ namespace ByteForge
 
         void OnUpdate(const Timestep ts)
         {
+            Scripts.Update(IsEditing());
             FlushDeferred();
 
             for (const auto& [type, panel] : m_Panels)
@@ -89,6 +92,7 @@ namespace ByteForge
         [[nodiscard]] bool IsPlaying() const { return State == SceneState::Play; }
         [[nodiscard]] bool IsPaused() const { return State == SceneState::Pause; }
         [[nodiscard]] bool IsEditing() const { return State == SceneState::Edit; }
+        [[nodiscard]] bool CanPlay() const { return IsEditing() && ActiveScene != nullptr && !Scripts.IsBuilding(); }
 
         [[nodiscard]] bool ConsumeStepRequest()
         {
@@ -108,6 +112,13 @@ namespace ByteForge
 
         bool Undo();
         bool Redo();
+
+        template<typename Fn>
+        void ForEachPanel(Fn&& fn) const
+        {
+            for (const auto& [type, panel] : m_Panels)
+                fn(*panel);
+        }
 
     private:
         template<typename T>
@@ -137,6 +148,7 @@ namespace ByteForge
         SceneState State = SceneState::Edit;
         EditorIcons Icons;
         EditorFonts Fonts;
+        ScriptProject Scripts{ std::filesystem::current_path() };
 
     private:
         std::vector<std::pair<std::type_index, Scope<EditorPanel>>> m_Panels;

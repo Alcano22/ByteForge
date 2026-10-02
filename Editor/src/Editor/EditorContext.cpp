@@ -19,7 +19,7 @@ namespace ByteForge
 {
     void EditorContext::OnScenePlay()
     {
-        if (State != SceneState::Edit || ActiveScene == nullptr) return;
+        if (!CanPlay()) return;
 
         m_EditSceneSnapshot = SceneSerializer::Serialize(*ActiveScene);
         ActiveScene->OnRuntimeStart();
