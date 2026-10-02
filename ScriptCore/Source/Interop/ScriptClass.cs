@@ -85,6 +85,7 @@ internal sealed class ScriptClass
         Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
                      .Where(field => !field.IsInitOnly)
                      .OrderBy(field => field.MetadataToken)
+                     .DistinctBy(field => field.Name)
                      .Select(field => ScriptField.TypeOf(field.FieldType) is { } fieldType ? new ScriptField(field, fieldType) : null)
                      .OfType<ScriptField>()
                      .ToArray();

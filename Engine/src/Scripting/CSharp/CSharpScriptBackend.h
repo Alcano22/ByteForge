@@ -7,6 +7,9 @@
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <map>
+#include <span>
+#include <vector>
 
 namespace ByteForge
 {

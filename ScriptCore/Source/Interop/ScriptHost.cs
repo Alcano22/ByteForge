@@ -113,7 +113,7 @@ internal static unsafe class ScriptHost
             }
         } catch (Exception e)
         {
-            Log.Error($"Could not list script fields {e}");
+            Log.Error($"Could not list script fields: {e}");
         }
     }
 

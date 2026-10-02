@@ -1,5 +1,6 @@
 #include "Platform/PlatformDetail.h"
 #include "Platform/SharedLibrary.h"
+#include "Engine/Core/Platform.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #   define WIN32_LEAN_AND_MEAN
@@ -9,6 +10,8 @@
 #endif
 #include <Windows.h>
 
+#include <array>
+#include <cstdio>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -16,7 +19,7 @@
 namespace ByteForge
 {
     SharedLibrary::SharedLibrary(const std::filesystem::path& path)
-        : m_Handle(LoadLibaryW(path.c_str()))
+        : m_Handle(LoadLibraryW(path.c_str()))
     {
         if (m_Handle == nullptr)
         {
@@ -49,7 +52,8 @@ namespace ByteForge
         while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
             result.Output += buffer.data();
 
-        return _pclose(pipe);
+        result.ExitCode = _pclose(pipe);
+        return result;
     }
 }
 

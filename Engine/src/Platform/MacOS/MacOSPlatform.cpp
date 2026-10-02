@@ -1,12 +1,16 @@
 #include "Platform/PlatformDetail.h"
 #include "Platform/SharedLibrary.h"
 
+#include <array>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <format>
 #include <stdexcept>
 #include <string>
-#include <mach-o/dyld.h>
 #include <dlfcn.h>
+#include <mach-o/dyld.h>
+#include <sys/wait.h>
 
 namespace ByteForge
 {

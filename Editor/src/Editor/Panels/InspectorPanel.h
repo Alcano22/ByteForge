@@ -9,6 +9,8 @@
 
 #include <imgui.h>
 
+#include <type_traits>
+
 namespace ByteForge
 {
     struct AssetMetadata;
@@ -55,8 +57,10 @@ namespace ByteForge
             {
                 if (ImGui::MenuItem("Reset"))
                 {
-                    const T defaults{};
-                    entity.GetComponent<T>() = defaults;
+                    if constexpr (std::is_same_v<T, ScriptComponent>)
+                        entity.GetComponent<T>().Fields.clear();
+                    else
+                        entity.GetComponent<T>() = T{};
                 }
 
                 if (ImGui::MenuItem("Remove Component", nullptr, false, removable))

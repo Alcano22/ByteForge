@@ -9,6 +9,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/AssetManager.h>
+#include <Engine/Scene/Scene.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scripting/ScriptEngine.h>
 #include <Engine/Scripting/ScriptField.h>
@@ -31,6 +32,7 @@
 #include <cctype>
 #include <optional>
 #include <expected>
+#include <vector>
 
 namespace ByteForge
 {
@@ -484,6 +486,15 @@ namespace ByteForge
         switch (metadata.Type)
         {
             case AssetType::Texture2D: DrawTextureSettings(metadata); break;
+            case AssetType::Script:
+            {
+                const std::expected<std::string, std::string> className = ScriptProject::FindClassForAsset(handle);
+                if (className)
+                    ImGui::Text("Class: %s", className->c_str());
+                else
+                    ImGui::TextColored(ScriptErrorColor, "%s", className.error().c_str());
+                break;
+            }
             case AssetType::None:      break;
         }
     }
