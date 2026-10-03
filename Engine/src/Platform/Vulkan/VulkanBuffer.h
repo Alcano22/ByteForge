@@ -14,7 +14,8 @@ namespace ByteForge
     enum class VulkanBufferMemory
     {
         HostVisible, // CPU-writeable and persistently mapped
-        DeviceLocal  // GPU-only, filled through VulkanUploader
+        DeviceLocal, // GPU-only, filled through VulkanUploader
+        Readback     // Written by the GPU, read by the CPU; persistently mapped, cached
     };
 
     class VulkanBuffer : NonCopyable
@@ -25,6 +26,7 @@ namespace ByteForge
         ~VulkanBuffer();
 
         void SetData(const void* data, size_t size, size_t offset = 0) const;
+        void GetData(void* data, size_t size, size_t offset = 0) const;
 
         [[nodiscard]] VkBuffer GetHandle() const { return m_Buffer; }
         [[nodiscard]] VkDeviceSize GetSize() const { return m_Size; }

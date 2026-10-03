@@ -46,6 +46,7 @@ add_library(Engine SHARED
         src/Renderer/OrthographicCamera.cpp
         src/Renderer/ImageDecoder.cpp
         src/Renderer/RenderBackend.cpp
+        src/Renderer/LineRenderer.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp

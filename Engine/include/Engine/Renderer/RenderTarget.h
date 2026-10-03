@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include <cstdint>
+#include <vector>
 
 namespace ByteForge
 {
@@ -13,7 +14,8 @@ namespace ByteForge
     {
         uint32_t Width = 1280;
         uint32_t Height = 720;
-        ImageFormat ColorFormat = ImageFormat::RGBA8_SRGB;
+
+        std::vector<ImageFormat> ColorFormats{ ImageFormat::RGBA8_SRGB };
         ImageFormat DepthFormat = ImageFormat::Depth32F;
         glm::vec4 ClearColor{ 0.01f, 0.01f, 0.01f, 1.0f };
     };
@@ -25,6 +27,8 @@ namespace ByteForge
 
         [[nodiscard]] virtual uint32_t GetWidth() const = 0;
         [[nodiscard]] virtual uint32_t GetHeight() const = 0;
+
+        [[nodiscard]] virtual uint32_t ReadPixel(uint32_t attachment, uint32_t x, uint32_t y) const = 0;
 
         static Ref<RenderTarget> Create(const RenderTargetSpec& spec);
     };

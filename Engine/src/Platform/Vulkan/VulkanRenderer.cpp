@@ -14,6 +14,8 @@
 
 #include <format>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace ByteForge
 {
@@ -43,6 +45,34 @@ namespace ByteForge
             }
 
             return resolved;
+        }
+
+        VkRenderingAttachmentInfo MakeColorAttachment(const VkImageView view, const VkAttachmentLoadOp loadOp,
+                                                      const VkClearColorValue& clearColor)
+        {
+            return {
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = view,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp      = loadOp,
+                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue  = { .color = clearColor }
+            };
+        }
+
+        std::string FormatList(const std::vector<VkFormat>& formats)
+        {
+            if (formats.empty())
+                return "none";
+
+            std::string text;
+            for (const VkFormat format : formats)
+            {
+                if (!text.empty())
+                    text += ", ";
+                text += VkFormatToString(format);
+            }
+            return text;
         }
     }
 
@@ -76,7 +106,7 @@ namespace ByteForge
         m_ActivePass = Pass::None;
         m_SwapchainCleared = false;
         m_ActiveTarget = nullptr;
-        m_ActiveColorFormat = VK_FORMAT_UNDEFINED;
+        m_ActiveColorFormats.clear();
         m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
 
         VK_CHECK(vkResetFences(m_Device.GetHandle(), 1, &fence));
@@ -205,15 +235,12 @@ namespace ByteForge
 
         target.CmdTransitionForRendering(m_CurrentCommandBuffer);
 
-        const glm::vec4& color = target.GetClearColor();
-        const VkClearColorValue clearColor{ .float32 = { color.r, color.g, color.b, color.a } };
-
-        BeginRendering(target.GetExtent(), target.GetColorView(), VK_ATTACHMENT_LOAD_OP_CLEAR,
-                       clearColor, target.GetDepthView());
+        const std::vector<VkRenderingAttachmentInfo> colorAttachments = target.GetColorAttachmentInfos();
+        BeginRendering(target.GetExtent(), colorAttachments, target.GetDepthView());
 
         m_ActivePass = Pass::Target;
         m_ActiveTarget = &target;
-        m_ActiveColorFormat = target.GetColorFormat();
+        m_ActiveColorFormats = target.GetColorFormats();
         m_ActiveDepthFormat = target.GetDepthFormat();
     }
 
@@ -226,7 +253,7 @@ namespace ByteForge
 
         EndRendering();
 
-        m_ActiveTarget->CmdTransitionForSampling(m_CurrentCommandBuffer);
+        m_ActiveTarget->CmdTransitionAfterRendering(m_CurrentCommandBuffer);
         m_ActiveTarget = nullptr;
     }
 
@@ -242,11 +269,12 @@ namespace ByteForge
         EnsureSwapchainCleared();
         BarrierSwapchainWrites();
 
-        BeginRendering(m_Swapchain->GetExtent(), m_Swapchain->GetImGuiImageViews()[m_CurrentImageIndex],
-                       VK_ATTACHMENT_LOAD_OP_LOAD, SwapchainClearColor);
+        const VkRenderingAttachmentInfo attachment = MakeColorAttachment(
+            m_Swapchain->GetImGuiImageViews()[m_CurrentImageIndex], VK_ATTACHMENT_LOAD_OP_LOAD, SwapchainClearColor);
+        BeginRendering(m_Swapchain->GetExtent(), std::span(&attachment, 1));
 
         m_ActivePass = Pass::ImGui;
-        m_ActiveColorFormat = m_Swapchain->GetImGuiImageFormat();
+        m_ActiveColorFormats = { m_Swapchain->GetImGuiImageFormat() };
         m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
     }
 
@@ -265,13 +293,13 @@ namespace ByteForge
         if (m_ActivePass == Pass::None)
             BeginSwapchainPass();
 
-        if (pipeline.GetColorFormat() != m_ActiveColorFormat || pipeline.GetDepthFormat() != m_ActiveDepthFormat)
+        if (pipeline.GetColorFormats() != m_ActiveColorFormats || pipeline.GetDepthFormat() != m_ActiveDepthFormat)
         {
             throw std::runtime_error(std::format(
-                "Renderer::Submit: the pipeline renders into {} / {} (color / depth), but the active pass has "
-                "{} / {}; set PipelineSpec::ColorFormat and DepthFormat to match the render target",
-                VkFormatToString(pipeline.GetColorFormat()), VkFormatToString(pipeline.GetDepthFormat()),
-                VkFormatToString(m_ActiveColorFormat), VkFormatToString(m_ActiveDepthFormat)));
+                "Renderer::Submit: the pipeline renders into [{}] / {} (color / depth), but the active pass has "
+                "[{}] / {}; set PipelineSpec::ColorAttachments and DepthFormat to match the render target",
+                FormatList(pipeline.GetColorFormats()), VkFormatToString(pipeline.GetDepthFormat()),
+                FormatList(m_ActiveColorFormats), VkFormatToString(m_ActiveDepthFormat)));
         }
 
         const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
@@ -314,12 +342,14 @@ namespace ByteForge
         if (resuming)
             BarrierSwapchainWrites();
 
-        BeginRendering(m_Swapchain->GetExtent(), m_Swapchain->GetImageViews()[m_CurrentImageIndex],
-                       resuming ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR, SwapchainClearColor);
+        const VkRenderingAttachmentInfo attachment = MakeColorAttachment(
+            m_Swapchain->GetImageViews()[m_CurrentImageIndex],
+            resuming ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR, SwapchainClearColor);
+        BeginRendering(m_Swapchain->GetExtent(), std::span(&attachment, 1));
 
         m_SwapchainCleared = true;
         m_ActivePass = Pass::Swapchain;
-        m_ActiveColorFormat = m_Swapchain->GetImageFormat();
+        m_ActiveColorFormats = { m_Swapchain->GetImageFormat() };
         m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
     }
 
@@ -340,19 +370,10 @@ namespace ByteForge
                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
     }
 
-    void VulkanRenderer::BeginRendering(const VkExtent2D extent, const VkImageView colorView,
-                                        const VkAttachmentLoadOp loadOp, const VkClearColorValue& clearColor,
+    void VulkanRenderer::BeginRendering(const VkExtent2D extent,
+                                        const std::span<const VkRenderingAttachmentInfo> colorAttachments,
                                         const VkImageView depthView)
     {
-        const VkRenderingAttachmentInfo colorAttachment{
-            .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageView   = colorView,
-            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .loadOp      = loadOp,
-            .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue  = { .color = clearColor }
-        };
-
         const VkRenderingAttachmentInfo depthAttachment{
             .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView   = depthView,
@@ -366,8 +387,8 @@ namespace ByteForge
             .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
             .renderArea           = { .offset = { 0, 0 }, .extent = extent },
             .layerCount           = 1,
-            .colorAttachmentCount = 1,
-            .pColorAttachments    = &colorAttachment,
+            .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
+            .pColorAttachments    = colorAttachments.data(),
             .pDepthAttachment     = depthView != nullptr ? &depthAttachment : nullptr
         };
 
@@ -394,7 +415,7 @@ namespace ByteForge
         vkCmdEndRendering(m_CurrentCommandBuffer);
 
         m_ActivePass = Pass::None;
-        m_ActiveColorFormat = VK_FORMAT_UNDEFINED;
+        m_ActiveColorFormats.clear();
         m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
     }
 }

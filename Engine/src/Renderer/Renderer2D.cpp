@@ -1,11 +1,12 @@
 #include "Engine/Renderer/Renderer2D.h"
 #include "Engine/Renderer/Renderer.h"
+#include "Renderer/ColorSpace.h"
 
 #include <array>
 #include <format>
 #include <limits>
 #include <stdexcept>
-#include <cmath>
+#include <vector>
 
 namespace ByteForge
 {
@@ -25,13 +26,15 @@ namespace ByteForge
                 float3 Position : POSITION;
                 float2 UV       : TEXCOORD0;
                 float4 Color    : COLOR;
+                uint   EntityId : ENTITYID;
             };
 
             struct VSOutput
             {
-                float4 Position : SV_Position;
-                float2 UV       : TEXCOORD0;
-                float4 Color    : COLOR;
+                float4 Position               : SV_Position;
+                float2 UV                     : TEXCOORD0;
+                float4 Color                  : COLOR;
+                nointerpolation uint EntityId : ENTITYID;
             };
 
             VSOutput main(VSInput input)
@@ -40,6 +43,7 @@ namespace ByteForge
                 output.Position = mul(u_ViewProjection, float4(input.Position, 1.0));
                 output.UV = input.UV;
                 output.Color = input.Color;
+                output.EntityId = input.EntityId;
                 return output;
             }
         )";
@@ -48,27 +52,54 @@ namespace ByteForge
             [[vk::binding(0, 1)]] Texture2D u_Texture;
             [[vk::binding(1, 1)]] SamplerState u_TextureSampler;
 
-            float4 main(float2 uv : TEXCOORD0, float4 color : COLOR) : SV_Target
+            struct PSInput
             {
-                return u_Texture.Sample(u_TextureSampler, uv) * color;
+                float2 UV                     : TEXCOORD0;
+                float4 Color                  : COLOR;
+                nointerpolation uint EntityId : ENTITYID;
+            };
+
+            float4 main(PSInput input) : SV_Target
+            {
+                return u_Texture.Sample(u_TextureSampler, input.UV) * input.Color;
             }
         )";
 
-        float SrgbToLinear(const float channel)
-        {
-            return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
-        }
+        constexpr const char* EntityIdFragmentSource = R"(
+            [[vk::binding(0, 1)]] Texture2D u_Texture;
+            [[vk::binding(1, 1)]] SamplerState u_TextureSampler;
 
-        glm::vec4 SrgbToLinear(const glm::vec4& color)
-        {
-            return { SrgbToLinear(color.r), SrgbToLinear(color.g), SrgbToLinear(color.b), color.a };
-        }
+            struct PSInput
+            {
+                float2 UV                     : TEXCOORD0;
+                float4 Color                  : COLOR;
+                nointerpolation uint EntityId : ENTITYID;
+            };
+
+            struct PSOutput
+            {
+                float4 Color    : SV_Target0;
+                uint   EntityId : SV_Target1;
+            };
+
+            PSOutput main(PSInput input)
+            {
+                PSOutput output;
+                output.Color = u_Texture.Sample(u_TextureSampler, input.UV) * input.Color;
+
+                if (output.Color.a < 0.01)
+                    discard;
+
+                output.EntityId = input.EntityId;
+                return output;
+            }
+        )";
     }
 
     Renderer2D::Renderer2D(const Renderer2DSpec& spec)
         : m_Spec(spec)
     {
-        static_assert(sizeof(Vertex) == 9 * sizeof(float),
+        static_assert(sizeof(Vertex) == 9 * sizeof(float) + sizeof(uint32_t),
                       "Vertex must be tightly packed to match the buffer layout");
 
         const auto maxSupportedQuads = static_cast<uint32_t>(
@@ -84,7 +115,8 @@ namespace ByteForge
         const BufferLayout layout = {
             { ShaderDataType::Float3, "Position" },
             { ShaderDataType::Float2, "UV"       },
-            { ShaderDataType::Float4, "Color"    }
+            { ShaderDataType::Float4, "Color"    },
+            { ShaderDataType::UInt,   "EntityId" }
         };
 
         m_VertexBuffer = VertexBuffer::Create(
@@ -105,15 +137,20 @@ namespace ByteForge
 
         m_Mesh = MakeRef<Mesh>(m_VertexBuffer, IndexBuffer::Create(indices));
 
-        const auto shader = Shader::Create(VertexSource, FragmentSource);
+        const bool writesEntityIds = spec.EntityIdFormat != ImageFormat::None;
+
+        std::vector<ColorAttachment> attachments{ { .Format = spec.ColorFormat, .Blend = BlendMode::Alpha } };
+        if (writesEntityIds)
+            attachments.push_back({ .Format = spec.EntityIdFormat });
+
+        const auto shader = Shader::Create(VertexSource, writesEntityIds ? EntityIdFragmentSource : FragmentSource);
         m_Pipeline = Pipeline::Create({
-            .Shader       = shader,
-            .VertexLayout = layout,
-            .Blend        = BlendMode::Alpha,
-            .ColorFormat  = spec.ColorFormat,
-            .DepthFormat  = spec.DepthFormat,
-            .DepthTest    = spec.DepthFormat != ImageFormat::None,
-            .DepthWrite   = false
+            .Shader           = shader,
+            .VertexLayout     = layout,
+            .ColorAttachments = std::move(attachments),
+            .DepthFormat      = spec.DepthFormat,
+            .DepthTest        = spec.DepthFormat != ImageFormat::None,
+            .DepthWrite       = false
         });
 
         constexpr std::array<std::byte, 4> white{ std::byte{ 255 }, std::byte{ 255 },
@@ -156,13 +193,13 @@ namespace ByteForge
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
     {
-        SubmitQuad(position, size, 0.0f, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color);
+        SubmitQuad(position, size, 0.0f, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
                               const Ref<Texture2D>& texture, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, 0.0f, texture, WholeTextureUVMin, WholeTextureUVMax, tint);
+        SubmitQuad(position, size, 0.0f, texture, WholeTextureUVMin, WholeTextureUVMax, tint, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
@@ -172,47 +209,48 @@ namespace ByteForge
             throw std::runtime_error("Renderer2D::DrawQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, 0.0f, subTexture->GetTexture(),
-                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                               const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint);
-    }
-
-    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size,
-                                     const float rotation, const glm::vec4& color)
-    {
-        SubmitQuad(position, size, rotation, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color);
+        SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint, 0);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
-                                     const Ref<Texture2D>& texture, const glm::vec4& tint)
+                                     const glm::vec4& color, const uint32_t entityId)
     {
-        SubmitQuad(position, size, rotation, texture, WholeTextureUVMin, WholeTextureUVMax, tint);
+        SubmitQuad(position, size, rotation, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, entityId);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
-                                     const Ref<SubTexture2D>& subTexture, const glm::vec4& tint)
+                                     const Ref<Texture2D>& texture, const glm::vec4& tint, const uint32_t entityId)
+    {
+        SubmitQuad(position, size, rotation, texture, WholeTextureUVMin, WholeTextureUVMax, tint, entityId);
+    }
+
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+                                     const Ref<SubTexture2D>& subTexture, const glm::vec4& tint,
+                                     const uint32_t entityId)
     {
         if (!subTexture)
             throw std::runtime_error("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, rotation, subTexture->GetTexture(),
-                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint);
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, entityId);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
                                      const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                                     const glm::vec4& tint)
+                                     const glm::vec4& tint, const uint32_t entityId)
     {
-        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint);
+        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint, entityId);
     }
 
     void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
                                 const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                                const glm::vec4& color)
+                                const glm::vec4& color, const uint32_t entityId)
     {
         if (!m_InScene)
             throw std::runtime_error("Renderer2D: quads can only be drawn between BeginScene and EndScene");
@@ -254,7 +292,8 @@ namespace ByteForge
             vertices[i] = {
                 .Position = { position.x + rotated.x, position.y + rotated.y, position.z },
                 .UV       = uvs[i],
-                .Color    = vertexColor
+                .Color    = vertexColor,
+                .EntityId = entityId
             };
         }
 

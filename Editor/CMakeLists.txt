@@ -17,9 +17,10 @@ add_executable(Editor
         src/Editor/Shell/Toolbar.cpp
         src/Editor/Panels/InspectorPanel.cpp
         src/Editor/Panels/SceneHierarchyPanel.cpp
-        src/Editor/Panels/ViewportPanel.cpp
         src/Editor/Panels/AssetsPanel.cpp
         src/Editor/Panels/ConsolePanel.cpp
+        src/Editor/Panels/GamePanel.cpp
+        src/Editor/Panels/ScenePanel.cpp
         src/Editor/Commands/CommandHistory.cpp
         src/Editor/Commands/EntityCommands.cpp
         src/Editor/Commands/EntityEditTracker.cpp
@@ -28,6 +29,9 @@ add_executable(Editor
         src/Editor/Inspectors/AssetInspector.cpp
         src/Editor/Inspectors/TextureSettingsEditor.cpp
         src/Editor/Inspectors/LogEntryInspector.cpp
+        src/Editor/Viewport/ViewportCanvas.cpp
+        src/Editor/Viewport/EditorCamera2D.cpp
+        src/Editor/Viewport/SceneGizmos.cpp
 )
 
 target_include_directories(Editor PRIVATE src)

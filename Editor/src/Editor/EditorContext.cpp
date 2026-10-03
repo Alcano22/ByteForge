@@ -17,6 +17,14 @@
 
 namespace ByteForge
 {
+    void EditorContext::UpdateScene(const Timestep ts)
+    {
+        if (ActiveScene == nullptr) return;
+
+        if (IsPlaying() || (IsPaused() && ConsumeStepRequest()))
+            ActiveScene->OnUpdateRuntime(ts);
+    }
+
     void EditorContext::OnScenePlay()
     {
         if (!CanPlay()) return;

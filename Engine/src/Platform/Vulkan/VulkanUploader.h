@@ -28,7 +28,6 @@ namespace ByteForge
 
         void TransitionToShaderRead(VkImage image);
 
-    private:
         void SubmitAndWait(const std::function<void(VkCommandBuffer)>& record);
 
     private:

@@ -48,6 +48,10 @@ namespace ByteForge
             case ShaderDataType::Int2:   return VK_FORMAT_R32G32_SINT;
             case ShaderDataType::Int3:   return VK_FORMAT_R32G32B32_SINT;
             case ShaderDataType::Int4:   return VK_FORMAT_R32G32B32A32_SINT;
+            case ShaderDataType::UInt:   return VK_FORMAT_R32_UINT;
+            case ShaderDataType::UInt2:  return VK_FORMAT_R32G32_UINT;
+            case ShaderDataType::UInt3:  return VK_FORMAT_R32G32B32_UINT;
+            case ShaderDataType::UInt4:  return VK_FORMAT_R32G32B32A32_UINT;
             case ShaderDataType::Bool:   return VK_FORMAT_R8_UINT;
             case ShaderDataType::Mat3:
             case ShaderDataType::Mat4:
@@ -66,6 +70,7 @@ namespace ByteForge
             case VK_FORMAT_B8G8R8A8_SRGB:  return "B8G8R8A8_SRGB";
             case VK_FORMAT_R8G8B8A8_UNORM: return "R8G8B8A8_UNORM";
             case VK_FORMAT_R8G8B8A8_SRGB:  return "R8G8B8A8_SRGB";
+            case VK_FORMAT_R32_UINT:       return "R32_UINT";
             case VK_FORMAT_D32_SFLOAT:     return "D32_SFLOAT";
             default:                       return "another format";
         }
@@ -78,6 +83,7 @@ namespace ByteForge
             case ImageFormat::None:        return VK_FORMAT_UNDEFINED;
             case ImageFormat::RGBA8_SRGB:  return VK_FORMAT_R8G8B8A8_SRGB;
             case ImageFormat::RGBA8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+            case ImageFormat::R32_UINT:    return VK_FORMAT_R32_UINT;
             case ImageFormat::Depth32F:    return VK_FORMAT_D32_SFLOAT;
             case ImageFormat::Swapchain:   break;
         }
@@ -94,6 +100,8 @@ namespace ByteForge
             default:                      return format;
         }
     }
+
+    bool IsIntegerFormat(const VkFormat format) { return format == VK_FORMAT_R32_UINT; }
 
     void CmdImageBarrier(const VkCommandBuffer commandBuffer, const VkImage image,
                          const VkImageLayout oldLayout, const VkImageLayout newLayout,

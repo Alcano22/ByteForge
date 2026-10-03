@@ -13,7 +13,6 @@ namespace ByteForge
         : m_Allocator(allocator), m_Size(size)
     {
         const bool deviceLocal = memory == VulkanBufferMemory::DeviceLocal;
-
         const VkBufferCreateInfo bufferInfo{
             .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size        = size,
@@ -22,13 +21,23 @@ namespace ByteForge
         };
 
         VmaAllocationCreateInfo allocInfo{};
-        if (deviceLocal)
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-        else
+        switch (memory)
         {
-            allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-                            | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+            case VulkanBufferMemory::DeviceLocal:
+                allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                break;
+
+            case VulkanBufferMemory::HostVisible:
+                allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                                | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+                break;
+
+            case VulkanBufferMemory::Readback:
+                allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
+                                | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+                break;
         }
 
         VmaAllocationInfo allocationInfo;
@@ -62,5 +71,17 @@ namespace ByteForge
         std::memcpy(static_cast<char*>(m_MappedData) + offset, data, size);
 
         VK_CHECK(vmaFlushAllocation(m_Allocator.GetHandle(), m_Allocation, offset, size));
+    }
+
+    void VulkanBuffer::GetData(void* data, const size_t size, const size_t offset) const
+    {
+        if (m_MappedData == nullptr)
+            throw std::runtime_error("VulkanBuffer::GetData: buffer is not host-visible");
+
+        if (offset > m_Size || size > m_Size - offset)
+            throw std::runtime_error("VulkanBuffer::GetData: read exceeds buffer bounds");
+
+        VK_CHECK(vmaInvalidateAllocation(m_Allocator.GetHandle(), m_Allocation, offset, size));
+        std::memcpy(data, static_cast<const char*>(m_MappedData) + offset, size);
     }
 }

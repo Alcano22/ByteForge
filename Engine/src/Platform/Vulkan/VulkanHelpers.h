@@ -33,6 +33,7 @@ namespace ByteForge
     const char* VkFormatToString(VkFormat format);
     VkFormat ImageFormatToVk(ImageFormat format);
     VkFormat ToUnormEquivalent(VkFormat format);
+    bool IsIntegerFormat(VkFormat format);
 
     void CmdImageBarrier(VkCommandBuffer commandBuffer, VkImage image,
                          VkImageLayout oldLayout, VkImageLayout newLayout,

@@ -10,6 +10,7 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 
+#include <cstdint>
 #include <string>
 #include <tuple>
 
@@ -31,9 +32,11 @@ namespace ByteForge
         void DestroyEntity(Entity entity);
         Entity DuplicateEntity(Entity source);
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
+        [[nodiscard]] Entity FindEntityByPickingId(uint32_t pickingId);
 
-        void OnUpdateEditor(Timestep ts, Renderer2D& renderer, const Camera& camera);
-        void OnUpdateRuntime(Timestep ts, Renderer2D& renderer, const Camera& camera);
+        void OnUpdateRuntime(Timestep ts);
+
+        void Render(Renderer2D& renderer, const Camera& camera);
 
         void OnRuntimeStart();
         void OnRuntimeStop();
@@ -58,9 +61,9 @@ namespace ByteForge
         void Clear();
 
     private:
-        void RenderScene(Renderer2D& renderer, const Camera& camera);
-
         void ResetPhysicsWorld();
+
+        [[nodiscard]] static uint32_t ToPickingId(entt::entity handle);
 
         static void DispatchSensorEvent(Entity self, Entity other, bool entered);
         static void DispatchCollisionEvent(Entity self, Entity other, bool entered);

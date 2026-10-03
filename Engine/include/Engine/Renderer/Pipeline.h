@@ -6,6 +6,7 @@
 #include "Engine/Renderer/ImageFormat.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace ByteForge
 {
@@ -15,6 +16,14 @@ namespace ByteForge
     enum class BlendMode { None, Alpha };
     enum class CompareOp { Less, LessOrEqual, Always };
 
+    struct ColorAttachment
+    {
+        ImageFormat Format = ImageFormat::Swapchain;
+        BlendMode Blend = BlendMode::None;
+
+        bool WriteEnabled = true;
+    };
+
     struct PipelineSpec
     {
         Ref<ByteForge::Shader> Shader;
@@ -22,9 +31,8 @@ namespace ByteForge
         PrimitiveTopology Topology = PrimitiveTopology::TriangleList;
         CullMode Cull = CullMode::None;
         FrontFace Front = FrontFace::Clockwise;
-        BlendMode Blend = BlendMode::None;
 
-        ImageFormat ColorFormat = ImageFormat::Swapchain;
+        std::vector<ColorAttachment> ColorAttachments{ ColorAttachment{} };
         ImageFormat DepthFormat = ImageFormat::None;
 
         bool DepthTest = false;

@@ -25,6 +25,8 @@ namespace ByteForge
         ImageFormat ColorFormat = ImageFormat::Swapchain;
         ImageFormat DepthFormat = ImageFormat::None;
 
+        ImageFormat EntityIdFormat = ImageFormat::None;
+
         uint32_t MaxQuads = 20000;
     };
 
@@ -53,21 +55,23 @@ namespace ByteForge
                       const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint = glm::vec4(1.0f));
 
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
-                             const glm::vec4& color);
+                             const glm::vec4& color, uint32_t entityId = 0);
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
-                             const Ref<Texture2D>& texture, const glm::vec4& tint = glm::vec4(1.0f));
+                             const Ref<Texture2D>& texture, const glm::vec4& tint = glm::vec4(1.0f),
+                             uint32_t entityId = 0);
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
-                             const Ref<SubTexture2D>& subTexture, const glm::vec4& tint = glm::vec4(1.0f));
+                             const Ref<SubTexture2D>& subTexture, const glm::vec4& tint = glm::vec4(1.0f),
+                             uint32_t entityId = 0);
         void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
                              const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                             const glm::vec4& tint = glm::vec4(1.0f));
+                             const glm::vec4& tint = glm::vec4(1.0f), uint32_t entityId = 0);
 
         [[nodiscard]] const Renderer2DStats& GetStats() const { return m_Stats; }
 
     private:
         void SubmitQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
                         const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                        const glm::vec4& color);
+                        const glm::vec4& color, uint32_t entityId);
         void Flush();
 
         [[nodiscard]] Ref<Material> GetMaterial(const Ref<Texture2D>& texture);
@@ -79,6 +83,7 @@ namespace ByteForge
             glm::vec3 Position;
             glm::vec2 UV;
             glm::vec4 Color;
+            uint32_t EntityId;
         };
 
         struct MaterialEntry

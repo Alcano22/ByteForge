@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <span>
+#include <vector>
 
 namespace ByteForge
 {
@@ -57,8 +58,8 @@ namespace ByteForge
         void EnsureSwapchainCleared();
         void BarrierSwapchainWrites() const;
 
-        void BeginRendering(VkExtent2D extent, VkImageView colorView, VkAttachmentLoadOp loadOp,
-                            const VkClearColorValue& clearColor, VkImageView depthView = nullptr);
+        void BeginRendering(VkExtent2D extent, std::span<const VkRenderingAttachmentInfo> colorAttachments,
+                            VkImageView depthView = nullptr);
         void EndRendering();
 
     private:
@@ -77,7 +78,7 @@ namespace ByteForge
         Pass m_ActivePass = Pass::None;
         bool m_SwapchainCleared = false;
         const VulkanRenderTarget* m_ActiveTarget = nullptr;
-        VkFormat m_ActiveColorFormat = VK_FORMAT_UNDEFINED;
+        std::vector<VkFormat> m_ActiveColorFormats;
         VkFormat m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
     };
 }

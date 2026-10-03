@@ -4,7 +4,8 @@
 #include "Editor/Panels/ConsolePanel.h"
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/Panels/SceneHierarchyPanel.h"
-#include "Editor/Panels/ViewportPanel.h"
+#include "Editor/Panels/ScenePanel.h"
+#include "Editor/Panels/GamePanel.h"
 
 #include <Engine/Core/Platform.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -30,7 +31,8 @@ namespace ByteForge
         if (!m_Context.Document.OpenLast())
             m_Context.Document.New();
 
-        m_Context.Open<ViewportPanel>();
+        m_Context.Open<GamePanel>();
+        m_Context.Open<ScenePanel>();
         m_Context.Open<SceneHierarchyPanel>();
         m_Context.Open<InspectorPanel>();
         m_Context.Open<AssetsPanel>();

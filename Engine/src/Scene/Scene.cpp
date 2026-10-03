@@ -77,28 +77,13 @@ namespace ByteForge
         return {};
     }
 
-    void Scene::RenderScene(Renderer2D& renderer, const Camera& camera)
+    Entity Scene::FindEntityByPickingId(const uint32_t pickingId)
     {
-        renderer.BeginScene(camera);
+        if (pickingId == 0)
+            return {};
 
-        const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
-        for (const auto handle : view)
-        {
-            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
-            if (spriteRenderer.Sprite)
-            {
-                const Sprite& sprite = *spriteRenderer.Sprite;
-                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                         sprite.GetTexture(), sprite.GetUVMin(), sprite.GetUVMax(),
-                                         spriteRenderer.Color);
-            } else
-            {
-                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                         spriteRenderer.Color);
-            }
-        }
-
-        renderer.EndScene();
+        const auto handle = static_cast<entt::entity>(pickingId - 1);
+        return m_Registry.valid(handle) ? Entity(handle, this) : Entity{};
     }
 
     void Scene::ResetPhysicsWorld()
@@ -111,20 +96,44 @@ namespace ByteForge
         destroyed.connect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
 
-    void Scene::OnUpdateEditor(Timestep, Renderer2D& renderer, const Camera& camera)
+    uint32_t Scene::ToPickingId(const entt::entity handle)
     {
-        RenderScene(renderer, camera);
+        return static_cast<uint32_t>(entt::to_integral(handle)) + 1u;
     }
 
-    void Scene::OnUpdateRuntime(const Timestep ts, Renderer2D& renderer, const Camera& camera)
+    void Scene::OnUpdateRuntime(const Timestep ts)
     {
         OnRuntimeStart();
 
         m_PhysicsWorld->EnsureBodiesCreated(*this);
         m_ScriptRuntime->Update(ts);
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
+    }
 
-        RenderScene(renderer, camera);
+    void Scene::Render(Renderer2D& renderer, const Camera& camera)
+    {
+        renderer.BeginScene(camera);
+
+        const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
+        for (const auto handle : view)
+        {
+            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
+            const uint32_t pickingId = ToPickingId(handle);
+
+            if (spriteRenderer.Sprite)
+            {
+                const Sprite& sprite = *spriteRenderer.Sprite;
+                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
+                                         sprite.GetTexture(), sprite.GetUVMin(), sprite.GetUVMax(),
+                                         spriteRenderer.Color, pickingId);
+            } else
+            {
+                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
+                                         spriteRenderer.Color, pickingId);
+            }
+        }
+
+        renderer.EndScene();
     }
 
     void Scene::OnRuntimeStart()

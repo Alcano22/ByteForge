@@ -145,7 +145,10 @@ namespace ByteForge
         };
         vkGetPhysicalDeviceFeatures2(device, &features2);
 
-        return features13.dynamicRendering && features13.synchronization2;
+        return features2.features.independentBlend &&
+               features13.shaderDemoteToHelperInvocation &&
+               features13.dynamicRendering &&
+               features13.synchronization2;
     }
 
     QueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice device) const
@@ -193,12 +196,15 @@ namespace ByteForge
             });
         }
 
-        constexpr VkPhysicalDeviceFeatures deviceFeatures{};
+        constexpr VkPhysicalDeviceFeatures deviceFeatures{
+            .independentBlend = VK_TRUE
+        };
 
         VkPhysicalDeviceVulkan13Features features13{
-            .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-            .synchronization2 = VK_TRUE,
-            .dynamicRendering = VK_TRUE
+            .sType                          = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .shaderDemoteToHelperInvocation = VK_TRUE,
+            .synchronization2               = VK_TRUE,
+            .dynamicRendering               = VK_TRUE
         };
 
         VkDeviceCreateInfo createInfo{

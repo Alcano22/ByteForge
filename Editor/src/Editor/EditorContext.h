@@ -69,6 +69,7 @@ namespace ByteForge
             Scripts.Update(IsEditing());
             Document.Update();
             FlushDeferred();
+            UpdateScene(ts);
 
             for (const auto& [type, panel] : m_Panels)
             {
@@ -85,6 +86,8 @@ namespace ByteForge
                     panel->OnImGuiRender();
             }
         }
+
+        void UpdateScene(Timestep ts);
 
         void OnScenePlay();
         void OnSceneStop();

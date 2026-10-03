@@ -69,10 +69,12 @@ namespace ByteForge
             throw std::runtime_error("Unknown CompareOp");
         }
 
-        VkPipelineColorBlendAttachmentState ToVkBlendAttachment(const BlendMode blendMode)
+        VkPipelineColorBlendAttachmentState ToVkBlendAttachment(const BlendMode blendMode, const bool writeEnabled)
         {
-            constexpr VkColorComponentFlags writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                                                      | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            const VkColorComponentFlags writeMask = writeEnabled
+                                                  ? VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                                                  | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+                                                  : 0;
 
             switch (blendMode)
             {
@@ -286,16 +288,33 @@ namespace ByteForge
 
     void VulkanPipeline::CreatePipeline(const PipelineSpec& spec, const VulkanShaderProgram& shader)
     {
-        m_ColorFormat = spec.ColorFormat == ImageFormat::Swapchain
-                      ? VulkanContext::Get().GetSwapchain().GetImageFormat()
-                      : ImageFormatToVk(spec.ColorFormat);
-        m_DepthFormat = ImageFormatToVk(spec.DepthFormat);
-
-        if (m_ColorFormat == VK_FORMAT_UNDEFINED)
+        if (spec.ColorAttachments.empty())
         {
-            throw std::runtime_error("PipelineSpec::ColorFormat must be set "
+            throw std::runtime_error("PipelineSpec::ColorAttachments must not be empty "
                                      "(depth-only pipelines are not supported yet)");
         }
+
+        m_ColorFormats.clear();
+        std::vector<VkPipelineColorBlendAttachmentState> blendAttachments;
+        blendAttachments.reserve(spec.ColorAttachments.size());
+
+        for (const ColorAttachment& attachment : spec.ColorAttachments)
+        {
+            const VkFormat format = attachment.Format == ImageFormat::Swapchain
+                                  ? VulkanContext::Get().GetSwapchain().GetImageFormat()
+                                  : ImageFormatToVk(attachment.Format);
+
+            if (format == VK_FORMAT_UNDEFINED)
+                throw std::runtime_error("PipelineSpec: color attachment formats must not be None");
+
+            if (IsIntegerFormat(format) && attachment.Blend != BlendMode::None)
+                throw std::runtime_error("PipelineSpec: integer color attachments cannot be blended");
+
+            m_ColorFormats.push_back(format);
+            blendAttachments.push_back(ToVkBlendAttachment(attachment.Blend, attachment.WriteEnabled));
+        }
+
+        m_DepthFormat = ImageFormatToVk(spec.DepthFormat);
 
         if ((spec.DepthTest || spec.DepthWrite) && m_DepthFormat == VK_FORMAT_UNDEFINED)
             throw std::runtime_error("PipelineSpec: depth test or depth write requires a DepthFormat");
@@ -381,13 +400,11 @@ namespace ByteForge
             .sampleShadingEnable  = VK_FALSE
         };
 
-        const VkPipelineColorBlendAttachmentState colorBlendAttachment = ToVkBlendAttachment(spec.Blend);
-
         const VkPipelineColorBlendStateCreateInfo colorBlending{
             .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable   = VK_FALSE,
-            .attachmentCount = 1,
-            .pAttachments    = &colorBlendAttachment
+            .attachmentCount = static_cast<uint32_t>(blendAttachments.size()),
+            .pAttachments    = blendAttachments.data()
         };
 
         const VkPipelineDepthStencilStateCreateInfo depthStencil{
@@ -399,8 +416,8 @@ namespace ByteForge
 
         const VkPipelineRenderingCreateInfo renderingInfo{
             .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .colorAttachmentCount    = 1,
-            .pColorAttachmentFormats = &m_ColorFormat,
+            .colorAttachmentCount    = static_cast<uint32_t>(m_ColorFormats.size()),
+            .pColorAttachmentFormats = m_ColorFormats.data(),
             .depthAttachmentFormat   = m_DepthFormat
         };
 
