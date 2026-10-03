@@ -92,7 +92,7 @@ namespace ByteForge
         uint64_t m_SeenAssetRevision = 0;
 
         std::optional<std::filesystem::path> m_RenamingPath;
-        std::array<char, 256> m_RenameBuffer;
+        std::array<char, 256> m_RenameBuffer{};
         bool m_FocusRename = false;
 
         std::optional<std::filesystem::path> m_PendingDirectory;

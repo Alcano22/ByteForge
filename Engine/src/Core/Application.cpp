@@ -103,19 +103,6 @@ namespace ByteForge
 
         EventDispatcher dispatcher(event);
 
-        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent&)
-        {
-            m_IsRunning = false;
-            return true;
-        });
-
-        dispatcher.Dispatch<FramebufferResizedEvent>([](const FramebufferResizedEvent& e)
-        {
-            CORE_INFO("Window resized to {}x{}", e.GetWidth(), e.GetHeight());
-            Renderer::OnFramebufferResized();
-            return false;
-        });
-
         dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e)
         {
             for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
@@ -127,6 +114,13 @@ namespace ByteForge
                 m_IsRunning = false;
 
             return true;
+        });
+
+        dispatcher.Dispatch<FramebufferResizedEvent>([](const FramebufferResizedEvent& e)
+        {
+            CORE_INFO("Window resized to {}x{}", e.GetWidth(), e.GetHeight());
+            Renderer::OnFramebufferResized();
+            return false;
         });
 
         if (m_ImGuiLayer && IsCapturedByImGui(event)) return;

@@ -34,8 +34,6 @@ namespace ByteForge
         [[nodiscard]] std::filesystem::path GetDefaultDirectory() const;
 
     private:
-        enum class Popup { None, UnsavedChanges, SaveAs, OpenScene };
-
         EditorContext& m_Context;
 
         bool m_PromptRequested = false;

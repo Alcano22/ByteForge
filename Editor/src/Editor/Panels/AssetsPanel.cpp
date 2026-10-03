@@ -14,6 +14,9 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cstring>
+#include <utility>
+#include <expected>
 
 namespace ByteForge
 {

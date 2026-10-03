@@ -1,49 +1,13 @@
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
 
-#include <Engine/Core/Log.h>
-#include <Engine/Scene/Scene.h>
-#include <Engine/Scene/SceneSerializer.h>
-
 #include <array>
-#include <exception>
 #include <format>
 
 namespace ByteForge
 {
     namespace
     {
-        constexpr const char* ScenePath = "scene.json";
-
-        void SaveSceneToFile(EditorContext& context)
-        {
-            try
-            {
-                SceneSerializer::SerializeToFile(*context.ActiveScene, ScenePath);
-            } catch (const std::exception& e)
-            {
-                APP_ERROR("Failed to save scene: {}", e.what());
-                return;
-            }
-
-            context.History.MarkClean();
-            APP_INFO("Scene saved to '{}'", ScenePath);
-        }
-
-        void LoadSceneFromFile(EditorContext& context)
-        {
-            if (!SceneSerializer::DeserializeFromFile(*context.ActiveScene, ScenePath))
-            {
-                APP_ERROR("Failed to load scene from '{}'", ScenePath);
-                return;
-            }
-
-            context.SelectionContext.ClearEntity();
-            context.History.Clear();
-            context.History.MarkClean();
-            APP_INFO("Scene loaded from '{}'", ScenePath);
-        }
-
         bool IsEditingScene(const EditorContext& context)
         {
             return context.IsEditing() && context.ActiveScene != nullptr;
@@ -216,7 +180,7 @@ namespace ByteForge
         std::span<const EditorAction* const> All()
         {
             static constexpr std::array<const EditorAction*, 10> actions{
-                &SaveScene, &OpenScene, &SaveScene, &SaveSceneAs,
+                &NewScene, &OpenScene, &SaveScene, &SaveSceneAs,
                 &Undo, &Redo, &TogglePlay, &TogglePause, &Step, &ReloadScripts
             };
             return actions;
