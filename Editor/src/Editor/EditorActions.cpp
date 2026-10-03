@@ -118,7 +118,7 @@ namespace ByteForge
         const EditorAction OpenScene{
             .Name           = "Open Scene...",
             .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_O,
-            .Execute        = [](EditorContext& context) { context.Dialogs.RequestOpenPicker(); },
+            .Execute        = [](EditorContext& context) { context.Dialogs.RequestOpenFromDisk(); },
             .CanExecute     = IsEditingScene,
             .DisabledReason = OnlyWhileEditing
         };

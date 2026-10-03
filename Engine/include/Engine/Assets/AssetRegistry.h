@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
+#include <expected>
 
 namespace ByteForge
 {
@@ -20,6 +21,8 @@ namespace ByteForge
         [[nodiscard]] static uint64_t GetRevision() { return s_Revision; }
 
         static UUID Import(const std::filesystem::path& relativePath);
+        static std::expected<void, std::string> Move(const std::filesystem::path& from,
+                                                     const std::filesystem::path& to);
 
         [[nodiscard]] static bool TryGetMetadata(UUID handle, AssetMetadata& outMetadata);
         [[nodiscard]] static UUID GetHandle(const std::filesystem::path& relativePath);

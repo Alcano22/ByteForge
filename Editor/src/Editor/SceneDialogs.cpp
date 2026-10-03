@@ -1,6 +1,6 @@
 #include "Editor/SceneDialogs.h"
 #include "Editor/EditorContext.h"
-#include "Editor/EditorWidgets.h"
+#include "Editor/FileDialogs.h"
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Core/Application.h>
@@ -8,66 +8,35 @@
 
 #include <imgui.h>
 
-#include <algorithm>
-#include <cstring>
-#include <filesystem>
-#include <string>
-#include <string_view>
+#include <array>
+#include <optional>
 #include <system_error>
 #include <utility>
-#include <vector>
 
 namespace ByteForge
 {
     namespace
     {
         constexpr const char* UnsavedChangesId = "Unsaved Changes";
-        constexpr const char* SaveAsId = "Save Scene As";
-        constexpr const char* OpenSceneId = "Open Scene";
 
-        const char* GetPopupId(const auto popup)
+        constexpr std::array<FileFilter, 1> SceneFilters{ { { "ByteForge Scene", "bfscene" } } };
+
+        std::optional<std::filesystem::path> ToAssetPath(const std::filesystem::path& absolutePath)
         {
-            switch (popup)
-            {
-                case decltype(popup)::UnsavedChanges: return UnsavedChangesId;
-                case decltype(popup)::SaveAs:         return SaveAsId;
-                case decltype(popup)::OpenScene:      return OpenSceneId;
-                case decltype(popup)::None:           break;
-            }
-            return nullptr;
+            std::error_code error;
+            const std::filesystem::path root =
+                std::filesystem::weakly_canonical(AssetRegistry::GetAssetRoot(), error);
+            const std::filesystem::path relative =
+                std::filesystem::weakly_canonical(absolutePath, error).lexically_relative(root);
+
+            if (relative.empty() || relative.begin()->string() == "..")
+                return std::nullopt;
+            return relative;
         }
 
         void CenterNextWindow()
         {
             ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-        }
-
-        void CopyToBuffer(std::array<char, 128>& buffer, const std::string& text)
-        {
-            const size_t length = std::min(text.size(), buffer.size() - 1);
-            std::memcpy(buffer.data(), text.data(), length);
-            buffer[length] = '\0';
-        }
-
-        const char* ValidateScenePath(const std::string_view input, const std::filesystem::path& path,
-                                      const std::filesystem::path& currentPath)
-        {
-            if (input.empty() || path.filename().string() == SceneDocument::Extension)
-                return "Enter a name";
-
-            if (path.is_absolute() || (path.begin() != path.end() && path.begin()->string() == ".."))
-                return "The scene must be inside the asset folder";
-
-            std::error_code error;
-            if (path != currentPath && std::filesystem::exists(AssetRegistry::GetAssetRoot() / path, error))
-                return "A file with this name already exists";
-
-            return nullptr;
-        }
-
-        bool CancelPressed()
-        {
-            return ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape);
         }
     }
 
@@ -83,33 +52,50 @@ namespace ByteForge
             Guard([this, scene] { m_Context.Document.Open(scene); });
     }
 
-    void SceneDialogs::RequestOpenPicker()
+    void SceneDialogs::RequestOpenFromDisk()
     {
-        if (EnsureEditing("open a scene"))
-            m_Requested = Popup::OpenScene;
+        if (!EnsureEditing("open a scene")) return;
+
+        const std::optional<std::filesystem::path> chosen = FileDialogs::OpenFile(SceneFilters, GetDefaultDirectory());
+        if (!chosen) return;
+
+        const std::optional<std::filesystem::path> relative = ToAssetPath(*chosen);
+        if (!relative)
+        {
+            APP_ERROR("Scenes must be inside the asset folder: '{}'", chosen->string());
+            return;
+        }
+
+        RequestOpen(AssetRegistry::Import(*relative));
     }
 
-    void SceneDialogs::RequestSave()
+    bool SceneDialogs::RequestSave()
     {
-        if (!EnsureEditing("save")) return;
+        if (!EnsureEditing("save"))
+            return false;
 
-        if (m_Context.Document.HasFile())
-            m_Context.Document.Save();
-        else
-            RequestSaveAs();
+        return m_Context.Document.HasFile() ? m_Context.Document.Save() : RequestSaveAs();
     }
 
-    void SceneDialogs::RequestSaveAs()
+    bool SceneDialogs::RequestSaveAs()
     {
-        if (!EnsureEditing("save")) return;
+        if (!EnsureEditing("save"))
+            return false;
 
-        std::filesystem::path suggestion = m_Context.Document.GetPath();
-        if (suggestion.empty())
-            suggestion = std::filesystem::path("Scenes") / "Untitled";
-        suggestion.replace_extension();
+        const std::string defaultName = m_Context.Document.GetName() + SceneDocument::Extension;
+        const std::optional<std::filesystem::path> chosen =
+            FileDialogs::SaveFile(SceneFilters, GetDefaultDirectory(), defaultName);
+        if (!chosen)
+            return false;
 
-        CopyToBuffer(m_NameBuffer, suggestion.generic_string());
-        m_Requested = Popup::SaveAs;
+        const std::optional<std::filesystem::path> relative = ToAssetPath(*chosen);
+        if (!relative)
+        {
+            APP_ERROR("Scenes must be saved inside the asset folder: '{}'", chosen->string());
+            return false;
+        }
+
+        return m_Context.Document.SaveAs(SceneDocument::ToScenePath(relative->generic_string()));
     }
 
     bool SceneDialogs::RequestQuit()
@@ -126,46 +112,9 @@ namespace ByteForge
 
     void SceneDialogs::Draw()
     {
-        if (m_Requested != Popup::None)
-        {
-            ImGui::OpenPopup(GetPopupId(m_Requested));
-            m_Requested = Popup::None;
-        }
+        if (std::exchange(m_PromptRequested, false))
+            ImGui::OpenPopup(UnsavedChangesId);
 
-        DrawUnsavedChanges();
-        DrawSaveAs();
-        DrawOpenScene();
-    }
-
-    void SceneDialogs::Guard(std::function<void()> action)
-    {
-        if (!m_Context.Document.IsDirty())
-        {
-            action();
-            return;
-        }
-
-        m_Continuation = std::move(action);
-        m_Requested = Popup::UnsavedChanges;
-    }
-
-    void SceneDialogs::RunContinuation()
-    {
-        if (std::function<void()> action = std::exchange(m_Continuation, {}))
-            action();
-    }
-
-    bool SceneDialogs::EnsureEditing(const char* what) const
-    {
-        if (m_Context.IsEditing())
-            return true;
-
-        APP_WARN("Stop the play session to {}", what);
-        return false;
-    }
-
-    void SceneDialogs::DrawUnsavedChanges()
-    {
         CenterNextWindow();
         if (!ImGui::BeginPopupModal(UnsavedChangesId, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
 
@@ -177,9 +126,7 @@ namespace ByteForge
         {
             ImGui::CloseCurrentPopup();
 
-            if (!m_Context.Document.HasFile())
-                RequestSaveAs();
-            else if (m_Context.Document.Save())
+            if (RequestSave())
                 RunContinuation();
             else
                 m_Continuation = nullptr;
@@ -193,7 +140,7 @@ namespace ByteForge
         }
 
         ImGui::SameLine();
-        if (CancelPressed())
+        if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
         {
             ImGui::CloseCurrentPopup();
             m_Continuation = nullptr;
@@ -202,81 +149,42 @@ namespace ByteForge
         ImGui::EndPopup();
     }
 
-    void SceneDialogs::DrawSaveAs()
+    void SceneDialogs::Guard(std::function<void()> action)
     {
-        CenterNextWindow();
-        if (!ImGui::BeginPopupModal(SaveAsId, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
-
-        ImGui::TextUnformatted("Path inside the asset folder");
-
-        if (ImGui::IsWindowAppearing())
-            ImGui::SetKeyboardFocusHere();
-
-        ImGui::SetNextItemWidth(320.0f);
-        const bool submitted = ImGui::InputText("##path", m_NameBuffer.data(), m_NameBuffer.size(),
-                                                ImGuiInputTextFlags_EnterReturnsTrue);
-
-        const std::string_view input(m_NameBuffer.data());
-        const std::filesystem::path path = SceneDocument::ToScenePath(input);
-        const char* error = ValidateScenePath(input, path, m_Context.Document.GetPath());
-
-        if (error != nullptr)
-            ImGui::TextColored(EditorUI::ErrorColor, "%s", error);
-        else
-            ImGui::TextDisabled("Assets/%s", path.generic_string().c_str());
-
-        ImGui::Spacing();
-
-        ImGui::BeginDisabled(error != nullptr);
-        const bool save = ImGui::Button("Save") || (submitted && error == nullptr);
-        ImGui::EndDisabled();
-
-        if (save)
+        if (!m_Context.Document.IsDirty())
         {
-            ImGui::CloseCurrentPopup();
-
-            if (m_Context.Document.SaveAs(path))
-                RunContinuation();
-            else
-                m_Continuation = nullptr;
+            action();
+            return;
         }
 
-        ImGui::SameLine();
-        if (CancelPressed())
-        {
-            ImGui::CloseCurrentPopup();
-            m_Continuation = nullptr;
-        }
-
-        ImGui::EndPopup();
+        m_Continuation = std::move(action);
+        m_PromptRequested = true;
     }
 
-    void SceneDialogs::DrawOpenScene()
+    void SceneDialogs::RunContinuation()
     {
-        CenterNextWindow();
-        ImGui::SetNextWindowSize(ImVec2(360.0f, 0.0f), ImGuiCond_Appearing);
-        if (!ImGui::BeginPopupModal(OpenSceneId, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+        if (const std::function<void()> action = std::exchange(m_Continuation, {}))
+            action();
+    }
 
-        const std::vector<AssetMetadata> scenes = AssetRegistry::GetAssetsOfType(AssetType::Scene);
-        const std::filesystem::path current = m_Context.Document.GetPath();
+    bool SceneDialogs::EnsureEditing(const char* what) const
+    {
+        if (m_Context.IsEditing())
+            return true;
 
-        if (scenes.empty())
-            ImGui::TextDisabled("No scenes in the asset folder yet");
+        APP_WARN("Stop the play session to {}", what);
+        return false;
+    }
 
-        for (const AssetMetadata& scene : scenes)
-        {
-            const std::string label = scene.Path.generic_string();
-            if (ImGui::Selectable(label.c_str(), scene.Path == current))
-            {
-                ImGui::CloseCurrentPopup();
-                RequestOpen(scene.Handle);
-            }
-        }
+    std::filesystem::path SceneDialogs::GetDefaultDirectory() const
+    {
+        const std::filesystem::path root = std::filesystem::absolute(AssetRegistry::GetAssetRoot());
 
-        ImGui::Separator();
-        if (CancelPressed())
-            ImGui::CloseCurrentPopup();
+        if (const std::filesystem::path current = m_Context.Document.GetPath(); !current.empty())
+            return (root / current).parent_path();
 
-        ImGui::EndPopup();
+        std::error_code error;
+        const std::filesystem::path scenes = root / "scenes";
+        return std::filesystem::is_directory(scenes, error) ? scenes : root;
     }
 }

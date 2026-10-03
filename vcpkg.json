@@ -27,6 +27,11 @@
     "box2d",
     "nlohmann-json",
     "magic-enum",
-    "nethost"
+    "nethost",
+    {
+      "name": "dbus",
+      "default-features": false
+    },
+    "nativefiledialog-extended"
   ]
 }

@@ -9,6 +9,9 @@
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
+#include <imgui.h>
+
+#include <array>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -52,6 +55,15 @@ namespace ByteForge
         void DrawContent();
         void DrawItem(Entry& entry);
 
+        void BeginRename(const Entry& entry);
+        void CommitRename();
+        void DrawRenameField(const ImVec2& position, float width, float bottom);
+
+        [[nodiscard]] bool IsRenaming(const Entry& entry) const
+        {
+            return m_RenamingPath && *m_RenamingPath == entry.Path;
+        }
+
         [[nodiscard]] bool IsSelected(const Entry& entry) const;
         [[nodiscard]] const std::filesystem::path* GetLocalSelection() const;
         void Select(const Entry& entry);
@@ -78,6 +90,10 @@ namespace ByteForge
         };
         std::optional<LocalSelection> m_LocalSelection;
         uint64_t m_SeenAssetRevision = 0;
+
+        std::optional<std::filesystem::path> m_RenamingPath;
+        std::array<char, 256> m_RenameBuffer;
+        bool m_FocusRename = false;
 
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

@@ -1,3 +1,5 @@
+find_package(nfd CONFIG REQUIRED)
+
 add_executable(Editor
         src/EditorApp.cpp
         src/Editor/EditorContext.cpp
@@ -9,6 +11,7 @@ add_executable(Editor
         src/Editor/EditorActions.cpp
         src/Editor/SceneDocument.cpp
         src/Editor/SceneDialogs.cpp
+        src/Editor/FileDialogs.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp
         src/Editor/Shell/Toolbar.cpp
@@ -29,7 +32,11 @@ add_executable(Editor
 
 target_include_directories(Editor PRIVATE src)
 
-target_link_libraries(Editor PRIVATE Engine ByteForgeWarnings)
+target_link_libraries(Editor PRIVATE
+        Engine
+        ByteForgeWarnings
+        nfd::nfd
+)
 
 add_custom_command(TARGET Editor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

@@ -15,6 +15,18 @@ namespace ByteForge
         constexpr const char* MetaExtension = ".meta";
 
         bool IsMetaFile(const fs::path& path) { return path.extension() == MetaExtension; }
+
+        bool IsInside(const fs::path& path, const fs::path& directory)
+        {
+            const auto [directoryIt, pathIt] = std::mismatch(directory.begin(), directory.end(),
+                                                             path.begin(), path.end());
+            return directoryIt == directory.end() && pathIt != path.end();
+        }
+
+        fs::path GetMetaPath(const fs::path& absolutePath)
+        {
+            return absolutePath.string() + MetaExtension;
+        }
     }
 
     fs::path AssetRegistry::s_AssetRoot;
@@ -82,6 +94,57 @@ namespace ByteForge
         s_PathToHandle[key] = metadata.Handle;
         ++s_Revision;
         return metadata.Handle;
+    }
+
+    std::expected<void, std::string> AssetRegistry::Move(const fs::path& from, const fs::path& to)
+    {
+        const fs::path fromNormal = from.lexically_normal();
+        const fs::path toNormal = to.lexically_normal();
+
+        const fs::path source = s_AssetRoot / fromNormal;
+        const fs::path target = s_AssetRoot / toNormal;
+
+        std::error_code error;
+        if (!fs::exists(source, error))
+            return std::unexpected("it does not exist");
+
+        if (fs::exists(target, error) && !fs::equivalent(source, target, error))
+            return std::unexpected(std::format("'{}' already exists", toNormal.generic_string()));
+
+        const bool isDirectory = fs::is_directory(source, error);
+
+        fs::rename(source, target, error);
+        if (error)
+            return std::unexpected(error.message());
+
+        if (!isDirectory && fs::exists(GetMetaPath(source), error))
+        {
+            fs::rename(GetMetaPath(source), GetMetaPath(target), error);
+            if (error)
+            {
+                std::error_code rollbackError;
+                fs::rename(target, source, rollbackError);
+                return std::unexpected(std::format("Could not move the metadata: {}", error.message()));
+            }
+        }
+
+        for (auto& [handle, metadata] : s_Assets)
+        {
+            fs::path newPath;
+            if (metadata.Path == fromNormal)
+                newPath = toNormal;
+            else if (isDirectory && IsInside(metadata.Path, fromNormal))
+                newPath = toNormal / metadata.Path.lexically_relative(fromNormal);
+            else
+                continue;
+
+            s_PathToHandle.erase(metadata.Path.generic_string());
+            s_PathToHandle[newPath.generic_string()] = handle;
+            metadata.Path = std::move(newPath);
+        }
+
+        ++s_Revision;
+        return {};
     }
 
     bool AssetRegistry::TryGetMetadata(const UUID handle, AssetMetadata& outMetadata)

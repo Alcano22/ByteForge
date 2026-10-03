@@ -2,8 +2,8 @@
 
 #include <Engine/Scene/UUID.h>
 
-#include <array>
 #include <functional>
+#include <filesystem>
 
 namespace ByteForge
 {
@@ -17,10 +17,10 @@ namespace ByteForge
 
         void RequestNew();
         void RequestOpen(UUID scene);
-        void RequestOpenPicker();
+        void RequestOpenFromDisk();
 
-        void RequestSave();
-        void RequestSaveAs();
+        bool RequestSave();
+        bool RequestSaveAs();
 
         [[nodiscard]] bool RequestQuit();
 
@@ -31,17 +31,14 @@ namespace ByteForge
         void RunContinuation();
         bool EnsureEditing(const char* what) const;
 
-        void DrawUnsavedChanges();
-        void DrawSaveAs();
-        void DrawOpenScene();
+        [[nodiscard]] std::filesystem::path GetDefaultDirectory() const;
 
     private:
         enum class Popup { None, UnsavedChanges, SaveAs, OpenScene };
 
         EditorContext& m_Context;
 
-        Popup m_Requested = Popup::None;
+        bool m_PromptRequested = false;
         std::function<void()> m_Continuation;
-        std::array<char, 128> m_NameBuffer{};
     };
 }
