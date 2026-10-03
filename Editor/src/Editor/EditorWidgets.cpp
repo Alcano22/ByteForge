@@ -346,4 +346,19 @@ namespace ByteForge::EditorUI
         ImGui::PopID();
         return changed;
     }
+
+    bool IconButton(const char* id, const Ref<Texture2D>& icon, const bool active)
+    {
+        const float size = ImGui::GetTextLineHeight();
+
+        if (active)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+        const bool pressed = UI::ImageButton(id, icon, ImVec2(size, size), ImGui::GetStyleColorVec4(ImGuiCol_Text));
+
+        if (active)
+            ImGui::PopStyleColor();
+
+        return pressed;
+    }
 }

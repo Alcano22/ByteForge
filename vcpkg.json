@@ -33,6 +33,7 @@
       "name": "dbus",
       "default-features": false
     },
-    "nativefiledialog-extended"
+    "nativefiledialog-extended",
+    "lunasvg"
   ]
 }

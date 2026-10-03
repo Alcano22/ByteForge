@@ -1,6 +1,7 @@
 find_package(nfd CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(imguizmo CONFIG REQUIRED)
+find_package(lunasvg CONFIG REQUIRED)
 
 add_executable(Editor
         src/EditorApp.cpp
@@ -43,6 +44,7 @@ target_link_libraries(Editor PRIVATE
         Engine
         ByteForgeWarnings
         nfd::nfd
+        lunasvg::lunasvg
         imguizmo::imguizmo
         imgui::imgui
 )

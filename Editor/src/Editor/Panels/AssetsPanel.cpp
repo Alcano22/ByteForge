@@ -583,7 +583,7 @@ namespace ByteForge
     EditorIcon AssetsPanel::GetIcon(const Entry& entry)
     {
         if (entry.IsDirectory)
-            return entry.IsDirectoryEmpty ? EditorIcon::FolderEmpty : EditorIcon::FolderFilled;
+            return EditorIcon::Folder;
 
         return EditorIcons::ForFile(entry.Path);
     }

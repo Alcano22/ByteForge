@@ -3,6 +3,7 @@
 #include "Editor/Selection.h"
 
 #include <Engine/Assets/TextureAsset.h>
+#include <Engine/Renderer/Texture2D.h>
 
 #include <imgui.h>
 #include <magic_enum/magic_enum.hpp>
@@ -15,6 +16,8 @@ namespace ByteForge::EditorUI
     inline constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);
+
+    bool IconButton(const char* id, const Ref<Texture2D>& icon, bool active = false);
 
     template<typename T>
     bool EnumCombo(const char* label, T& value, const std::span<const T> options)

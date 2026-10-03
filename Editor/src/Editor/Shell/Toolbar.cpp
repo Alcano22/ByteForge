@@ -1,8 +1,7 @@
 #include "Editor/Shell/Toolbar.h"
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
-
-#include <Engine/ImGui/ImGuiWidgets.h>
+#include "Editor/EditorWidgets.h"
 
 #include <imgui.h>
 
@@ -18,18 +17,8 @@ namespace ByteForge
         void ActionButton(EditorContext& context, const char* id, const EditorAction& action,
                           const EditorIcon icon, const bool active)
         {
-            const float iconSize = ImGui::GetTextLineHeight();
-            const bool available = action.IsAvailable(context);
-
-            ImGui::BeginDisabled(!available);
-            if (active)
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-
-            const bool pressed = UI::ImageButton(id, context.Icons.Get(icon), ImVec2(iconSize, iconSize),
-                                                 ImGui::GetStyleColorVec4(ImGuiCol_Text));
-
-            if (active)
-                ImGui::PopStyleColor();
+            ImGui::BeginDisabled(!action.IsAvailable(context));
+            const bool pressed = EditorUI::IconButton(id, context.Icons.Get(icon), active);
             ImGui::EndDisabled();
 
             ImGui::SetItemTooltip("%s", action.GetTooltip(context).c_str());

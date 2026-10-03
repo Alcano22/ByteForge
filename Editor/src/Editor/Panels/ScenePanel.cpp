@@ -1,5 +1,6 @@
 #include "Editor/Panels/ScenePanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/Commands/EntityCommands.h"
 #include "Editor/Viewport/SceneGizmos.h"
 
@@ -26,14 +27,15 @@ namespace ByteForge
         {
             TransformTool Tool;
             const char* Name;
+            EditorIcon Icon;
             ImGuiKey Key;
             const char* KeyName;
         };
 
         constexpr std::array Tools{
-            ToolInfo{ TransformTool::Move,   "Move",   ImGuiKey_W, "W" },
-            ToolInfo{ TransformTool::Rotate, "Rotate", ImGuiKey_E, "E" },
-            ToolInfo{ TransformTool::Scale,  "Scale",  ImGuiKey_R, "R" }
+            ToolInfo{ TransformTool::Move,   "Move",   EditorIcon::ToolMove,   ImGuiKey_W, "W" },
+            ToolInfo{ TransformTool::Rotate, "Rotate", EditorIcon::ToolRotate, ImGuiKey_E, "E" },
+            ToolInfo{ TransformTool::Scale,  "Scale",  EditorIcon::ToolScale,  ImGuiKey_R, "R" }
         };
 
         const ToolInfo& GetToolInfo(const TransformTool tool)
@@ -180,17 +182,14 @@ namespace ByteForge
         const ImVec2 min = m_Canvas.GetScreenMin();
         ImGui::SetCursorScreenPos(ImVec2(min.x + OverlayMargin, min.y + OverlayMargin));
 
+        const EditorIcons& icons = GetContext().Icons;
+
         for (const ToolInfo& tool : Tools)
         {
-            const bool active = m_Tool == tool.Tool;
-            if (active)
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-
-            if (ImGui::Button(tool.Name) && !m_Drag)
+            ImGui::PushID(tool.Name);
+            if (EditorUI::IconButton("##tool", icons.Get(tool.Icon), m_Tool == tool.Tool) && !m_Drag)
                 m_Tool = tool.Tool;
-
-            if (active)
-                ImGui::PopStyleColor();
+            ImGui::PopID();
 
             ImGui::SetItemTooltip("%s (%s)", tool.Name, tool.KeyName);
             ImGui::SameLine();

@@ -11,11 +11,9 @@ namespace ByteForge
 {
     enum class EditorIcon
     {
-        FolderFilled,
-        FolderEmpty,
+        Folder,
         FileGeneric,
-        FileText,
-        FileCode,
+        FileScript,
         FileData,
         FileFont,
         FileAudio,
@@ -24,6 +22,9 @@ namespace ByteForge
         PlayerPause,
         PlayerStep,
         PlayerStop,
+        ToolMove,
+        ToolRotate,
+        ToolScale,
         Count
     };
 
