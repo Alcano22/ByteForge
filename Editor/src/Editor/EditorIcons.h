@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/SvgIconFont.h"
+
 #include <Engine/Core/Core.h>
 #include <Engine/Renderer/Texture2D.h>
 
@@ -9,6 +11,8 @@
 
 namespace ByteForge
 {
+    class EditorFonts;
+
     enum class EditorIcon
     {
         Folder,
@@ -25,6 +29,11 @@ namespace ByteForge
         ToolMove,
         ToolRotate,
         ToolScale,
+        ComponentTransform,
+        ComponentSprite,
+        ComponentRigidbody,
+        ComponentBoxCollider,
+        ComponentCircleCollider,
         Count
     };
 
@@ -37,7 +46,14 @@ namespace ByteForge
 
         [[nodiscard]] static EditorIcon ForFile(const std::filesystem::path& path);
 
+        void AddToFonts(const EditorFonts& fonts);
+
+        [[nodiscard]] static const char* Glyph(EditorIcon icon);
+
+        [[nodiscard]] static ImWchar GetCodepoint(EditorIcon icon);
+
     private:
         std::array<Ref<Texture2D>, static_cast<size_t>(EditorIcon::Count)> m_Icons;
+        SvgIconFont m_Font;
     };
 }

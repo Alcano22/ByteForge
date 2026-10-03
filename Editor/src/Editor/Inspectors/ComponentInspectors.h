@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/EditorIcons.h"
+
 #include <Engine/Scene/Entity.h>
 
 #include <span>
@@ -11,6 +13,9 @@ namespace ByteForge
     struct ComponentInspector
     {
         const char* Name = nullptr;
+
+        EditorIcon Icon = EditorIcon::FileScript;
+
         bool Removable = true;
 
         bool (*Has)(Entity) = nullptr;

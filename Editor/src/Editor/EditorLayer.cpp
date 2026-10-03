@@ -24,8 +24,9 @@ namespace ByteForge
         m_Context.Scripts.RequestReload();
 
         const std::filesystem::path resources = Platform::GetExecutableDirectory() / "resources";
-        m_Context.Fonts.Load(resources / "fonts", 16.0f);
         m_Context.Icons.Load(resources / "icons");
+        m_Context.Fonts.Load(resources / "fonts", 16.0f);
+        m_Context.Icons.AddToFonts(m_Context.Fonts);
 
         m_Context.ActiveScene = &m_Scene;
 

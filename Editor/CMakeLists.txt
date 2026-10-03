@@ -15,6 +15,7 @@ add_executable(Editor
         src/Editor/SceneDocument.cpp
         src/Editor/SceneDialogs.cpp
         src/Editor/FileDialogs.cpp
+        src/Editor/SvgIconFont.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp
         src/Editor/Shell/Toolbar.cpp
@@ -49,11 +50,9 @@ target_link_libraries(Editor PRIVATE
         imgui::imgui
 )
 
-add_custom_command(TARGET Editor POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-                ${CMAKE_CURRENT_SOURCE_DIR}/resources
-                $<TARGET_FILE_DIR:Editor>/resources
-        COMMENT "Copying editor resources"
+byteforge_copy_directory(Editor
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources
+        ${CMAKE_CURRENT_BINARY_DIR}/resources
 )
 
 add_dependencies(Editor ScriptCore)

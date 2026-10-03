@@ -20,6 +20,8 @@ if (BYTEFORGE_WARNINGS_AS_ERRORS)
     )
 endif()
 
+include(cmake/CopyDirectory.cmake)
+
 add_subdirectory(Engine)
 add_subdirectory(ScriptCore)
 add_subdirectory(Editor)

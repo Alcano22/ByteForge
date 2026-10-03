@@ -82,10 +82,12 @@ namespace ByteForge
         }
 
         template<typename T, auto DrawFn>
-        constexpr ComponentInspector Inspect(const char* name, const bool removable = true)
+        constexpr ComponentInspector Inspect(const char* name, const EditorIcon icon = EditorIcon::FileScript,
+                                             const bool removable = true)
         {
             return {
                 .Name      = name,
+                .Icon      = icon,
                 .Removable = removable,
                 .Has       = [](const Entity entity) { return entity.HasComponent<T>(); },
                 .Add       = [](const Entity entity) { entity.AddComponent<T>(); },
@@ -99,11 +101,11 @@ namespace ByteForge
         }
 
         constexpr std::array Inspectors{
-            Inspect<TransformComponent, DrawTransform>("Transform", false),
-            Inspect<SpriteRendererComponent, DrawSpriteRenderer>("Sprite Renderer"),
-            Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D"),
-            Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D"),
-            Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D"),
+            Inspect<TransformComponent, DrawTransform>("Transform", EditorIcon::ComponentTransform, false),
+            Inspect<SpriteRendererComponent, DrawSpriteRenderer>("Sprite Renderer", EditorIcon::ComponentSprite),
+            Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D", EditorIcon::ComponentRigidbody),
+            Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
+            Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
             Inspect<ScriptComponent, DrawScript>("Script")
         };
     }

@@ -16,6 +16,8 @@
 #include <cstring>
 #include <string_view>
 #include <variant>
+#include <format>
+#include <string>
 
 namespace ByteForge
 {
@@ -103,7 +105,8 @@ namespace ByteForge
         const float buttonSize = ImGui::GetFrameHeight();
         const float headerEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
 
-        const bool open = ImGui::TreeNodeEx("##header", flags, "%s", inspector.Name);
+        const bool open = ImGui::TreeNodeEx("##header", flags, "%s  %s",
+                                            EditorIcons::Glyph(inspector.Icon), inspector.Name);
         ImGui::OpenPopupOnItemClick("##options", ImGuiPopupFlags_MouseButtonRight);
 
         ImGui::SameLine(headerEnd - buttonSize);
@@ -184,7 +187,8 @@ namespace ByteForge
             const bool pickedByEnter = submitted && !anyMatch;
             anyMatch = true;
 
-            if (ImGui::Selectable(inspector.Name) || pickedByEnter)
+            const std::string label = std::format("{}  {}", EditorIcons::Glyph(inspector.Icon), inspector.Name);
+            if (ImGui::Selectable(label.c_str()) || pickedByEnter)
             {
                 inspector.Add(entity);
                 ImGui::CloseCurrentPopup();
