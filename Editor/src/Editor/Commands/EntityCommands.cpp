@@ -3,6 +3,7 @@
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
+#include <Engine/Scene/Components.h>
 
 #include <cstdint>
 #include <format>
@@ -59,4 +60,17 @@ namespace ByteForge
 
     void DestroyEntityCommand::Execute() { m_Scene.DestroyEntity(FindOrThrow(m_Scene, m_Snapshot)); }
     void DestroyEntityCommand::Undo() { Restore(m_Scene, m_Snapshot); }
+
+    ModifyTransformCommand::ModifyTransformCommand(Scene& scene, const UUID entityId, std::string name,
+                                                   const TransformComponent& before, const TransformComponent& after)
+        : m_Scene(scene), m_EntityId(entityId), m_Name(std::move(name)), m_Before(before), m_After(after) {}
+
+    void ModifyTransformCommand::Apply(const TransformComponent& transform) const
+    {
+        const Entity entity = m_Scene.FindEntityByUUID(m_EntityId);
+        if (!entity.IsValid())
+            throw std::runtime_error(std::format("Entity {} no longer exists", static_cast<uint64_t>(m_EntityId)));
+
+        entity.GetComponent<TransformComponent>() = transform;
+    }
 }

@@ -21,6 +21,7 @@
         "freetype"
       ]
     },
+    "imguizmo",
     "spirv-reflect",
     "stb",
     "entt",

@@ -1,15 +1,16 @@
 #include "Editor/Panels/ScenePanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/Commands/EntityCommands.h"
 #include "Editor/Viewport/SceneGizmos.h"
-#include <Engine/Renderer/LineRenderer.h>
 
-#include <Engine/Scene/Components.h>
+#include <Engine/Renderer/LineRenderer.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 
 #include <imgui.h>
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <string>
 
@@ -19,6 +20,26 @@ namespace ByteForge
     {
         constexpr glm::vec4 BackgroundColor{ 0.03f, 0.03f, 0.035f, 1.0f };
         constexpr float FocusPadding = 3.0f;
+        constexpr float OverlayMargin = 8.0f;
+
+        struct ToolInfo
+        {
+            TransformTool Tool;
+            const char* Name;
+            ImGuiKey Key;
+            const char* KeyName;
+        };
+
+        constexpr std::array Tools{
+            ToolInfo{ TransformTool::Move,   "Move",   ImGuiKey_W, "W" },
+            ToolInfo{ TransformTool::Rotate, "Rotate", ImGuiKey_E, "E" },
+            ToolInfo{ TransformTool::Scale,  "Scale",  ImGuiKey_R, "R" }
+        };
+
+        const ToolInfo& GetToolInfo(const TransformTool tool)
+        {
+            return *std::ranges::find(Tools, tool, &ToolInfo::Tool);
+        }
 
         bool AnyMouseClicked()
         {
@@ -62,7 +83,9 @@ namespace ByteForge
     {
         if (!m_Open) return;
 
-        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+        if (m_Canvas.IsHovered())
+            flags |= ImGuiWindowFlags_NoMove;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         const bool visible = ImGui::Begin(GetName().c_str(), &m_Open, flags);
@@ -71,8 +94,16 @@ namespace ByteForge
         if (visible)
         {
             m_Canvas.Draw();
+
+            DrawToolOverlay();
+            const bool gizmoOwnsPointer = DrawTransformGizmo();
+
             HandleNavigation();
-            HandleSelection();
+            HandleToolShortcuts();
+
+            if (!gizmoOwnsPointer)
+                HandleSelection();
+
             DrawStatusOverlay();
         }
 
@@ -106,9 +137,21 @@ namespace ByteForge
             FocusSelection();
     }
 
+    void ScenePanel::HandleToolShortcuts()
+    {
+        if (m_Drag) return;
+
+        for (const ToolInfo& tool : Tools)
+        {
+            if (ImGui::Shortcut(tool.Key))
+                m_Tool = tool.Tool;
+        }
+    }
+
     void ScenePanel::HandleSelection() const
     {
         if (!m_Canvas.IsHovered() || !ImGui::IsMouseClicked(ImGuiMouseButton_Left)) return;
+        if (ImGui::IsAnyItemHovered()) return;
 
         Scene* scene = GetContext().ActiveScene;
         if (scene == nullptr) return;
@@ -130,6 +173,72 @@ namespace ByteForge
         const auto& transform = selected.GetComponent<TransformComponent>();
         const glm::vec2 extent = glm::abs(transform.Scale);
         m_Camera.Focus(glm::vec2(transform.Position), std::max({ extent.x, extent.y, 1.0f }) * FocusPadding);
+    }
+
+    void ScenePanel::DrawToolOverlay()
+    {
+        const ImVec2 min = m_Canvas.GetScreenMin();
+        ImGui::SetCursorScreenPos(ImVec2(min.x + OverlayMargin, min.y + OverlayMargin));
+
+        for (const ToolInfo& tool : Tools)
+        {
+            const bool active = m_Tool == tool.Tool;
+            if (active)
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+            if (ImGui::Button(tool.Name) && !m_Drag)
+                m_Tool = tool.Tool;
+
+            if (active)
+                ImGui::PopStyleColor();
+
+            ImGui::SetItemTooltip("%s (%s)", tool.Name, tool.KeyName);
+            ImGui::SameLine();
+        }
+
+        ImGui::NewLine();
+    }
+
+    bool ScenePanel::DrawTransformGizmo()
+    {
+        EditorContext& context = GetContext();
+        const Entity selected = context.SelectionContext.GetEntity();
+
+        if (!context.IsEditing() || !selected.IsValid())
+        {
+            m_Drag.reset();
+            return false;
+        }
+
+        auto& transform = selected.GetComponent<TransformComponent>();
+        const TransformComponent before = transform;
+
+        const GizmoInteraction interaction = TransformGizmo::Manipulate(transform, m_Tool, m_Camera, m_Canvas,
+                                                                        ImGui::GetIO().KeyCtrl);
+
+        if (interaction.Active && !m_Drag)
+            m_Drag = TransformDrag{ .EntityId = selected.GetUUID(), .Before = before };
+        else if (!interaction.Active && m_Drag)
+            CommitDrag(selected);
+
+        return interaction.Hovered || interaction.Active;
+    }
+
+    void ScenePanel::CommitDrag(const Entity entity)
+    {
+        const TransformDrag drag = *m_Drag;
+        m_Drag.reset();
+
+        EditorContext& context = GetContext();
+        if (context.ActiveScene == nullptr ||
+            static_cast<uint64_t>(drag.EntityId) != static_cast<uint64_t>(entity.GetUUID())) return;
+
+        const TransformComponent& after = entity.GetComponent<TransformComponent>();
+        if (after == drag.Before) return;
+
+        const std::string name = std::format("{} '{}'", GetToolInfo(m_Tool).Name, entity.GetTag());
+        context.History.Record(MakeScope<ModifyTransformCommand>(*context.ActiveScene, drag.EntityId,
+                                                                 name, drag.Before, after));
     }
 
     void ScenePanel::DrawStatusOverlay() const

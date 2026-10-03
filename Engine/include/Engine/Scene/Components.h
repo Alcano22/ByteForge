@@ -28,6 +28,8 @@ namespace ByteForge
         glm::vec3 Position{ 0.0f };
         float Rotation = 0.0f;
         glm::vec2 Scale{ 1.0f };
+
+        bool operator==(const TransformComponent&) const = default;
     };
 
     struct SpriteRendererComponent

@@ -6,6 +6,7 @@
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/Panels/ScenePanel.h"
 #include "Editor/Panels/GamePanel.h"
+#include "Editor/Viewport/TransformGizmo.h"
 
 #include <Engine/Core/Platform.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -55,6 +56,8 @@ namespace ByteForge
 
     void EditorLayer::OnImGuiRender()
     {
+        TransformGizmo::BeginFrame();
+
         DrawEditorShell(m_Context);
         m_Context.OnImGuiRender();
     }

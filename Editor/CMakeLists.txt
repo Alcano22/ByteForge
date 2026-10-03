@@ -1,4 +1,6 @@
 find_package(nfd CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 add_executable(Editor
         src/EditorApp.cpp
@@ -32,6 +34,7 @@ add_executable(Editor
         src/Editor/Viewport/ViewportCanvas.cpp
         src/Editor/Viewport/EditorCamera2D.cpp
         src/Editor/Viewport/SceneGizmos.cpp
+        src/Editor/Viewport/TransformGizmo.cpp
 )
 
 target_include_directories(Editor PRIVATE src)
@@ -40,6 +43,8 @@ target_link_libraries(Editor PRIVATE
         Engine
         ByteForgeWarnings
         nfd::nfd
+        imguizmo::imguizmo
+        imgui::imgui
 )
 
 add_custom_command(TARGET Editor POST_BUILD
