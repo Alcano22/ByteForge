@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <magic_enum/magic_enum.hpp>
 
+#include <array>
 #include <algorithm>
 #include <format>
 #include <map>
@@ -48,6 +49,29 @@ namespace ByteForge::GraphNodePalette
                 chosen = BranchNode{};
             if (ImGui::MenuItem("Delay"))
                 chosen = DelayNode{};
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Literals"))
+        {
+            constexpr std::array valueTypes{ ScriptFieldType::Bool, ScriptFieldType::Int, ScriptFieldType::Float,
+                                             ScriptFieldType::Vector2, ScriptFieldType::Vector3, ScriptFieldType::Vector4,
+                                             ScriptFieldType::String };
+
+            for (const ScriptFieldType type : valueTypes)
+            {
+                if (ImGui::MenuItem(std::string(ScriptFieldTypeName(type)).c_str()))
+                    chosen = LiteralNode{ DefaultValueFor(PinType::Of(type)) };
+            }
+
+            ImGui::Separator();
+
+            for (const AssetType asset : { AssetType::AudioClip, AssetType::Texture2D, AssetType::PhysicsMaterial2D })
+            {
+                if (ImGui::MenuItem(AssetTypeToString(asset)))
+                    chosen = LiteralNode{ AssetRef{ asset, UUID(0) } };
+            }
+
             ImGui::EndMenu();
         }
 

@@ -21,6 +21,7 @@ namespace ByteForge
         template<> constexpr std::string_view NodeKindName<DelayNode>       = "Delay";
         template<> constexpr std::string_view NodeKindName<GetVariableNode> = "GetVariable";
         template<> constexpr std::string_view NodeKindName<SetVariableNode> = "SetVariable";
+        template<> constexpr std::string_view NodeKindName<LiteralNode>     = "Literal";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -49,6 +50,8 @@ namespace ByteForge
                     json["function"] = data.Function;
                 else if constexpr (std::is_same_v<T, GetVariableNode> || std::is_same_v<T, SetVariableNode>)
                     json["variable"] = static_cast<uint64_t>(data.Variable);
+                else if constexpr (std::is_same_v<T, LiteralNode>)
+                    json["value"] = JsonValue::TypedValueToJson(data.Value);
             }, node.Data);
 
             if (!node.Defaults.empty())
@@ -84,6 +87,13 @@ namespace ByteForge
                 return GetVariableNode{ UUID(json.at("variable").get<uint64_t>()) };
             if (kind == NodeKindName<SetVariableNode>)
                 return SetVariableNode{ UUID(json.at("variable").get<uint64_t>()) };
+            if (kind == NodeKindName<LiteralNode>)
+            {
+                std::optional<ScriptValue> value = JsonValue::ReadScriptValue(json.at("value"));
+                if (!value)
+                    throw std::runtime_error("literal node has an unreadable value");
+                return LiteralNode{ std::move(*value) };
+            }
 
             throw std::runtime_error(std::format("unknown node kind '{}'", kind));
         }

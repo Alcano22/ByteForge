@@ -135,6 +135,17 @@ namespace ByteForge
             return signature;
         }
 
+        NodeSignature Describe(const ScriptGraph&, const LiteralNode& node)
+        {
+            const PinType type = PinType::Of(node.Value);
+            std::string title = type.Value == ScriptFieldType::Asset ? AssetTypeToString(type.Asset)
+                                                                     : std::string(ScriptFieldTypeName(type.Value));
+
+            NodeSignature signature{ .Title = std::move(title), .Category = "Literals", .Pure = true };
+            signature.Pins.push_back(Out(GraphPin::Value, type));
+            return signature;
+        }
+
         class SignatureCache
         {
         public:
@@ -396,5 +407,23 @@ namespace ByteForge
             report(*loop, GraphSeverity::Error, "This node is part of a loop of data connections");
 
         return diagnostics;
+    }
+
+    ScriptValue DefaultValueFor(const PinType& type)
+    {
+        switch (type.Value)
+        {
+            case ScriptFieldType::Bool:    return false;
+            case ScriptFieldType::Int:     return 0;
+            case ScriptFieldType::Float:   return 0.0f;
+            case ScriptFieldType::Double:  return 0.0;
+            case ScriptFieldType::Vector2: return glm::vec2(0.0f);
+            case ScriptFieldType::Vector3: return glm::vec3(0.0f);
+            case ScriptFieldType::Vector4: return glm::vec4(0.0f);
+            case ScriptFieldType::Entity:  return EntityRef{};
+            case ScriptFieldType::Asset:   return AssetRef{ type.Asset, UUID(0) };
+            case ScriptFieldType::String:  return std::string();
+        }
+        return 0.0f;
     }
 }

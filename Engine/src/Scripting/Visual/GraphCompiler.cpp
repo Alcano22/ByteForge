@@ -13,24 +13,6 @@ namespace ByteForge
 {
     namespace
     {
-        ScriptValue DefaultValue(const PinType& type)
-        {
-            switch (type.Value)
-            {
-                case ScriptFieldType::Bool:    return false;
-                case ScriptFieldType::Int:     return 0;
-                case ScriptFieldType::Float:   return 0.0f;
-                case ScriptFieldType::Double:  return 0.0;
-                case ScriptFieldType::Vector2: return glm::vec2(0.0f);
-                case ScriptFieldType::Vector3: return glm::vec3(0.0f);
-                case ScriptFieldType::Vector4: return glm::vec4(0.0f);
-                case ScriptFieldType::Entity:  return EntityRef{};
-                case ScriptFieldType::Asset:   return AssetRef{ type.Asset, UUID(0) };
-                case ScriptFieldType::String:  return std::string();
-            }
-            return 0.0f;
-        }
-
         bool NeedsIntToFloat(const PinType& from, const PinType& to)
         {
             return from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Float;
@@ -165,6 +147,7 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode&, const EventNode&) { Emit(GraphOp::Return); }
             void EmitStatement(const GraphNode&, const GetVariableNode&) { Emit(GraphOp::Return); }
+            void EmitStatement(const GraphNode&, const LiteralNode&) { Emit(GraphOp::Return); }
 
             void EmitCall(const GraphNode& node, const CallNode& call, std::set<uint64_t>& evaluated)
             {
@@ -225,7 +208,7 @@ namespace ByteForge
                 if (input.Type.Value == ScriptFieldType::Entity)
                     return GraphProgram::SelfSlot;
 
-                return AddSlot(DefaultValue(input.Type));
+                return AddSlot(DefaultValueFor(input.Type));
             }
 
             uint32_t OutputSlot(const UUID node, const PinInfo& pin)
@@ -240,7 +223,8 @@ namespace ByteForge
                 if (const auto it = m_OutputSlots.find(key); it != m_OutputSlots.end())
                     return it->second;
 
-                const uint32_t slot = AddSlot(DefaultValue(pin.Type));
+                const auto* literal = std::get_if<LiteralNode>(&graphNode.Data);
+                const uint32_t slot = AddSlot(literal != nullptr ? literal->Value : DefaultValueFor(pin.Type));
                 m_OutputSlots.emplace(std::move(key), slot);
                 return slot;
             }

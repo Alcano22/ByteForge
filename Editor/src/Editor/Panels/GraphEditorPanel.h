@@ -41,6 +41,8 @@ namespace ByteForge
 
         void DrawUnsavedChangesPopup();
 
+        void ApplyValueEdits();
+
     private:
         ax::NodeEditor::EditorContext* m_Editor = nullptr;
         Scope<GraphDocument> m_Document;

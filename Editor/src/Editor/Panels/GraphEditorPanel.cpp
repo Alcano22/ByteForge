@@ -211,6 +211,7 @@ namespace ByteForge
         ImGui::SetFontRasterizerDensity(SnapRasterizerDensity(previousDensity * canvasScale));
         m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics());
         ImGui::SetFontRasterizerDensity(previousDensity);
+        ApplyValueEdits();
 
         HandleCreation();
         HandleDeletion();
@@ -400,5 +401,35 @@ namespace ByteForge
         }
 
         ImGui::EndPopup();
+    }
+
+    void GraphEditorPanel::ApplyValueEdits()
+    {
+        for (ValueEdit& edit : m_Renderer.TakeEdits())
+        {
+            m_Document->Edit("Change Value", [&](ScriptGraph& graph)
+            {
+                GraphNode* node = graph.FindNode(edit.Node);
+                if (node == nullptr)
+                    return false;
+
+                if (edit.Pin.empty())
+                {
+                    auto* literal = std::get_if<LiteralNode>(&node->Data);
+                    if (literal == nullptr || literal->Value == edit.Value)
+                        return false;
+
+                    literal->Value = std::move(edit.Value);
+                    return true;
+                }
+
+                if (const auto it = node->Defaults.find(edit.Pin);
+                    it != node->Defaults.end() && it->second == edit.Value)
+                    return false;
+
+                node->Defaults.insert_or_assign(edit.Pin, std::move(edit.Value));
+                return true;
+            });
+        }
     }
 }

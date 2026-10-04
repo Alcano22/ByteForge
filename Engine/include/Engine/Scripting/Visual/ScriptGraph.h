@@ -22,7 +22,7 @@ namespace ByteForge
 
     enum class PinDirection : uint8_t { Input, Output };
 
-    struct PinType
+    struct BYTEFORGE_API PinType
     {
         bool IsExec = false;
         ScriptFieldType Value = ScriptFieldType::Float;
@@ -66,8 +66,10 @@ namespace ByteForge
     struct DelayNode {};
     struct GetVariableNode { UUID Variable{ 0 }; };
     struct SetVariableNode { UUID Variable{ 0 }; };
+    struct LiteralNode { ScriptValue Value = 0.0f; };
 
-    using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode>;
+    using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode,
+                                  LiteralNode>;
 
     struct GraphNode
     {

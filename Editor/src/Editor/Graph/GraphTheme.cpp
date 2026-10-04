@@ -32,16 +32,17 @@ namespace ByteForge::GraphTheme
 
     ImU32 CategoryColor(const std::string_view category)
     {
-        static constexpr std::array<std::pair<std::string_view, ImU32>, 9> colors{{
-            { "Events",      IM_COL32(140, 40, 40, 255)  },
-            { "Flow",        IM_COL32(85, 85, 95, 255)   },
-            { "Variables",   IM_COL32(60, 70, 90, 255)   },
-            { "Entity",      IM_COL32(35, 105, 125, 255) },
-            { "Transform",   IM_COL32(40, 80, 150, 255)  },
-            { "Math",        IM_COL32(55, 105, 55, 255)  },
-            { "Audio",       IM_COL32(110, 60, 140, 255) },
-            { "AudioSource", IM_COL32(110, 60, 140, 255) },
-            { "Debug",       IM_COL32(120, 95, 40, 255)  }
+        static constexpr std::array<std::pair<std::string_view, ImU32>, 10> colors{{
+            { "Events",      IM_COL32(140, 40,  40,  255)  },
+            { "Flow",        IM_COL32(85,  85,  95,  255)   },
+            { "Variables",   IM_COL32(60,  70,  90,  255)   },
+            { "Entity",      IM_COL32(35,  105, 125, 255) },
+            { "Transform",   IM_COL32(40,  80,  150, 255)  },
+            { "Math",        IM_COL32(55,  105, 55,  255)  },
+            { "Audio",       IM_COL32(110, 60,  140, 255) },
+            { "AudioSource", IM_COL32(110, 60,  140, 255) },
+            { "Debug",       IM_COL32(120, 95,  40,  255)  },
+            { "Literals",    IM_COL32(62,  62,  72,  255) }
         }};
 
         for (const auto& [name, color] : colors)
