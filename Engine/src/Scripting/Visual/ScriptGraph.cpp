@@ -99,6 +99,14 @@ namespace ByteForge
         });
     }
 
+    void ScriptGraph::RemoveLink(const GraphLink& link)
+    {
+        std::erase_if(m_Links, [&](const GraphLink& existing)
+        {
+            return existing.From == link.From && existing.To == link.To;
+        });
+    }
+
     std::expected<UUID, std::string> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
     {
         if (auto valid = CheckVariableName(name, UUID(0)); !valid)

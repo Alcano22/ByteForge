@@ -124,6 +124,8 @@ namespace ByteForge
         std::expected<void, std::string> Connect(const PinRef& from, const PinRef& to);
         void Disconnect(const PinRef& pin, PinDirection direction);
 
+        void RemoveLink(const GraphLink& link);
+
         std::expected<UUID, std::string> AddVariable(std::string name, ScriptValue defaultValue);
         std::expected<void, std::string> RenameVariable(UUID id, std::string name);
         void RemoveVariable(UUID id);

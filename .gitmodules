@@ -1,0 +1,4 @@
+[submodule "Editor/vendor/imgui-node-editor"]
+	path = Editor/vendor/imgui-node-editor
+	url = git@github.com:Alcano22/imgui-node-editor.git
+	branch = byteforge

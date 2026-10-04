@@ -1,6 +1,7 @@
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/EditorContext.h"
 #include "Editor/AssetPayload.h"
+#include "Editor/Panels/GraphEditorPanel.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
@@ -663,6 +664,8 @@ namespace ByteForge
             m_PendingDirectory = entry.Path;
         else if (entry.Type == AssetType::Scene && entry.Handle)
             GetContext().Dialogs.RequestOpen(*entry.Handle);
+        else if (entry.Type == AssetType::ScriptGraph && entry.Handle)
+            GetContext().Open<GraphEditorPanel>().OpenGraph(*entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
