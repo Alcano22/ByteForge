@@ -7,7 +7,8 @@ public enum AssetType : byte
     Script,
     Scene,
     PhysicsMaterial2D,
-    AudioClip
+    AudioClip,
+    ScriptGraph
 }
 
 public abstract class Asset

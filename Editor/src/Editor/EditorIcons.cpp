@@ -33,7 +33,7 @@ namespace ByteForge
         constexpr std::array<std::string_view, IconCount> IconFiles{
             "folder.svg",
             "file_generic.svg", "file_script.svg", "file_data.svg", "file_font.svg", "file_audio.svg",
-            "file_scene.svg", "file_physics_material.svg",
+            "file_scene.svg", "file_physics_material.svg", "file_script_graph.svg",
             "player_play.svg", "player_pause.svg", "player_step.svg", "player_stop.svg",
             "tool_move.svg", "tool_rotate.svg", "tool_scale.svg",
             "component_transform.svg", "component_sprite.svg", "component_rigidbody.svg",
@@ -163,7 +163,9 @@ namespace ByteForge
 
             { ".bfscene",   EditorIcon::FileScene           },
 
-            { ".bfphysmat", EditorIcon::FilePhysicsMaterial }
+            { ".bfphysmat", EditorIcon::FilePhysicsMaterial },
+
+            { ".bfgraph",   EditorIcon::FileScriptGraph     }
         };
 
         std::string extension = path.extension().string();

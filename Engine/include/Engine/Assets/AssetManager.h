@@ -28,6 +28,9 @@ namespace ByteForge
         [[nodiscard]] static std::expected<UUID, std::string> CreatePhysicsMaterial(
             const std::filesystem::path& relativePath);
 
+        [[nodiscard]] static std::expected<UUID, std::string> CreateScriptGraph(
+            const std::filesystem::path& relativePath);
+
         static void Reload(UUID handle);
     };
 }

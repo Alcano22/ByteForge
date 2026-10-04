@@ -62,6 +62,7 @@ namespace ByteForge
         void DrawContextMenu();
         void CreateFolder();
         void CreatePhysicsMaterial();
+        void CreateScriptGraph();
 
         void RenameAfterRefresh(std::filesystem::path path);
 

@@ -3,6 +3,7 @@
 #include "Engine/Core/JobSystem.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/ImageDecoder.h"
+#include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
 #include <nlohmann/json.hpp>
 
@@ -183,6 +184,24 @@ namespace ByteForge
 
         if (const auto written = WritePhysicsMaterial(path, PhysicsMaterial2D{}); !written)
             return std::unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
+    std::expected<UUID, std::string> AssetManager::CreateScriptGraph(const std::filesystem::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+
+        ScriptGraph graph;
+        graph.AddNode(EventNode{ GraphEvent::OnCreate }, { 0.0f, 0.0f });
+        graph.AddNode(EventNode{ GraphEvent::OnUpdate }, { 0.0f, 200.0f });
+
+        if (const auto saved = SaveScriptGraph(graph, path); !saved)
+            return std::unexpected(saved.error());
 
         return AssetRegistry::Import(relativePath);
     }

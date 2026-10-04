@@ -7,6 +7,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
+#include <Engine/Scripting/Visual/ScriptGraph.h>
 
 #include <algorithm>
 #include <exception>
@@ -571,6 +572,8 @@ namespace ByteForge
 
             if (ImGui::MenuItem("Physics Material 2D"))
                 CreatePhysicsMaterial();
+            if (ImGui::MenuItem("Script Graph"))
+                CreateScriptGraph();
 
             ImGui::EndMenu();
         }
@@ -597,6 +600,19 @@ namespace ByteForge
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Physics Material", PhysicsMaterialExtension);
 
         if (const auto created = AssetManager::CreatePhysicsMaterial(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateScriptGraph()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Script Graph", ScriptGraphExtension);
+
+        if (const auto created = AssetManager::CreateScriptGraph(path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
             return;

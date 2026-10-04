@@ -39,6 +39,7 @@ namespace ByteForge
             case AssetType::Script:            return std::monostate{};
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};
+            case AssetType::ScriptGraph:       return std::monostate{};
             case AssetType::None:              break;
         }
         return std::monostate{};
@@ -94,6 +95,7 @@ namespace ByteForge
             case AssetType::Script:            return std::monostate{};
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};
+            case AssetType::ScriptGraph:       return std::monostate{};
             case AssetType::None:              break;
         }
 

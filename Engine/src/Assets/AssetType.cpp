@@ -1,5 +1,6 @@
 #include "Engine/Assets/AssetType.h"
 #include "Engine/Assets/PhysicsMaterial.h"
+#include "Engine/Scripting/Visual/ScriptGraph.h"
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -33,6 +34,8 @@ namespace ByteForge
             return AssetType::PhysicsMaterial2D;
         if (ext == ".wav" || ext == ".flac" || ext == ".mp3")
             return AssetType::AudioClip;
+        if (ext == ScriptGraphExtension)
+            return AssetType::ScriptGraph;
 
         return AssetType::None;
     }
