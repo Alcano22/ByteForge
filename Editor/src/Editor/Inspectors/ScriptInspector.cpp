@@ -9,6 +9,7 @@
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scripting/ScriptEngine.h>
 #include <Engine/Scripting/ScriptField.h>
+#include <Engine/Scripting/Visual/ScriptGraph.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -39,7 +40,7 @@ namespace ByteForge::EditorUI
         std::optional<std::string> AcceptScriptDrop()
         {
             const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
-            if (!dragged || dragged->Type != AssetType::Script)
+            if (!dragged || (dragged->Type != AssetType::Script && dragged->Type != AssetType::ScriptGraph))
                 return std::nullopt;
 
             ImDrawList& drawList = *ImGui::GetWindowDrawList();
@@ -58,8 +59,9 @@ namespace ByteForge::EditorUI
 
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayloadType, flags))
             {
-                const std::expected<std::string, std::string> className =
-                    ScriptProject::FindClassForAsset(UUID(dragged->Handle));
+                const std::expected<std::string, std::string> className = dragged->Type == AssetType::ScriptGraph
+                    ? std::expected<std::string, std::string>(ScriptGraphClassName(UUID(dragged->Handle)))
+                    : ScriptProject::FindClassForAsset(UUID(dragged->Handle));
 
                 const ImU32 color = className ? ImGui::GetColorU32(ImGuiCol_DragDropTarget) : ImGui::GetColorU32(ErrorColor);
                 drawList.AddRect(min, max, color, rounding, 0, 2.0f);
@@ -99,18 +101,19 @@ namespace ByteForge::EditorUI
 
         void DrawClassPicker(ScriptComponent& script)
         {
-            const std::vector<ScriptClassInfo> classes = ScriptEngine::Get().GetClasses();
+            const ScriptEngine& engine = ScriptEngine::Get();
+            const std::vector<ScriptClassInfo> classes = engine.GetClasses();
             const bool known = script.ClassName.empty() ||
                                std::ranges::any_of(classes, [&](const ScriptClassInfo& info)
                                {
                                    return info.Name == script.ClassName;
                                });
 
-            const char* preview = script.ClassName.empty() ? "None" : script.ClassName.c_str();
+            const std::string preview = script.ClassName.empty() ? "None" : engine.GetDisplayName(script.ClassName);
 
             if (!known)
                 ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
-            const bool open = ImGui::BeginCombo("Class", preview);
+            const bool open = ImGui::BeginCombo("Class", preview.c_str());
             if (!known)
                 ImGui::PopStyleColor();
 
@@ -121,11 +124,13 @@ namespace ByteForge::EditorUI
 
                 for (const ScriptClassInfo& info : classes)
                 {
-                    if (ImGui::Selectable(info.Name.c_str(), info.Name == script.ClassName))
+                    ImGui::PushID(info.Name.c_str());
+                    if (ImGui::Selectable(info.DisplayName.c_str(), info.Name == script.ClassName))
                         AssignScript(script, info.Name);
 
                     ImGui::SameLine();
                     ImGui::TextDisabled("%s", info.Backend.c_str());
+                    ImGui::PopID();
                 }
 
                 ImGui::EndCombo();

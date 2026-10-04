@@ -3,6 +3,7 @@
 #include "Engine/Core/Log.h"
 #include "Scripting/NativeScriptBackend.h"
 #include "Scripting/CSharp/CSharpScriptBackend.h"
+#include "Scripting/Visual/GraphScriptBackend.h"
 
 #include <algorithm>
 #include <exception>
@@ -21,6 +22,7 @@ namespace ByteForge
 
         s_Instance = this;
         RegisterBackend(MakeScope<NativeScriptBackend>());
+        RegisterBackend(MakeScope<GraphScriptBackend>());
         TryRegisterCSharpBackend();
     }
 
@@ -67,16 +69,26 @@ namespace ByteForge
         return nullptr;
     }
 
+    std::string ScriptEngine::GetDisplayName(const std::string_view className) const
+    {
+        const ScriptBackend* backend = FindBackend(className);
+        return backend != nullptr ? backend->GetDisplayName(className) : std::string(className);
+    }
+
     std::vector<ScriptClassInfo> ScriptEngine::GetClasses() const
     {
         std::vector<ScriptClassInfo> classes;
         for (const auto& backend : m_Backends)
         {
             for (std::string& name : backend->GetClassNames())
-                classes.push_back({ .Name = std::move(name), .Backend = std::string(backend->GetName()) });
+            {
+                std::string displayName = backend->GetDisplayName(name);
+                classes.push_back({ .Name = std::move(name), .DisplayName = std::move(displayName),
+                                    .Backend = std::string(backend->GetName()) });
+            }
         }
 
-        std::ranges::sort(classes, {}, &ScriptClassInfo::Name);
+        std::ranges::sort(classes, {}, &ScriptClassInfo::DisplayName);
         return classes;
     }
 

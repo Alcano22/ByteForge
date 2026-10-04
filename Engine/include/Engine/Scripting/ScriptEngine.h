@@ -15,6 +15,7 @@ namespace ByteForge
     struct ScriptClassInfo
     {
         std::string Name;
+        std::string DisplayName;
         std::string Backend;
     };
 
@@ -29,6 +30,7 @@ namespace ByteForge
         [[nodiscard]] ScriptBackend* FindBackend(std::string_view className) const;
         [[nodiscard]] ScriptBackend* FindBackendByName(std::string_view name) const;
 
+        [[nodiscard]] std::string GetDisplayName(std::string_view className) const;
         [[nodiscard]] std::vector<ScriptClassInfo> GetClasses() const;
         [[nodiscard]] std::span<const ScriptFieldInfo> GetFields(std::string_view className) const;
 

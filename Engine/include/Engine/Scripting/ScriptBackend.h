@@ -41,6 +41,10 @@ namespace ByteForge
         [[nodiscard]] virtual std::vector<std::string> GetClassNames() const = 0;
         [[nodiscard]] virtual bool HasClass(std::string_view className) const = 0;
         [[nodiscard]] virtual std::span<const ScriptFieldInfo> GetFields(std::string_view) const { return {}; }
+        [[nodiscard]] virtual std::string GetDisplayName(const std::string_view className) const
+        {
+            return std::string(className);
+        }
 
         [[nodiscard]] virtual Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) = 0;
 

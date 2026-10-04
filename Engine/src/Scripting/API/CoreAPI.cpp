@@ -10,6 +10,16 @@ namespace ByteForge
 {
     namespace
     {
+        float MathAddFloat(const ScriptCallContext&, const float a, const float b) { return a + b; }
+        float MathSubtractFloat(const ScriptCallContext&, const float a, const float b) { return a - b; }
+        float MathMultiplyFloat(const ScriptCallContext&, const float a, const float b) { return a * b; }
+        float MathDivideFloat(const ScriptCallContext&, const float a, const float b) { return a / b; }
+        bool MathGreaterFloat(const ScriptCallContext&, const float a, const float b) { return a > b; }
+        bool MathLessFloat(const ScriptCallContext&, const float a, const float b) { return a < b; }
+
+        glm::vec3 MathAddVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return a + b; }
+        glm::vec3 MathScaleVector3(const ScriptCallContext&, const glm::vec3& v, const float s) { return v * s; }
+
         void DebugLog(const ScriptCallContext&, const std::string& message) { APP_INFO("{}", message); }
 
         bool EntityIsValid(const ScriptCallContext& context, const EntityRef entity)
@@ -86,6 +96,15 @@ namespace ByteForge
     void RegisterCoreAPI(ScriptAPI& api)
     {
         using enum ScriptPurity;
+
+        api.Register<&MathAddFloat>("Math.AddFloat", "Add", Pure, { "A", "B" });
+        api.Register<&MathSubtractFloat>("Math.SubtractFloat", "Subtract", Pure, { "A", "B" });
+        api.Register<&MathMultiplyFloat>("Math.MultiplyFloat", "Multiply", Pure, { "A", "B" });
+        api.Register<&MathDivideFloat>("Math.DivideFloat", "Divide", Pure, { "A", "B" });
+        api.Register<&MathGreaterFloat>("Math.GreaterFloat", "Greater", Pure, { "A", "B" });
+        api.Register<&MathLessFloat>("Math.LessFloat", "Less", Pure, { "A", "B" });
+        api.Register<&MathAddVector3>("Math.AddVector3", "Add (Vector3)", Pure, { "A", "B" });
+        api.Register<&MathScaleVector3>("Math.ScaleVector3", "Scale (Vector3)", Pure, { "Vector", "Scale" });
 
         api.Register<&DebugLog>("Debug.Log", "Log", Impure, { "Message" });
 

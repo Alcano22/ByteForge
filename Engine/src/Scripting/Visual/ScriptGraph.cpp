@@ -158,4 +158,9 @@ namespace ByteForge
 
         return {};
     }
+
+    std::string ScriptGraphClassName(const UUID graphAsset)
+    {
+        return std::format("Graph:{}", static_cast<uint64_t>(graphAsset));
+    }
 }

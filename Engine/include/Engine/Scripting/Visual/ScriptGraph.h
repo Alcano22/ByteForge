@@ -58,6 +58,7 @@ namespace ByteForge
         OnCollisionEnter,
         OnCollisionExit
     };
+    inline constexpr size_t GraphEventCount = static_cast<size_t>(GraphEvent::OnCollisionExit) + 1;
 
     struct EventNode { GraphEvent Event = GraphEvent::OnUpdate; };
     struct CallNode { std::string Function; };
@@ -138,4 +139,6 @@ namespace ByteForge
         std::vector<GraphLink> m_Links;
         std::vector<GraphVariable> m_Variables;
     };
+
+    [[nodiscard]] BYTEFORGE_API std::string ScriptGraphClassName(UUID graphAsset);
 }
