@@ -22,7 +22,7 @@ namespace ByteForge
 
             void (CORECLR_DELEGATE_CALLTYPE* GetClassNames)(void (*sink)(const char*, void*), void* userData) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* GetClassFields)(const char* className, FieldSink sink, void* userData) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* GetField)(void* instance, const char* name, int* type, void* value) = nullptr;
+            int (CORECLR_DELEGATE_CALLTYPE* GetField)(void* instance, const char* name, FieldSink sink, void* userData) = nullptr;
             int (CORECLR_DELEGATE_CALLTYPE* SetField)(void* instance, const char* name, int type, const void* value) = nullptr;
             void* (CORECLR_DELEGATE_CALLTYPE* CreateInstance)(const char* className, uint64_t entity) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* DestroyInstance)(void* instance) = nullptr;

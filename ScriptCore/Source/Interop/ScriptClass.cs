@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
 
 namespace ByteForge.Interop;
 
@@ -16,13 +17,15 @@ internal enum ScriptFieldType
     Vector3,
     Vector4,
     Entity,
-    Asset
+    Asset,
+    String
 }
 
 internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, AssetType assetType = AssetType.None)
 {
     public const int MaxValueSize = 16;
     private const int AssetTypeOffset = sizeof(ulong);
+    private const int StringLengthOffset = 8;
 
     private static readonly Dictionary<Type, ScriptFieldType> s_FieldTypes = new()
     {
@@ -33,7 +36,8 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
         [typeof(Vector2)] = ScriptFieldType.Vector2,
         [typeof(Vector3)] = ScriptFieldType.Vector3,
         [typeof(Vector4)] = ScriptFieldType.Vector4,
-        [typeof(Entity)]  = ScriptFieldType.Entity
+        [typeof(Entity)]  = ScriptFieldType.Entity,
+        [typeof(string)]  = ScriptFieldType.String
     };
 
     private static readonly Dictionary<Type, AssetType> s_AssetTypes = new()
@@ -57,7 +61,52 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
         return null;
     }
 
-    public void Read(object? target, void* destination)
+    public void Emit(object? target, delegate* unmanaged<byte*, int, void*, void*, void> sink, void* userData)
+    {
+        byte* value = stackalloc byte[MaxValueSize];
+        new Span<byte>(value, MaxValueSize).Clear();
+
+        using var name = new Utf8String(Name);
+
+        if (Type != ScriptFieldType.String)
+        {
+            Read(target, value);
+            sink(name.Pointer, (int)Type, value, userData);
+            return;
+        }
+
+        string text = (target != null ? Info.GetValue(target) as string : null) ?? string.Empty;
+        byte[] bytes = Encoding.UTF8.GetBytes(text);
+
+        fixed (byte* data = bytes)
+        {
+            *(byte**)value = data;
+            *(int*)(value + StringLengthOffset) = bytes.Length;
+            sink(name.Pointer, (int)Type, value, userData);
+        }
+    }
+
+    public void Write(object target, void* source)
+    {
+        object? value = Type switch
+        {
+            ScriptFieldType.Bool    => *(byte*)source != 0,
+            ScriptFieldType.Int     => *(int*)source,
+            ScriptFieldType.Float   => *(float*)source,
+            ScriptFieldType.Double  => *(double*)source,
+            ScriptFieldType.Vector2 => *(Vector2*)source,
+            ScriptFieldType.Vector3 => *(Vector3*)source,
+            ScriptFieldType.Vector4 => *(Vector4*)source,
+            ScriptFieldType.Entity  => *(ulong*)source is var id and not 0 ? new Entity(id) : null,
+            ScriptFieldType.Asset   => Asset.Create(AssetType, *(ulong*)source),
+            ScriptFieldType.String  => ReadString(source),
+            _ => throw new InvalidOperationException($"Unknown field type {Type}")
+        };
+
+        Info.SetValue(target, value);
+    }
+
+    private void Read(object? target, void* destination)
     {
         object? value = target != null ? Info.GetValue(target) : null;
 
@@ -75,26 +124,16 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
                 *(ulong*)destination = (value as Asset)?.Handle ?? 0;
                 *((byte*)destination + AssetTypeOffset) = (byte)AssetType;
                 break;
+            default:
+                throw new InvalidOperationException($"{Type} fields must be emitted, not read into a buffer");
         }
     }
 
-    public void Write(object target, void* source)
+    private static string ReadString(void* source)
     {
-        object? value = Type switch
-        {
-            ScriptFieldType.Bool    => *(byte*)source != 0,
-            ScriptFieldType.Int     => *(int*)source,
-            ScriptFieldType.Float   => *(float*)source,
-            ScriptFieldType.Double  => *(double*)source,
-            ScriptFieldType.Vector2 => *(Vector2*)source,
-            ScriptFieldType.Vector3 => *(Vector3*)source,
-            ScriptFieldType.Vector4 => *(Vector4*)source,
-            ScriptFieldType.Entity  => *(ulong*)source is var id and not 0 ? new Entity(id) : null,
-            ScriptFieldType.Asset   => Asset.Create(AssetType, *(ulong*)source),
-            _ => throw new InvalidOperationException($"Unknown field type {Type}")
-        };
-
-        Info.SetValue(target, value);
+        byte* data = *(byte**)source;
+        int length = *(int*)((byte*)source + StringLengthOffset);
+        return data == null || length <= 0 ? string.Empty : Encoding.UTF8.GetString(data, length);
     }
 }
 

@@ -34,15 +34,16 @@ namespace ByteForge
 
         [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Handle) != 0; }
 
-        [[nodiscard]] bool operator==(const AssetRef& other)
+        [[nodiscard]] bool operator==(const AssetRef& other) const
         {
             return Type == other.Type && static_cast<uint64_t>(Handle) == static_cast<uint64_t>(other.Handle);
         }
     };
 
-    enum class ScriptFieldType : uint8_t { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset };
+    enum class ScriptFieldType : uint8_t { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset, String };
 
-    using ScriptValue = std::variant<bool, int, float, double, glm::vec2, glm::vec3, glm::vec4, EntityRef, AssetRef>;
+    using ScriptValue = std::variant<bool, int, float, double, glm::vec2, glm::vec3, glm::vec4,
+                                     EntityRef, AssetRef, std::string>;
 
     inline constexpr size_t ScriptFieldTypeCount = std::variant_size_v<ScriptValue>;
 
@@ -54,7 +55,7 @@ namespace ByteForge
     namespace Detail
     {
         inline constexpr std::array<std::string_view, ScriptFieldTypeCount> ScriptFieldTypeNames{
-            "Bool", "Int", "Float", "Double", "Vector2", "Vector3", "Vector4", "Entity", "Asset"
+            "Bool", "Int", "Float", "Double", "Vector2", "Vector3", "Vector4", "Entity", "Asset", "String"
         };
     }
 

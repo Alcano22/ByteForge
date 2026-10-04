@@ -101,16 +101,8 @@ internal static unsafe class ScriptHost
             if (!s_Classes.TryGetValue(name, out ScriptClass? scriptClass) || scriptClass.Fields.Count == 0) return;
 
             object? defaults = scriptClass.CreateDefaults();
-            byte* value = stackalloc byte[ScriptField.MaxValueSize];
-
             foreach (ScriptField field in scriptClass.Fields)
-            {
-                new Span<byte>(value, ScriptField.MaxValueSize).Clear();
-                field.Read(defaults, value);
-
-                using var text = new Utf8String(field.Name);
-                sink(text.Pointer, (int)field.Type, value, userData);
-            }
+                field.Emit(defaults, sink, userData);
         } catch (Exception e)
         {
             Log.Error($"Could not list script fields: {e}");
@@ -150,7 +142,7 @@ internal static unsafe class ScriptHost
     }
 
     [UnmanagedCallersOnly]
-    public static int GetField(IntPtr instance, byte* name, int* type, void* value)
+    public static int GetField(IntPtr instance, byte* name, delegate* unmanaged<byte*, int, void*, void*, void> sink, void* userData)
     {
         try
         {
@@ -159,8 +151,7 @@ internal static unsafe class ScriptHost
             if (field == null)
                 return 1;
 
-            *type = (int)field.Type;
-            field.Read(script, value);
+            field.Emit(script, sink, userData);
             return 0;
         } catch (Exception e)
         {

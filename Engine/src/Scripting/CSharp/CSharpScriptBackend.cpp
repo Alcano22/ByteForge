@@ -12,6 +12,7 @@
 #include <set>
 #include <type_traits>
 #include <variant>
+#include <limits>
 
 namespace ByteForge
 {
@@ -36,6 +37,8 @@ namespace ByteForge
         }
 
         constexpr size_t AssetTypeOffset = sizeof(uint64_t);
+        constexpr size_t StringLengthOffset = 8;
+        static_assert(sizeof(const char*) == StringLengthOffset, "ByteForge requires a 64-bit target");
 
         ScriptValue ReadValue(const ScriptFieldType type, const void* data)
         {
@@ -54,6 +57,13 @@ namespace ByteForge
                 case ScriptFieldType::Asset:
                     return AssetRef{ static_cast<AssetType>(Load<uint8_t>(bytes + AssetTypeOffset)),
                                      UUID(Load<uint64_t>(data)) };
+                case ScriptFieldType::String:
+                {
+                    const auto* text = Load<const char*>(data);
+                    const auto length = Load<int>(bytes + StringLengthOffset);
+                    return text != nullptr && length > 0 ? std::string(text, static_cast<size_t>(length))
+                                                         : std::string();
+                }
             }
             throw std::runtime_error("Unknown script field type");
         }
@@ -78,6 +88,15 @@ namespace ByteForge
                     const auto type = static_cast<uint8_t>(v.Type);
                     std::memcpy(data, &handle, sizeof(handle));
                     std::memcpy(bytes + AssetTypeOffset, &type, sizeof(type));
+                } else if constexpr (std::is_same_v<T, std::string>)
+                {
+                    if (v.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+                        throw std::runtime_error("Script string field is too long");
+
+                    const char* text = v.data();
+                    const auto length = static_cast<int>(v.size());
+                    std::memcpy(data, &text, sizeof(text));
+                    std::memcpy(bytes + StringLengthOffset, &length, sizeof(length));
                 } else
                 {
                     static_assert(sizeof(T) <= FieldValueSize);
@@ -114,6 +133,17 @@ namespace ByteForge
             } catch (...) {}
         }
 
+        void ReceiveField(const char*, const int type, const void* value, void* userData)
+        {
+            if (!IsValidFieldType(type)) return;
+
+            try
+            {
+                *static_cast<std::optional<ScriptValue>*>(userData) =
+                    ReadValue(static_cast<ScriptFieldType>(type), value);
+            } catch (...) {}
+        }
+
         class CSharpScriptInstance final : public ScriptInstance
         {
         public:
@@ -139,14 +169,12 @@ namespace ByteForge
             std::optional<ScriptValue> GetField(const std::string_view name) const override
             {
                 const std::string fieldName(name);
-                alignas(16) FieldBuffer buffer{};
-                int type = -1;
+                std::optional<ScriptValue> result;
 
-                if (m_Functions.GetField(m_Handle, fieldName.c_str(), &type, buffer.data()) != 0 ||
-                    !IsValidFieldType(type))
+                if (m_Functions.GetField(m_Handle, fieldName.c_str(), &ReceiveField, &result) != 0)
                     return std::nullopt;
 
-                return ReadValue(static_cast<ScriptFieldType>(type), buffer.data());
+                return result;
             }
 
             bool SetField(const std::string_view name, const ScriptValue& value) override

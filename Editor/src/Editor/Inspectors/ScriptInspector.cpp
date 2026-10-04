@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <expected>
@@ -83,15 +84,16 @@ namespace ByteForge::EditorUI
         bool EditScriptValue(const char* label, ScriptValue& value, Scene& scene, Selection& selection)
         {
             return std::visit(Overloaded{
-                [&](bool& v)      { return ImGui::Checkbox(label, &v); },
-                [&](int& v)       { return ImGui::DragInt(label, &v); },
-                [&](float& v)     { return ImGui::DragFloat(label, &v, 0.1f); },
-                [&](double& v)    { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
-                [&](glm::vec2& v) { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
-                [&](glm::vec3& v) { return ImGui::DragFloat3(label, glm::value_ptr(v), 0.1f); },
-                [&](glm::vec4& v) { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); },
-                [&](EntityRef& v) { return EntityReferenceField(label, v, scene); },
-                [&](AssetRef& v)  { return AssetReferenceField(label, v.Type, v.Handle, selection); }
+                [&](bool& v)        { return ImGui::Checkbox(label, &v); },
+                [&](int& v)         { return ImGui::DragInt(label, &v); },
+                [&](float& v)       { return ImGui::DragFloat(label, &v, 0.1f); },
+                [&](double& v)      { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
+                [&](glm::vec2& v)   { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
+                [&](glm::vec3& v)   { return ImGui::DragFloat3(label, glm::value_ptr(v), 0.1f); },
+                [&](glm::vec4& v)   { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); },
+                [&](EntityRef& v)   { return EntityReferenceField(label, v, scene); },
+                [&](AssetRef& v)    { return AssetReferenceField(label, v.Type, v.Handle, selection); },
+                [&](std::string& v) { return ImGui::InputText(label, &v); }
             }, value);
         }
 

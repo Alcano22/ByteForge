@@ -34,7 +34,7 @@ namespace
     {
         return std::visit([]<typename T>(const T& v) -> nlohmann::json
         {
-            if constexpr (std::is_arithmetic_v<T>)
+            if constexpr (std::is_arithmetic_v<T> || std::is_same_v<T, std::string>)
                 return v;
             else
                 return ToJson(v);
@@ -61,6 +61,7 @@ namespace
             case ScriptFieldType::Asset:
                 return AssetRef{ AssetTypeFromString(v.at("type").get<std::string>()),
                                  UUID(v.at("handle").get<uint64_t>()) };
+            case ScriptFieldType::String:  return v.get<std::string>();
         }
         return std::nullopt;
     }
