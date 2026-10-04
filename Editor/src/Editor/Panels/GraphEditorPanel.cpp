@@ -1,6 +1,5 @@
 #include "Editor/Panels/GraphEditorPanel.h"
 #include "Editor/Graph/GraphIds.h"
-#include "Editor/Graph/GraphNodePalette.h"
 #include "Editor/Graph/GraphTheme.h"
 
 #include <Engine/Core/Log.h>
@@ -47,6 +46,36 @@ namespace ByteForge
         float SnapRasterizerDensity(const float density)
         {
             return std::clamp(std::round(density * 4.0f) / 4.0f, 0.25f, 4.0f);
+        }
+
+        constexpr float InputSideOffset = 220.0f;
+
+        void ConnectNewNode(ScriptGraph& graph, const DrawnPin& dragged, const UUID node)
+        {
+            const GraphNode* added = graph.FindNode(node);
+            if (added == nullptr) return;
+
+            const NodeSignature signature = DescribeNode(graph, *added);
+            const bool fromOutput = dragged.Direction == PinDirection::Output;
+
+            for (const bool exact : { true, false })
+            {
+                for (const PinInfo& pin : signature.Pins)
+                {
+                    if (pin.Direction == dragged.Direction) continue;
+
+                    const bool fits = exact ? pin.Type == dragged.Type
+                                            : fromOutput ? IsAssignable(dragged.Type, pin.Type)
+                                                         : IsAssignable(pin.Type, dragged.Type);
+                    if (!fits) continue;
+
+                    const PinRef target{ node, pin.Name };
+                    const auto connected = fromOutput ? graph.Connect(dragged.Ref, target)
+                                                      : graph.Connect(target, dragged.Ref);
+                    if (connected)
+                        return;
+                }
+            }
         }
     }
 
@@ -262,8 +291,10 @@ namespace ByteForge
         });
     }
 
-    void GraphEditorPanel::HandleCreation() const
+    void GraphEditorPanel::HandleCreation()
     {
+        const ImVec2 mouse = ImGui::GetMousePos();
+
         if (NE::BeginCreate(ImColor(255, 255, 255), 2.0f))
         {
             NE::PinId startId;
@@ -278,8 +309,7 @@ namespace ByteForge
                     if (start->Direction == PinDirection::Input)
                         std::swap(start, end);
 
-                    std::expected<PinType, std::string> type =
-                        std::unexpected(std::string("Connect an output to an input"));
+                    std::expected<PinType, std::string> type = std::unexpected(std::string("Connect an output to an input"));
                     if (start->Direction != end->Direction)
                         type = CanConnect(m_Document->GetGraph(), start->Ref, end->Ref);
 
@@ -295,6 +325,20 @@ namespace ByteForge
                         {
                             return graph.Connect(from, to).has_value();
                         });
+                    }
+                }
+            }
+
+            NE::PinId pinId;
+            if (NE::QueryNewNode(&pinId))
+            {
+                if (const DrawnPin* pin = m_Renderer.FindPin(pinId))
+                {
+                    ShowHint("Add a connected node");
+                    if (NE::AcceptNewItem())
+                    {
+                        m_PendingPin = *pin;
+                        OpenPalette(mouse, PaletteContext{ pin->Type, pin->Direction });
                     }
                 }
             }
@@ -343,27 +387,49 @@ namespace ByteForge
         const ImVec2 mouse = ImGui::GetMousePos();
 
         NE::Suspend();
+        const bool backgroundMenu = NE::ShowBackgroundContextMenu();
+        NE::Resume();
 
-        if (NE::ShowBackgroundContextMenu())
+        if (backgroundMenu)
         {
-            m_NewNodePosition = mouse;
-            ImGui::OpenPopup(AddNodePopup);
+            m_PendingPin.reset();
+            OpenPalette(mouse, std::nullopt);
         }
 
+        NE::Suspend();
         if (ImGui::BeginPopup(AddNodePopup))
         {
-            if (std::optional<NodeData> data = GraphNodePalette::DrawMenu(m_Document->GetGraph()))
+            if (std::optional<NodeData> data = m_Palette.Draw())
             {
-                const glm::vec2 position(m_NewNodePosition.x, m_NewNodePosition.y);
-                m_Document->Edit("Add Node", [&](ScriptGraph& graph)
+                const std::optional<DrawnPin> pending = std::exchange(m_PendingPin, std::nullopt);
+
+                glm::vec2 position(m_NewNodePosition.x, m_NewNodePosition.y);
+                if (pending && pending->Direction == PinDirection::Input)
+                    position.x -= InputSideOffset;
+
+                m_Document->Edit(pending ? "Add Connected Node" : "Add Node", [&](ScriptGraph& graph)
                 {
-                    graph.AddNode(std::move(*data), position);
+                    const UUID node = graph.AddNode(std::move(*data), position);
+                    if (pending)
+                        ConnectNewNode(graph, *pending, node);
                     return true;
                 });
+
+                ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
-        }
+        } else
+            m_PendingPin.reset();
+        NE::Resume();
+    }
 
+    void GraphEditorPanel::OpenPalette(const ImVec2 position, const std::optional<PaletteContext> context)
+    {
+        m_NewNodePosition = position;
+        m_Palette.Open(m_Document->GetGraph(), context);
+
+        NE::Suspend();
+        ImGui::OpenPopup(AddNodePopup);
         NE::Resume();
     }
 

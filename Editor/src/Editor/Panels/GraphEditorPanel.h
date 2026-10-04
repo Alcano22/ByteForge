@@ -3,6 +3,7 @@
 #include "Editor/EditorPanel.h"
 #include "Editor/Graph/GraphDocument.h"
 #include "Editor/Graph/GraphNodeRenderer.h"
+#include "Editor/Graph/GraphNodePalette.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
@@ -35,9 +36,10 @@ namespace ByteForge
 
         void SyncPositionsToEditor();
         void CommitMovedNodes() const;
-        void HandleCreation() const;
+        void HandleCreation();
         void HandleDeletion() const;
         void HandleContextMenu();
+        void OpenPalette(ImVec2 position, std::optional<PaletteContext> context);
 
         void DrawUnsavedChangesPopup();
 
@@ -47,6 +49,8 @@ namespace ByteForge
         ax::NodeEditor::EditorContext* m_Editor = nullptr;
         Scope<GraphDocument> m_Document;
         GraphNodeRenderer m_Renderer;
+        GraphNodePalette m_Palette;
+        std::optional<DrawnPin> m_PendingPin;
 
         uint64_t m_SyncedRevision = std::numeric_limits<uint64_t>::max();
         int m_FramesSinceLoad = 0;
