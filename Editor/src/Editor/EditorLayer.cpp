@@ -60,9 +60,6 @@ namespace ByteForge
     {
         TransformGizmo::BeginFrame();
 
-        if (ImGui::Shortcut(ImGuiKey_F9, ImGuiInputFlags_RouteGlobal))
-            AudioEngine::Get().PlayOneShot(AssetRegistry::GetAssetRoot() / "Audio" / "Example.flac");
-
         DrawEditorShell(m_Context);
         m_Context.OnImGuiRender();
     }

@@ -44,4 +44,18 @@ namespace ByteForge
 
         b2Body_ApplyLinearImpulseToCenter(b2LoadBodyId(m_RuntimeBodyId), { impulse.x, impulse.y }, wake);
     }
+
+    void AudioSourceComponent::Play() const
+    {
+        if (m_Sound)
+            m_Sound->Play();
+    }
+
+    void AudioSourceComponent::Stop() const
+    {
+        if (m_Sound)
+            m_Sound->Stop();
+    }
+
+    bool AudioSourceComponent::IsPlaying() const { return m_Sound && m_Sound->IsPlaying(); }
 }

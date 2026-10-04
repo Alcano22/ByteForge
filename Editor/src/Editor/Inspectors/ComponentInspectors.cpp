@@ -89,6 +89,27 @@ namespace ByteForge
             DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material, context.SelectionContext);
         }
 
+        void DrawAudioSource(AudioSourceComponent& source, const Entity entity, EditorContext& context)
+        {
+            EditorUI::AssetReferenceField("Clip", AssetType::AudioClip, source.Clip, context.SelectionContext);
+            ImGui::SliderFloat("Volume", &source.Volume, 0.0f, 1.0f, "%.2f");
+            ImGui::DragFloat("Pitch", &source.Pitch, 0.01f, 0.01f, 4.0f, "%.2f");
+            ImGui::Checkbox("Loop", &source.Loop);
+            ImGui::Checkbox("Play On Start", &source.PlayOnStart);
+
+            if (!entity.GetScene().IsRunning()) return;
+
+            ImGui::Separator();
+            const bool playing = source.IsPlaying();
+            if (ImGui::Button(playing ? "Stop###playback" : "Play###playback"))
+            {
+                if (playing)
+                    source.Stop();
+                else
+                    source.Play();
+            }
+        }
+
         void DrawScript(ScriptComponent& script, const Entity entity, EditorContext&)
         {
             EditorUI::DrawScriptComponentInspector(entity, script);
@@ -119,6 +140,7 @@ namespace ByteForge
             Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D", EditorIcon::ComponentRigidbody),
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
+            Inspect<AudioSourceComponent, DrawAudioSource>("Audio Source", EditorIcon::ComponentAudioSource),
             Inspect<ScriptComponent, DrawScript>("Script")
         };
     }

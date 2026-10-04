@@ -32,6 +32,7 @@ add_library(Engine SHARED
         src/Assets/AssetRegistry.cpp
         src/Assets/AssetSettings.cpp
         src/Audio/AudioEngine.cpp
+        src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/SwapchainSettings.cpp

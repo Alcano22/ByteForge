@@ -31,6 +31,8 @@ namespace ByteForge
             return AssetType::Scene;
         if (ext == PhysicsMaterialExtension)
             return AssetType::PhysicsMaterial2D;
+        if (ext == ".wav" || ext == ".flac" || ext == ".mp3")
+            return AssetType::AudioClip;
 
         return AssetType::None;
     }

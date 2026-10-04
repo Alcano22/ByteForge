@@ -3,6 +3,7 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/Sprite.h"
 #include "Engine/Assets/PhysicsMaterial.h"
+#include "Engine/Audio/AudioEngine.h"
 #include "Engine/Scene/UUID.h"
 #include "Engine/Scripting/ScriptField.h"
 
@@ -104,6 +105,44 @@ namespace ByteForge
         bool IsSensor = false;
 
         Ref<PhysicsMaterialAsset> Material;
+    };
+
+    struct BYTEFORGE_API AudioSourceComponent
+    {
+        UUID Clip{ 0 };
+        float Volume = 1.0f;
+        float Pitch = 1.0f;
+        bool Loop = false;
+        bool PlayOnStart = true;
+
+        AudioSourceComponent() = default;
+
+        AudioSourceComponent(const AudioSourceComponent& other)
+            : Clip(other.Clip), Volume(other.Volume), Pitch(other.Pitch),
+              Loop(other.Loop), PlayOnStart(other.PlayOnStart) {}
+
+        AudioSourceComponent& operator=(const AudioSourceComponent& other)
+        {
+            Clip = other.Clip;
+            Volume = other.Volume;
+            Pitch = other.Pitch;
+            Loop = other.Loop;
+            PlayOnStart = other.PlayOnStart;
+            return *this;
+        }
+
+        AudioSourceComponent(AudioSourceComponent&&) noexcept = default;
+        AudioSourceComponent& operator=(AudioSourceComponent&&) noexcept = default;
+
+        void Play() const;
+        void Stop() const;
+        [[nodiscard]] bool IsPlaying() const;
+
+    private:
+        friend class AudioSystem;
+
+        Scope<Sound> m_Sound;
+        UUID m_LoadedClip{ 0 };
     };
 
     struct ScriptComponent

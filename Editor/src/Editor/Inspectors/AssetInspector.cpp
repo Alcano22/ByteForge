@@ -7,6 +7,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetType.h>
+#include <Engine/Audio/AudioEngine.h>
 
 #include <imgui.h>
 
@@ -40,6 +41,20 @@ namespace ByteForge::EditorUI
             if (committed)
                 AssetManager::SavePhysicsMaterial(metadata.Handle);
         }
+
+        void DrawAudioClipInspector(const AssetMetadata& metadata)
+        {
+            const AudioClipSettings* stored = metadata.GetSettings<AudioClipSettings>();
+            AudioClipSettings settings = stored != nullptr ? *stored : AudioClipSettings{};
+
+            if (ImGui::Checkbox("Stream", &settings.Stream))
+                AssetRegistry::SetSettings(metadata.Handle, settings);
+            ImGui::SetItemTooltip("Decode while playing instead of loading the whole clip (use for music)");
+
+            ImGui::Spacing();
+            if (ImGui::Button("Preview"))
+                AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(metadata.Handle));
+        }
     }
 
     void DrawAssetInspector(const UUID handle, EditorContext& context)
@@ -65,6 +80,7 @@ namespace ByteForge::EditorUI
                 ImGui::TextDisabled("or double-click it in the Assets panel");
                 break;
             case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata); break;
+            case AssetType::AudioClip:         DrawAudioClipInspector(metadata); break;
             case AssetType::None:      break;
         }
     }

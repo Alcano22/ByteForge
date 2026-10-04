@@ -13,7 +13,8 @@ namespace ByteForge
         Texture2D,
         Script,
         Scene,
-        PhysicsMaterial2D
+        PhysicsMaterial2D,
+        AudioClip
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

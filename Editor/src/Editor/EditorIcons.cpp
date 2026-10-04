@@ -37,7 +37,7 @@ namespace ByteForge
             "player_play.svg", "player_pause.svg", "player_step.svg", "player_stop.svg",
             "tool_move.svg", "tool_rotate.svg", "tool_scale.svg",
             "component_transform.svg", "component_sprite.svg", "component_rigidbody.svg",
-            "component_box_collider.svg", "component_circle_collider.svg"
+            "component_box_collider.svg", "component_circle_collider.svg", "component_audio_source.svg"
         };
 
         constexpr TextureSettings IconSettings{

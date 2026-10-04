@@ -100,6 +100,7 @@ namespace
         RemoveIfPresent<Rigidbody2DComponent>(entity);
         RemoveIfPresent<BoxCollider2DComponent>(entity);
         RemoveIfPresent<CircleCollider2DComponent>(entity);
+        RemoveIfPresent<AudioSourceComponent>(entity);
         RemoveIfPresent<ScriptComponent>(entity);
     }
 
@@ -160,6 +161,17 @@ namespace
             collider.Density = c.value("density", 1.0f);
             collider.IsSensor = c.value("isSensor", false);
             collider.Material = ReadMaterial(c);
+        }
+
+        if (entityJson.contains("audioSource"))
+        {
+            const auto& a = entityJson.at("audioSource");
+            auto& source = entity.AddComponent<AudioSourceComponent>();
+            source.Clip = UUID(a.value("clip", uint64_t{ 0 }));
+            source.Volume = a.value("volume", 1.0f);
+            source.Pitch = a.value("pitch", 1.0f);
+            source.Loop = a.value("loop", false);
+            source.PlayOnStart = a.value("playOnStart", true);
         }
 
         if (entityJson.contains("script"))
@@ -302,6 +314,22 @@ namespace ByteForge
             };
             WriteMaterial(colliderJson, collider.Material);
             entityJson["circleCollider2D"] = std::move(colliderJson);
+        }
+
+        if (entity.HasComponent<AudioSourceComponent>())
+        {
+            const auto& source = entity.GetComponent<AudioSourceComponent>();
+            nlohmann::json sourceJson{
+                { "volume",      source.Volume      },
+                { "pitch",       source.Pitch       },
+                { "loop",        source.Loop        },
+                { "playOnStart", source.PlayOnStart }
+            };
+
+            if (static_cast<uint64_t>(source.Clip) != 0)
+                sourceJson["clip"] = static_cast<uint64_t>(source.Clip);
+
+            entityJson["audioSource"] = std::move(sourceJson);
         }
 
         if (entity.HasComponent<ScriptComponent>())

@@ -35,6 +35,7 @@ namespace ByteForge
         switch (type)
         {
             case AssetType::Texture2D:         return TextureSettings{};
+            case AssetType::AudioClip:         return AudioClipSettings{};
             case AssetType::Script:            return std::monostate{};
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};
@@ -57,7 +58,9 @@ namespace ByteForge
                     { "wrap",         std::string(magic_enum::enum_name(value.Wrap))   },
                     { "generateMips", value.GenerateMips                               }
                 };
-            } else
+            } else if constexpr (std::is_same_v<T, AudioClipSettings>)
+                return nlohmann::json{ { "stream", value.Stream } };
+            else
                 return nlohmann::json::object();
         }, settings);
     }
@@ -86,6 +89,8 @@ namespace ByteForge
 
                 return settings;
             }
+            case AssetType::AudioClip:
+                return AudioClipSettings{ .Stream = data.value("stream", false) };
             case AssetType::Script:            return std::monostate{};
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};

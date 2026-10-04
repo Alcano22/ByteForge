@@ -3,6 +3,7 @@
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Physics2DWorld.h"
 #include "Engine/Scene/RaycastHit2D.h"
+#include "Engine/Audio/AudioSystem.h"
 #include "Scripting/ScriptRuntime.h"
 
 #include <stdexcept>
@@ -15,7 +16,8 @@ namespace ByteForge
         struct ComponentList {};
 
         using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, Rigidbody2DComponent,
-                                                   BoxCollider2DComponent, CircleCollider2DComponent, ScriptComponent>;
+                                                   BoxCollider2DComponent, CircleCollider2DComponent,
+                                                   AudioSourceComponent, ScriptComponent>;
 
         template<typename... Components>
         void CopyComponents(ComponentList<Components...>, entt::registry& registry,
@@ -107,6 +109,7 @@ namespace ByteForge
 
         m_PhysicsWorld->EnsureBodiesCreated(*this);
         m_ScriptRuntime->Update(ts);
+        AudioSystem::Update(*this);
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
     }
 
@@ -140,6 +143,8 @@ namespace ByteForge
     {
         if (m_ScriptRuntime) return;
 
+        AudioSystem::Update(*this);
+
         m_ScriptRuntime = MakeScope<ScriptRuntime>(*this);
         m_ScriptRuntime->Start();
     }
@@ -150,6 +155,8 @@ namespace ByteForge
 
         m_ScriptRuntime->Stop();
         m_ScriptRuntime.reset();
+
+        AudioSystem::Stop(*this);
     }
 
     ScriptInstance* Scene::FindScriptInstance(const Entity entity) const
