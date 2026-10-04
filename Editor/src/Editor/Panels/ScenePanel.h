@@ -47,6 +47,7 @@ namespace ByteForge
         bool m_Panning = false;
 
         TransformTool m_Tool = TransformTool::Move;
+        TransformSpace m_Space = TransformSpace::Global;
         std::optional<TransformDrag> m_Drag;
     };
 }

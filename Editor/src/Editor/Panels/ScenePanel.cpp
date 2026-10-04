@@ -22,6 +22,13 @@ namespace ByteForge
         constexpr glm::vec4 BackgroundColor{ 0.03f, 0.03f, 0.035f, 1.0f };
         constexpr float FocusPadding = 3.0f;
         constexpr float OverlayMargin = 8.0f;
+        constexpr ImGuiKey SpaceToggleKey = ImGuiKey_X;
+        constexpr const char* SpaceToggleKeyName = "X";
+
+        const std::array<EditorUI::ToggleOption<TransformSpace>, 2> SpaceOptions{{
+            { .Value = TransformSpace::Global, .Label = "Global" },
+            { .Value = TransformSpace::Local,  .Label = "Local"  }
+        }};
 
         struct ToolInfo
         {
@@ -148,6 +155,9 @@ namespace ByteForge
             if (ImGui::Shortcut(tool.Key))
                 m_Tool = tool.Tool;
         }
+
+        if (ImGui::Shortcut(SpaceToggleKey))
+            m_Space = EditorUI::NextOption(m_Space, SpaceOptions);
     }
 
     void ScenePanel::HandleSelection() const
@@ -195,6 +205,12 @@ namespace ByteForge
             ImGui::SameLine();
         }
 
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.x *  3.0f);
+
+        ImGui::BeginDisabled(m_Tool != TransformTool::Move);
+        EditorUI::ToggleButton("space", m_Space, SpaceOptions, SpaceToggleKeyName);
+        ImGui::EndDisabled();
+
         ImGui::NewLine();
     }
 
@@ -212,8 +228,8 @@ namespace ByteForge
         auto& transform = selected.GetComponent<TransformComponent>();
         const TransformComponent before = transform;
 
-        const GizmoInteraction interaction = TransformGizmo::Manipulate(transform, m_Tool, m_Camera, m_Canvas,
-                                                                        ImGui::GetIO().KeyCtrl);
+        const GizmoInteraction interaction = TransformGizmo::Manipulate(transform, m_Tool, m_Space, m_Camera,
+                                                                        m_Canvas, ImGui::GetIO().KeyCtrl);
 
         if (interaction.Active && !m_Drag)
             m_Drag = TransformDrag{ .EntityId = selected.GetUUID(), .Before = before };

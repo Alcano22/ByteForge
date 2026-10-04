@@ -7,6 +7,7 @@ namespace ByteForge
     struct TransformComponent;
 
     enum class TransformTool { Move, Rotate, Scale };
+    enum class TransformSpace { Global, Local };
 
     struct GizmoInteraction
     {
@@ -19,7 +20,7 @@ namespace ByteForge
     {
         void BeginFrame();
 
-        GizmoInteraction Manipulate(TransformComponent& transform, TransformTool tool,
+        GizmoInteraction Manipulate(TransformComponent& transform, TransformTool tool, TransformSpace space,
                                     const EditorCamera2D& camera, const ViewportCanvas& canvas, bool snap);
     }
 }

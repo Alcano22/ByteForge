@@ -38,9 +38,12 @@ namespace ByteForge::TransformGizmo
             return ImGuizmo::TRANSLATE_X | ImGuizmo::TRANSLATE_Y;
         }
 
-        ImGuizmo::MODE ToMode(const TransformTool tool)
+        ImGuizmo::MODE ToMode(const TransformTool tool, const TransformSpace space)
         {
-            return tool == TransformTool::Move ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
+            if (tool != TransformTool::Move)
+                return ImGuizmo::LOCAL;
+
+            return space == TransformSpace::Global ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
         }
 
         float SnapValue(const TransformTool tool)
@@ -100,7 +103,7 @@ namespace ByteForge::TransformGizmo
         ImGuizmo::BeginFrame();
     }
 
-    GizmoInteraction Manipulate(TransformComponent& transform, const TransformTool tool,
+    GizmoInteraction Manipulate(TransformComponent& transform, const TransformTool tool, const TransformSpace space,
                                 const EditorCamera2D& camera, const ViewportCanvas& canvas, const bool snap)
     {
         const glm::vec2 size = canvas.GetSize();
@@ -124,7 +127,7 @@ namespace ByteForge::TransformGizmo
 
         glm::mat4 matrix = ToMatrix(transform);
         const bool changed = ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection),
-                                                  ToOperation(tool), ToMode(tool), glm::value_ptr(matrix),
+                                                  ToOperation(tool), ToMode(tool, space), glm::value_ptr(matrix),
                                                   nullptr, snap ? snapValues.data() : nullptr);
 
         if (changed)
