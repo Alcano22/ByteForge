@@ -1,11 +1,15 @@
 #include "Scripting/CSharp/ScriptGlue.h"
+#include "Scripting/CSharp/ManagedValue.h"
 
 #include "Engine/Core/Log.h"
-#include "Engine/Scene/Components.h"
-#include "Engine/Scene/Entity.h"
-#include "Engine/Scene/Scene.h"
+#include "Engine/Scripting/API/ScriptAPI.h"
 
+#include <cstddef>
+#include <format>
+#include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -13,13 +17,9 @@ namespace ByteForge
     {
         Scene* s_Scene = nullptr;
         thread_local std::string t_LastException;
+        thread_local std::string t_LastError;
 
-        TransformComponent* FindTransform(const uint64_t entity)
-        {
-            if (s_Scene == nullptr)
-                return nullptr;
-            return s_Scene->FindEntityByUUID(UUID(entity)).TryGetComponent<TransformComponent>();
-        }
+        thread_local std::optional<ScriptValue> t_LastResult;
 
         void LogMessage(const int level, const char* message)
         {
@@ -28,8 +28,8 @@ namespace ByteForge
                 switch (level)
                 {
                     case 0:  APP_TRACE("{}", message); break;
-                    case 1:  APP_INFO("{}", message);  break;
-                    case 2:  APP_WARN("{}", message);  break;
+                    case 1:  APP_INFO ("{}", message); break;
+                    case 2:  APP_WARN ("{}", message); break;
                     default: APP_ERROR("{}", message); break;
                 }
             } catch (...) {}
@@ -43,70 +43,75 @@ namespace ByteForge
             } catch (...) {}
         }
 
-        int EntityIsValid(const uint64_t entity)
+        void SetLastError(const char* message) noexcept
         {
-            return s_Scene != nullptr && s_Scene->FindEntityByUUID(UUID(entity)).IsValid() ? 1 : 0;
+            try
+            {
+                t_LastError = message;
+            } catch (...) {}
         }
 
-        int TransformGetPosition(const uint64_t entity, glm::vec3* out)
+        uint32_t FindFunction(const char* id, const char* signature)
         {
-            const TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr || out == nullptr)
-                return 0;
+            try
+            {
+                const ScriptAPI& api = ScriptAPI::Get();
+                const uint32_t index = api.FindIndex(id != nullptr ? id : "");
+                if (index == ScriptAPI::InvalidIndex)
+                    return index;
 
-            *out = transform->Position;
+                const std::string actual = GetSignature(api.GetFunction(index));
+                if (signature == nullptr || actual != signature)
+                {
+                    CORE_ERROR("Script API '{}': ScriptCore expects {}, the engine provides {}",
+                               id, signature != nullptr ? signature : "?", actual);
+                    return ScriptAPI::InvalidIndex;
+                }
+
+                return index;
+            } catch (...)
+            {
+                return ScriptAPI::InvalidIndex;
+            }
+        }
+
+        int InvokeFunction(const uint32_t index, const void* arguments, const int argumentCount, void* result)
+        {
+            try
+            {
+                const ScriptFunction& function = ScriptAPI::Get().GetFunction(index);
+                if (argumentCount < 0 || static_cast<size_t>(argumentCount) != function.Parameters.size())
+                    throw ScriptError(std::format("{} expects {} argument(s), got {}",
+                                                  function.Id, function.Parameters.size(), argumentCount));
+
+                const auto* slots = static_cast<const std::byte*>(arguments);
+                std::vector<ScriptValue> values;
+                values.reserve(function.Parameters.size());
+
+                for (size_t i = 0; i < function.Parameters.size(); ++i)
+                {
+                    values.push_back(ManagedValue::Read(function.Parameters[i].Type,
+                                                        slots + i * ManagedValue::SlotSize));
+                }
+
+                ValidateArguments(function, values);
+
+                t_LastResult = function.Invoke(ScriptCallContext{ .ActiveScene = s_Scene }, values);
+                if (t_LastResult && result != nullptr)
+                    ManagedValue::Write(*t_LastResult, result);
+
+                return 0;
+            } catch (const std::exception& e)
+            {
+                SetLastError(e.what());
+            } catch (...)
+            {
+                SetLastError("Unknown engine error");
+            }
             return 1;
         }
 
-        int TransformSetPosition(const uint64_t entity, const glm::vec3* value)
-        {
-            TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr || value == nullptr)
-                return 0;
-
-            transform->Position = *value;
-            return 1;
-        }
-
-        int TransformGetRotation(const uint64_t entity, float* out)
-        {
-            const TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr || out == nullptr)
-                return 0;
-
-            *out = transform->Rotation;
-            return 1;
-        }
-
-        int TransformSetRotation(const uint64_t entity, const float value)
-        {
-            TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr)
-                return 0;
-
-            transform->Rotation = value;
-            return 1;
-        }
-
-        int TransformGetScale(const uint64_t entity, glm::vec2* out)
-        {
-            const TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr || out == nullptr)
-                return 0;
-
-            *out = transform->Scale;
-            return 1;
-        }
-
-        int TransformSetScale(const uint64_t entity, const glm::vec2* value)
-        {
-            TransformComponent* transform = FindTransform(entity);
-            if (transform == nullptr || value == nullptr)
-                return 0;
-
-            transform->Scale = *value;
-            return 1;
-        }
+        const char* GetLastError() { return t_LastError.c_str(); }
     }
 
     namespace ScriptGlue
@@ -114,16 +119,12 @@ namespace ByteForge
         NativeAPI CreateNativeAPI()
         {
             return NativeAPI{
-                .Size                  = sizeof(NativeAPI),
-                .Log                   = &LogMessage,
-                .ReportException       = &ReportException,
-                .Entity_IsValid        = &EntityIsValid,
-                .Transform_GetPosition = &TransformGetPosition,
-                .Transform_SetPosition = &TransformSetPosition,
-                .Transform_GetRotation = &TransformGetRotation,
-                .Transform_SetRotation = &TransformSetRotation,
-                .Transform_GetScale    = &TransformGetScale,
-                .Transform_SetScale    = &TransformSetScale
+                .Size             = sizeof(NativeAPI),
+                .Log              = &LogMessage,
+                .ReportException  = &ReportException,
+                .Api_FindFunction = &FindFunction,
+                .Api_Invoke       = &InvokeFunction,
+                .Api_GetLastError = &GetLastError
             };
         }
 

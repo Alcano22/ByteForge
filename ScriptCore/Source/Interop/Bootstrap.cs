@@ -15,6 +15,9 @@ internal static unsafe class Bootstrap
 
             Native.Api = *api;
 
+            if (!ScriptAPI.Bind())
+                return 3;
+
             ScriptHost.DiscoverClasses([typeof(ScriptBehaviour).Assembly]);
 
             Log.Info($"ScriptCore initialized (.NET {Environment.Version}, {ScriptHost.ClassCount} script classes)");

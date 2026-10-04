@@ -58,9 +58,12 @@ add_library(Engine SHARED
         src/Scripting/ScriptRuntime.cpp
         src/Scripting/NativeScripts.cpp
         src/Scripting/NativeScriptBackend.cpp
+        src/Scripting/API/ScriptAPI.cpp
+        src/Scripting/API/CoreAPI.cpp
         src/Scripting/CSharp/DotNetHost.cpp
         src/Scripting/CSharp/CSharpScriptBackend.cpp
         src/Scripting/CSharp/ScriptGlue.cpp
+        src/Scripting/CSharp/ManagedValue.cpp
         src/Platform/GraphicsContextFactory.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp

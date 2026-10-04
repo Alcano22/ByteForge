@@ -55,11 +55,8 @@ byteforge_copy_directory(Editor
         ${CMAKE_CURRENT_BINARY_DIR}/resources
 )
 
-add_dependencies(Editor ScriptCore)
-
-add_custom_command(TARGET Editor POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-                ${CMAKE_BINARY_DIR}/ScriptCore
-                $<TARGET_FILE_DIR:Editor>/ScriptCore
-        COMMENT "Copying ScriptCore"
+byteforge_copy_directory(Editor
+        ${CMAKE_BINARY_DIR}/ScriptCore
+        ${CMAKE_CURRENT_BINARY_DIR}/ScriptCore
+        DEPENDS ScriptCore ${CMAKE_BINARY_DIR}/ScriptCore/ScriptCore.dll
 )

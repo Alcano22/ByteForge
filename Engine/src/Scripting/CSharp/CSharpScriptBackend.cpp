@@ -14,6 +14,8 @@
 #include <variant>
 #include <limits>
 
+#include "ManagedValue.h"
+
 namespace ByteForge
 {
     namespace
@@ -23,87 +25,7 @@ namespace ByteForge
 
         using InitializeFn = int (CORECLR_DELEGATE_CALLTYPE*)(const NativeAPI* api);
 
-        constexpr size_t FieldValueSize = 16;
-        using FieldBuffer = std::array<std::byte, FieldValueSize>;
-
-        static_assert(sizeof(glm::vec4) == FieldValueSize, "glm::vec4 must match System.Numerics.Vector4");
-
-        template<typename T>
-        T Load(const void* data)
-        {
-            T value;
-            std::memcpy(&value, data, sizeof(T));
-            return value;
-        }
-
-        constexpr size_t AssetTypeOffset = sizeof(uint64_t);
-        constexpr size_t StringLengthOffset = 8;
-        static_assert(sizeof(const char*) == StringLengthOffset, "ByteForge requires a 64-bit target");
-
-        ScriptValue ReadValue(const ScriptFieldType type, const void* data)
-        {
-            const auto* bytes = static_cast<const std::byte*>(data);
-
-            switch (type)
-            {
-                case ScriptFieldType::Bool:    return Load<uint8_t>(data) != 0;
-                case ScriptFieldType::Int:     return Load<int32_t>(data);
-                case ScriptFieldType::Float:   return Load<float>(data);
-                case ScriptFieldType::Double:  return Load<double>(data);
-                case ScriptFieldType::Vector2: return Load<glm::vec2>(data);
-                case ScriptFieldType::Vector3: return Load<glm::vec3>(data);
-                case ScriptFieldType::Vector4: return Load<glm::vec4>(data);
-                case ScriptFieldType::Entity:  return EntityRef{ UUID(Load<uint64_t>(data)) };
-                case ScriptFieldType::Asset:
-                    return AssetRef{ static_cast<AssetType>(Load<uint8_t>(bytes + AssetTypeOffset)),
-                                     UUID(Load<uint64_t>(data)) };
-                case ScriptFieldType::String:
-                {
-                    const auto* text = Load<const char*>(data);
-                    const auto length = Load<int>(bytes + StringLengthOffset);
-                    return text != nullptr && length > 0 ? std::string(text, static_cast<size_t>(length))
-                                                         : std::string();
-                }
-            }
-            throw std::runtime_error("Unknown script field type");
-        }
-
-        void WriteValue(const ScriptValue& value, void* data)
-        {
-            auto* bytes = static_cast<std::byte*>(data);
-
-            std::visit([data, bytes]<typename T>(const T& v)
-            {
-                if constexpr (std::is_same_v<T, bool>)
-                {
-                    const uint8_t byte = v ? 1 : 0;
-                    std::memcpy(data, &byte, sizeof(byte));
-                } else if constexpr (std::is_same_v<T, EntityRef>)
-                {
-                    const auto id = static_cast<uint64_t>(v.Id);
-                    std::memcpy(data, &id, sizeof(id));
-                } else if constexpr (std::is_same_v<T, AssetRef>)
-                {
-                    const auto handle = static_cast<uint64_t>(v.Handle);
-                    const auto type = static_cast<uint8_t>(v.Type);
-                    std::memcpy(data, &handle, sizeof(handle));
-                    std::memcpy(bytes + AssetTypeOffset, &type, sizeof(type));
-                } else if constexpr (std::is_same_v<T, std::string>)
-                {
-                    if (v.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
-                        throw std::runtime_error("Script string field is too long");
-
-                    const char* text = v.data();
-                    const auto length = static_cast<int>(v.size());
-                    std::memcpy(data, &text, sizeof(text));
-                    std::memcpy(bytes + StringLengthOffset, &length, sizeof(length));
-                } else
-                {
-                    static_assert(sizeof(T) <= FieldValueSize);
-                    std::memcpy(data, &v, sizeof(T));
-                }
-            }, value);
-        }
+        using FieldBuffer = std::array<std::byte, ManagedValue::SlotSize>;
 
         bool IsValidFieldType(const int type)
         {
@@ -128,7 +50,7 @@ namespace ByteForge
                 static_cast<std::vector<ScriptFieldInfo>*>(userData)->push_back({
                     .Name    = name,
                     .Type    = fieldType,
-                    .Default = ReadValue(fieldType, value)
+                    .Default = ManagedValue::Read(fieldType, value)
                 });
             } catch (...) {}
         }
@@ -140,7 +62,7 @@ namespace ByteForge
             try
             {
                 *static_cast<std::optional<ScriptValue>*>(userData) =
-                    ReadValue(static_cast<ScriptFieldType>(type), value);
+                    ManagedValue::Read(static_cast<ScriptFieldType>(type), value);
             } catch (...) {}
         }
 
@@ -181,7 +103,7 @@ namespace ByteForge
             {
                 const std::string fieldName(name);
                 alignas(16) FieldBuffer buffer{};
-                WriteValue(value, buffer.data());
+                ManagedValue::Write(value, buffer.data());
 
                 return m_Functions.SetField(m_Handle, fieldName.c_str(),
                                             static_cast<int>(GetFieldType(value)), buffer.data()) == 0;

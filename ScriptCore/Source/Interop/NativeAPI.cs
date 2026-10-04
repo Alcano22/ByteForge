@@ -11,14 +11,9 @@ internal unsafe struct NativeAPI
     public delegate* unmanaged<int, byte*, void> Log;
     public delegate* unmanaged<byte*, void> ReportException;
 
-    public delegate* unmanaged<ulong, int> Entity_IsValid;
-
-    public delegate* unmanaged<ulong, Vector3*, int> Transform_GetPosition;
-    public delegate* unmanaged<ulong, Vector3*, int> Transform_SetPosition;
-    public delegate* unmanaged<ulong, float*, int> Transform_GetRotation;
-    public delegate* unmanaged<ulong, float, int> Transform_SetRotation;
-    public delegate* unmanaged<ulong, Vector2*, int> Transform_GetScale;
-    public delegate* unmanaged<ulong, Vector2*, int> Transform_SetScale;
+    public delegate* unmanaged<byte*, byte*, uint> Api_FindFunction;
+    public delegate* unmanaged<uint, APIValue*, int, APIValue*, int> Api_Invoke;
+    public delegate* unmanaged<byte*> Api_GetLastError;
 }
 
 #pragma warning restore CS0649
