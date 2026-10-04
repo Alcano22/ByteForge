@@ -3,6 +3,7 @@
 
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Audio/AudioEngine.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Scene/Components.h>
@@ -49,14 +50,18 @@ namespace ByteForge
 
     void EditorContext::OnScenePause()
     {
-        if (State == SceneState::Play)
-            State = SceneState::Pause;
+        if (State != SceneState::Play) return;
+
+        State = SceneState::Pause;
+        AudioEngine::Get().SetPaused(AudioBus::Game, true);
     }
 
     void EditorContext::OnSceneResume()
     {
-        if (State == SceneState::Pause)
-            State = SceneState::Play;
+        if (State != SceneState::Pause) return;
+
+        State = SceneState::Play;
+        AudioEngine::Get().SetPaused(AudioBus::Game, false);
     }
 
     void EditorContext::OnSceneStep()

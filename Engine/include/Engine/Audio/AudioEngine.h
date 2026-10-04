@@ -3,6 +3,7 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Core/NonCopyable.h"
 
+#include <cstdint>
 #include <filesystem>
 
 namespace ByteForge
@@ -35,6 +36,8 @@ namespace ByteForge
         Scope<Impl> m_Impl;
     };
 
+    enum class AudioBus : uint8_t { Editor, Game };
+
     class BYTEFORGE_API AudioEngine : NonCopyable
     {
     public:
@@ -46,10 +49,13 @@ namespace ByteForge
         [[nodiscard]] float GetMasterVolume() const;
         void SetMasterVolume(float volume) const;
 
-        void PlayOneShot(const std::filesystem::path& file) const;
+        void PlayOneShot(const std::filesystem::path& file, AudioBus bus);
 
-        [[nodiscard]] Scope<Sound> CreateSound(const std::filesystem::path& file,
-                                               const AudioClipSettings& settings) const;
+        void StopAll(AudioBus bus);
+        void SetPaused(AudioBus bus, bool paused) const;
+
+        [[nodiscard]] Scope<Sound> CreateSound(const std::filesystem::path& file, const AudioClipSettings& settings,
+                                               AudioBus bus = AudioBus::Game) const;
 
         [[nodiscard]] static AudioEngine& Get();
 

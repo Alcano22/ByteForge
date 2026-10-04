@@ -53,7 +53,7 @@ namespace ByteForge::EditorUI
 
             ImGui::Spacing();
             if (ImGui::Button("Preview"))
-                AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(metadata.Handle));
+                AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(metadata.Handle), AudioBus::Editor);
         }
     }
 

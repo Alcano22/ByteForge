@@ -28,6 +28,8 @@ namespace ByteForge
             source.m_Sound.reset();
             source.m_LoadedClip = UUID(0);
         });
+
+        AudioEngine::Get().StopAll(AudioBus::Game);
     }
 
     void AudioSystem::Reload(AudioSourceComponent& source)

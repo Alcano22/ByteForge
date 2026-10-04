@@ -79,7 +79,7 @@ namespace ByteForge
             if (!clip.IsSet() || !AssetRegistry::TryGetMetadata(clip.Handle, metadata))
                 throw ScriptError("Audio.PlayOneShot needs an existing audio clip");
 
-            AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(clip.Handle));
+            AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(clip.Handle), AudioBus::Game);
         }
     }
 
