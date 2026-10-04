@@ -10,6 +10,7 @@
 
 #include <Engine/Core/Platform.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Audio/AudioEngine.h>
 #include <Engine/Event/ApplicationEvent.h>
 #include <Engine/Event/Event.h>
 
@@ -58,6 +59,9 @@ namespace ByteForge
     void EditorLayer::OnImGuiRender()
     {
         TransformGizmo::BeginFrame();
+
+        if (ImGui::Shortcut(ImGuiKey_F9, ImGuiInputFlags_RouteGlobal))
+            AudioEngine::Get().PlayOneShot(AssetRegistry::GetAssetRoot() / "Audio" / "Example.flac");
 
         DrawEditorShell(m_Context);
         m_Context.OnImGuiRender();

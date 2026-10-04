@@ -12,6 +12,7 @@ find_package(box2d CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-nethost CONFIG REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h" REQUIRED)
 
 add_library(Engine SHARED
         src/Core/Log.cpp
@@ -30,6 +31,8 @@ add_library(Engine SHARED
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
         src/Assets/AssetSettings.cpp
+        src/Audio/AudioEngine.cpp
+        src/Audio/MiniAudioImpl.cpp
         src/Renderer/RendererAPI.cpp
         src/Renderer/SwapchainSettings.cpp
         src/Renderer/Buffer.cpp
@@ -126,7 +129,7 @@ target_link_libraries(Engine PUBLIC
         magic_enum::magic_enum
 )
 
-target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS})
+target_include_directories(Engine SYSTEM PRIVATE ${STB_INCLUDE_DIRS} ${MINIAUDIO_INCLUDE_DIRS})
 
 target_link_libraries(Engine PRIVATE
         ByteForgeWarnings

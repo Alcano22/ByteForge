@@ -5,6 +5,7 @@
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Engine/Assets/AssetManager.h"
+#include "Engine/Audio/AudioEngine.h"
 #include "Engine/Scripting/ScriptEngine.h"
 
 #include <GLFW/glfw3.h>
@@ -23,7 +24,9 @@ namespace ByteForge
     Application* Application::s_Instance = nullptr;
 
     Application::Application(const WindowProps& props)
-        : m_Window(MakeScope<Window>(props)), m_ScriptEngine(MakeScope<ScriptEngine>())
+        : m_Window(MakeScope<Window>(props)),
+          m_ScriptEngine(MakeScope<ScriptEngine>()),
+          m_AudioEngine(MakeScope<AudioEngine>())
     {
         s_Instance = this;
 

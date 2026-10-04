@@ -14,6 +14,7 @@ namespace ByteForge
 {
     class Event;
     class ScriptEngine;
+    class AudioEngine;
 
     class BYTEFORGE_API Application : NonCopyable
     {
@@ -44,6 +45,7 @@ namespace ByteForge
         Scope<Window> m_Window;
         Scope<ImGuiLayer> m_ImGuiLayer;
         Scope<ScriptEngine> m_ScriptEngine;
+        Scope<AudioEngine> m_AudioEngine;
         LayerStack m_LayerStack;
 
         bool m_IsRunning = true;

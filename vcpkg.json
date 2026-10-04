@@ -34,6 +34,7 @@
       "default-features": false
     },
     "nativefiledialog-extended",
-    "lunasvg"
+    "lunasvg",
+    "miniaudio"
   ]
 }
