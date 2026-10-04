@@ -1,4 +1,5 @@
 #include "Editor/EditorWidgets.h"
+#include "Editor/EditorIcons.h"
 #include "Editor/AssetPayload.h"
 #include "Editor/StringUtils.h"
 
@@ -16,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <format>
 
 namespace ByteForge::EditorUI
 {
@@ -26,6 +28,7 @@ namespace ByteForge::EditorUI
         constexpr float TooltipPreviewSize = 192.0f;
         constexpr float PickerThumbnailSize = 32.0f;
         constexpr const char* PickerPopupId = "##TexturePicker";
+        constexpr const char* AssetPickerPopupId = "##AssetPicker";
 
         constexpr ImU32 CheckerLight = IM_COL32(88, 88, 88, 255);
         constexpr ImU32 CheckerDark  = IM_COL32(62, 62, 62, 255);
@@ -284,6 +287,79 @@ namespace ByteForge::EditorUI
             ImGui::EndPopup();
             return changed;
         }
+
+        std::string AssetLabel(const AssetMetadata& metadata)
+        {
+            return std::format("{}  {}", EditorIcons::Glyph(EditorIcons::ForFile(metadata.Path)),
+                               metadata.Path.stem().string());
+        }
+
+        bool DrawAssetPicker(const AssetType type, UUID& handle)
+        {
+            ImGui::SetNextWindowSize(ImVec2(300.0f, 280.0f), ImGuiCond_Appearing);
+            if (!ImGui::BeginPopup(AssetPickerPopupId))
+                return false;
+
+            static std::array<char, 128> s_Filter{};
+            static std::vector<AssetMetadata> s_Candidates;
+
+            if (ImGui::IsWindowAppearing())
+            {
+                s_Filter.fill('\0');
+                s_Candidates = AssetRegistry::GetAssetsOfType(type);
+                ImGui::SetKeyboardFocusHere();
+            }
+
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            const bool submitted = ImGui::InputTextWithHint("##search", "Search...", s_Filter.data(), s_Filter.size(),
+                                                            ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::Separator();
+
+            bool changed = false;
+            const bool hasAsset = static_cast<uint64_t>(handle) != 0;
+
+            ImGui::BeginChild("##results");
+
+            if (ImGui::Selectable("None", !hasAsset) && hasAsset)
+            {
+                handle = UUID(0);
+                changed = true;
+            }
+
+            const std::string_view query(s_Filter.data());
+            bool anyMatch = false;
+
+            for (const AssetMetadata& metadata : s_Candidates)
+            {
+                const std::string path = metadata.Path.generic_string();
+                if (!ContainsIgnoreCase(path, query)) continue;
+
+                const bool pickedByEnter = submitted && !anyMatch;
+                anyMatch = true;
+
+                ImGui::PushID(path.c_str());
+
+                const bool selected = static_cast<uint64_t>(handle) == static_cast<uint64_t>(metadata.Handle);
+                if ((ImGui::Selectable(AssetLabel(metadata).c_str(), selected) || pickedByEnter) && !selected)
+                {
+                    handle = metadata.Handle;
+                    changed = true;
+                }
+                ImGui::SetItemTooltip("Assets/%s", path.c_str());
+
+                if (pickedByEnter)
+                    ImGui::CloseCurrentPopup();
+
+                ImGui::PopID();
+            }
+
+            if (!anyMatch)
+                ImGui::TextDisabled("No assets match");
+
+            ImGui::EndChild();
+            ImGui::EndPopup();
+            return changed;
+        }
     }
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection)
@@ -342,6 +418,66 @@ namespace ByteForge::EditorUI
         changed |= AcceptTextureDrop(drawList, asset, start, end);
 
         changed |= DrawTexturePicker(asset);
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool AssetReferenceField(const char* label, const AssetType type, UUID& handle,
+                             Selection& selection, const char* noneText)
+    {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        const bool hasAsset = static_cast<uint64_t>(handle) != 0;
+        AssetMetadata metadata;
+        const bool known = hasAsset && AssetRegistry::TryGetMetadata(handle, metadata);
+
+        const std::string text = !hasAsset ? std::string(noneText) : known ? AssetLabel(metadata) : "Missing asset";
+        const std::string buttonLabel = text + "###field";
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+        if (hasAsset && !known)
+            ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
+
+        if (ImGui::Button(buttonLabel.c_str(), ImVec2(ImGui::CalcItemWidth(), 0.0f)))
+            ImGui::OpenPopup(AssetPickerPopupId);
+
+        if (hasAsset && !known)
+            ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+
+        if (known)
+            ImGui::SetItemTooltip("Assets/%s", metadata.Path.generic_string().c_str());
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
+            if (dragged && dragged->Type == type && ImGui::AcceptDragDropPayload(AssetPayloadType))
+            {
+                handle = UUID(dragged->Handle);
+                changed = true;
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (ImGui::BeginPopupContextItem("##fieldMenu"))
+        {
+            if (ImGui::MenuItem("Select Asset", nullptr, false, known))
+                selection.SelectAsset(handle);
+
+            if (ImGui::MenuItem("Clear", nullptr, false, hasAsset))
+            {
+                handle = UUID(0);
+                changed = true;
+            }
+            ImGui::EndPopup();
+        }
+
+        changed |= DrawAssetPicker(type, handle);
+
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::TextUnformatted(label);
 
         ImGui::PopID();
         return changed;

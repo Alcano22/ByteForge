@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/Sprite.h"
+#include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Scene/UUID.h"
 #include "Engine/Scripting/ScriptField.h"
 
@@ -46,16 +47,20 @@ namespace ByteForge
         bool FixedRotation = false;
         float GravityScale = 1.0f;
 
+        Ref<PhysicsMaterialAsset> Material;
+
         Rigidbody2DComponent() = default;
 
         Rigidbody2DComponent(const Rigidbody2DComponent& other)
-            : Type(other.Type), FixedRotation(other.FixedRotation), GravityScale(other.GravityScale) {}
+            : Type(other.Type), FixedRotation(other.FixedRotation),
+              GravityScale(other.GravityScale), Material(other.Material) {}
 
         Rigidbody2DComponent& operator=(const Rigidbody2DComponent& other)
         {
             Type = other.Type;
             FixedRotation = other.FixedRotation;
             GravityScale = other.GravityScale;
+            Material = other.Material;
             return *this;
         }
 
@@ -85,10 +90,9 @@ namespace ByteForge
         glm::vec2 Size{ 1.0f, 1.0f };
 
         float Density = 1.0f;
-        float Friction = 0.6f;
-        float Restitution = 0.0f;
-
         bool IsSensor = false;
+
+        Ref<PhysicsMaterialAsset> Material;
     };
 
     struct CircleCollider2DComponent
@@ -97,10 +101,9 @@ namespace ByteForge
         float Radius = 0.5f;
 
         float Density = 1.0f;
-        float Friction = 0.6f;
-        float Restitution = 0.0f;
-
         bool IsSensor = false;
+
+        Ref<PhysicsMaterialAsset> Material;
     };
 
     struct ScriptComponent

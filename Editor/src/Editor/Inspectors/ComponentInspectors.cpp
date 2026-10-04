@@ -3,6 +3,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 
+#include <Engine/Assets/AssetManager.h>
 #include <Engine/Scene/Components.h>
 
 #include <glm/glm.hpp>
@@ -43,37 +44,49 @@ namespace ByteForge
                 spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
         }
 
-        void DrawRigidbody2D(Rigidbody2DComponent& rigidbody, Entity, EditorContext&)
+        bool EditPhysicsMaterial(const char* label, Ref<PhysicsMaterialAsset>& material,
+                                 Selection& selection, const char* noneText)
+        {
+            UUID handle = material ? material->GetHandle() : UUID(0);
+            if (!EditorUI::AssetReferenceField(label, AssetType::PhysicsMaterial2D, handle, selection, noneText))
+                return false;
+
+            material = static_cast<uint64_t>(handle) != 0 ? AssetManager::LoadPhysicsMaterial(handle) : nullptr;
+            return true;
+        }
+
+        void DrawColliderSettings(float& density, bool& isSensor, Ref<PhysicsMaterialAsset>& material,
+                                  Selection& selection)
+        {
+            ImGui::DragFloat("Density", &density, 0.05f, 0.0f, MaxFloat);
+            EditPhysicsMaterial("Material", material, selection, "None (from Rigidbody)");
+            ImGui::Checkbox("Is Sensor", &isSensor);
+        }
+
+        void DrawRigidbody2D(Rigidbody2DComponent& rigidbody, Entity, EditorContext& context)
         {
             EditorUI::EnumCombo<Rigidbody2DComponent::BodyType>(
                 "Body Type", rigidbody.Type, magic_enum::enum_values<Rigidbody2DComponent::BodyType>());
             ImGui::Checkbox("Fixed Rotation", &rigidbody.FixedRotation);
             ImGui::DragFloat("Gravity Scale", &rigidbody.GravityScale, 0.05f);
+            EditPhysicsMaterial("Material", rigidbody.Material, context.SelectionContext, "None (default)");
 
             if (rigidbody.HasRuntimeBody())
                 ImGui::TextDisabled("(runtime body active - changes above apply on next play)");
         }
 
-        void DrawColliderMaterial(float& density, float& friction, float& restitution, bool& isSensor)
-        {
-            ImGui::DragFloat("Density", &density, 0.05f, 0.0f, MaxFloat);
-            ImGui::DragFloat("Friction", &friction, 0.02f, 0.0f, 1.0f);
-            ImGui::DragFloat("Restitution", &restitution, 0.02f, 0.0f, 1.0f);
-            ImGui::Checkbox("Is Sensor", &isSensor);
-        }
-
-        void DrawBoxCollider2D(BoxCollider2DComponent& collider, Entity, EditorContext&)
+        void DrawBoxCollider2D(BoxCollider2DComponent& collider, Entity, EditorContext& context)
         {
             ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
             ImGui::DragFloat2("Size", glm::value_ptr(collider.Size), 0.02f, 0.01f, MaxFloat);
-            DrawColliderMaterial(collider.Density, collider.Friction, collider.Restitution, collider.IsSensor);
+            DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material, context.SelectionContext);
         }
 
-        void DrawCircleCollider2D(CircleCollider2DComponent& collider, Entity, EditorContext&)
+        void DrawCircleCollider2D(CircleCollider2DComponent& collider, Entity, EditorContext& context)
         {
             ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
             ImGui::DragFloat("Radius", &collider.Radius, 0.02f, 0.01f, MaxFloat);
-            DrawColliderMaterial(collider.Density, collider.Friction, collider.Restitution, collider.IsSensor);
+            DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material, context.SelectionContext);
         }
 
         void DrawScript(ScriptComponent& script, const Entity entity, EditorContext&)

@@ -5,9 +5,12 @@
 
 #include <Engine/Assets/AssetMetadata.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetType.h>
 
 #include <imgui.h>
+
+#include <cfloat>
 
 namespace ByteForge::EditorUI
 {
@@ -20,6 +23,22 @@ namespace ByteForge::EditorUI
 
             if (EditTextureSettings(settings))
                 EditorContext::ApplyTextureSettings(metadata.Handle, settings);
+        }
+
+        void DrawPhysicsMaterialInspector(const AssetMetadata& metadata)
+        {
+            PhysicsMaterial2D material = AssetManager::LoadPhysicsMaterial(metadata.Handle)->GetMaterial();
+
+            bool changed = ImGui::DragFloat("Friction", &material.Friction, 0.01f, 0.0f, FLT_MAX, "%.2f");
+            bool committed = ImGui::IsItemDeactivatedAfterEdit();
+
+            changed |= ImGui::DragFloat("Bounciness", &material.Bounciness, 0.01f, 0.0f, 1.0f, "%.2f");
+            committed |= ImGui::IsItemDeactivatedAfterEdit();
+
+            if (changed)
+                AssetManager::SetPhysicsMaterial(metadata.Handle, material);
+            if (committed)
+                AssetManager::SavePhysicsMaterial(metadata.Handle);
         }
     }
 
@@ -45,6 +64,7 @@ namespace ByteForge::EditorUI
                     context.Dialogs.RequestOpen(handle);
                 ImGui::TextDisabled("or double-click it in the Assets panel");
                 break;
+            case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata); break;
             case AssetType::None:      break;
         }
     }

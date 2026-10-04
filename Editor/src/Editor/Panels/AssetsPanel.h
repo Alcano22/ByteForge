@@ -59,6 +59,12 @@ namespace ByteForge
         void CommitRename();
         void DrawRenameField(const ImVec2& position, float width, float bottom);
 
+        void DrawContextMenu();
+        void CreateFolder();
+        void CreatePhysicsMaterial();
+
+        void RenameAfterRefresh(std::filesystem::path path);
+
         [[nodiscard]] bool IsRenaming(const Entry& entry) const
         {
             return m_RenamingPath && *m_RenamingPath == entry.Path;
@@ -93,6 +99,7 @@ namespace ByteForge
 
         std::optional<std::filesystem::path> m_RenamingPath;
         std::array<char, 256> m_RenameBuffer{};
+        std::optional<std::filesystem::path> m_RenameAfterRefresh;
         bool m_FocusRename = false;
 
         std::optional<std::filesystem::path> m_PendingDirectory;

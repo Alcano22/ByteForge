@@ -41,6 +41,28 @@ namespace ByteForge
 
             return Entity(UnpackEntity(b2Body_GetUserData(b2Shape_GetBody(shapeId))), const_cast<Scene*>(&scene));
         }
+
+        PhysicsMaterial2D ResolveMaterial(const Ref<PhysicsMaterialAsset>& colliderMaterial,
+                                          const Rigidbody2DComponent& rigidbody)
+        {
+            if (colliderMaterial)
+                return colliderMaterial->GetMaterial();
+            if (rigidbody.Material)
+                return rigidbody.Material->GetMaterial();
+            return {};
+        }
+
+        b2ShapeDef MakeShapeDef(const float density, const bool isSensor, const PhysicsMaterial2D& material)
+        {
+            b2ShapeDef shapeDef = b2DefaultShapeDef();
+            shapeDef.density = density;
+            shapeDef.material.friction = material.Friction;
+            shapeDef.material.restitution = material.Bounciness;
+            shapeDef.isSensor = isSensor;
+            shapeDef.enableSensorEvents = true;
+            shapeDef.enableContactEvents = true;
+            return shapeDef;
+        }
     }
 
     Physics2DWorld::Physics2DWorld()
@@ -77,14 +99,8 @@ namespace ByteForge
         if (entity.HasComponent<BoxCollider2DComponent>())
         {
             const auto& collider = entity.GetComponent<BoxCollider2DComponent>();
-
-            b2ShapeDef shapeDef = b2DefaultShapeDef();
-            shapeDef.density = collider.Density;
-            shapeDef.material.friction = collider.Friction;
-            shapeDef.material.restitution = collider.Restitution;
-            shapeDef.isSensor = collider.IsSensor;
-            shapeDef.enableSensorEvents = true;
-            shapeDef.enableContactEvents = true;
+            const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
+                                                     ResolveMaterial(collider.Material, rigidbody));
 
             const b2Polygon box = b2MakeOffsetBox(collider.Size.x * 0.5f, collider.Size.y * 0.5f,
                                                   { collider.Offset.x, collider.Offset.y }, b2MakeRot(0.0f));
@@ -94,14 +110,8 @@ namespace ByteForge
         if (entity.HasComponent<CircleCollider2DComponent>())
         {
             const auto& collider = entity.GetComponent<CircleCollider2DComponent>();
-
-            b2ShapeDef shapeDef = b2DefaultShapeDef();
-            shapeDef.density = collider.Density;
-            shapeDef.material.friction = collider.Friction;
-            shapeDef.material.restitution = collider.Restitution;
-            shapeDef.isSensor = collider.IsSensor;
-            shapeDef.enableSensorEvents = true;
-            shapeDef.enableContactEvents = true;
+            const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
+                                                     ResolveMaterial(collider.Material, rigidbody));
 
             const b2Circle circle{ .center = { collider.Offset.x, collider.Offset.y }, .radius = collider.Radius };
             b2CreateCircleShape(body, &shapeDef, &circle);

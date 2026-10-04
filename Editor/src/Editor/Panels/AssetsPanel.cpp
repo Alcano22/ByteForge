@@ -17,6 +17,7 @@
 #include <cstring>
 #include <utility>
 #include <expected>
+#include <format>
 
 namespace ByteForge
 {
@@ -35,6 +36,22 @@ namespace ByteForge
                     return false;
             }
             return true;
+        }
+
+        fs::path MakeUniquePath(const fs::path& directory, const std::string_view stem,
+                                const std::string_view extension)
+        {
+            const fs::path& root = AssetRegistry::GetAssetRoot();
+            std::error_code error;
+
+            for (int index = 0;; ++index)
+            {
+                const std::string name = index == 0 ? std::format("{}{}", stem, extension)
+                                                    : std::format("{} {}{}", stem, index, extension);
+                fs::path candidate = directory / name;
+                if (!fs::exists(root / candidate, error))
+                    return candidate;
+            }
         }
 
         ImVec2 FitToSquare(const Texture2D& texture, const float size)
@@ -221,6 +238,16 @@ namespace ByteForge
         {
             Refresh();
             m_RefreshRequested = false;
+
+            if (const std::optional<fs::path> path = std::exchange(m_RenameAfterRefresh, std::nullopt))
+            {
+                const auto it = std::ranges::find(m_Entries, *path, &Entry::Path);
+                if (it != m_Entries.end())
+                {
+                    Select(*it);
+                    BeginRename(*it);
+                }
+            }
         }
     }
 
@@ -364,6 +391,8 @@ namespace ByteForge
             if (selection.GetAsset())
                 selection.Clear();
         }
+
+        DrawContextMenu();
     }
 
     void AssetsPanel::DrawItem(Entry& entry)
@@ -526,6 +555,60 @@ namespace ByteForge
         const float fieldBottom = ImGui::GetItemRectMax().y;
         ImGui::SetCursorScreenPos(ImVec2(position.x, fieldBottom));
         ImGui::Dummy(ImVec2(width, std::max(0.0f, bottom - fieldBottom)));
+    }
+
+    void AssetsPanel::DrawContextMenu()
+    {
+        constexpr ImGuiPopupFlags flags = ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems;
+        if (!ImGui::BeginPopupContextWindow("##contentMenu", flags)) return;
+
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Folder"))
+                CreateFolder();
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Physics Material 2D"))
+                CreatePhysicsMaterial();
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    void AssetsPanel::CreateFolder()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Folder", "");
+
+        std::error_code error;
+        if (!fs::create_directory(AssetRegistry::GetAssetRoot() / path, error))
+        {
+            APP_ERROR("Cannot create '{}': {}", path.generic_string(), error.message());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreatePhysicsMaterial()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Physics Material", PhysicsMaterialExtension);
+
+        if (const auto created = AssetManager::CreatePhysicsMaterial(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::RenameAfterRefresh(fs::path path)
+    {
+        m_RenameAfterRefresh = std::move(path);
+        m_RefreshRequested = true;
     }
 
     bool AssetsPanel::IsSelected(const Entry& entry) const

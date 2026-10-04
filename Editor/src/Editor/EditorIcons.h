@@ -22,6 +22,7 @@ namespace ByteForge
         FileFont,
         FileAudio,
         FileScene,
+        FilePhysicsMaterial,
         PlayerPlay,
         PlayerPause,
         PlayerStep,

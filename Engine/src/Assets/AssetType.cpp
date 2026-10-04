@@ -1,4 +1,5 @@
 #include "Engine/Assets/AssetType.h"
+#include "Engine/Assets/PhysicsMaterial.h"
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -28,6 +29,8 @@ namespace ByteForge
             return AssetType::Script;
         if (ext == ".bfscene")
             return AssetType::Scene;
+        if (ext == PhysicsMaterialExtension)
+            return AssetType::PhysicsMaterial2D;
 
         return AssetType::None;
     }

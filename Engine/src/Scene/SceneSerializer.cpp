@@ -55,6 +55,20 @@ namespace
         return std::nullopt;
     }
 
+    void WriteMaterial(nlohmann::json& json, const Ref<PhysicsMaterialAsset>& material)
+    {
+        if (material && material->IsFileBacked())
+            json["material"] = static_cast<uint64_t>(material->GetHandle());
+    }
+
+    Ref<PhysicsMaterialAsset> ReadMaterial(const nlohmann::json& json)
+    {
+        if (!json.contains("material"))
+            return nullptr;
+
+        return AssetManager::LoadPhysicsMaterial(UUID(json.at("material").get<uint64_t>()));
+    }
+
     const char* ToString(const Rigidbody2DComponent::BodyType type)
     {
         switch (type)
@@ -123,6 +137,7 @@ namespace
             rb.Type = ToBodyType(r.value("type", std::string("Static")));
             rb.FixedRotation = r.value("fixedRotation", false);
             rb.GravityScale = r.value("gravityScale", 1.0f);
+            rb.Material = ReadMaterial(r);
         }
 
         if (entityJson.contains("boxCollider2D"))
@@ -132,9 +147,8 @@ namespace
             collider.Offset = ToVec2(c.at("offset"));
             collider.Size = ToVec2(c.at("size"));
             collider.Density = c.value("density", 1.0f);
-            collider.Friction = c.value("friction", 0.6f);
-            collider.Restitution = c.value("restitution", 0.0f);
             collider.IsSensor = c.value("isSensor", false);
+            collider.Material = ReadMaterial(c);
         }
 
         if (entityJson.contains("circleCollider2D"))
@@ -144,9 +158,8 @@ namespace
             collider.Offset = ToVec2(c.at("offset"));
             collider.Radius = c.value("radius", 0.5f);
             collider.Density = c.value("density", 1.0f);
-            collider.Friction = c.value("friction", 0.6f);
-            collider.Restitution = c.value("restitution", 0.0f);
             collider.IsSensor = c.value("isSensor", false);
+            collider.Material = ReadMaterial(c);
         }
 
         if (entityJson.contains("script"))
@@ -256,37 +269,39 @@ namespace ByteForge
         if (entity.HasComponent<Rigidbody2DComponent>())
         {
             const auto& rb = entity.GetComponent<Rigidbody2DComponent>();
-            entityJson["rigidbody2D"] = {
+            nlohmann::json rigidbodyJson{
                 { "type",          ToString(rb.Type) },
                 { "fixedRotation", rb.FixedRotation  },
                 { "gravityScale",  rb.GravityScale   }
             };
+            WriteMaterial(rigidbodyJson, rb.Material);
+            entityJson["rigidbody2D"] = std::move(rigidbodyJson);
         }
 
         if (entity.HasComponent<BoxCollider2DComponent>())
         {
             const auto& collider = entity.GetComponent<BoxCollider2DComponent>();
-            entityJson["boxCollider2D"] = {
-                { "offset",      ToJson(collider.Offset) },
-                { "size",        ToJson(collider.Size)   },
-                { "density",     collider.Density        },
-                { "friction",    collider.Friction       },
-                { "restitution", collider.Restitution    },
-                { "isSensor",    collider.IsSensor       }
+            nlohmann::json colliderJson{
+                { "offset",   ToJson(collider.Offset) },
+                { "size",     ToJson(collider.Size)   },
+                { "density",  collider.Density        },
+                { "isSensor", collider.IsSensor       }
             };
+            WriteMaterial(colliderJson, collider.Material);
+            entityJson["boxCollider2D"] = std::move(colliderJson);
         }
 
         if (entity.HasComponent<CircleCollider2DComponent>())
         {
             const auto& collider = entity.GetComponent<CircleCollider2DComponent>();
-            entityJson["circleCollider2D"] = {
-                { "offset",      ToJson(collider.Offset) },
-                { "radius",      collider.Radius         },
-                { "density",     collider.Density        },
-                { "friction",    collider.Friction       },
-                { "restitution", collider.Restitution    },
-                { "isSensor",    collider.IsSensor       }
+            nlohmann::json colliderJson{
+                { "offset",   ToJson(collider.Offset) },
+                { "radius",   collider.Radius         },
+                { "density",  collider.Density        },
+                { "isSensor", collider.IsSensor       }
             };
+            WriteMaterial(colliderJson, collider.Material);
+            entityJson["circleCollider2D"] = std::move(colliderJson);
         }
 
         if (entity.HasComponent<ScriptComponent>())

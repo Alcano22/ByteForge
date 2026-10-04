@@ -2,7 +2,9 @@
 
 #include "Editor/Selection.h"
 
+#include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/TextureAsset.h>
+#include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
 #include <imgui.h>
@@ -20,6 +22,9 @@ namespace ByteForge::EditorUI
     inline constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);
+
+    bool AssetReferenceField(const char* label, AssetType type, UUID& handle,
+                             Selection& selection, const char* noneText = "None");
 
     bool IconButton(const char* id, const Ref<Texture2D>& icon, bool active = false);
 
