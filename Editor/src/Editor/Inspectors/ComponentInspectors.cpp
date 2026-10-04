@@ -110,9 +110,9 @@ namespace ByteForge
             }
         }
 
-        void DrawScript(ScriptComponent& script, const Entity entity, EditorContext&)
+        void DrawScript(ScriptComponent& script, const Entity entity, EditorContext& context)
         {
-            EditorUI::DrawScriptComponentInspector(entity, script);
+            EditorUI::DrawScriptComponentInspector(entity, script, context.SelectionContext);
         }
 
         template<typename T, auto DrawFn>

@@ -1,5 +1,6 @@
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Scene.h>
@@ -90,6 +91,13 @@ namespace ByteForge
         const std::string label = std::format("{}###entity", tag.Tag);
         if (ImGui::Selectable(label.c_str(), context.SelectionContext.IsEntity(entity)))
             context.SelectionContext.Select(entity);
+
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload(EditorUI::EntityPayloadType, &uuid, sizeof(uuid));
+            ImGui::TextUnformatted(tag.Tag.c_str());
+            ImGui::EndDragDropSource();
+        }
 
         if (ImGui::BeginPopupContextItem("##EntityContext"))
         {

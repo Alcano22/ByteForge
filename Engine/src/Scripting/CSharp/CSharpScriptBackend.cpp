@@ -35,8 +35,12 @@ namespace ByteForge
             return value;
         }
 
+        constexpr size_t AssetTypeOffset = sizeof(uint64_t);
+
         ScriptValue ReadValue(const ScriptFieldType type, const void* data)
         {
+            const auto* bytes = static_cast<const std::byte*>(data);
+
             switch (type)
             {
                 case ScriptFieldType::Bool:    return Load<uint8_t>(data) != 0;
@@ -46,18 +50,34 @@ namespace ByteForge
                 case ScriptFieldType::Vector2: return Load<glm::vec2>(data);
                 case ScriptFieldType::Vector3: return Load<glm::vec3>(data);
                 case ScriptFieldType::Vector4: return Load<glm::vec4>(data);
+                case ScriptFieldType::Entity:  return EntityRef{ UUID(Load<uint64_t>(data)) };
+                case ScriptFieldType::Asset:
+                    return AssetRef{ static_cast<AssetType>(Load<uint8_t>(bytes + AssetTypeOffset)),
+                                     UUID(Load<uint64_t>(data)) };
             }
             throw std::runtime_error("Unknown script field type");
         }
 
         void WriteValue(const ScriptValue& value, void* data)
         {
-            std::visit([data]<typename T>(const T& v)
+            auto* bytes = static_cast<std::byte*>(data);
+
+            std::visit([data, bytes]<typename T>(const T& v)
             {
                 if constexpr (std::is_same_v<T, bool>)
                 {
                     const uint8_t byte = v ? 1 : 0;
                     std::memcpy(data, &byte, sizeof(byte));
+                } else if constexpr (std::is_same_v<T, EntityRef>)
+                {
+                    const auto id = static_cast<uint64_t>(v.Id);
+                    std::memcpy(data, &id, sizeof(id));
+                } else if constexpr (std::is_same_v<T, AssetRef>)
+                {
+                    const auto handle = static_cast<uint64_t>(v.Handle);
+                    const auto type = static_cast<uint8_t>(v.Type);
+                    std::memcpy(data, &handle, sizeof(handle));
+                    std::memcpy(bytes + AssetTypeOffset, &type, sizeof(type));
                 } else
                 {
                     static_assert(sizeof(T) <= FieldValueSize);

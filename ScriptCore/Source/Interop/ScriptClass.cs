@@ -14,26 +14,46 @@ internal enum ScriptFieldType
     Double,
     Vector2,
     Vector3,
-    Vector4
+    Vector4,
+    Entity,
+    Asset
 }
 
-internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type)
+internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, AssetType assetType = AssetType.None)
 {
     public const int MaxValueSize = 16;
+    private const int AssetTypeOffset = sizeof(ulong);
+
+    private static readonly Dictionary<Type, ScriptFieldType> s_FieldTypes = new()
+    {
+        [typeof(bool)]    = ScriptFieldType.Bool,
+        [typeof(int)]     = ScriptFieldType.Int,
+        [typeof(float)]   = ScriptFieldType.Float,
+        [typeof(double)]  = ScriptFieldType.Double,
+        [typeof(Vector2)] = ScriptFieldType.Vector2,
+        [typeof(Vector3)] = ScriptFieldType.Vector3,
+        [typeof(Vector4)] = ScriptFieldType.Vector4,
+        [typeof(Entity)]  = ScriptFieldType.Entity
+    };
+
+    private static readonly Dictionary<Type, AssetType> s_AssetTypes = new()
+    {
+        [typeof(AudioClip)] = AssetType.AudioClip
+    };
 
     public FieldInfo Info { get; } = info;
     public ScriptFieldType Type { get; } = type;
+    public AssetType AssetType { get; } = assetType;
     public string Name => Info.Name;
 
-    public static ScriptFieldType? TypeOf(Type type)
+    public static ScriptField? TryCreate(FieldInfo info)
     {
-        if (type == typeof(bool))    return ScriptFieldType.Bool;
-        if (type == typeof(int))     return ScriptFieldType.Int;
-        if (type == typeof(float))   return ScriptFieldType.Float;
-        if (type == typeof(double))  return ScriptFieldType.Double;
-        if (type == typeof(Vector2)) return ScriptFieldType.Vector2;
-        if (type == typeof(Vector3)) return ScriptFieldType.Vector3;
-        if (type == typeof(Vector4)) return ScriptFieldType.Vector4;
+        if (s_FieldTypes.TryGetValue(info.FieldType, out ScriptFieldType type))
+            return new ScriptField(info, type);
+
+        if (s_AssetTypes.TryGetValue(info.FieldType, out AssetType assetType))
+            return new ScriptField(info, ScriptFieldType.Asset, assetType);
+
         return null;
     }
 
@@ -50,12 +70,17 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type)
             case ScriptFieldType.Vector2: *(Vector2*)destination = value is Vector2 v2 ? v2 : default; break;
             case ScriptFieldType.Vector3: *(Vector3*)destination = value is Vector3 v3 ? v3 : default; break;
             case ScriptFieldType.Vector4: *(Vector4*)destination = value is Vector4 v4 ? v4 : default; break;
+            case ScriptFieldType.Entity:  *(ulong*)destination = (value as Entity)?.ID ?? 0; break;
+            case ScriptFieldType.Asset:
+                *(ulong*)destination = (value as Asset)?.Handle ?? 0;
+                *((byte*)destination + AssetTypeOffset) = (byte)AssetType;
+                break;
         }
     }
 
     public void Write(object target, void* source)
     {
-        object value = Type switch
+        object? value = Type switch
         {
             ScriptFieldType.Bool    => *(byte*)source != 0,
             ScriptFieldType.Int     => *(int*)source,
@@ -64,6 +89,8 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type)
             ScriptFieldType.Vector2 => *(Vector2*)source,
             ScriptFieldType.Vector3 => *(Vector3*)source,
             ScriptFieldType.Vector4 => *(Vector4*)source,
+            ScriptFieldType.Entity  => *(ulong*)source is var id and not 0 ? new Entity(id) : null,
+            ScriptFieldType.Asset   => Asset.Create(AssetType, *(ulong*)source),
             _ => throw new InvalidOperationException($"Unknown field type {Type}")
         };
 
@@ -86,7 +113,7 @@ internal sealed class ScriptClass
                      .Where(field => !field.IsInitOnly)
                      .OrderBy(field => field.MetadataToken)
                      .DistinctBy(field => field.Name)
-                     .Select(field => ScriptField.TypeOf(field.FieldType) is { } fieldType ? new ScriptField(field, fieldType) : null)
+                     .Select(ScriptField.TryCreate)
                      .OfType<ScriptField>()
                      .ToArray();
 

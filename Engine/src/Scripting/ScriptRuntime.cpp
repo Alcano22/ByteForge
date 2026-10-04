@@ -20,7 +20,7 @@ namespace ByteForge
             for (const ScriptFieldInfo& field : backend.GetFields(className))
             {
                 const auto it = component.Fields.find(field.Name);
-                if (it == component.Fields.end() || GetFieldType(it->second) != field.Type) continue;
+                if (it == component.Fields.end() || !IsCompatible(it->second, field)) continue;
 
                 if (!script.SetField(field.Name, it->second))
                     CORE_WARN("Could not set field '{}' of script '{}'", field.Name, className);

@@ -5,6 +5,8 @@
 
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Scene/Entity.h>
+#include <Engine/Scene/Scene.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
@@ -18,6 +20,7 @@
 #include <string_view>
 #include <vector>
 #include <format>
+#include <cstring>
 
 namespace ByteForge::EditorUI
 {
@@ -478,6 +481,64 @@ namespace ByteForge::EditorUI
 
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
         ImGui::TextUnformatted(label);
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool EntityReferenceField(const char* label, EntityRef& reference, Scene& scene)
+    {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        const Entity target = reference.IsSet() ? scene.FindEntityByUUID(reference.Id) : Entity{};
+        const bool missing = reference.IsSet() && !target.IsValid();
+        const std::string preview = !reference.IsSet() ? "None" : missing ? "Missing entity" : target.GetTag();
+
+        if (missing)
+            ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
+        const bool open = ImGui::BeginCombo(label, preview.c_str());
+        if (missing)
+            ImGui::PopStyleColor();
+
+        if (open)
+        {
+            if (ImGui::Selectable("None", !reference.IsSet()) && reference.IsSet())
+            {
+                reference = {};
+                changed = true;
+            }
+
+            scene.Each<TagComponent>([&](const Entity entity, const TagComponent& tag)
+            {
+                const auto id = static_cast<uint64_t>(entity.GetUUID());
+                ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
+
+                const bool selected = target == entity;
+                if (ImGui::Selectable(tag.Tag.c_str(), selected) && !selected)
+                {
+                    reference.Id = entity.GetUUID();
+                    changed = true;
+                }
+
+                ImGui::PopID();
+            });
+
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EntityPayloadType);
+                payload != nullptr && payload->DataSize == static_cast<int>(sizeof(uint64_t)))
+            {
+                uint64_t id = 0;
+                std::memcpy(&id, payload->Data, sizeof(id));
+                reference.Id = UUID(id);
+                changed = true;
+            }
+            ImGui::EndDragDropTarget();
+        }
 
         ImGui::PopID();
         return changed;

@@ -6,6 +6,7 @@
 #include <Engine/Assets/TextureAsset.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
+#include <Engine/Scripting/ScriptField.h>
 
 #include <imgui.h>
 #include <magic_enum/magic_enum.hpp>
@@ -20,11 +21,14 @@
 namespace ByteForge::EditorUI
 {
     inline constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
+    inline constexpr const char* EntityPayloadType = "ByteForge.Entity";
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);
 
     bool AssetReferenceField(const char* label, AssetType type, UUID& handle,
                              Selection& selection, const char* noneText = "None");
+
+    bool EntityReferenceField(const char* label, EntityRef& reference, Scene& scene);
 
     bool IconButton(const char* id, const Ref<Texture2D>& icon, bool active = false);
 

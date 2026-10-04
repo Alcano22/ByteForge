@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Engine/Assets/AssetType.h"
+#include "Engine/Scene/UUID.h"
+
 #include <glm/glm.hpp>
 
 #include <array>
@@ -12,9 +15,34 @@
 
 namespace ByteForge
 {
-    enum class ScriptFieldType : uint8_t { Bool, Int, Float, Double, Vector2, Vector3, Vector4 };
+    struct EntityRef
+    {
+        UUID Id{ 0 };
 
-    using ScriptValue = std::variant<bool, int, float, double, glm::vec2, glm::vec3, glm::vec4>;
+        [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Id) != 0; }
+
+        [[nodiscard]] bool operator==(const EntityRef& other) const
+        {
+            return static_cast<uint64_t>(Id) == static_cast<uint64_t>(other.Id);
+        }
+    };
+
+    struct AssetRef
+    {
+        AssetType Type = AssetType::None;
+        UUID Handle{ 0 };
+
+        [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Handle) != 0; }
+
+        [[nodiscard]] bool operator==(const AssetRef& other)
+        {
+            return Type == other.Type && static_cast<uint64_t>(Handle) == static_cast<uint64_t>(other.Handle);
+        }
+    };
+
+    enum class ScriptFieldType : uint8_t { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset };
+
+    using ScriptValue = std::variant<bool, int, float, double, glm::vec2, glm::vec3, glm::vec4, EntityRef, AssetRef>;
 
     inline constexpr size_t ScriptFieldTypeCount = std::variant_size_v<ScriptValue>;
 
@@ -26,7 +54,7 @@ namespace ByteForge
     namespace Detail
     {
         inline constexpr std::array<std::string_view, ScriptFieldTypeCount> ScriptFieldTypeNames{
-            "Bool", "Int", "Float", "Double", "Vector2", "Vector3", "Vector4"
+            "Bool", "Int", "Float", "Double", "Vector2", "Vector3", "Vector4", "Entity", "Asset"
         };
     }
 
@@ -51,4 +79,14 @@ namespace ByteForge
         ScriptFieldType Type = ScriptFieldType::Float;
         ScriptValue Default;
     };
+
+    [[nodiscard]] inline bool IsCompatible(const ScriptValue& value, const ScriptFieldInfo& field)
+    {
+        if (GetFieldType(value) != field.Type)
+            return false;
+
+        const auto* asset = std::get_if<AssetRef>(&value);
+        const auto* expected = std::get_if<AssetRef>(&field.Default);
+        return asset == nullptr || (expected != nullptr && asset->Type == expected->Type);
+    }
 }

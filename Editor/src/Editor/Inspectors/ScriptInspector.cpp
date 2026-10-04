@@ -80,7 +80,7 @@ namespace ByteForge::EditorUI
             return dropped;
         }
 
-        bool EditScriptValue(const char* label, ScriptValue& value)
+        bool EditScriptValue(const char* label, ScriptValue& value, Scene& scene, Selection& selection)
         {
             return std::visit(Overloaded{
                 [&](bool& v)      { return ImGui::Checkbox(label, &v); },
@@ -89,7 +89,9 @@ namespace ByteForge::EditorUI
                 [&](double& v)    { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
                 [&](glm::vec2& v) { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
                 [&](glm::vec3& v) { return ImGui::DragFloat3(label, glm::value_ptr(v), 0.1f); },
-                [&](glm::vec4& v) { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); }
+                [&](glm::vec4& v) { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); },
+                [&](EntityRef& v) { return EntityReferenceField(label, v, scene); },
+                [&](AssetRef& v)  { return AssetReferenceField(label, v.Type, v.Handle, selection); }
             }, value);
         }
 
@@ -132,28 +134,30 @@ namespace ByteForge::EditorUI
                 ImGui::TextColored(ErrorColor, "Class '%s' not found", script.ClassName.c_str());
         }
 
-        void DrawLiveField(ScriptInstance* live, const ScriptFieldInfo& field, const char* label)
+        void DrawLiveField(ScriptInstance* live, const ScriptFieldInfo& field, const char* label,
+                           Scene& scene, Selection& selection)
         {
             if (std::optional<ScriptValue> value = live != nullptr ? live->GetField(field.Name) : std::nullopt)
             {
-                if (EditScriptValue(label, *value))
+                if (EditScriptValue(label, *value, scene, selection))
                     live->SetField(field.Name, *value);
                 return;
             }
 
             ScriptValue fallback = field.Default;
             ImGui::BeginDisabled();
-            EditScriptValue(label, fallback);
+            EditScriptValue(label, fallback, scene, selection);
             ImGui::EndDisabled();
         }
 
-        void DrawStoredField(ScriptComponent& script, const ScriptFieldInfo& field, const char* label)
+        void DrawStoredField(ScriptComponent& script, const ScriptFieldInfo& field, const char* label,
+                             Scene& scene, Selection& selection)
         {
             const auto it = script.Fields.find(field.Name);
-            const bool overridden = it != script.Fields.end() && GetFieldType(it->second) == field.Type;
+            const bool overridden = it != script.Fields.end() && IsCompatible(it->second, field);
 
             ScriptValue value = overridden ? it->second : field.Default;
-            if (EditScriptValue(label, value))
+            if (EditScriptValue(label, value, scene, selection))
                 script.Fields.insert_or_assign(field.Name, std::move(value));
 
             if (ImGui::BeginPopupContextItem("##FieldMenu"))
@@ -164,7 +168,7 @@ namespace ByteForge::EditorUI
             }
         }
 
-        void DrawFields(const Entity entity, ScriptComponent& script)
+        void DrawFields(const Entity entity, ScriptComponent& script, Selection& selection)
         {
             const std::span<const ScriptFieldInfo> fields = ScriptEngine::Get().GetFields(script.ClassName);
             if (fields.empty()) return;
@@ -180,19 +184,19 @@ namespace ByteForge::EditorUI
                 const std::string label = NicifyString(field.Name);
 
                 if (scene.IsRunning())
-                    DrawLiveField(live, field, label.c_str());
+                    DrawLiveField(live, field, label.c_str(), scene, selection);
                 else
-                    DrawStoredField(script, field, label.c_str());
+                    DrawStoredField(script, field, label.c_str(), scene, selection);
 
                 ImGui::PopID();
             }
         }
     }
 
-    void DrawScriptComponentInspector(const Entity entity, ScriptComponent& script)
+    void DrawScriptComponentInspector(const Entity entity, ScriptComponent& script, Selection& selection)
     {
         DrawClassPicker(script);
-        DrawFields(entity, script);
+        DrawFields(entity, script, selection);
     }
 
     void DrawScriptDropZone(const Entity entity)
