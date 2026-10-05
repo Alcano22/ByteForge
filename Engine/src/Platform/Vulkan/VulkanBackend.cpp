@@ -12,6 +12,8 @@
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanRenderTarget.h"
 #include "Platform/Vulkan/VulkanImGuiRenderer.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
+#include "Platform/Vulkan/VulkanHelpers.h"
 
 namespace ByteForge
 {
@@ -96,5 +98,10 @@ namespace ByteForge
     uint64_t VulkanContext::GetFrameNumber() const
     {
         return m_FrameData->GetFrameNumber();
+    }
+
+    bool VulkanContext::IsSwapchainSrgb() const
+    {
+        return IsSrgbFormat(m_Swapchain->GetImageFormat());
     }
 }

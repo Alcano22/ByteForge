@@ -58,7 +58,6 @@ namespace ByteForge::GraphTheme
     void ApplyStyle()
     {
         NE::Style& style = NE::GetStyle();
-        style.NodePadding = ImVec4(10.0f, 6.0f, 10.0f, 8.0f);
         style.NodeRounding = 6.0f;
         style.NodeBorderWidth = 1.0f;
         style.NodePadding = ImVec4(0.0f, 6.0f, 0.0f, 8.0f);

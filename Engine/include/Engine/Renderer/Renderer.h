@@ -46,5 +46,6 @@ namespace ByteForge
         static void WaitIdle();
 
         [[nodiscard]] static uint64_t GetFrameNumber();
+        [[nodiscard]] static bool IsSrgb(ImageFormat format);
     };
 }

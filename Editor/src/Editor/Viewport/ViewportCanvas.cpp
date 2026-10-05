@@ -29,7 +29,7 @@ namespace ByteForge
         m_LineRenderer = MakeScope<LineRenderer>(LineRendererSpec{
             .ColorFormat    = ColorFormat,
             .DepthFormat    = DepthFormat,
-            .EntityIdFormat = EntityIdFormat
+            .EntityIdFormat = idFormat
         });
 
         EnsureTargetSize();

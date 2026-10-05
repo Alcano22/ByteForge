@@ -54,7 +54,7 @@ namespace ByteForge
         if (spec.MaxLines == 0)
             throw std::runtime_error("LineRendererSpec::MaxLines must be at least 1");
 
-        m_LinearizeColors = spec.ColorFormat == ImageFormat::RGBA8_SRGB;
+        m_LinearizeColors = Renderer::IsSrgb(spec.ColorFormat);
 
         const BufferLayout layout = {
             { ShaderDataType::Float3, "Position" },

@@ -56,6 +56,7 @@ namespace ByteForge
         virtual void OnFramebufferResized() = 0;
         virtual void WaitIdle() = 0;
         [[nodiscard]] virtual uint64_t GetFrameNumber() const = 0;
+        [[nodiscard]] virtual bool IsSwapchainSrgb() const = 0;
 
         [[nodiscard]] static RenderBackend& Get();
         [[nodiscard]] static RenderBackend* TryGet() { return s_Active; }

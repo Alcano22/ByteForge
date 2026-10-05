@@ -65,6 +65,7 @@ namespace ByteForge
         void OnFramebufferResized() override { m_FramebufferResized = true; }
         void WaitIdle() override;
         [[nodiscard]] uint64_t GetFrameNumber() const override;
+        [[nodiscard]] bool IsSwapchainSrgb() const override;
 
         [[nodiscard]] VkInstance GetInstanceHandle() const { return m_Instance->GetHandle(); }
         [[nodiscard]] VulkanDevice& GetDevice() const { return *m_Device; }

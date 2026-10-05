@@ -110,7 +110,7 @@ namespace ByteForge
                                                  maxSupportedQuads));
         }
 
-        m_LinearizeColors = spec.ColorFormat == ImageFormat::RGBA8_SRGB;
+        m_LinearizeColors = Renderer::IsSrgb(spec.ColorFormat);
 
         const BufferLayout layout = {
             { ShaderDataType::Float3, "Position" },

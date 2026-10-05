@@ -109,7 +109,7 @@ namespace ByteForge
             data.FramebufferWidth = static_cast<uint32_t>(width);
             data.FramebufferHeight = static_cast<uint32_t>(height);
 
-            FramebufferResizedEvent event(data.Width, data.Height);
+            FramebufferResizedEvent event(data.FramebufferWidth, data.FramebufferHeight);
             data.EventCallback(event);
         });
 

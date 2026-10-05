@@ -101,6 +101,8 @@ namespace ByteForge
         }
     }
 
+    bool IsSrgbFormat(const VkFormat format) { return ToUnormEquivalent(format) != format; }
+
     bool IsIntegerFormat(const VkFormat format) { return format == VK_FORMAT_R32_UINT; }
 
     void CmdImageBarrier(const VkCommandBuffer commandBuffer, const VkImage image,
