@@ -1,7 +1,7 @@
 function(byteforge_copy_directory target source destination)
     cmake_parse_arguments(PARSE_ARGV 3 ARG "" "" "DEPENDS")
 
-    get_filename_component(name "${source}" NAME)
+    get_filename_component(name "${destination}" NAME)
     set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}_${name}.stamp")
 
     if (ARG_DEPENDS)

@@ -1,6 +1,7 @@
 #include "Engine/Renderer/LineRenderer.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Renderer/ColorSpace.h"
+#include "Renderer/BuiltinShaders.h"
 
 #include <array>
 #include <cmath>
@@ -9,43 +10,6 @@
 
 namespace ByteForge
 {
-    namespace
-    {
-        constexpr const char* VertexSource = R"(
-            cbuffer CameraUBO : register(b0)
-            {
-                float4x4 u_ViewProjection;
-            };
-
-            struct VSInput
-            {
-                float3 Position : POSITION;
-                float4 Color    : COLOR;
-            };
-
-            struct VSOutput
-            {
-                float4 Position : SV_Position;
-                float4 Color    : COLOR;
-            };
-
-            VSOutput main(VSInput input)
-            {
-                VSOutput output;
-                output.Position = mul(u_ViewProjection, float4(input.Position, 1.0));
-                output.Color = input.Color;
-                return output;
-            }
-        )";
-
-        constexpr const char* FragmentSource = R"(
-            float4 main(float4 color : COLOR) : SV_Target
-            {
-                return color;
-            }
-        )";
-    }
-
     LineRenderer::LineRenderer(const LineRendererSpec& spec)
         : m_Spec(spec)
     {
@@ -71,7 +35,7 @@ namespace ByteForge
             attachments.push_back({ .Format = spec.EntityIdFormat, .WriteEnabled = false });
 
         m_Pipeline = Pipeline::Create({
-            .Shader           = Shader::Create(VertexSource, FragmentSource),
+            .Shader           = Shader::Load(GetBuiltinShaderPath("Line.hlsl")),
             .VertexLayout     = layout,
             .Topology         = PrimitiveTopology::LineList,
             .ColorAttachments = std::move(attachments),

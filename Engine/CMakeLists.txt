@@ -168,3 +168,13 @@ set_target_properties(Engine PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
 )
+
+set(BYTEFORGE_ENGINE_RESOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources
+        CACHE INTERNAL "${CMAKE_CURRENT_BINARY_DIR}/${target}_${name}.stamp")
+
+function(byteforge_add_engine_resources target)
+    byteforge_copy_directory(${target}
+            ${BYTEFORGE_ENGINE_RESOURCE_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/engine
+    )
+endfunction()

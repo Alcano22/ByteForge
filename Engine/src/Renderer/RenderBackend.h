@@ -13,6 +13,7 @@
 #include "Engine/Renderer/Shader.h"
 #include "Engine/Renderer/Texture2D.h"
 #include "Engine/Renderer/UniformBuffer.h"
+#include "Renderer/ShaderSource.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -33,6 +34,7 @@ namespace ByteForge
 
         [[nodiscard]] virtual Ref<Shader> CreateShader(const std::string& vertexSource,
                                                        const std::string& fragmentSource) = 0;
+        [[nodiscard]] virtual Ref<Shader> CreateShader(const ShaderSource& source) = 0;
 
         [[nodiscard]] virtual Ref<Pipeline> CreatePipeline(const PipelineSpec& spec) = 0;
 

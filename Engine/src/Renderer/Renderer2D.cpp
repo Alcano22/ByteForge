@@ -1,12 +1,14 @@
 #include "Engine/Renderer/Renderer2D.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Renderer/ColorSpace.h"
+#include "Renderer/BuiltinShaders.h"
 
 #include <array>
 #include <format>
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <string>
 
 namespace ByteForge
 {
@@ -14,86 +16,6 @@ namespace ByteForge
     {
         constexpr glm::vec2 WholeTextureUVMin{ 0.0f, 0.0f };
         constexpr glm::vec2 WholeTextureUVMax{ 1.0f, 1.0f };
-
-        constexpr const char* VertexSource = R"(
-            cbuffer CameraUBO : register(b0)
-            {
-                float4x4 u_ViewProjection;
-            };
-
-            struct VSInput
-            {
-                float3 Position : POSITION;
-                float2 UV       : TEXCOORD0;
-                float4 Color    : COLOR;
-                uint   EntityId : ENTITYID;
-            };
-
-            struct VSOutput
-            {
-                float4 Position               : SV_Position;
-                float2 UV                     : TEXCOORD0;
-                float4 Color                  : COLOR;
-                nointerpolation uint EntityId : ENTITYID;
-            };
-
-            VSOutput main(VSInput input)
-            {
-                VSOutput output;
-                output.Position = mul(u_ViewProjection, float4(input.Position, 1.0));
-                output.UV = input.UV;
-                output.Color = input.Color;
-                output.EntityId = input.EntityId;
-                return output;
-            }
-        )";
-
-        constexpr const char* FragmentSource = R"(
-            [[vk::binding(0, 1)]] Texture2D u_Texture;
-            [[vk::binding(1, 1)]] SamplerState u_TextureSampler;
-
-            struct PSInput
-            {
-                float2 UV                     : TEXCOORD0;
-                float4 Color                  : COLOR;
-                nointerpolation uint EntityId : ENTITYID;
-            };
-
-            float4 main(PSInput input) : SV_Target
-            {
-                return u_Texture.Sample(u_TextureSampler, input.UV) * input.Color;
-            }
-        )";
-
-        constexpr const char* EntityIdFragmentSource = R"(
-            [[vk::binding(0, 1)]] Texture2D u_Texture;
-            [[vk::binding(1, 1)]] SamplerState u_TextureSampler;
-
-            struct PSInput
-            {
-                float2 UV                     : TEXCOORD0;
-                float4 Color                  : COLOR;
-                nointerpolation uint EntityId : ENTITYID;
-            };
-
-            struct PSOutput
-            {
-                float4 Color    : SV_Target0;
-                uint   EntityId : SV_Target1;
-            };
-
-            PSOutput main(PSInput input)
-            {
-                PSOutput output;
-                output.Color = u_Texture.Sample(u_TextureSampler, input.UV) * input.Color;
-
-                if (output.Color.a < 0.01)
-                    discard;
-
-                output.EntityId = input.EntityId;
-                return output;
-            }
-        )";
     }
 
     Renderer2D::Renderer2D(const Renderer2DSpec& spec)
@@ -143,9 +65,12 @@ namespace ByteForge
         if (writesEntityIds)
             attachments.push_back({ .Format = spec.EntityIdFormat });
 
-        const auto shader = Shader::Create(VertexSource, writesEntityIds ? EntityIdFragmentSource : FragmentSource);
+        std::vector<std::string> defines;
+        if (writesEntityIds)
+            defines.emplace_back("ENTITY_ID");
+
         m_Pipeline = Pipeline::Create({
-            .Shader           = shader,
+            .Shader           = Shader::Load(GetBuiltinShaderPath("Renderer2D.hlsl"), std::move(defines)),
             .VertexLayout     = layout,
             .ColorAttachments = std::move(attachments),
             .DepthFormat      = spec.DepthFormat,

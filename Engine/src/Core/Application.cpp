@@ -119,13 +119,6 @@ namespace ByteForge
             return true;
         });
 
-        dispatcher.Dispatch<FramebufferResizedEvent>([](const FramebufferResizedEvent& e)
-        {
-            CORE_INFO("Window resized to {}x{}", e.GetWidth(), e.GetHeight());
-            Renderer::OnFramebufferResized();
-            return false;
-        });
-
         if (m_ImGuiLayer && IsCapturedByImGui(event)) return;
 
         for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)

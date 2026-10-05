@@ -5,12 +5,15 @@
 #include "Platform/Vulkan/VulkanShaderCompiler.h"
 #include "Platform/Vulkan/VulkanShader.h"
 #include "Engine/Core/Log.h"
+#include "Renderer/ShaderSource.h"
 
 #include <directx-dxc/dxcapi.h>
 
 #include <stdexcept>
 #include <format>
 #include <string>
+#include <filesystem>
+#include <vector>
 
 namespace ByteForge
 {
@@ -33,6 +36,16 @@ namespace ByteForge
                 throw std::runtime_error("Failed to create DXC instance");
 
             return ComScope<T>(raw, ComDeleter<T>{});
+        }
+
+        const wchar_t* TargetProfile(const ShaderStage stage)
+        {
+            return stage == ShaderStage::Vertex ? L"vs_6_0" : L"ps_6_0";
+        }
+
+        const char* StageName(const ShaderStage stage)
+        {
+            return stage == ShaderStage::Vertex ? "vertex" : "fragment";
         }
     }
 
@@ -65,22 +78,49 @@ namespace ByteForge
 
     VulkanShaderCompiler::~VulkanShaderCompiler() = default;
 
-    std::vector<uint32_t> VulkanShaderCompiler::Compile(const std::string& source, const ShaderStage stage,
+    std::vector<uint32_t> VulkanShaderCompiler::Compile(const ShaderSource& source, const ShaderStage stage,
                                                         const std::string& entryPoint) const
     {
-        const wchar_t* targetProfile = (stage == ShaderStage::Vertex) ? L"vs_6_0" : L"ps_6_0";
+        const bool fromFile = !source.Path.empty();
+
         const std::wstring wEntryPoint(entryPoint.begin(), entryPoint.end());
 
-        std::vector<LPCWSTR> arguments = {
+        const std::wstring path = source.Path.wstring();
+
+        const std::filesystem::path directory = source.Path.parent_path();
+        const std::wstring includeDirectory = directory.empty() ? std::wstring(L".") : directory.wstring();
+
+        std::vector<std::wstring> defines;
+        defines.reserve(source.Defines.size());
+        for (const std::string& define : source.Defines)
+            defines.emplace_back(define.begin(), define.end());
+
+        std::vector<LPCWSTR> arguments;
+        if (fromFile)
+            arguments.push_back(path.c_str());
+
+        arguments.insert(arguments.end(), {
             L"-E", wEntryPoint.c_str(),
-            L"-T", targetProfile,
+            L"-T", TargetProfile(stage),
             L"-spirv",
             L"-fspv-target-env=vulkan1.3"
-        };
+        });
+
+        if (fromFile)
+        {
+            arguments.push_back(L"-I");
+            arguments.push_back(includeDirectory.c_str());
+        }
+
+        for (const std::wstring& define : defines)
+        {
+            arguments.push_back(L"-D");
+            arguments.push_back(define.c_str());
+        }
 
         const DxcBuffer sourceBuffer{
-            .Ptr = source.data(),
-            .Size = source.size(),
+            .Ptr      = source.Code.data(),
+            .Size     = source.Code.size(),
             .Encoding = DXC_CP_UTF8
         };
 
@@ -105,8 +145,11 @@ namespace ByteForge
         HRESULT compileStatus = S_OK;
         result->GetStatus(&compileStatus);
         if (FAILED(compileStatus))
-            throw std::runtime_error(std::format("{} shader failed to compile:\n{}",
-                                                 stage == ShaderStage::Vertex ? "Vertex" : "Fragment", errorText));
+        {
+            const std::string name = fromFile ? source.Path.filename().string() : std::string("<inline>");
+            throw std::runtime_error(std::format("Shader '{}' failed to compile its {} stage ({}):\n{}",
+                                                 name, StageName(stage), entryPoint, errorText));
+        }
 
         if (!errorText.empty())
             CORE_WARN("[DXC] {}", errorText);

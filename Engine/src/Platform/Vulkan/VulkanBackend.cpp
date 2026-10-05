@@ -42,6 +42,11 @@ namespace ByteForge
         return MakeVulkanObject<Shader, VulkanShaderProgram>(vertexSource, fragmentSource);
     }
 
+    Ref<Shader> VulkanContext::CreateShader(const ShaderSource& source)
+    {
+        return MakeVulkanObject<Shader, VulkanShaderProgram>(source);
+    }
+
     Ref<Pipeline> VulkanContext::CreatePipeline(const PipelineSpec& spec)
     {
         return MakeVulkanObject<Pipeline, VulkanPipeline>(spec);

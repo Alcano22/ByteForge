@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <array>
 #include <format>
-#include <span>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -324,13 +323,13 @@ namespace ByteForge
                 .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                 .stage  = VK_SHADER_STAGE_VERTEX_BIT,
                 .module = shader.GetVertexModule(),
-                .pName  = "main"
+                .pName  = shader.GetVertexEntryPoint().c_str()
             },
             VkPipelineShaderStageCreateInfo{
                 .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                 .stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
                 .module = shader.GetFragmentModule(),
-                .pName  = "main"
+                .pName  = shader.GetFragmentEntryPoint().c_str()
             }
         };
 

@@ -42,6 +42,7 @@ namespace ByteForge
 
         [[nodiscard]] Ref<Shader> CreateShader(const std::string& vertexSource,
                                                const std::string& fragmentSource) override;
+        [[nodiscard]] Ref<Shader> CreateShader(const ShaderSource& source) override;
 
         [[nodiscard]] Ref<Pipeline> CreatePipeline(const PipelineSpec& spec) override;
 

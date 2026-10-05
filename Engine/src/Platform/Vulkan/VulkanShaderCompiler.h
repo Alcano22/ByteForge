@@ -9,6 +9,8 @@
 
 namespace ByteForge
 {
+    struct ShaderSource;
+
     class VulkanShaderCompiler
     {
     public:
@@ -19,8 +21,8 @@ namespace ByteForge
         VulkanShaderCompiler(VulkanShaderCompiler&&) = delete;
         VulkanShaderCompiler& operator=(VulkanShaderCompiler&&) = delete;
 
-        [[nodiscard]] std::vector<uint32_t> Compile(const std::string& source, ShaderStage stage,
-                                                    const std::string& entryPoint = "main") const;
+        [[nodiscard]] std::vector<uint32_t> Compile(const ShaderSource& source, ShaderStage stage,
+                                                    const std::string& entryPoint) const;
 
     private:
         VulkanShaderCompiler();

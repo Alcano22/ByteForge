@@ -81,3 +81,5 @@ byteforge_copy_directory(Editor
         ${CMAKE_CURRENT_BINARY_DIR}/ScriptCore
         DEPENDS ScriptCore ${CMAKE_BINARY_DIR}/ScriptCore/ScriptCore.dll
 )
+
+byteforge_add_engine_resources(Editor)

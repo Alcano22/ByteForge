@@ -2,17 +2,19 @@
 #include "Platform/Vulkan/VulkanShaderCompiler.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
+#include "Renderer/ShaderSource.h"
 #include "Engine/Core/Log.h"
 
+#include <utility>
 #include <vector>
 
 namespace ByteForge
 {
-    VulkanShader::VulkanShader(const VulkanDevice& device, const std::string& source,
-                               const ShaderStage stage, const std::string& entryPoint)
-        : m_Device(device)
+    VulkanShader::VulkanShader(const VulkanDevice& device, const ShaderSource& source,
+                               const ShaderStage stage, std::string entryPoint)
+        : m_Device(device), m_EntryPoint(std::move(entryPoint))
     {
-        const std::vector<uint32_t> spirv = VulkanShaderCompiler::Get().Compile(source, stage, entryPoint);
+        const std::vector<uint32_t> spirv = VulkanShaderCompiler::Get().Compile(source, stage, m_EntryPoint);
         m_Reflection = ShaderReflection::Reflect(spirv, stage);
 
         const VkShaderModuleCreateInfo createInfo{
@@ -23,7 +25,9 @@ namespace ByteForge
 
         VK_CHECK(vkCreateShaderModule(m_Device.GetHandle(), &createInfo, nullptr, &m_Module));
 
-        CORE_INFO("Vulkan shader module created ({} bytes SPIR-V)", createInfo.codeSize);
+        CORE_TRACE("Shader module created for '{}' ({}, {} bytes SPIR-V)",
+                   source.Path.empty() ? std::string("<inline>") : source.Path.filename().string(),
+                   m_EntryPoint, createInfo.codeSize);
     }
 
     VulkanShader::~VulkanShader()

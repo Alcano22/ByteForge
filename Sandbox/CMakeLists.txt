@@ -3,3 +3,5 @@ add_executable(Sandbox
 )
 
 target_link_libraries(Sandbox PRIVATE Engine ByteForgeWarnings)
+
+byteforge_add_engine_resources(Sandbox)
