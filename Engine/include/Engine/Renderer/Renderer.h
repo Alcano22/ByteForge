@@ -6,6 +6,7 @@
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/RenderTarget.h"
 #include "Engine/Renderer/DrawRange.h"
+#include "Engine/Renderer/SceneLighting.h"
 
 #include <cstddef>
 #include <span>
@@ -18,7 +19,7 @@ namespace ByteForge
     public:
         static void BeginFrame();
 
-        static void BeginScene(const Camera& camera);
+        static void BeginScene(const Camera& camera, const SceneLighting& lighting = {});
 
         static void Submit(const Ref<Material>& material, const Ref<Mesh>& mesh, const DrawRange& range = {})
         {

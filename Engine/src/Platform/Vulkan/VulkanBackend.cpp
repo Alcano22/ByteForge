@@ -74,7 +74,7 @@ namespace ByteForge
         return MakeScope<VulkanImGuiRenderer>();
     }
 
-    void VulkanContext::BeginScene(const CameraUniforms& uniforms)
+    void VulkanContext::BeginScene(const SceneUniforms& uniforms)
     {
         m_FrameData->BeginScene(uniforms);
     }

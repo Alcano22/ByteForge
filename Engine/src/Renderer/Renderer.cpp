@@ -1,6 +1,8 @@
 #include "Engine/Renderer/Renderer.h"
 #include "RenderBackend.h"
 
+#include <glm/glm.hpp>
+
 #include <stdexcept>
 
 namespace ByteForge
@@ -8,9 +10,19 @@ namespace ByteForge
     void Renderer::BeginFrame() { RenderBackend::Get().BeginFrame(); }
     void Renderer::EndFrame() { RenderBackend::Get().EndFrame(); }
 
-    void Renderer::BeginScene(const Camera& camera)
+    void Renderer::BeginScene(const Camera& camera, const SceneLighting& lighting)
     {
-        RenderBackend::Get().BeginScene({ .ViewProjection = camera.GetViewProjection() });
+        const glm::vec3& sunDirection = lighting.Sun.Direction;
+        const glm::vec3 direction = glm::dot(sunDirection, sunDirection) > 0.0f ? glm::normalize(sunDirection)
+                                                                                : glm::vec3(0.0f, -1.0f, 0.0f);
+
+        RenderBackend::Get().BeginScene({
+            .ViewProjection = camera.GetViewProjection(),
+            .CameraPosition = glm::vec4(camera.GetPosition(), 1.0f),
+            .LightDirection = glm::vec4(direction, 0.0f),
+            .LightColor     = glm::vec4(lighting.Sun.Color * lighting.Sun.Intensity, 0.0f),
+            .AmbientColor   = glm::vec4(lighting.Ambient, 0.0f)
+        });
     }
 
     void Renderer::SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,

@@ -1,4 +1,4 @@
-#include "Camera.hlsl"
+#include "Scene.hlsl"
 
 [[vk::binding(0, 1)]] Texture2D u_Texture;
 [[vk::binding(1, 1)]] SamplerState u_TextureSampler;

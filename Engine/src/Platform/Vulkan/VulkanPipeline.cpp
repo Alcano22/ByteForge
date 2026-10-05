@@ -8,7 +8,7 @@
 #include "Platform/Vulkan/VulkanDescriptorAllocator.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Core/Log.h"
-#include "Engine/Renderer/CameraUniforms.h"
+#include "Engine/Renderer/SceneUniforms.h"
 
 #include <algorithm>
 #include <array>
@@ -122,17 +122,17 @@ namespace ByteForge
                 {
                     if (binding.Binding == 0 && binding.Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                     {
-                        if (binding.Size > sizeof(CameraUniforms))
+                        if (binding.Size > sizeof(SceneUniforms))
                         {
                             throw std::runtime_error(std::format(
                                 "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
-                                "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(CameraUniforms)));
+                                "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(SceneUniforms)));
                         }
                         continue;
                     }
 
                     throw std::runtime_error(std::format(
-                        "Unsupported shader resource '{}' ({}, set 0, binding {}): set 0 only holds the camera "
+                        "Unsupported shader resource '{}' ({}, set 0, binding {}): set 0 only holds the scene "
                         "uniform buffer at binding 0", binding.Name, DescriptorTypeName(binding.Type), binding.Binding));
                 }
 

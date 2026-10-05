@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Renderer/RenderBackend.h"
+#include "Renderer/RenderBackend.h"
 
 #include <vulkan/vulkan.h>
 
@@ -58,7 +58,7 @@ namespace ByteForge
 
         void BeginFrame() override;
         void EndFrame() override;
-        void BeginScene(const CameraUniforms& uniforms) override;
+        void BeginScene(const SceneUniforms& uniforms) override;
         void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants,
                     const DrawRange& range) override;
         void BeginRenderTarget(const RenderTarget& target) override;

@@ -1,4 +1,4 @@
-#include "Camera.hlsl"
+#include "Scene.hlsl"
 
 struct VSInput
 {

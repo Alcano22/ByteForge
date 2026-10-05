@@ -3,7 +3,7 @@
 #include "Engine/Core/Core.h"
 #include "Engine/ImGui/ImGuiRenderer.h"
 #include "Engine/Renderer/Buffer.h"
-#include "Engine/Renderer/CameraUniforms.h"
+#include "Engine/Renderer/SceneUniforms.h"
 #include "Engine/Renderer/DrawRange.h"
 #include "Engine/Renderer/GraphicsContext.h"
 #include "Engine/Renderer/Material.h"
@@ -50,7 +50,7 @@ namespace ByteForge
 
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
-        virtual void BeginScene(const CameraUniforms& uniforms) = 0;
+        virtual void BeginScene(const SceneUniforms& uniforms) = 0;
         virtual void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants,
                             const DrawRange& range) = 0;
         virtual void BeginRenderTarget(const RenderTarget& target) = 0;

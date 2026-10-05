@@ -51,6 +51,9 @@ add_library(Engine SHARED
         src/Renderer/ImageDecoder.cpp
         src/Renderer/RenderBackend.cpp
         src/Renderer/LineRenderer.cpp
+        src/Renderer/PerspectiveCamera.cpp
+        src/Renderer/MeshPrimitives.cpp
+        src/Renderer/MeshRenderer.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp

@@ -2,7 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/NonCopyable.h"
-#include "Engine/Renderer/CameraUniforms.h"
+#include "Engine/Renderer/SceneUniforms.h"
 
 #include <vulkan/vulkan.h>
 
@@ -23,7 +23,7 @@ namespace ByteForge
 
         void BeginFrame();
 
-        void BeginScene(const CameraUniforms& uniforms);
+        void BeginScene(const SceneUniforms& uniforms);
 
         [[nodiscard]] VkDescriptorSetLayout GetLayoutHandle() const;
         [[nodiscard]] VkDescriptorSet GetSet(uint32_t frameIndex) const;
@@ -31,7 +31,7 @@ namespace ByteForge
         [[nodiscard]] uint64_t GetFrameNumber() const { return m_FrameNumber; }
 
     private:
-        void WriteCurrentScene(const CameraUniforms& uniforms) const;
+        void WriteCurrentScene(const SceneUniforms& uniforms) const;
 
     public:
         static constexpr uint32_t MaxScenesPerFrame = 128;
