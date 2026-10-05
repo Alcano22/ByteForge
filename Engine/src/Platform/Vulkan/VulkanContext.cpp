@@ -69,7 +69,7 @@ namespace ByteForge
         m_Allocator = MakeScope<VulkanAllocator>(m_Instance->GetHandle(), *m_Device);
         m_Uploader = MakeScope<VulkanUploader>(*m_Device, *m_Allocator);
         m_DescriptorAllocator = MakeScope<VulkanDescriptorAllocator>(*m_Device);
-        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle);
+        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, *m_Allocator, m_Surface, m_WindowHandle);
         m_CommandPool = MakeScope<VulkanCommandPool>(*m_Device, MaxFramesInFlight);
         m_SyncObjects = MakeScope<VulkanSyncObjects>(*m_Device, MaxFramesInFlight,
                                                      static_cast<uint32_t>(m_Swapchain->GetImages().size()));
@@ -136,7 +136,8 @@ namespace ByteForge
 
         m_Device->WaitIdle();
 
-        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, m_Surface, m_WindowHandle, m_Swapchain->GetHandle());
+        m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, *m_Allocator, m_Surface,
+                                                 m_WindowHandle, m_Swapchain->GetHandle());
 
         m_SyncObjects->RecreateRenderFinished(static_cast<uint32_t>(m_Swapchain->GetImages().size()));
         m_Renderer->UpdateSwapchain(*m_Swapchain);

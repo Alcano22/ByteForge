@@ -23,6 +23,9 @@ namespace ByteForge
     {
         constexpr VkClearColorValue SwapchainClearColor{ .float32 = { 0.01f, 0.01f, 0.01f, 1.0f } };
 
+        constexpr VkPipelineStageFlags2 DepthStages = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+                                                    | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+
         DrawRange ResolveDrawRange(const DrawRange& range, const uint32_t available, const bool indexed)
         {
             const char* unit = indexed ? "indices" : "vertices";
@@ -105,6 +108,7 @@ namespace ByteForge
         m_FrameSkipped = false;
         m_ActivePass = Pass::None;
         m_SwapchainCleared = false;
+        m_SwapchainDepthCleared = false;
         m_ActiveTarget = nullptr;
         m_ActiveColorFormats.clear();
         m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
@@ -289,16 +293,23 @@ namespace ByteForge
                                     const DrawRange& range)
     {
         const VulkanPipeline& pipeline = material.GetVulkanPipeline();
+        const VkFormat depthFormat = pipeline.GetDepthFormat();
+        const bool wantsDepth = depthFormat != VK_FORMAT_UNDEFINED;
 
         if (m_ActivePass == Pass::None)
-            BeginSwapchainPass();
+            BeginSwapchainPass(wantsDepth);
+        else if (m_ActivePass == Pass::Swapchain && depthFormat != m_ActiveDepthFormat)
+        {
+            EndRendering();
+            BeginSwapchainPass(wantsDepth);
+        }
 
-        if (pipeline.GetColorFormats() != m_ActiveColorFormats || pipeline.GetDepthFormat() != m_ActiveDepthFormat)
+        if (pipeline.GetColorFormats() != m_ActiveColorFormats || depthFormat != m_ActiveDepthFormat)
         {
             throw std::runtime_error(std::format(
                 "Renderer::Submit: the pipeline renders into [{}] / {} (color / depth), but the active pass has "
                 "[{}] / {}; set PipelineSpec::ColorAttachments and DepthFormat to match the render target",
-                FormatList(pipeline.GetColorFormats()), VkFormatToString(pipeline.GetDepthFormat()),
+                FormatList(pipeline.GetColorFormats()), VkFormatToString(depthFormat),
                 FormatList(m_ActiveColorFormats), VkFormatToString(m_ActiveDepthFormat)));
         }
 
@@ -336,7 +347,7 @@ namespace ByteForge
             vkCmdDraw(m_CurrentCommandBuffer, range.Count, 1, range.First, 0);
     }
 
-    void VulkanRenderer::BeginSwapchainPass()
+    void VulkanRenderer::BeginSwapchainPass(const bool withDepth)
     {
         const bool resuming = m_SwapchainCleared;
         if (resuming)
@@ -345,19 +356,32 @@ namespace ByteForge
         const VkRenderingAttachmentInfo attachment = MakeColorAttachment(
             m_Swapchain->GetImageViews()[m_CurrentImageIndex],
             resuming ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR, SwapchainClearColor);
-        BeginRendering(m_Swapchain->GetExtent(), std::span(&attachment, 1));
+
+        VkImageView depthView = nullptr;
+        VkAttachmentLoadOp depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+        if (withDepth)
+        {
+            PrepareSwapchainDepth();
+            depthView = m_Swapchain->GetDepthView();
+            depthLoadOp = m_SwapchainDepthCleared ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
+            m_SwapchainDepthCleared = true;
+        }
+
+        BeginRendering(m_Swapchain->GetExtent(), std::span(&attachment, 1), depthView,
+                       depthLoadOp, VK_ATTACHMENT_STORE_OP_STORE);
 
         m_SwapchainCleared = true;
         m_ActivePass = Pass::Swapchain;
         m_ActiveColorFormats = { m_Swapchain->GetImageFormat() };
-        m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
+        m_ActiveDepthFormat = withDepth ? VulkanSwapchain::DepthFormat : VK_FORMAT_UNDEFINED;
     }
 
     void VulkanRenderer::EnsureSwapchainCleared()
     {
         if (m_SwapchainCleared) return;
 
-        BeginSwapchainPass();
+        BeginSwapchainPass(false);
         EndRendering();
     }
 
@@ -370,16 +394,30 @@ namespace ByteForge
                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
     }
 
+    void VulkanRenderer::PrepareSwapchainDepth() const
+    {
+        const VkImageLayout oldLayout = m_SwapchainDepthCleared ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+                                                                : VK_IMAGE_LAYOUT_UNDEFINED;
+
+        CmdImageBarrier(m_CurrentCommandBuffer, m_Swapchain->GetDepthImage(),
+                        oldLayout, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                        DepthStages, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                        DepthStages, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                                   | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                        VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
     void VulkanRenderer::BeginRendering(const VkExtent2D extent,
                                         const std::span<const VkRenderingAttachmentInfo> colorAttachments,
-                                        const VkImageView depthView)
+                                        const VkImageView depthView, const VkAttachmentLoadOp depthLoadOp,
+                                        const VkAttachmentStoreOp depthStoreOp)
     {
         const VkRenderingAttachmentInfo depthAttachment{
             .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView   = depthView,
             .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp     = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .loadOp      = depthLoadOp,
+            .storeOp     = depthStoreOp,
             .clearValue  = { .depthStencil = { .depth = 1.0f, .stencil = 0 } }
         };
 

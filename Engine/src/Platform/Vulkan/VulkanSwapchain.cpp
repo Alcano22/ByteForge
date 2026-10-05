@@ -1,6 +1,7 @@
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanHelpers.h"
+#include "Platform/Vulkan/VulkanAllocator.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/SwapchainSettings.h"
 
@@ -37,8 +38,9 @@ namespace ByteForge
         return details;
     }
 
-    VulkanSwapchain::VulkanSwapchain(const VulkanDevice& device, const VkSurfaceKHR surface,
-                                     GLFWwindow* windowHandle, const VkSwapchainKHR oldSwapchain)
+    VulkanSwapchain::VulkanSwapchain(const VulkanDevice& device, const VulkanAllocator& allocator,
+                                     const VkSurfaceKHR surface, GLFWwindow* windowHandle,
+                                     const VkSwapchainKHR oldSwapchain)
         : m_Device(device), m_Surface(surface)
     {
         const SwapchainSupportDetails support = QuerySwapchainSupport(m_Device.GetPhysicalDevice(), m_Surface);
@@ -104,7 +106,16 @@ namespace ByteForge
 
         CreateImageViews();
 
-        CORE_INFO("Vulkan swapchain created ({} images, {}x{})", actualImageCount, extent.width, extent.height);
+        m_DepthImage = MakeScope<VulkanImage>(m_Device, allocator, VulkanImageSpec{
+            .Width  = extent.width,
+            .Height = extent.height,
+            .Format = DepthFormat,
+            .Usage  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT
+        });
+
+        CORE_INFO("Vulkan swapchain created ({} images, {}x{}, depth {})",
+                  actualImageCount, extent.width, extent.height, VkFormatToString(DepthFormat));
     }
 
     VulkanSwapchain::~VulkanSwapchain()

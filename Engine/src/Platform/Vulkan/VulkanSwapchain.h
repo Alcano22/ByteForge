@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Engine/Core/Core.h"
 #include "Engine/Core/NonCopyable.h"
+#include "Platform/Vulkan/VulkanImage.h"
 
 #include <vulkan/vulkan.h>
 
@@ -22,8 +24,8 @@ namespace ByteForge
     class VulkanSwapchain : NonCopyable
     {
     public:
-        VulkanSwapchain(const VulkanDevice& device, VkSurfaceKHR surface, GLFWwindow* windowHandle,
-                        VkSwapchainKHR oldSwapchain = nullptr);
+        VulkanSwapchain(const VulkanDevice& device, const VulkanAllocator& allocator, VkSurfaceKHR surface,
+                        GLFWwindow* windowHandle, VkSwapchainKHR oldSwapchain = nullptr);
         ~VulkanSwapchain();
 
         [[nodiscard]] VkSwapchainKHR GetHandle() const { return m_Swapchain; }
@@ -34,6 +36,9 @@ namespace ByteForge
         [[nodiscard]] const std::vector<VkImageView>& GetImGuiImageViews() const { return m_ImGuiImageViews; }
         [[nodiscard]] VkExtent2D GetExtent() const { return m_Extent; }
 
+        [[nodiscard]] VkImage GetDepthImage() const { return m_DepthImage->GetHandle(); }
+        [[nodiscard]] VkImageView GetDepthView() const { return m_DepthImage->GetView(); }
+
         [[nodiscard]] static SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
     private:
@@ -42,6 +47,9 @@ namespace ByteForge
         [[nodiscard]] static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available);
         [[nodiscard]] static VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& available);
         [[nodiscard]] static VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* windowHandle);
+
+    public:
+        static constexpr VkFormat DepthFormat = VK_FORMAT_D32_SFLOAT;
 
     private:
         const VulkanDevice& m_Device;
@@ -54,5 +62,7 @@ namespace ByteForge
         std::vector<VkImageView> m_ImageViews;
         std::vector<VkImageView> m_ImGuiImageViews;
         VkExtent2D m_Extent{};
+
+        Scope<VulkanImage> m_DepthImage;
     };
 }

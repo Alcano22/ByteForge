@@ -54,12 +54,15 @@ namespace ByteForge
         void RecordDraw(const VulkanMaterial& material, std::span<const std::byte> pushConstants,
                         VkBuffer vertexBuffer, VkBuffer indexBuffer, const DrawRange& range);
 
-        void BeginSwapchainPass();
+        void BeginSwapchainPass(bool withDepth);
         void EnsureSwapchainCleared();
         void BarrierSwapchainWrites() const;
+        void PrepareSwapchainDepth() const;
 
         void BeginRendering(VkExtent2D extent, std::span<const VkRenderingAttachmentInfo> colorAttachments,
-                            VkImageView depthView = nullptr);
+                            VkImageView depthView = nullptr,
+                            VkAttachmentLoadOp depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                            VkAttachmentStoreOp depthStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE);
         void EndRendering();
 
     private:
@@ -77,6 +80,7 @@ namespace ByteForge
 
         Pass m_ActivePass = Pass::None;
         bool m_SwapchainCleared = false;
+        bool m_SwapchainDepthCleared = false;
         const VulkanRenderTarget* m_ActiveTarget = nullptr;
         std::vector<VkFormat> m_ActiveColorFormats;
         VkFormat m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
