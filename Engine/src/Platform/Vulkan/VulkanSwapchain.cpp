@@ -52,7 +52,8 @@ namespace ByteForge
         if (support.Capabilities.maxImageCount > 0)
             imageCount = std::min(imageCount, support.Capabilities.maxImageCount);
 
-        m_ImGuiImageFormat = ToUnormEquivalent(surfaceFormat.format);
+        m_ImGuiImageFormat = m_Device.SupportsSwapchainMutableFormat() ? ToUnormEquivalent(surfaceFormat.format)
+                                                                       : surfaceFormat.format;
         const bool needsMutableFormat = m_ImGuiImageFormat != surfaceFormat.format;
 
         const std::array<VkFormat, 2> viewFormats{ surfaceFormat.format, m_ImGuiImageFormat };

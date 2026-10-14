@@ -126,7 +126,7 @@ namespace ByteForge
                         {
                             throw std::runtime_error(std::format(
                                 "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
-                                "bytes (see CameraUniforms.h)", binding.Name, binding.Size, sizeof(SceneUniforms)));
+                                "bytes (see SceneUniforms.h)", binding.Name, binding.Size, sizeof(SceneUniforms)));
                         }
                         continue;
                     }

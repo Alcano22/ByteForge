@@ -31,10 +31,10 @@ namespace ByteForge
         [[nodiscard]] VkQueue GetPresentQueue() const { return m_PresentQueue; }
         [[nodiscard]] const QueueFamilyIndices& GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }
 
-        static constexpr std::array<const char*, 3> DeviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,
-            VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME
+        [[nodiscard]] bool SupportsSwapchainMutableFormat() const { return m_SwapchainMutableFormat; }
+
+        static constexpr std::array<const char*, 1> RequiredExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
     private:
@@ -45,7 +45,8 @@ namespace ByteForge
         [[nodiscard]] QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
         [[nodiscard]] uint64_t RateDeviceSuitability(VkPhysicalDevice device) const;
 
-        [[nodiscard]] static bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+        [[nodiscard]] static bool IsExtensionSupported(VkPhysicalDevice device, const char* extension);
+        [[nodiscard]] static bool CheckRequiredExtensions(VkPhysicalDevice device);
         [[nodiscard]] static bool CheckFeatureSupport(VkPhysicalDevice device);
 
     private:
@@ -57,5 +58,6 @@ namespace ByteForge
         VkQueue m_GraphicsQueue = nullptr;
         VkQueue m_PresentQueue = nullptr;
         QueueFamilyIndices m_QueueFamilyIndices;
+        bool m_SwapchainMutableFormat = false;
     };
 }

@@ -98,7 +98,7 @@ namespace ByteForge
     bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice device) const
     {
         const QueueFamilyIndices indices = FindQueueFamilies(device);
-        const bool extensionsSupported = CheckDeviceExtensionSupport(device);
+        const bool extensionsSupported = CheckRequiredExtensions(device);
 
         bool swapchainAdequate = false;
         if (extensionsSupported)
@@ -111,22 +111,26 @@ namespace ByteForge
                swapchainAdequate && CheckFeatureSupport(device);
     }
 
-    bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice device)
+    bool VulkanDevice::IsExtensionSupported(const VkPhysicalDevice device, const char* const extension)
     {
         uint32_t extensionCount = 0;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        return std::ranges::all_of(DeviceExtensions,
-            [&availableExtensions](const char* required)
+        return std::ranges::any_of(availableExtensions,
+            [extension](const VkExtensionProperties& ext)
             {
-                return std::ranges::any_of(availableExtensions,
-                    [required](const VkExtensionProperties& ext)
-                    {
-                        return std::strcmp(ext.extensionName, required) == 0;
-                    });
+                return std::strcmp(ext.extensionName, extension) == 0;
             });
+    }
+
+    bool VulkanDevice::CheckRequiredExtensions(const VkPhysicalDevice device)
+    {
+        return std::ranges::all_of(RequiredExtensions, [device](const char* required)
+        {
+            return IsExtensionSupported(device, required);
+        });
     }
 
     bool VulkanDevice::CheckFeatureSupport(const VkPhysicalDevice device)
@@ -162,15 +166,19 @@ namespace ByteForge
 
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
-            if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                indices.GraphicsFamily = i;
+            const bool graphics = (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
 
             VkBool32 presentSupport = VK_FALSE;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
-            if (presentSupport)
-                indices.PresentFamily = i;
 
-            if (indices.IsComplete()) break;
+            if (graphics && presentSupport)
+                return { .GraphicsFamily = i, .PresentFamily = i };
+
+            if (graphics && !indices.GraphicsFamily)
+                indices.GraphicsFamily = i;
+
+            if (presentSupport && !indices.PresentFamily)
+                indices.PresentFamily = i;
         }
 
         return indices;
@@ -207,13 +215,22 @@ namespace ByteForge
             .dynamicRendering               = VK_TRUE
         };
 
+        std::vector<const char*> extensions(RequiredExtensions.begin(), RequiredExtensions.end());
+
+        m_SwapchainMutableFormat = IsExtensionSupported(m_PhysicalDevice,
+                                                        VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME);
+        if (m_SwapchainMutableFormat)
+            extensions.push_back(VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME);
+        else
+            CORE_WARN("VK_KHR_swapchain_mutable_format is not available, ImGui will render directly into the swapchain format");
+
         VkDeviceCreateInfo createInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext                   = &features13,
             .queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size()),
             .pQueueCreateInfos       = queueCreateInfos.data(),
-            .enabledExtensionCount   = static_cast<uint32_t>(DeviceExtensions.size()),
-            .ppEnabledExtensionNames = DeviceExtensions.data(),
+            .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
+            .ppEnabledExtensionNames = extensions.data(),
             .pEnabledFeatures        = &deviceFeatures,
         };
 
