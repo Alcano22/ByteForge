@@ -130,6 +130,9 @@ namespace ByteForge
         if (ImGui::MenuItem("Sprite"))
             context.CreateEntity("Sprite", [](const Entity entity) { entity.AddComponent<SpriteRendererComponent>(); });
 
+        if (ImGui::MenuItem("Camera"))
+            context.CreateEntity("Camera", [](const Entity entity) { entity.AddComponent<CameraComponent>(); });
+
         if (ImGui::BeginMenu("Physics"))
         {
             if (ImGui::MenuItem("Static Box"))

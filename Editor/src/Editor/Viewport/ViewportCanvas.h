@@ -41,6 +41,9 @@ namespace ByteForge
 
         void Draw();
 
+        void SetClearColor(const glm::vec4& color) { m_Spec.ClearColor = color; }
+        void SetFixedAspect(const std::optional<float> aspect) { m_Spec.FixedAspect = aspect; }
+
         [[nodiscard]] uint32_t ReadEntityId(const glm::vec2& viewportPoint) const;
 
         [[nodiscard]] bool IsHovered() const { return m_Hovered; }
@@ -61,6 +64,7 @@ namespace ByteForge
         Scope<LineRenderer> m_LineRenderer;
         Ref<RenderTarget> m_Target;
 
+        glm::vec4 m_TargetClearColor{ 0.0f };
         glm::uvec2 m_Size{ 1280, 720 };
         ImVec2 m_ScreenMin{};
         bool m_Hovered = false;

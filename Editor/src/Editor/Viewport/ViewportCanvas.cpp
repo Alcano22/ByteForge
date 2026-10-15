@@ -78,7 +78,10 @@ namespace ByteForge
 
     void ViewportCanvas::EnsureTargetSize()
     {
-        if (m_Target && m_Target->GetWidth() == m_Size.x && m_Target->GetHeight() == m_Size.y) return;
+        if (m_Target && m_Target->GetWidth() == m_Size.x && m_Target->GetHeight() == m_Size.y
+            && m_TargetClearColor == m_Spec.ClearColor) return;
+
+        m_TargetClearColor = m_Spec.ClearColor;
 
         std::vector<ImageFormat> colorFormats{ ColorFormat };
         if (m_Spec.EntityIds)

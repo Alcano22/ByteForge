@@ -60,6 +60,7 @@ namespace
     void RemoveSerializableComponents(const Entity entity)
     {
         RemoveIfPresent<SpriteRendererComponent>(entity);
+        RemoveIfPresent<CameraComponent>(entity);
         RemoveIfPresent<Rigidbody2DComponent>(entity);
         RemoveIfPresent<BoxCollider2DComponent>(entity);
         RemoveIfPresent<CircleCollider2DComponent>(entity);
@@ -92,6 +93,21 @@ namespace
                 sprite.Sprite = MakeRef<Sprite>(AssetManager::LoadTexture2D(UUID(sp.at("texture").get<uint64_t>())),
                                                 ToVec2(sp.at("uvMin")), ToVec2(sp.at("uvMax")));
             }
+        }
+
+        if (entityJson.contains("camera"))
+        {
+            const auto& c = entityJson.at("camera");
+            const CameraComponent defaults;
+            auto& camera = entity.AddComponent<CameraComponent>();
+            camera.Primary = c.value("primary", defaults.Primary);
+            camera.OrthographicSize = c.value("orthographicSize", defaults.OrthographicSize);
+            camera.Near = c.value("near", defaults.Near);
+            camera.Far = c.value("far", defaults.Far);
+            if (c.contains("clearColor"))
+                camera.ClearColor = ToVec4(c.at("clearColor"));
+            camera.UseFixedAspect = c.value("useFixedAspect", defaults.UseFixedAspect);
+            camera.FixedAspect = c.value("fixedAspect", defaults.FixedAspect);
         }
 
         if (entityJson.contains("rigidbody2D"))
@@ -239,6 +255,20 @@ namespace ByteForge
             }
 
             entityJson["spriteRenderer"] = std::move(spriteJson);
+        }
+
+        if (entity.HasComponent<CameraComponent>())
+        {
+            const auto& camera = entity.GetComponent<CameraComponent>();
+            entityJson["camera"] = {
+                { "primary",          camera.Primary          },
+                { "orthographicSize", camera.OrthographicSize },
+                { "near",             camera.Near             },
+                { "far",              camera.Far              },
+                { "clearColor",       ToJson(camera.ClearColor) },
+                { "useFixedAspect",   camera.UseFixedAspect   },
+                { "fixedAspect",      camera.FixedAspect      }
+            };
         }
 
         if (entity.HasComponent<Rigidbody2DComponent>())

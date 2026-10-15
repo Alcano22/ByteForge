@@ -44,6 +44,19 @@ namespace ByteForge
                 spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
         }
 
+        void DrawCamera(CameraComponent& camera, Entity, EditorContext&)
+        {
+            ImGui::Checkbox("Primary", &camera.Primary);
+            ImGui::DragFloat("Size", &camera.OrthographicSize, 0.05f, 0.01f, MaxFloat);
+            ImGui::DragFloat("Near", &camera.Near, 0.05f);
+            ImGui::DragFloat("Far", &camera.Far, 0.05f);
+            ImGui::ColorEdit4("Clear Color", glm::value_ptr(camera.ClearColor));
+
+            ImGui::Checkbox("Fixed Aspect", &camera.UseFixedAspect);
+            if (camera.UseFixedAspect)
+                ImGui::DragFloat("Aspect Ratio", &camera.FixedAspect, 0.01f, 0.1f, 10.0f);
+        }
+
         bool EditPhysicsMaterial(const char* label, Ref<PhysicsMaterialAsset>& material,
                                  Selection& selection, const char* noneText)
         {
@@ -137,6 +150,7 @@ namespace ByteForge
         constexpr std::array Inspectors{
             Inspect<TransformComponent, DrawTransform>("Transform", EditorIcon::ComponentTransform, false),
             Inspect<SpriteRendererComponent, DrawSpriteRenderer>("Sprite Renderer", EditorIcon::ComponentSprite),
+            Inspect<CameraComponent, DrawCamera>("Camera", EditorIcon::ComponentCamera),
             Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D", EditorIcon::ComponentRigidbody),
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),

@@ -15,9 +15,10 @@ namespace ByteForge
         template<typename... Components>
         struct ComponentList {};
 
-        using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, Rigidbody2DComponent,
-                                                   BoxCollider2DComponent, CircleCollider2DComponent,
-                                                   AudioSourceComponent, ScriptComponent>;
+        using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, CameraComponent,
+                                                   Rigidbody2DComponent, BoxCollider2DComponent,
+                                                   CircleCollider2DComponent, AudioSourceComponent,
+                                                   ScriptComponent>;
 
         template<typename... Components>
         void CopyComponents(ComponentList<Components...>, entt::registry& registry,
@@ -86,6 +87,17 @@ namespace ByteForge
 
         const auto handle = static_cast<entt::entity>(pickingId - 1);
         return m_Registry.valid(handle) ? Entity(handle, this) : Entity{};
+    }
+
+    Entity Scene::GetPrimaryCamera()
+    {
+        for (const auto handle : m_Registry.view<CameraComponent>())
+        {
+            if (m_Registry.get<CameraComponent>(handle).Primary)
+                return Entity(handle, this);
+        }
+
+        return {};
     }
 
     void Scene::ResetPhysicsWorld()

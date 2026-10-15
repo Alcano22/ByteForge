@@ -33,6 +33,7 @@ namespace ByteForge
         Entity DuplicateEntity(Entity source);
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
         [[nodiscard]] Entity FindEntityByPickingId(uint32_t pickingId);
+        [[nodiscard]] Entity GetPrimaryCamera();
 
         void OnUpdateRuntime(Timestep ts);
 

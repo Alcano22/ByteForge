@@ -40,6 +40,19 @@ namespace ByteForge
         Ref<ByteForge::Sprite> Sprite;
     };
 
+    struct CameraComponent
+    {
+        bool Primary = true;
+        float OrthographicSize = 6.0f;
+        float Near = -1.0f;
+        float Far = 1.0f;
+
+        glm::vec4 ClearColor{ 0.01f, 0.01f, 0.01f, 1.0f };
+
+        bool UseFixedAspect = true;
+        float FixedAspect = 16.0f / 9.0f;
+    };
+
     struct BYTEFORGE_API Rigidbody2DComponent
     {
         enum class BodyType { Static, Kinematic, Dynamic };
