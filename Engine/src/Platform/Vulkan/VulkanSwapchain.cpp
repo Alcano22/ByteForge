@@ -66,7 +66,7 @@ namespace ByteForge
         VkSwapchainCreateInfoKHR createInfo{
             .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .pNext            = needsMutableFormat ? &formatListInfo : nullptr,
-            .flags            = needsMutableFormat ? VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR : 0u,
+            .flags            = needsMutableFormat ? static_cast<VkSwapchainCreateFlagsKHR>(VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR) : VkSwapchainCreateFlagsKHR{ 0 },
             .surface          = m_Surface,
             .minImageCount    = imageCount,
             .imageFormat      = surfaceFormat.format,

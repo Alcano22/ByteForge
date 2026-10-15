@@ -41,7 +41,7 @@ namespace ByteForge
         const VkImageCreateInfo imageInfo{
             .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext         = hasAlternateView ? &formatList : nullptr,
-            .flags         = hasAlternateView ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0u,
+            .flags         = hasAlternateView ? static_cast<VkImageCreateFlags>(VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) : VkImageCreateFlags{ 0 },
             .imageType     = VK_IMAGE_TYPE_2D,
             .format        = spec.Format,
             .extent        = { spec.Width, spec.Height, 1 },
@@ -55,7 +55,7 @@ namespace ByteForge
         };
 
         const VmaAllocationCreateInfo allocInfo{
-            .flags = spec.DedicatedMemory ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0u,
+            .flags = spec.DedicatedMemory ? static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) : VmaAllocationCreateFlags{ 0 },
             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
         };
 
