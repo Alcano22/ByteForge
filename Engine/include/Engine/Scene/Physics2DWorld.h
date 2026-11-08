@@ -23,7 +23,7 @@ namespace ByteForge
         void SetGravity(const glm::vec2& gravity) const;
 
         void EnsureBodiesCreated(Scene& scene) const;
-        void Step(float ts, Scene& scene) const;
+        void Step(float ts, Scene& scene);
 
         void OnRigidbodyDestroyed(entt::registry& registry, entt::entity handle) const;
 
@@ -33,10 +33,17 @@ namespace ByteForge
     private:
         void CreateBody(Entity entity) const;
 
+        void SyncTransforms(Scene& scene) const;
+
         void DispatchSensorEvents(const Scene& scene) const;
         void DispatchContactEvents(const Scene& scene) const;
 
+    public:
+        static constexpr float FixedTimestep = 1.0f / 60.0f;
+        static constexpr int MaxStepsPerFrame = 8;
+
     private:
         b2WorldId m_World;
+        float m_Accumulator = 0.0f;
     };
 }

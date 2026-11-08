@@ -162,13 +162,31 @@ namespace ByteForge
         });
     }
 
-    void Physics2DWorld::Step(const float ts, Scene& scene) const
+    void Physics2DWorld::Step(const float ts, Scene& scene)
     {
-        if (ts > 0.0f)
-            b2World_Step(m_World, ts, 4);
+        m_Accumulator += ts;
 
+        int steps = 0;
+        while (m_Accumulator >= FixedTimestep && steps < MaxStepsPerFrame)
+        {
+            b2World_Step(m_World, FixedTimestep, 4);
+
+            SyncTransforms(scene);
+            DispatchSensorEvents(scene);
+            DispatchContactEvents(scene);
+
+            m_Accumulator -= FixedTimestep;
+            ++steps;
+        }
+
+        if (m_Accumulator >= FixedTimestep)
+            m_Accumulator = 0.0f;
+    }
+
+    void Physics2DWorld::SyncTransforms(Scene& scene) const
+    {
         scene.Each<Rigidbody2DComponent, TransformComponent>(
-            [](const Entity, Rigidbody2DComponent& rigidbody, TransformComponent& transform)
+            [](const Entity, const Rigidbody2DComponent& rigidbody, TransformComponent& transform)
             {
                 if (rigidbody.m_RuntimeBodyId == 0) return;
 
@@ -179,9 +197,6 @@ namespace ByteForge
                 transform.Position.y = position.y;
                 transform.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));
             });
-
-        DispatchSensorEvents(scene);
-        DispatchContactEvents(scene);
     }
 
     void Physics2DWorld::DispatchSensorEvents(const Scene& scene) const
