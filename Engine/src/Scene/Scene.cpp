@@ -8,6 +8,7 @@
 
 #include <format>
 #include <stdexcept>
+#include <utility>
 
 namespace ByteForge
 {
@@ -73,6 +74,18 @@ namespace ByteForge
         m_Registry.destroy(entity.m_Handle);
     }
 
+    void Scene::QueueDestroyEntity(const UUID uuid) { m_PendingDestroy.push_back(uuid); }
+
+    void Scene::FlushPendingDestroy()
+    {
+        const std::vector<UUID> pending = std::exchange(m_PendingDestroy, {});
+        for (const UUID uuid : pending)
+        {
+            if (const Entity entity = FindEntityByUUID(uuid); entity.IsValid())
+                DestroyEntity(entity);
+        }
+    }
+
     Entity Scene::DuplicateEntity(const Entity source)
     {
         if (!source.IsValid() || source.m_Scene != this)
@@ -132,8 +145,11 @@ namespace ByteForge
         m_ScriptRuntime->Update(ts);
         AudioSystem::Update(*this);
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
+
+        FlushPendingDestroy();
     }
- void Scene::OnStepRuntime()
+
+    void Scene::OnStepRuntime()
     {
         OnUpdateRuntime(Timestep(Physics2DWorld::FixedTimestep));
     }
@@ -193,6 +209,7 @@ namespace ByteForge
     {
         OnRuntimeStop();
 
+        m_PendingDestroy.clear();
         m_Registry.clear();
         m_EntityByUUID.clear();
         ResetPhysicsWorld();

@@ -15,6 +15,26 @@ public sealed class Entity : IEquatable<Entity>
         ID = id;
     }
 
+    public static Entity Create(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return new Entity(ScriptAPI.Entity_Create(name));
+    }
+
+    public static Entity Instantiate(Entity source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return new Entity(ScriptAPI.Entity_Instantiate(source.ID));
+    }
+
+    public static Entity? Find(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        ulong id = ScriptAPI.Entity_FindByName(name);
+        return id != 0 ? new Entity(id) : null;
+    }
+
     public bool IsValid => ScriptAPI.Entity_IsValid(ID);
     public string Name => ScriptAPI.Entity_GetName(ID);
 
@@ -22,6 +42,8 @@ public sealed class Entity : IEquatable<Entity>
 
     // Null when the entity has no Audio Source component
     public AudioSource? AudioSource => ScriptAPI.AudioSource_Exists(ID) ? (_audioSource ??= new AudioSource(ID)) : null;
+
+    public void Destroy() => ScriptAPI.Entity_Destroy(ID);
 
     public bool Equals(Entity? other) => other is not null && other.ID == ID;
     public override bool Equals(object? obj) => obj is Entity other && Equals(other);

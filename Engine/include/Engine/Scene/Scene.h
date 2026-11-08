@@ -14,6 +14,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 
 namespace ByteForge
 {
@@ -31,8 +32,12 @@ namespace ByteForge
 
         Entity CreateEntity(const std::string& name = std::string());
         Entity CreateEntityWithUUID(UUID uuid, const std::string& name = std::string());
+
         void DestroyEntity(Entity entity);
+        void QueueDestroyEntity(UUID uuid);
+
         Entity DuplicateEntity(Entity source);
+
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
         [[nodiscard]] Entity FindEntityByPickingId(uint32_t pickingId);
         [[nodiscard]] Entity GetPrimaryCamera();
@@ -67,6 +72,8 @@ namespace ByteForge
     private:
         void ResetPhysicsWorld();
 
+        void FlushPendingDestroy();
+
         [[nodiscard]] static uint32_t ToPickingId(entt::entity handle);
 
         static void DispatchSensorEvent(Entity self, Entity other, bool entered);
@@ -79,6 +86,7 @@ namespace ByteForge
 
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_EntityByUUID;
+        std::vector<UUID> m_PendingDestroy;
         Scope<Physics2DWorld> m_PhysicsWorld;
         Scope<ScriptRuntime> m_ScriptRuntime;
     };

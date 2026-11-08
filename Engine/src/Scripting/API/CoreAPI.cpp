@@ -27,6 +27,14 @@ namespace ByteForge
 
         void DebugLog(const ScriptCallContext&, const std::string& message) { APP_INFO("{}", message); }
 
+        Scene& RequireScene(const ScriptCallContext& context)
+        {
+            if (context.ActiveScene == nullptr)
+                throw ScriptError("No scene is running");
+
+            return *context.ActiveScene;
+        }
+
         bool EntityIsValid(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.ActiveScene != nullptr && entity.IsSet() &&
@@ -36,6 +44,38 @@ namespace ByteForge
         std::string EntityGetName(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Require<TagComponent>(entity).Tag;
+        }
+
+        EntityRef EntityCreate(const ScriptCallContext& context, const std::string& name)
+        {
+            const Entity entity = RequireScene(context).CreateEntity(name);
+            return EntityRef{ entity.GetUUID() };
+        }
+
+        EntityRef EntityInstantiate(const ScriptCallContext& context, const EntityRef source)
+        {
+            const Entity original = context.Resolve(source);
+            const Entity copy = RequireScene(context).DuplicateEntity(original);
+            return EntityRef{ copy.GetUUID() };
+        }
+
+        EntityRef EntityFindByName(const ScriptCallContext& context, const std::string& name)
+        {
+            EntityRef result;
+
+            RequireScene(context).Each<TagComponent>([&](const Entity entity, const TagComponent& tag)
+            {
+                if (!result.IsSet() && tag.Tag == name)
+                    result = EntityRef{ entity.GetUUID() };
+            });
+
+            return result;
+        }
+
+        void EntityDestroy(const ScriptCallContext& context, const EntityRef entity)
+        {
+            const Entity target = context.Resolve(entity);
+            RequireScene(context).QueueDestroyEntity(target.GetUUID());
         }
 
         glm::vec3 TransformGetPosition(const ScriptCallContext& context, const EntityRef entity)
@@ -154,6 +194,10 @@ namespace ByteForge
 
         api.Register<&EntityIsValid>("Entity.IsValid", "Is Valid", Pure, { "Entity" });
         api.Register<&EntityGetName>("Entity.GetName", "Get Name", Pure, { "Entity" });
+        api.Register<&EntityCreate>("Entity.Create", "Create Entity", Impure, { "Name" });
+        api.Register<&EntityInstantiate>("Entity.Instantiate", "Instantiate", Impure, { "Source" });
+        api.Register<&EntityFindByName>("Entity.FindByName", "Find By Name", Pure, { "Name" });
+        api.Register<&EntityDestroy>("Entity.Destroy", "Destroy", Impure, { "Entity" });
 
         api.Register<&TransformGetPosition>("Transform.GetPosition", "Get Position", Pure, { "Entity" });
         api.Register<&TransformSetPosition>("Transform.SetPosition", "Set Position", Impure, { "Entity", "Position" });

@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ByteForge.Interop;
 
@@ -10,6 +11,10 @@ internal static unsafe class ScriptAPI
 
     private static uint s_EntityIsValid;
     private static uint s_EntityGetName;
+    private static uint s_EntityCreate;
+    private static uint s_EntityInstantiate;
+    private static uint s_EntityFindByName;
+    private static uint s_EntityDestroy;
     private static uint s_TransformGetPosition;
     private static uint s_TransformSetPosition;
     private static uint s_TransformGetRotation;
@@ -37,6 +42,10 @@ internal static unsafe class ScriptAPI
 
         s_EntityIsValid              = Resolve("Entity.IsValid",              "(Entity)->Bool",            ref complete);
         s_EntityGetName              = Resolve("Entity.GetName",              "(Entity)->String",          ref complete);
+        s_EntityCreate               = Resolve("Entity.Create",               "(String)->Entity",          ref complete);
+        s_EntityInstantiate          = Resolve("Entity.Instantiate",          "(Entity)->Entity",          ref complete);
+        s_EntityFindByName           = Resolve("Entity.FindByName",           "(String)->Entity",          ref complete);
+        s_EntityDestroy              = Resolve("Entity.Destroy",              "(Entity)->Void",            ref complete);
         s_TransformGetPosition       = Resolve("Transform.GetPosition",       "(Entity)->Vector3",         ref complete);
         s_TransformSetPosition       = Resolve("Transform.SetPosition",       "(Entity,Vector3)->Void",    ref complete);
         s_TransformGetRotation       = Resolve("Transform.GetRotation",       "(Entity)->Float",           ref complete);
@@ -68,6 +77,18 @@ internal static unsafe class ScriptAPI
 
     public static string Entity_GetName(ulong entity) =>
         Call(s_EntityGetName, new APIValue { Handle = entity }).ReadText();
+
+    public static ulong Entity_Create(string name) =>
+        CallWithText(s_EntityCreate, name).Handle;
+
+    public static ulong Entity_Instantiate(ulong source) =>
+        Call(s_EntityInstantiate, new APIValue { Handle = source }).Handle;
+
+    public static ulong Entity_FindByName(string name) =>
+        CallWithText(s_EntityFindByName, name).Handle;
+
+    public static void Entity_Destroy(ulong entity) =>
+        Call(s_EntityDestroy, new APIValue { Handle = entity });
 
     // Transform
 
@@ -162,6 +183,15 @@ internal static unsafe class ScriptAPI
         arguments[0] = first;
         arguments[1] = second;
         return Invoke(function, arguments, 2);
+    }
+
+    private static APIValue CallWithText(uint function, string text)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(text);
+        fixed (byte* data = bytes)
+        {
+            return Call(function, new APIValue { Text = data, TextLength = bytes.Length });
+        }
     }
 
     private static APIValue Invoke(uint function, APIValue* arguments, int count)
