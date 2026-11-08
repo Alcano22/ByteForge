@@ -46,6 +46,8 @@ namespace ByteForge
                   .disconnect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
 
+    Entity Scene::CreateEntity(const std::string& name) { return CreateEntityWithUUID(UUID(), name); }
+
     Entity Scene::CreateEntityWithUUID(const UUID uuid, const std::string& name)
     {
         if (m_EntityByUUID.contains(uuid))
@@ -130,6 +132,10 @@ namespace ByteForge
         m_ScriptRuntime->Update(ts);
         AudioSystem::Update(*this);
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
+    }
+ void Scene::OnStepRuntime()
+    {
+        OnUpdateRuntime(Timestep(Physics2DWorld::FixedTimestep));
     }
 
     void Scene::Render(Renderer2D& renderer, const Camera& camera)

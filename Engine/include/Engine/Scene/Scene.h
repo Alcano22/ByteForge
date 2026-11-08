@@ -29,7 +29,7 @@ namespace ByteForge
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const std::string& name = std::string()) { return CreateEntityWithUUID(UUID()); }
+        Entity CreateEntity(const std::string& name = std::string());
         Entity CreateEntityWithUUID(UUID uuid, const std::string& name = std::string());
         void DestroyEntity(Entity entity);
         Entity DuplicateEntity(Entity source);
@@ -38,6 +38,7 @@ namespace ByteForge
         [[nodiscard]] Entity GetPrimaryCamera();
 
         void OnUpdateRuntime(Timestep ts);
+        void OnStepRuntime();
 
         void Render(Renderer2D& renderer, const Camera& camera);
 

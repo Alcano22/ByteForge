@@ -22,8 +22,10 @@ namespace ByteForge
     {
         if (ActiveScene == nullptr) return;
 
-        if (IsPlaying() || (IsPaused() && ConsumeStepRequest()))
+        if (IsPlaying())
             ActiveScene->OnUpdateRuntime(ts);
+        else if (IsPaused() && ConsumeStepRequest())
+            ActiveScene->OnStepRuntime();
     }
 
     void EditorContext::OnScenePlay()
