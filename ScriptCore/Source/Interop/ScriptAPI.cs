@@ -21,24 +21,42 @@ internal static unsafe class ScriptAPI
     private static uint s_AudioSourceStop;
     private static uint s_AudioSourceIsPlaying;
     private static uint s_AudioPlayOneShot;
+    private static uint s_InputIsKeyDown;
+    private static uint s_InputIsKeyPressed;
+    private static uint s_InputIsKeyReleased;
+    private static uint s_InputIsMouseButtonDown;
+    private static uint s_InputIsMouseButtonPressed;
+    private static uint s_InputIsMouseButtonReleased;
+    private static uint s_InputGetMousePosition;
+    private static uint s_InputGetMouseDelta;
+    private static uint s_InputGetScrollDelta;
 
     internal static bool Bind()
     {
         bool complete = true;
 
-        s_EntityIsValid        = Resolve("Entity.IsValid",        "(Entity)->Bool",            ref complete);
-        s_EntityGetName        = Resolve("Entity.GetName",        "(Entity)->String",          ref complete);
-        s_TransformGetPosition = Resolve("Transform.GetPosition", "(Entity)->Vector3",         ref complete);
-        s_TransformSetPosition = Resolve("Transform.SetPosition", "(Entity,Vector3)->Void",    ref complete);
-        s_TransformGetRotation = Resolve("Transform.GetRotation", "(Entity)->Float",           ref complete);
-        s_TransformSetRotation = Resolve("Transform.SetRotation", "(Entity,Float)->Void",      ref complete);
-        s_TransformGetScale    = Resolve("Transform.GetScale",    "(Entity)->Vector2",         ref complete);
-        s_TransformSetScale    = Resolve("Transform.SetScale",    "(Entity,Vector2)->Void",    ref complete);
-        s_AudioSourceExists    = Resolve("AudioSource.Exists",    "(Entity)->Bool",            ref complete);
-        s_AudioSourcePlay      = Resolve("AudioSource.Play",      "(Entity)->Void",            ref complete);
-        s_AudioSourceStop      = Resolve("AudioSource.Stop",      "(Entity)->Void",            ref complete);
-        s_AudioSourceIsPlaying = Resolve("AudioSource.IsPlaying", "(Entity)->Bool",            ref complete);
-        s_AudioPlayOneShot     = Resolve("Audio.PlayOneShot",     "(Asset:AudioClip)->Void",   ref complete);
+        s_EntityIsValid              = Resolve("Entity.IsValid",              "(Entity)->Bool",            ref complete);
+        s_EntityGetName              = Resolve("Entity.GetName",              "(Entity)->String",          ref complete);
+        s_TransformGetPosition       = Resolve("Transform.GetPosition",       "(Entity)->Vector3",         ref complete);
+        s_TransformSetPosition       = Resolve("Transform.SetPosition",       "(Entity,Vector3)->Void",    ref complete);
+        s_TransformGetRotation       = Resolve("Transform.GetRotation",       "(Entity)->Float",           ref complete);
+        s_TransformSetRotation       = Resolve("Transform.SetRotation",       "(Entity,Float)->Void",      ref complete);
+        s_TransformGetScale          = Resolve("Transform.GetScale",          "(Entity)->Vector2",         ref complete);
+        s_TransformSetScale          = Resolve("Transform.SetScale",          "(Entity,Vector2)->Void",    ref complete);
+        s_AudioSourceExists          = Resolve("AudioSource.Exists",          "(Entity)->Bool",            ref complete);
+        s_AudioSourcePlay            = Resolve("AudioSource.Play",            "(Entity)->Void",            ref complete);
+        s_AudioSourceStop            = Resolve("AudioSource.Stop",            "(Entity)->Void",            ref complete);
+        s_AudioSourceIsPlaying       = Resolve("AudioSource.IsPlaying",       "(Entity)->Bool",            ref complete);
+        s_AudioPlayOneShot           = Resolve("Audio.PlayOneShot",           "(Asset:AudioClip)->Void",   ref complete);
+        s_InputIsKeyDown             = Resolve("Input.IsKeyDown",             "(Int)->Bool",               ref complete);
+        s_InputIsKeyPressed          = Resolve("Input.IsKeyPressed",          "(Int)->Bool",               ref complete);
+        s_InputIsKeyReleased         = Resolve("Input.IsKeyReleased",         "(Int)->Bool",               ref complete);
+        s_InputIsMouseButtonDown     = Resolve("Input.IsMouseButtonDown",     "(Int)->Bool",               ref complete);
+        s_InputIsMouseButtonPressed  = Resolve("Input.IsMouseButtonPressed",  "(Int)->Bool",               ref complete);
+        s_InputIsMouseButtonReleased = Resolve("Input.IsMouseButtonReleased", "(Int)->Bool",               ref complete);
+        s_InputGetMousePosition      = Resolve("Input.GetMousePosition",      "()->Vector2",               ref complete);
+        s_InputGetMouseDelta         = Resolve("Input.GetMouseDelta",         "()->Vector2",               ref complete);
+        s_InputGetScrollDelta        = Resolve("Input.GetScrollDelta",        "()->Vector2",               ref complete);
 
         return complete;
     }
@@ -88,6 +106,30 @@ internal static unsafe class ScriptAPI
     public static void Audio_PlayOneShot(AudioClip? clip) =>
         Call(s_AudioPlayOneShot, new APIValue { Handle = clip?.Handle ?? 0, AssetType = (byte)AssetType.AudioClip });
 
+    // Input
+
+    public static bool Input_IsKeyDown(int key) =>
+        Call(s_InputIsKeyDown, new APIValue { Int = key }).Bool != 0;
+
+    public static bool Input_IsKeyPressed(int key) =>
+        Call(s_InputIsKeyPressed, new APIValue { Int = key }).Bool != 0;
+
+    public static bool Input_IsKeyReleased(int key) =>
+        Call(s_InputIsKeyReleased, new APIValue { Int = key }).Bool != 0;
+
+    public static bool Input_IsMouseButtonDown(int button) =>
+        Call(s_InputIsMouseButtonDown, new APIValue { Int = button }).Bool != 0;
+
+    public static bool Input_IsMouseButtonPressed(int button) =>
+        Call(s_InputIsMouseButtonPressed, new APIValue { Int = button }).Bool != 0;
+
+    public static bool Input_IsMouseButtonReleased(int button) =>
+        Call(s_InputIsMouseButtonReleased, new APIValue { Int = button }).Bool != 0;
+
+    public static Vector2 Input_GetMousePosition() => Call(s_InputGetMousePosition).Vector2;
+    public static Vector2 Input_GetMouseDelta() => Call(s_InputGetMouseDelta).Vector2;
+    public static Vector2 Input_GetScrollDelta() => Call(s_InputGetScrollDelta).Vector2;
+
     // Plumbing
 
     private static uint Resolve(string id, string signature, ref bool complete)
@@ -104,6 +146,8 @@ internal static unsafe class ScriptAPI
 
         return index;
     }
+
+    private static APIValue Call(uint function) => Invoke(function, null, 0);
 
     private static APIValue Call(uint function, APIValue argument)
     {

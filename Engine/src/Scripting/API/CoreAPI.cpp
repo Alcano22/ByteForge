@@ -3,8 +3,13 @@
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Audio/AudioEngine.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scripting/API/ScriptAPI.h"
+
+#include <cstdint>
+#include <format>
+#include <limits>
 
 namespace ByteForge
 {
@@ -91,6 +96,45 @@ namespace ByteForge
 
             AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(clip.Handle), AudioBus::Game);
         }
+
+        KeyCode ToKeyCode(const int key)
+        {
+            if (key < 0 || key > std::numeric_limits<uint16_t>::max())
+                throw ScriptError(std::format("{} is not a valid key code", key));
+
+            return static_cast<KeyCode>(key);
+        }
+
+        MouseButton ToMouseButton(const int button)
+        {
+            if (button < 0 || button > static_cast<int>(MouseButton::ButtonLast))
+                throw ScriptError(std::format("{} is not a valid mouse button", button));
+
+            return static_cast<MouseButton>(button);
+        }
+
+        bool InputIsKeyDown(const ScriptCallContext&, const int key) { return Input::IsKeyDown(ToKeyCode(key)); }
+        bool InputIsKeyPressed(const ScriptCallContext&, const int key) { return Input::IsKeyPressed(ToKeyCode(key)); }
+        bool InputIsKeyReleased(const ScriptCallContext&, const int key) { return Input::IsKeyReleased(ToKeyCode(key)); }
+
+        bool InputIsMouseButtonDown(const ScriptCallContext&, const int button)
+        {
+            return Input::IsMouseButtonDown(ToMouseButton(button));
+        }
+
+        bool InputIsMouseButtonPressed(const ScriptCallContext&, const int button)
+        {
+            return Input::IsMouseButtonPressed(ToMouseButton(button));
+        }
+
+        bool InputIsMouseButtonReleased(const ScriptCallContext&, const int button)
+        {
+            return Input::IsMouseButtonReleased(ToMouseButton(button));
+        }
+
+        glm::vec2 InputGetMousePosition(const ScriptCallContext&) { return Input::GetMousePosition(); }
+        glm::vec2 InputGetMouseDelta(const ScriptCallContext&) { return Input::GetMouseDelta(); }
+        glm::vec2 InputGetScrollDelta(const ScriptCallContext&) { return Input::GetScrollDelta(); }
     }
 
     void RegisterCoreAPI(ScriptAPI& api)
@@ -124,5 +168,15 @@ namespace ByteForge
         api.Register<&AudioSourceIsPlaying>("AudioSource.IsPlaying", "Is Playing", Pure, { "Entity" });
 
         api.Register<&AudioPlayOneShot>("Audio.PlayOneShot", "Play One Shot", Impure, { "Clip" });
+
+        api.Register<&InputIsKeyDown>("Input.IsKeyDown", "Is Key Down", Pure, { "Key" });
+        api.Register<&InputIsKeyPressed>("Input.IsKeyPressed", "Is Key Pressed", Pure, { "Key" });
+        api.Register<&InputIsKeyReleased>("Input.IsKeyReleased", "Is Key Released", Pure, { "Key" });
+        api.Register<&InputIsMouseButtonDown>("Input.IsMouseButtonDown", "Is Mouse Button Down", Pure, { "Button" });
+        api.Register<&InputIsMouseButtonPressed>("Input.IsMouseButtonPressed", "Is Mouse Button Pressed", Pure, { "Button" });
+        api.Register<&InputIsMouseButtonReleased>("Input.IsMouseButtonReleased", "Is Mouse Button Released", Pure, { "Button" });
+        api.Register<&InputGetMousePosition>("Input.GetMousePosition", "Get Mouse Position", Pure);
+        api.Register<&InputGetMouseDelta>("Input.GetMouseDelta", "Get Mouse Delta", Pure);
+        api.Register<&InputGetScrollDelta>("Input.GetScrollDelta", "Get Scroll Delta", Pure);
     }
 }
