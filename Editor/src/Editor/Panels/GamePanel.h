@@ -3,8 +3,6 @@
 #include "Editor/EditorPanel.h"
 #include "Editor/Viewport/ViewportCanvas.h"
 
-#include <Engine/Renderer/OrthographicCamera.h>
-
 namespace ByteForge
 {
     class GamePanel : public EditorPanel
@@ -17,7 +15,5 @@ namespace ByteForge
 
     private:
         ViewportCanvas m_Canvas;
-
-        OrthographicCamera m_Camera;
     };
 }

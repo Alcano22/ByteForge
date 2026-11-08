@@ -4,6 +4,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Project/ProjectSettings.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
 
@@ -121,6 +122,42 @@ namespace ByteForge
 
         m_Handle = AssetRegistry::Import(relativePath);
         RememberAsLast();
+        return true;
+    }
+
+    bool SceneDocument::SetAsStartupScene() const
+    {
+        if (!m_Handle)
+            return false;
+
+        const std::filesystem::path root = std::filesystem::current_path();
+        const std::filesystem::path file = root / ProjectSettings::FileName;
+
+        ProjectSettings settings;
+        if (std::filesystem::exists(file))
+        {
+            auto loaded = ProjectSettings::Load(file);
+            if (!loaded)
+            {
+                APP_ERROR("Could not read project file: {}", loaded.error());
+                return false;
+            }
+            settings = std::move(*loaded);
+        } else
+        {
+            settings.Name = root.filename().string();
+            settings.WindowTitle = settings.Name;
+        }
+
+        settings.StartScene = *m_Handle;
+
+        if (const auto saved = settings.Save(file); !saved)
+        {
+            APP_ERROR("Could not write project file: {}", saved.error());
+            return false;
+        }
+
+        APP_INFO("'{}' is now the startup scene", GetPath().generic_string());
         return true;
     }
 

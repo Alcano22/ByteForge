@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 
 namespace ByteForge
 {
@@ -28,7 +29,8 @@ namespace ByteForge
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const std::string& name = std::string());
+        Entity CreateEntity(const std::string& name = std::string()) { return CreateEntityWithUUID(UUID()); }
+        Entity CreateEntityWithUUID(UUID uuid, const std::string& name = std::string());
         void DestroyEntity(Entity entity);
         Entity DuplicateEntity(Entity source);
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
@@ -75,6 +77,7 @@ namespace ByteForge
         friend class ScriptRuntime;
 
         entt::registry m_Registry;
+        std::unordered_map<UUID, entt::entity> m_EntityByUUID;
         Scope<Physics2DWorld> m_PhysicsWorld;
         Scope<ScriptRuntime> m_ScriptRuntime;
     };

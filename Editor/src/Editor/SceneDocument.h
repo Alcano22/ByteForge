@@ -25,6 +25,8 @@ namespace ByteForge
         bool Save();
         bool SaveAs(const std::filesystem::path& relativePath);
 
+        bool SetAsStartupScene() const;
+
         [[nodiscard]] bool HasFile() const { return m_Handle.has_value(); }
         [[nodiscard]] bool IsDirty() const;
 

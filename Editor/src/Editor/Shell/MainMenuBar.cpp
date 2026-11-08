@@ -55,6 +55,9 @@ namespace ByteForge
                 ImGui::Separator();
                 ActionMenuItem(context, EditorActions::SaveScene);
                 ActionMenuItem(context, EditorActions::SaveSceneAs);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Set as Startup Scene", nullptr, false, context.Document.HasFile()))
+                    context.Document.SetAsStartupScene();
                 ImGui::EndMenu();
             }
 

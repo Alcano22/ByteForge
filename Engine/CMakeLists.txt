@@ -27,6 +27,7 @@ add_library(Engine SHARED
         src/Scene/SceneSerializer.cpp
         src/Scene/Components.cpp
         src/Scene/Physics2DWorld.cpp
+        src/Project/ProjectSettings.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp

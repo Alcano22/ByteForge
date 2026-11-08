@@ -6,6 +6,7 @@
 #include "Engine/Audio/AudioSystem.h"
 #include "Scripting/ScriptRuntime.h"
 
+#include <format>
 #include <stdexcept>
 
 namespace ByteForge
@@ -45,17 +46,28 @@ namespace ByteForge
                   .disconnect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    Entity Scene::CreateEntityWithUUID(const UUID uuid, const std::string& name)
     {
+        if (m_EntityByUUID.contains(uuid))
+        {
+            throw std::runtime_error(std::format("Scene::CreateEntityWithUUID: an entity with UUID {} already exists",
+                                                 static_cast<uint64_t>(uuid)));
+        }
+
         const Entity entity(m_Registry.create(), this);
-        entity.AddComponent<UUIDComponent>();
+        entity.AddComponent<UUIDComponent>(UUIDComponent{ uuid });
         entity.AddComponent<TransformComponent>();
         entity.AddComponent<TagComponent>(name.empty() ? std::string("Entity") : name);
+
+        m_EntityByUUID.emplace(uuid, entity.m_Handle);
         return entity;
     }
 
     void Scene::DestroyEntity(const Entity entity)
     {
+        if (const auto* id = m_Registry.try_get<UUIDComponent>(entity.m_Handle))
+            m_EntityByUUID.erase(id->ID);
+
         m_Registry.destroy(entity.m_Handle);
     }
 
@@ -71,13 +83,8 @@ namespace ByteForge
 
     Entity Scene::FindEntityByUUID(const UUID uuid)
     {
-        for (const auto handle : m_Registry.view<UUIDComponent>())
-        {
-            if (static_cast<uint64_t>(m_Registry.get<UUIDComponent>(handle).ID) == static_cast<uint64_t>(uuid))
-                return Entity(handle, this);
-        }
-
-        return {};
+        const auto it = m_EntityByUUID.find(uuid);
+        return it != m_EntityByUUID.end() ? Entity(it->second, this) : Entity{};
     }
 
     Entity Scene::FindEntityByPickingId(const uint32_t pickingId)
@@ -181,6 +188,7 @@ namespace ByteForge
         OnRuntimeStop();
 
         m_Registry.clear();
+        m_EntityByUUID.clear();
         ResetPhysicsWorld();
     }
 

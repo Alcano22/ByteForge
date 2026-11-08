@@ -341,8 +341,8 @@ namespace ByteForge
 
     Entity SceneSerializer::DeserializeEntity(Scene& scene, const nlohmann::json& data)
     {
-        const Entity entity = scene.CreateEntity(data.value("tag", std::string("Entity")));
-        entity.GetComponent<UUIDComponent>().ID = UUID(data.at("uuid").get<uint64_t>());
+        const Entity entity = scene.CreateEntityWithUUID(UUID(data.at("uuid").get<uint64_t>()),
+                                                         data.value("tag", std::string("Entity")));
 
         ReadComponents(entity, data);
         return entity;
