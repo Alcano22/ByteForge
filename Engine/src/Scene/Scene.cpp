@@ -6,9 +6,12 @@
 #include "Engine/Audio/AudioSystem.h"
 #include "Scripting/ScriptRuntime.h"
 
+#include <algorithm>
+#include <compare>
 #include <format>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -35,6 +38,12 @@ namespace ByteForge
                 }
             }(), ...);
         }
+
+        struct SpriteDrawItem
+        {
+            entt::entity Handle;
+            float Z;
+        };
     }
 
     Scene::Scene() { ResetPhysicsWorld(); }
@@ -159,7 +168,18 @@ namespace ByteForge
         renderer.BeginScene(camera);
 
         const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
+
+        std::vector<SpriteDrawItem> queue;
+        queue.reserve(view.size_hint());
         for (const auto handle : view)
+            queue.push_back({ handle, view.get<TransformComponent>(handle).Position.z });
+
+        std::ranges::stable_sort(queue, [](const SpriteDrawItem& a, const SpriteDrawItem& b)
+        {
+            return std::strong_order(a.Z, b.Z) < 0;
+        });
+
+        for (const auto& [handle, z] : queue)
         {
             const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
             const uint32_t pickingId = ToPickingId(handle);
