@@ -5,6 +5,7 @@
 #include "Engine/Core/Log.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Scene/Components.h"
+#include "Engine/Scene/RaycastHit2D.h"
 #include "Engine/Scripting/API/ScriptAPI.h"
 
 #include <cstdint>
@@ -78,6 +79,17 @@ namespace ByteForge
             RequireScene(context).QueueDestroyEntity(target.GetUUID());
         }
 
+        void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
+        {
+            const Entity target = context.Resolve(entity);
+
+            const auto* rigidbody = target.TryGetComponent<Rigidbody2DComponent>();
+            if (rigidbody == nullptr) return;
+
+            const auto& transform = target.GetComponent<TransformComponent>();
+            rigidbody->Teleport({ transform.Position.x, transform.Position.y }, transform.Rotation);
+        }
+
         glm::vec3 TransformGetPosition(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Require<TransformComponent>(entity).Position;
@@ -86,6 +98,7 @@ namespace ByteForge
         void TransformSetPosition(const ScriptCallContext& context, const EntityRef entity, const glm::vec3& position)
         {
             context.Require<TransformComponent>(entity).Position = position;
+            TeleportBodyToTransform(context, entity);
         }
 
         float TransformGetRotation(const ScriptCallContext& context, const EntityRef entity)
@@ -96,6 +109,7 @@ namespace ByteForge
         void TransformSetRotation(const ScriptCallContext& context, const EntityRef entity, const float rotation)
         {
             context.Require<TransformComponent>(entity).Rotation = rotation;
+            TeleportBodyToTransform(context, entity);
         }
 
         glm::vec2 TransformGetScale(const ScriptCallContext& context, const EntityRef entity)
@@ -106,6 +120,74 @@ namespace ByteForge
         void TransformSetScale(const ScriptCallContext& context, const EntityRef entity, const glm::vec2& scale)
         {
             context.Require<TransformComponent>(entity).Scale = scale;
+        }
+
+        bool Rigidbody2DExists(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Resolve(entity).HasComponent<Rigidbody2DComponent>();
+        }
+
+        glm::vec2 Rigidbody2DGetLinearVelocity(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<Rigidbody2DComponent>(entity).GetLinearVelocity();
+        }
+
+        void Rigidbody2DSetLinearVelocity(const ScriptCallContext& context, const EntityRef entity,
+                                          const glm::vec2& velocity)
+        {
+            context.Require<Rigidbody2DComponent>(entity).SetLinearVelocity(velocity);
+        }
+
+        void Rigidbody2DApplyForce(const ScriptCallContext& context, const EntityRef entity, const glm::vec2& force)
+        {
+            context.Require<Rigidbody2DComponent>(entity).ApplyForceToCenter(force);
+        }
+
+        void Rigidbody2DApplyImpulse(const ScriptCallContext& context, const EntityRef entity,
+                                     const glm::vec2& impulse)
+        {
+            context.Require<Rigidbody2DComponent>(entity).ApplyLinearImpulseToCenter(impulse);
+        }
+
+        RaycastHit2D CastRay(const ScriptCallContext& context, const glm::vec2& origin, const glm::vec2& direction,
+                             const float maxDistance)
+        {
+            return RequireScene(context).Raycast2D(origin, direction, maxDistance);
+        }
+
+        EntityRef PhysicsRaycast(const ScriptCallContext& context, const glm::vec2& origin,
+                                 const glm::vec2& direction, const float maxDistance)
+        {
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            if (!hit.Hit || !hit.HitEntity.IsValid())
+                return {};
+
+            return EntityRef{ hit.HitEntity.GetUUID() };
+        }
+
+        glm::vec2 PhysicsRaycastPoint(const ScriptCallContext& context, const glm::vec2& origin,
+                                      const glm::vec2& direction, const float maxDistance)
+        {
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            if (hit.Hit)
+                return hit.Point;
+
+            const float length = glm::length(direction);
+            return length > 0.0f ? origin + direction / length * maxDistance : origin;
+        }
+
+        glm::vec2 PhysicsRaycastNormal(const ScriptCallContext& context, const glm::vec2& origin,
+                                       const glm::vec2& direction, const float maxDistance)
+        {
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            return hit.Hit ? hit.Normal : glm::vec2(0.0f);
+        }
+
+        float PhysicsRaycastDistance(const ScriptCallContext& context, const glm::vec2& origin,
+                                     const glm::vec2& direction, const float maxDistance)
+        {
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            return hit.Hit ? hit.Distance : maxDistance;
         }
 
         bool AudioSourceExists(const ScriptCallContext& context, const EntityRef entity)
@@ -205,6 +287,17 @@ namespace ByteForge
         api.Register<&TransformSetRotation>("Transform.SetRotation", "Set Rotation", Impure, { "Entity", "Rotation" });
         api.Register<&TransformGetScale>("Transform.GetScale", "Get Scale", Pure, { "Entity" });
         api.Register<&TransformSetScale>("Transform.SetScale", "Set Scale", Impure, { "Entity", "Scale" });
+
+        api.Register<&Rigidbody2DExists>("Rigidbody2D.Exists", "Has Rigidbody 2D", Pure, { "Entity" });
+        api.Register<&Rigidbody2DGetLinearVelocity>("Rigidbody2D.GetLinearVelocity", "Get Linear Velocity", Pure, { "Entity" });
+        api.Register<&Rigidbody2DSetLinearVelocity>("Rigidbody2D.SetLinearVelocity", "Set Linear Velocity", Impure, { "Entity", "Velocity" });
+        api.Register<&Rigidbody2DApplyForce>("Rigidbody2D.ApplyForce", "Apply Force", Impure, { "Entity", "Force" });
+        api.Register<&Rigidbody2DApplyImpulse>("Rigidbody2D.ApplyImpulse", "Apply Impulse", Impure, { "Entity", "Impulse" });
+
+        api.Register<&PhysicsRaycast>("Physics.Raycast", "Raycast", Pure, { "Origin", "Direction", "Max Distance" });
+        api.Register<&PhysicsRaycastPoint>("Physics.RaycastPoint", "Raycast Point", Pure, { "Origin", "Direction", "Max Distance" });
+        api.Register<&PhysicsRaycastNormal>("Physics.RaycastNormal", "Raycast Normal", Pure, { "Origin", "Direction", "Max Distance" });
+        api.Register<&PhysicsRaycastDistance>("Physics.RaycastDistance", "Raycast Distance", Pure, { "Origin", "Direction", "Max Distance" });
 
         api.Register<&AudioSourceExists>("AudioSource.Exists", "Has Audio Source", Pure, { "Entity" });
         api.Register<&AudioSourcePlay>("AudioSource.Play", "Play", Impure, { "Entity" });

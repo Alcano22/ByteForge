@@ -45,6 +45,12 @@ namespace ByteForge
         b2Body_ApplyLinearImpulseToCenter(b2LoadBodyId(m_RuntimeBodyId), { impulse.x, impulse.y }, wake);
     }
 
+    void Rigidbody2DComponent::Teleport(const glm::vec2& position, const float rotation) const
+    {
+        if (m_RuntimeBodyId != 0)
+            b2Body_SetTransform(b2LoadBodyId(m_RuntimeBodyId), { position.x, position.y }, b2MakeRot(rotation));
+    }
+
     void AudioSourceComponent::Play() const
     {
         if (m_Sound)

@@ -89,6 +89,8 @@ namespace ByteForge
         void ApplyForceToCenter(const glm::vec2& force, bool wake = true) const;
         void ApplyLinearImpulseToCenter(const glm::vec2& impulse, bool wake = true) const;
 
+        void Teleport(const glm::vec2& position, float rotation) const;
+
     private:
         void RequireRuntimeBody(const char* method) const;
 

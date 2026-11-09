@@ -9,6 +9,7 @@ public sealed class Entity : IEquatable<Entity>
 
     private Transform? _transform;
     private AudioSource? _audioSource;
+    private Rigidbody2D? _rigidbody2D;
 
     internal Entity(ulong id)
     {
@@ -40,8 +41,8 @@ public sealed class Entity : IEquatable<Entity>
 
     public Transform Transform => _transform ??= new Transform(ID);
 
-    // Null when the entity has no Audio Source component
     public AudioSource? AudioSource => ScriptAPI.AudioSource_Exists(ID) ? (_audioSource ??= new AudioSource(ID)) : null;
+    public Rigidbody2D? Rigidbody2D => ScriptAPI.Rigidbody2D_Exists(ID) ? (_rigidbody2D ??= new Rigidbody2D(ID)) : null;
 
     public void Destroy() => ScriptAPI.Entity_Destroy(ID);
 

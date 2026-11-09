@@ -21,6 +21,15 @@ internal static unsafe class ScriptAPI
     private static uint s_TransformSetRotation;
     private static uint s_TransformGetScale;
     private static uint s_TransformSetScale;
+    private static uint s_Rigidbody2DExists;
+    private static uint s_Rigidbody2DGetLinearVelocity;
+    private static uint s_Rigidbody2DSetLinearVelocity;
+    private static uint s_Rigidbody2DApplyForce;
+    private static uint s_Rigidbody2DApplyImpulse;
+    private static uint s_PhysicsRaycast;
+    private static uint s_PhysicsRaycastPoint;
+    private static uint s_PhysicsRaycastNormal;
+    private static uint s_PhysicsRaycastDistance;
     private static uint s_AudioSourceExists;
     private static uint s_AudioSourcePlay;
     private static uint s_AudioSourceStop;
@@ -40,32 +49,41 @@ internal static unsafe class ScriptAPI
     {
         bool complete = true;
 
-        s_EntityIsValid              = Resolve("Entity.IsValid",              "(Entity)->Bool",            ref complete);
-        s_EntityGetName              = Resolve("Entity.GetName",              "(Entity)->String",          ref complete);
-        s_EntityCreate               = Resolve("Entity.Create",               "(String)->Entity",          ref complete);
-        s_EntityInstantiate          = Resolve("Entity.Instantiate",          "(Entity)->Entity",          ref complete);
-        s_EntityFindByName           = Resolve("Entity.FindByName",           "(String)->Entity",          ref complete);
-        s_EntityDestroy              = Resolve("Entity.Destroy",              "(Entity)->Void",            ref complete);
-        s_TransformGetPosition       = Resolve("Transform.GetPosition",       "(Entity)->Vector3",         ref complete);
-        s_TransformSetPosition       = Resolve("Transform.SetPosition",       "(Entity,Vector3)->Void",    ref complete);
-        s_TransformGetRotation       = Resolve("Transform.GetRotation",       "(Entity)->Float",           ref complete);
-        s_TransformSetRotation       = Resolve("Transform.SetRotation",       "(Entity,Float)->Void",      ref complete);
-        s_TransformGetScale          = Resolve("Transform.GetScale",          "(Entity)->Vector2",         ref complete);
-        s_TransformSetScale          = Resolve("Transform.SetScale",          "(Entity,Vector2)->Void",    ref complete);
-        s_AudioSourceExists          = Resolve("AudioSource.Exists",          "(Entity)->Bool",            ref complete);
-        s_AudioSourcePlay            = Resolve("AudioSource.Play",            "(Entity)->Void",            ref complete);
-        s_AudioSourceStop            = Resolve("AudioSource.Stop",            "(Entity)->Void",            ref complete);
-        s_AudioSourceIsPlaying       = Resolve("AudioSource.IsPlaying",       "(Entity)->Bool",            ref complete);
-        s_AudioPlayOneShot           = Resolve("Audio.PlayOneShot",           "(Asset:AudioClip)->Void",   ref complete);
-        s_InputIsKeyDown             = Resolve("Input.IsKeyDown",             "(Int)->Bool",               ref complete);
-        s_InputIsKeyPressed          = Resolve("Input.IsKeyPressed",          "(Int)->Bool",               ref complete);
-        s_InputIsKeyReleased         = Resolve("Input.IsKeyReleased",         "(Int)->Bool",               ref complete);
-        s_InputIsMouseButtonDown     = Resolve("Input.IsMouseButtonDown",     "(Int)->Bool",               ref complete);
-        s_InputIsMouseButtonPressed  = Resolve("Input.IsMouseButtonPressed",  "(Int)->Bool",               ref complete);
-        s_InputIsMouseButtonReleased = Resolve("Input.IsMouseButtonReleased", "(Int)->Bool",               ref complete);
-        s_InputGetMousePosition      = Resolve("Input.GetMousePosition",      "()->Vector2",               ref complete);
-        s_InputGetMouseDelta         = Resolve("Input.GetMouseDelta",         "()->Vector2",               ref complete);
-        s_InputGetScrollDelta        = Resolve("Input.GetScrollDelta",        "()->Vector2",               ref complete);
+        s_EntityIsValid                = Resolve("Entity.IsValid",                "(Entity)->Bool",                    ref complete);
+        s_EntityGetName                = Resolve("Entity.GetName",                "(Entity)->String",                  ref complete);
+        s_EntityCreate                 = Resolve("Entity.Create",                 "(String)->Entity",                  ref complete);
+        s_EntityInstantiate            = Resolve("Entity.Instantiate",            "(Entity)->Entity",                  ref complete);
+        s_EntityFindByName             = Resolve("Entity.FindByName",             "(String)->Entity",                  ref complete);
+        s_EntityDestroy                = Resolve("Entity.Destroy",                "(Entity)->Void",                    ref complete);
+        s_TransformGetPosition         = Resolve("Transform.GetPosition",         "(Entity)->Vector3",                 ref complete);
+        s_TransformSetPosition         = Resolve("Transform.SetPosition",         "(Entity,Vector3)->Void",            ref complete);
+        s_TransformGetRotation         = Resolve("Transform.GetRotation",         "(Entity)->Float",                   ref complete);
+        s_TransformSetRotation         = Resolve("Transform.SetRotation",         "(Entity,Float)->Void",              ref complete);
+        s_TransformGetScale            = Resolve("Transform.GetScale",            "(Entity)->Vector2",                 ref complete);
+        s_TransformSetScale            = Resolve("Transform.SetScale",            "(Entity,Vector2)->Void",            ref complete);
+        s_Rigidbody2DExists            = Resolve("Rigidbody2D.Exists",            "(Entity)->Bool",                    ref complete);
+        s_Rigidbody2DGetLinearVelocity = Resolve("Rigidbody2D.GetLinearVelocity", "(Entity)->Vector2",                 ref complete);
+        s_Rigidbody2DSetLinearVelocity = Resolve("Rigidbody2D.SetLinearVelocity", "(Entity,Vector2)->Void",            ref complete);
+        s_Rigidbody2DApplyForce        = Resolve("Rigidbody2D.ApplyForce",        "(Entity,Vector2)->Void",            ref complete);
+        s_Rigidbody2DApplyImpulse      = Resolve("Rigidbody2D.ApplyImpulse",      "(Entity,Vector2)->Void",            ref complete);
+        s_PhysicsRaycast               = Resolve("Physics.Raycast",               "(Vector2,Vector2,Float)->Entity",   ref complete);
+        s_PhysicsRaycastPoint          = Resolve("Physics.RaycastPoint",          "(Vector2,Vector2,Float)->Vector2",  ref complete);
+        s_PhysicsRaycastNormal         = Resolve("Physics.RaycastNormal",         "(Vector2,Vector2,Float)->Vector2",  ref complete);
+        s_PhysicsRaycastDistance       = Resolve("Physics.RaycastDistance",       "(Vector2,Vector2,Float)->Float",    ref complete);
+        s_AudioSourceExists            = Resolve("AudioSource.Exists",            "(Entity)->Bool",                    ref complete);
+        s_AudioSourcePlay              = Resolve("AudioSource.Play",              "(Entity)->Void",                    ref complete);
+        s_AudioSourceStop              = Resolve("AudioSource.Stop",              "(Entity)->Void",                    ref complete);
+        s_AudioSourceIsPlaying         = Resolve("AudioSource.IsPlaying",         "(Entity)->Bool",                    ref complete);
+        s_AudioPlayOneShot             = Resolve("Audio.PlayOneShot",             "(Asset:AudioClip)->Void",           ref complete);
+        s_InputIsKeyDown               = Resolve("Input.IsKeyDown",               "(Int)->Bool",                       ref complete);
+        s_InputIsKeyPressed            = Resolve("Input.IsKeyPressed",            "(Int)->Bool",                       ref complete);
+        s_InputIsKeyReleased           = Resolve("Input.IsKeyReleased",           "(Int)->Bool",                       ref complete);
+        s_InputIsMouseButtonDown       = Resolve("Input.IsMouseButtonDown",       "(Int)->Bool",                       ref complete);
+        s_InputIsMouseButtonPressed    = Resolve("Input.IsMouseButtonPressed",    "(Int)->Bool",                       ref complete);
+        s_InputIsMouseButtonReleased   = Resolve("Input.IsMouseButtonReleased",   "(Int)->Bool",                       ref complete);
+        s_InputGetMousePosition        = Resolve("Input.GetMousePosition",        "()->Vector2",                       ref complete);
+        s_InputGetMouseDelta           = Resolve("Input.GetMouseDelta",           "()->Vector2",                       ref complete);
+        s_InputGetScrollDelta          = Resolve("Input.GetScrollDelta",          "()->Vector2",                       ref complete);
 
         return complete;
     }
@@ -109,6 +127,41 @@ internal static unsafe class ScriptAPI
 
     public static void Transform_SetScale(ulong entity, Vector2 scale) =>
         Call(s_TransformSetScale, new APIValue { Handle = entity }, new APIValue { Vector2 = scale });
+
+    // Rigidbody2D
+
+    public static bool Rigidbody2D_Exists(ulong entity) =>
+        Call(s_Rigidbody2DExists, new APIValue { Handle = entity }).Bool != 0;
+
+    public static Vector2 Rigidbody2D_GetLinearVelocity(ulong entity) =>
+        Call(s_Rigidbody2DGetLinearVelocity, new APIValue { Handle = entity }).Vector2;
+
+    public static void Rigidbody2D_SetLinearVelocity(ulong entity, Vector2 velocity) =>
+        Call(s_Rigidbody2DSetLinearVelocity, new APIValue { Handle = entity }, new APIValue { Vector2 = velocity });
+
+    public static void Rigidbody2D_ApplyForce(ulong entity, Vector2 force) =>
+        Call(s_Rigidbody2DApplyForce, new APIValue { Handle = entity }, new APIValue { Vector2 = force });
+
+    public static void Rigidbody2D_ApplyImpulse(ulong entity, Vector2 impulse) =>
+        Call(s_Rigidbody2DApplyImpulse, new APIValue { Handle = entity }, new APIValue { Vector2 = impulse });
+
+    // Physics
+
+    public static ulong Physics_Raycast(Vector2 origin, Vector2 direction, float maxDistance) =>
+        Call(s_PhysicsRaycast, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
+             new APIValue { Float = maxDistance }).Handle;
+
+    public static Vector2 Physics_RaycastPoint(Vector2 origin, Vector2 direction, float maxDistance) =>
+        Call(s_PhysicsRaycastPoint, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
+             new APIValue { Float = maxDistance }).Vector2;
+
+    public static Vector2 Physics_RaycastNormal(Vector2 origin, Vector2 direction, float maxDistance) =>
+        Call(s_PhysicsRaycastNormal, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
+             new APIValue { Float = maxDistance }).Vector2;
+
+    public static float Physics_RaycastDistance(Vector2 origin, Vector2 direction, float maxDistance) =>
+        Call(s_PhysicsRaycastDistance, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
+             new APIValue { Float = maxDistance }).Float;
 
     // Audio
 
@@ -183,6 +236,15 @@ internal static unsafe class ScriptAPI
         arguments[0] = first;
         arguments[1] = second;
         return Invoke(function, arguments, 2);
+    }
+
+    private static APIValue Call(uint function, APIValue first, APIValue second, APIValue third)
+    {
+        APIValue* arguments = stackalloc APIValue[3];
+        arguments[0] = first;
+        arguments[1] = second;
+        arguments[2] = third;
+        return Invoke(function, arguments, 3);
     }
 
     private static APIValue CallWithText(uint function, string text)
