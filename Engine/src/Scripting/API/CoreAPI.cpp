@@ -122,6 +122,21 @@ namespace ByteForge
             context.Require<TransformComponent>(entity).Scale = scale;
         }
 
+        bool SpriteRendererExists(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Resolve(entity).HasComponent<SpriteRendererComponent>();
+        }
+
+        int SpriteRendererGetSortingLayer(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<SpriteRendererComponent>(entity).SortingLayer;
+        }
+
+        void SpriteRendererSetSortingLayer(const ScriptCallContext& context, const EntityRef entity, const int layer)
+        {
+            context.Require<SpriteRendererComponent>(entity).SortingLayer = layer;
+        }
+
         bool Rigidbody2DExists(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Resolve(entity).HasComponent<Rigidbody2DComponent>();
@@ -287,6 +302,10 @@ namespace ByteForge
         api.Register<&TransformSetRotation>("Transform.SetRotation", "Set Rotation", Impure, { "Entity", "Rotation" });
         api.Register<&TransformGetScale>("Transform.GetScale", "Get Scale", Pure, { "Entity" });
         api.Register<&TransformSetScale>("Transform.SetScale", "Set Scale", Impure, { "Entity", "Scale" });
+
+        api.Register<&SpriteRendererExists>("SpriteRenderer.Exists", "Has Sprite Renderer", Pure, { "Entity" });
+        api.Register<&SpriteRendererGetSortingLayer>("SpriteRenderer.GetSortingLayer", "Get Sorting Layer", Pure, { "Entity" });
+        api.Register<&SpriteRendererSetSortingLayer>("SpriteRenderer.SetSortingLayer", "Set Sorting Layer", Impure, { "Entity", "Layer" });
 
         api.Register<&Rigidbody2DExists>("Rigidbody2D.Exists", "Has Rigidbody 2D", Pure, { "Entity" });
         api.Register<&Rigidbody2DGetLinearVelocity>("Rigidbody2D.GetLinearVelocity", "Get Linear Velocity", Pure, { "Entity" });
