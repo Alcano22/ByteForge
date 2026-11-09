@@ -14,6 +14,12 @@ namespace ByteForge
         void OnImGuiRender() override;
 
     private:
+        void PublishInput();
+        void ReleaseInput();
+
+    private:
         ViewportCanvas m_Canvas;
+
+        bool m_MouseCaptured = false;
     };
 }

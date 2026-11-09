@@ -55,6 +55,8 @@ public static class Input
     public static bool IsMouseButtonReleased(MouseButton button) => ScriptAPI.Input_IsMouseButtonReleased((int)button);
 
     public static Vector2 MousePosition => ScriptAPI.Input_GetMousePosition();
+    public static Vector2 MouseWorldPosition => ScriptAPI.Input_GetMouseWorldPosition();
+
     public static Vector2 MouseDelta => ScriptAPI.Input_GetMouseDelta();
     public static Vector2 ScrollDelta => ScriptAPI.Input_GetScrollDelta();
 }

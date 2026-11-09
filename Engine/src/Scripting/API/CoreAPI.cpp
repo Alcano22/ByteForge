@@ -6,6 +6,7 @@
 #include "Engine/Input/Input.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/RaycastHit2D.h"
+#include "Engine/Scene/SceneCamera.h"
 #include "Engine/Scripting/API/ScriptAPI.h"
 
 #include <cstdint>
@@ -16,6 +17,9 @@ namespace ByteForge
 {
     namespace
     {
+        constexpr CameraComponent DefaultCamera;
+        constexpr TransformComponent DefaultTransform;
+
         float MathAddFloat(const ScriptCallContext&, const float a, const float b) { return a + b; }
         float MathSubtractFloat(const ScriptCallContext&, const float a, const float b) { return a - b; }
         float MathMultiplyFloat(const ScriptCallContext&, const float a, const float b) { return a * b; }
@@ -269,7 +273,26 @@ namespace ByteForge
             return Input::IsMouseButtonReleased(ToMouseButton(button));
         }
 
-        glm::vec2 InputGetMousePosition(const ScriptCallContext&) { return Input::GetMousePosition(); }
+        glm::vec2 InputGetMousePosition(const ScriptCallContext&) { return Input::GetViewportMousePosition(); }
+
+        glm::vec2 InputGetMouseWorldPosition(const ScriptCallContext& context)
+        {
+            const Entity cameraEntity = RequireScene(context).GetPrimaryCamera();
+            const bool hasCamera = cameraEntity.IsValid();
+
+            const CameraComponent& settings = hasCamera ? cameraEntity.GetComponent<CameraComponent>()
+                                                        : DefaultCamera;
+            const TransformComponent& transform = hasCamera ? cameraEntity.GetComponent<TransformComponent>()
+                                                            : DefaultTransform;
+
+            const glm::vec2 viewportSize = Input::GetViewportSize();
+            if (viewportSize.x < 1.0f || viewportSize.y < 1.0f)
+                return { transform.Position.x, transform.Position.y };
+
+            const OrthographicCamera camera = MakeSceneCamera(settings, transform, viewportSize.x / viewportSize.y);
+            return ViewportPointToWorld(camera, Input::GetViewportMousePosition(), viewportSize);
+        }
+
         glm::vec2 InputGetMouseDelta(const ScriptCallContext&) { return Input::GetMouseDelta(); }
         glm::vec2 InputGetScrollDelta(const ScriptCallContext&) { return Input::GetScrollDelta(); }
     }
@@ -332,6 +355,7 @@ namespace ByteForge
         api.Register<&InputIsMouseButtonPressed>("Input.IsMouseButtonPressed", "Is Mouse Button Pressed", Pure, { "Button" });
         api.Register<&InputIsMouseButtonReleased>("Input.IsMouseButtonReleased", "Is Mouse Button Released", Pure, { "Button" });
         api.Register<&InputGetMousePosition>("Input.GetMousePosition", "Get Mouse Position", Pure);
+        api.Register<&InputGetMouseWorldPosition>("Input.GetMouseWorldPosition", "Get Mouse World Position", Pure);
         api.Register<&InputGetMouseDelta>("Input.GetMouseDelta", "Get Mouse Delta", Pure);
         api.Register<&InputGetScrollDelta>("Input.GetScrollDelta", "Get Scroll Delta", Pure);
     }

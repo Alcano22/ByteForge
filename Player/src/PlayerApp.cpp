@@ -3,6 +3,7 @@
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Input/Input.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/Renderer2D.h>
 #include <Engine/Scene/Entity.h>
@@ -49,9 +50,15 @@ namespace ByteForge
 
         void OnUpdate(const Timestep ts) override
         {
+            const Window& window = Application::Get().GetWindow();
+
+            Input::SetViewport({
+                .Size          = { static_cast<float>(window.GetWidth()), static_cast<float>(window.GetHeight()) },
+                .MousePosition = Input::GetMousePosition()
+            });
+
             m_Scene.OnUpdateRuntime(ts);
 
-            const Window& window = Application::Get().GetWindow();
             const auto width = static_cast<float>(window.GetFramebufferWidth());
             const auto height = static_cast<float>(window.GetFramebufferHeight());
             if (width < 1.0f || height < 1.0f) return;

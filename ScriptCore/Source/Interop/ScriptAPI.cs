@@ -45,6 +45,7 @@ internal static unsafe class ScriptAPI
     private static uint s_InputIsMouseButtonPressed;
     private static uint s_InputIsMouseButtonReleased;
     private static uint s_InputGetMousePosition;
+    private static uint s_InputGetMouseWorldPosition;
     private static uint s_InputGetMouseDelta;
     private static uint s_InputGetScrollDelta;
 
@@ -88,6 +89,7 @@ internal static unsafe class ScriptAPI
         s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",    "(Int)->Bool",                      ref complete);
         s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",   "(Int)->Bool",                      ref complete);
         s_InputGetMousePosition         = Resolve("Input.GetMousePosition",        "()->Vector2",                      ref complete);
+        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",   "()->Vector2",                      ref complete);
         s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",           "()->Vector2",                      ref complete);
         s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",          "()->Vector2",                      ref complete);
 
@@ -218,6 +220,7 @@ internal static unsafe class ScriptAPI
         Call(s_InputIsMouseButtonReleased, new APIValue { Int = button }).Bool != 0;
 
     public static Vector2 Input_GetMousePosition() => Call(s_InputGetMousePosition).Vector2;
+    public static Vector2 Input_GetMouseWorldPosition() => Call(s_InputGetMouseWorldPosition).Vector2;
     public static Vector2 Input_GetMouseDelta() => Call(s_InputGetMouseDelta).Vector2;
     public static Vector2 Input_GetScrollDelta() => Call(s_InputGetScrollDelta).Vector2;
 

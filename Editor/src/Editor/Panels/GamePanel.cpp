@@ -1,6 +1,7 @@
 #include "Editor/Panels/GamePanel.h"
 #include "Editor/EditorContext.h"
 
+#include <Engine/Input/Input.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
@@ -12,8 +13,28 @@ namespace ByteForge
 {
     namespace
     {
-        const CameraComponent DefaultCamera;
-        const TransformComponent DefaultTransform;
+        constexpr CameraComponent DefaultCamera;
+        constexpr TransformComponent DefaultTransform;
+
+        bool IsAnyMouseButtonDown()
+        {
+            for (int button = 0; button < ImGuiMouseButton_COUNT; ++button)
+            {
+                if (ImGui::IsMouseDown(button))
+                    return true;
+            }
+            return false;
+        }
+
+        bool IsAnyMouseButtonClicked()
+        {
+            for (int button = 0; button < ImGuiMouseButton_COUNT; ++button)
+            {
+                if (ImGui::IsMouseClicked(button))
+                    return true;
+            }
+            return false;
+        }
     }
 
     GamePanel::GamePanel(EditorContext& context)
@@ -43,15 +64,52 @@ namespace ByteForge
 
     void GamePanel::OnImGuiRender()
     {
-        if (!m_Open) return;
+        if (!m_Open)
+        {
+            ReleaseInput();
+            return;
+        }
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         const bool visible = ImGui::Begin(GetName().c_str(), &m_Open);
         ImGui::PopStyleVar();
 
+        bool hasImage = false;
+
         if (visible)
+        {
+            const ImVec2 available = ImGui::GetContentRegionAvail();
+            hasImage = available.x >= 1.0f && available.y >= 1.0f;
+
             m_Canvas.Draw();
 
+            if (hasImage)
+                PublishInput();
+        }
+
         ImGui::End();
+
+        if (!hasImage)
+            ReleaseInput();
+    }
+
+    void GamePanel::PublishInput()
+    {
+        if (!IsAnyMouseButtonDown())
+            m_MouseCaptured = false;
+        else if (m_Canvas.IsHovered() && IsAnyMouseButtonClicked())
+            m_MouseCaptured = true;
+
+        Input::SetViewport({
+            .Size          = m_Canvas.GetSize(),
+            .MousePosition = m_Canvas.ToViewport(ImGui::GetIO().MousePos),
+            .CapturesMouse = m_Canvas.IsHovered() || m_MouseCaptured
+        });
+    }
+
+    void GamePanel::ReleaseInput()
+    {
+        m_MouseCaptured = false;
+        Input::ClearViewport();
     }
 }

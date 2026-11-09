@@ -4,6 +4,7 @@
 
 #include <bitset>
 #include <cstddef>
+#include <optional>
 
 namespace ByteForge
 {
@@ -24,6 +25,8 @@ namespace ByteForge
 
             bool KeyboardBlocked = false;
             bool MouseBlocked = false;
+
+            std::optional<InputViewport> Viewport;
         };
 
         State s_State;
@@ -97,6 +100,26 @@ namespace ByteForge
     glm::vec2 Input::GetScrollDelta()
     {
         return s_State.MouseBlocked ? glm::vec2(0.0f) : s_State.ScrollDelta;
+    }
+
+    void Input::SetViewport(const InputViewport& viewport) { s_State.Viewport = viewport; }
+    void Input::ClearViewport() { s_State.Viewport.reset(); }
+
+    bool Input::HasViewport() { return s_State.Viewport.has_value(); }
+
+    glm::vec2 Input::GetViewportSize()
+    {
+        return s_State.Viewport ? s_State.Viewport->Size : glm::vec2(0.0f);
+    }
+
+    glm::vec2 Input::GetViewportMousePosition()
+    {
+        return s_State.Viewport ? s_State.Viewport->MousePosition : s_State.MousePosition;
+    }
+
+    bool Input::ViewportCapturesMouse()
+    {
+        return s_State.Viewport && s_State.Viewport->CapturesMouse;
     }
 
     bool Input::IsKeyboardBlocked() { return s_State.KeyboardBlocked; }

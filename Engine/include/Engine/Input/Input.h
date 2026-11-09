@@ -10,6 +10,13 @@ namespace ByteForge
 {
     class Event;
 
+    struct InputViewport
+    {
+        glm::vec2 Size{ 0.0f };
+        glm::vec2 MousePosition{ 0.0f };
+        bool CapturesMouse = false;
+    };
+
     class BYTEFORGE_API Input
     {
     public:
@@ -25,6 +32,16 @@ namespace ByteForge
 
         [[nodiscard]] static glm::vec2 GetMouseDelta();
         [[nodiscard]] static glm::vec2 GetScrollDelta();
+
+        static void SetViewport(const InputViewport& viewport);
+        static void ClearViewport();
+
+        [[nodiscard]] static bool HasViewport();
+        [[nodiscard]] static glm::vec2 GetViewportSize();
+
+        [[nodiscard]] static glm::vec2 GetViewportMousePosition();
+
+        [[nodiscard]] static bool ViewportCapturesMouse();
 
         [[nodiscard]] static bool IsKeyboardBlocked();
         static void SetKeyboardBlocked(bool blocked);

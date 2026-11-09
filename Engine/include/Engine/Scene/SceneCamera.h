@@ -17,4 +17,12 @@ namespace ByteForge
         camera.SetPosition(transform.Position);
         return camera;
     }
+
+    [[nodiscard]] inline glm::vec2 ViewportPointToWorld(const Camera& camera, const glm::vec2& viewportPoint,
+                                                        const glm::vec2& viewportSize)
+    {
+        const glm::vec2 ndc = viewportPoint / viewportSize * 2.0f - 1.0f;
+        const glm::vec4 world = glm::inverse(camera.GetViewProjection()) * glm::vec4(ndc, 0.0f, 1.0f);
+        return { world.x, world.y };
+    }
 }
