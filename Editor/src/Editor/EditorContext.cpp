@@ -1,5 +1,6 @@
 #include "Editor/EditorContext.h"
 #include "Editor/Commands/EntityCommands.h"
+#include "Editor/Panels/GamePanel.h"
 
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -36,6 +37,8 @@ namespace ByteForge
         ActiveScene->OnRuntimeStart();
         SelectionContext.ClearEntity();
         State = SceneState::Play;
+
+        Open<GamePanel>().RequestFocus();
     }
 
     void EditorContext::OnSceneStop()

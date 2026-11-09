@@ -74,6 +74,9 @@ namespace ByteForge
         const bool visible = ImGui::Begin(GetName().c_str(), &m_Open);
         ImGui::PopStyleVar();
 
+        if (ConsumeFocusRequest())
+            ImGui::SetWindowFocus();
+
         bool hasImage = false;
 
         if (visible)

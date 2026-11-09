@@ -28,8 +28,12 @@ namespace ByteForge
         [[nodiscard]] bool IsOpen() const { return m_Open; }
         void SetOpen(const bool open) { m_Open = open; }
 
+        void RequestFocus() { m_FocusRequested = true; }
+
     protected:
         [[nodiscard]] EditorContext& GetContext() const { return m_Context; }
+
+        [[nodiscard]] bool ConsumeFocusRequest() { return std::exchange(m_FocusRequested, false); }
 
     protected:
         bool m_Open = true;
@@ -37,5 +41,7 @@ namespace ByteForge
     private:
         EditorContext& m_Context;
         std::string m_Name;
+
+        bool m_FocusRequested = false;
     };
 }
