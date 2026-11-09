@@ -38,6 +38,7 @@ namespace ByteForge
     {
         glm::vec4 Color{ 1.0f };
         Ref<ByteForge::Sprite> Sprite;
+        int SortingLayer = 0;
     };
 
     struct CameraComponent

@@ -42,6 +42,7 @@ namespace ByteForge
         struct SpriteDrawItem
         {
             entt::entity Handle;
+            int Layer;
             float Z;
         };
     }
@@ -172,17 +173,23 @@ namespace ByteForge
         std::vector<SpriteDrawItem> queue;
         queue.reserve(view.size_hint());
         for (const auto handle : view)
-            queue.push_back({ handle, view.get<TransformComponent>(handle).Position.z });
+        {
+            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
+            queue.push_back({ handle, spriteRenderer.SortingLayer, transform.Position.z });
+        }
 
         std::ranges::stable_sort(queue, [](const SpriteDrawItem& a, const SpriteDrawItem& b)
         {
+            if (a.Layer != b.Layer)
+                return a.Layer < b.Layer;
+
             return std::strong_order(a.Z, b.Z) < 0;
         });
 
-        for (const auto& [handle, z] : queue)
+        for (const SpriteDrawItem& item : queue)
         {
-            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
-            const uint32_t pickingId = ToPickingId(handle);
+            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(item.Handle);
+            const uint32_t pickingId = ToPickingId(item.Handle);
 
             if (spriteRenderer.Sprite)
             {

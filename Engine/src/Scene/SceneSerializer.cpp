@@ -86,6 +86,7 @@ namespace
             const auto& s = entityJson.at("spriteRenderer");
             auto& sprite = entity.AddComponent<SpriteRendererComponent>();
             sprite.Color = ToVec4(s.at("color"));
+            sprite.SortingLayer = s.value("sortingLayer", 0);
 
             if (s.contains("sprite"))
             {
@@ -244,6 +245,7 @@ namespace ByteForge
 
             nlohmann::json spriteJson;
             spriteJson["color"] = ToJson(sprite.Color);
+            spriteJson["sortingLayer"] = sprite.SortingLayer;
 
             if (sprite.Sprite)
             {

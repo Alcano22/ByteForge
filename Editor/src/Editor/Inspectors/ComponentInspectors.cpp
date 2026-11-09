@@ -42,6 +42,11 @@ namespace ByteForge
             Ref<TextureAsset> texture = spriteRenderer.Sprite ? spriteRenderer.Sprite->GetTextureAsset() : nullptr;
             if (EditorUI::TextureAssetField("Texture", texture, context.SelectionContext))
                 spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
+
+            ImGui::DragInt("Sorting Layer", &spriteRenderer.SortingLayer, 0.1f);
+            if (ImGui::IsItemHovered())
+                ImGui::SetItemTooltip("Higher layers are drawn in front of lower ones.\n"
+                                      "Within a layer, a higher Z is in front.");
         }
 
         void DrawCamera(CameraComponent& camera, Entity, EditorContext&)
