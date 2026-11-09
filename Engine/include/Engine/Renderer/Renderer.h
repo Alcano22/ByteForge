@@ -7,6 +7,7 @@
 #include "Engine/Renderer/RenderTarget.h"
 #include "Engine/Renderer/DrawRange.h"
 #include "Engine/Renderer/SceneLighting.h"
+#include "Engine/Renderer/ViewportRect.h"
 
 #include <cstddef>
 #include <span>
@@ -41,6 +42,9 @@ namespace ByteForge
 
         static void BeginRenderTarget(const Ref<RenderTarget>& target);
         static void EndRenderTarget();
+
+        static void SetViewport(const ViewportRect& rect);
+        static void ResetViewport();
 
         static void OnFramebufferResized();
 

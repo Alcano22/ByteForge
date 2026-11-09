@@ -63,6 +63,7 @@ namespace ByteForge
                     const DrawRange& range) override;
         void BeginRenderTarget(const RenderTarget& target) override;
         void EndRenderTarget() override;
+        void SetViewport(const std::optional<ViewportRect>& rect) override;
         void OnFramebufferResized() override { m_FramebufferResized = true; }
         void WaitIdle() override;
         [[nodiscard]] uint64_t GetFrameNumber() const override;

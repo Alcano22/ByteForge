@@ -2,10 +2,12 @@
 
 #include "Engine/Core/NonCopyable.h"
 #include "Engine/Renderer/DrawRange.h"
+#include "Engine/Renderer/ViewportRect.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -42,6 +44,8 @@ namespace ByteForge
         void BeginImGuiRendering();
         void EndImGuiRendering();
 
+        void SetSwapchainViewport(const std::optional<ViewportRect>& rect);
+
         void UpdateSwapchain(VulkanSwapchain& swapchain) { m_Swapchain = &swapchain; }
 
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
@@ -58,6 +62,7 @@ namespace ByteForge
         void EnsureSwapchainCleared();
         void BarrierSwapchainWrites() const;
         void PrepareSwapchainDepth() const;
+        void ApplySwapchainViewport() const;
 
         void BeginRendering(VkExtent2D extent, std::span<const VkRenderingAttachmentInfo> colorAttachments,
                             VkImageView depthView = nullptr,
@@ -84,5 +89,7 @@ namespace ByteForge
         const VulkanRenderTarget* m_ActiveTarget = nullptr;
         std::vector<VkFormat> m_ActiveColorFormats;
         VkFormat m_ActiveDepthFormat = VK_FORMAT_UNDEFINED;
+
+        std::optional<ViewportRect> m_SwapchainViewport;
     };
 }

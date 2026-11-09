@@ -43,6 +43,10 @@ namespace ByteForge
     }
 
     void Renderer::EndRenderTarget() { RenderBackend::Get().EndRenderTarget(); }
+
+    void Renderer::SetViewport(const ViewportRect& rect) { RenderBackend::Get().SetViewport(rect); }
+    void Renderer::ResetViewport() { RenderBackend::Get().SetViewport(std::nullopt); }
+
     void Renderer::OnFramebufferResized() { RenderBackend::Get().OnFramebufferResized(); }
     void Renderer::WaitIdle() { RenderBackend::Get().WaitIdle(); }
     uint64_t Renderer::GetFrameNumber() { return RenderBackend::Get().GetFrameNumber(); }

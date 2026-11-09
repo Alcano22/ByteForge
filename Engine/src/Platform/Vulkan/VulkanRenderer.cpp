@@ -12,6 +12,7 @@
 #include "Platform/Vulkan/VulkanHelpers.h"
 #include "Engine/Renderer/Mesh.h"
 
+#include <algorithm>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -288,6 +289,14 @@ namespace ByteForge
             EndRendering();
     }
 
+    void VulkanRenderer::SetSwapchainViewport(const std::optional<ViewportRect>& rect)
+    {
+        m_SwapchainViewport = rect;
+
+        if (!m_FrameSkipped && m_ActivePass == Pass::Swapchain)
+            ApplySwapchainViewport();
+    }
+
     void VulkanRenderer::RecordDraw(const VulkanMaterial& material, const std::span<const std::byte> pushConstants,
                                     const VkBuffer vertexBuffer, const VkBuffer indexBuffer,
                                     const DrawRange& range)
@@ -371,6 +380,8 @@ namespace ByteForge
         BeginRendering(m_Swapchain->GetExtent(), std::span(&attachment, 1), depthView,
                        depthLoadOp, VK_ATTACHMENT_STORE_OP_STORE);
 
+        ApplySwapchainViewport();
+
         m_SwapchainCleared = true;
         m_ActivePass = Pass::Swapchain;
         m_ActiveColorFormats = { m_Swapchain->GetImageFormat() };
@@ -405,6 +416,37 @@ namespace ByteForge
                         DepthStages, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
                                    | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                         VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
+    void VulkanRenderer::ApplySwapchainViewport() const
+    {
+        const VkExtent2D extent = m_Swapchain->GetExtent();
+
+        VkRect2D area{ .offset = { 0, 0 }, .extent = extent };
+
+        if (m_SwapchainViewport)
+        {
+            const ViewportRect& rect = *m_SwapchainViewport;
+
+            const int x = std::clamp(rect.X, 0, static_cast<int>(extent.width));
+            const int y = std::clamp(rect.Y, 0, static_cast<int>(extent.height));
+            const uint32_t width = std::min(rect.Width, extent.width - static_cast<uint32_t>(x));
+            const uint32_t height = std::min(rect.Height, extent.height - static_cast<uint32_t>(y));
+
+            if (width > 0 && height > 0)
+                area = { .offset = { x, y }, .extent = { width, height } };
+        }
+
+        const VkViewport viewport{
+            .x        = static_cast<float>(area.offset.x),
+            .y        = static_cast<float>(area.offset.y),
+            .width    = static_cast<float>(area.extent.width),
+            .height   = static_cast<float>(area.extent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f
+        };
+        vkCmdSetViewport(m_CurrentCommandBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(m_CurrentCommandBuffer, 0, 1, &area);
     }
 
     void VulkanRenderer::BeginRendering(const VkExtent2D extent,

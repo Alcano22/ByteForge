@@ -113,6 +113,11 @@ namespace ByteForge
             RecreateSwapchain();
     }
 
+    void VulkanContext::SetViewport(const std::optional<ViewportRect>& rect)
+    {
+        m_Renderer->SetSwapchainViewport(rect);
+    }
+
     void VulkanContext::CreateSurface()
     {
         VK_CHECK(glfwCreateWindowSurface(m_Instance->GetHandle(), m_WindowHandle, nullptr, &m_Surface));

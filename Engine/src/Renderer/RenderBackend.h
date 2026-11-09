@@ -13,10 +13,12 @@
 #include "Engine/Renderer/Shader.h"
 #include "Engine/Renderer/Texture2D.h"
 #include "Engine/Renderer/UniformBuffer.h"
+#include "Engine/Renderer/ViewportRect.h"
 #include "Renderer/ShaderSource.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -55,6 +57,7 @@ namespace ByteForge
                             const DrawRange& range) = 0;
         virtual void BeginRenderTarget(const RenderTarget& target) = 0;
         virtual void EndRenderTarget() = 0;
+        virtual void SetViewport(const std::optional<ViewportRect>& rect) = 0;
         virtual void OnFramebufferResized() = 0;
         virtual void WaitIdle() = 0;
         [[nodiscard]] virtual uint64_t GetFrameNumber() const = 0;

@@ -5,6 +5,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Project/ProjectSettings.h>
+#include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Renderer2D.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
@@ -12,6 +13,8 @@
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <format>
 #include <stdexcept>
@@ -21,12 +24,43 @@ namespace ByteForge
 {
     namespace
     {
-        const CameraComponent DefaultCamera;
-        const TransformComponent DefaultTransform;
+        constexpr CameraComponent DefaultCamera;
+        constexpr TransformComponent DefaultTransform;
 
         std::filesystem::path GetGameScriptsPath()
         {
             return std::filesystem::path(".byteforge") / "ScriptAssemblies" / "GameScripts.dll";
+        }
+
+        struct GameView
+        {
+            ViewportRect Rect;
+            float Aspect = 1.0f;
+        };
+
+        GameView ComputeGameView(const CameraComponent& settings, const uint32_t width, const uint32_t height)
+        {
+            const float windowAspect = static_cast<float>(width) / static_cast<float>(height);
+
+            ViewportRect rect{ .X = 0, .Y = 0, .Width = width, .Height = height };
+            if (!settings.UseFixedAspect)
+                return { rect, windowAspect };
+
+            const float aspect = settings.FixedAspect;
+            if (windowAspect > aspect)
+            {
+                const auto fitted = static_cast<uint32_t>(std::lround(static_cast<float>(height) * aspect));
+                rect.Width = std::clamp(fitted, 1u, width);
+            } else
+            {
+                const auto fitted = static_cast<uint32_t>(std::lround(static_cast<float>(width) / aspect));
+                rect.Height = std::clamp(fitted, 1u, height);
+            }
+
+            rect.X = static_cast<int>((width - rect.Width) / 2);
+            rect.Y = static_cast<int>((height - rect.Height) / 2);
+
+            return { rect, aspect };
         }
     }
 
@@ -52,16 +86,18 @@ namespace ByteForge
         {
             const Window& window = Application::Get().GetWindow();
 
-            Input::SetViewport({
-                .Size          = { static_cast<float>(window.GetWidth()), static_cast<float>(window.GetHeight()) },
-                .MousePosition = Input::GetMousePosition()
-            });
+            const uint32_t width = window.GetFramebufferWidth();
+            const uint32_t height = window.GetFramebufferHeight();
+            const bool hasSurface = width >= 1 && height >= 1;
+
+            if (hasSurface)
+                PublishInput(window, ComputeGameView(GetCameraSettings(), width, height));
+            else
+                Input::ClearViewport();
 
             m_Scene.OnUpdateRuntime(ts);
 
-            const auto width = static_cast<float>(window.GetFramebufferWidth());
-            const auto height = static_cast<float>(window.GetFramebufferHeight());
-            if (width < 1.0f || height < 1.0f) return;
+            if (!hasSurface) return;
 
             const Entity cameraEntity = m_Scene.GetPrimaryCamera();
             const bool hasCamera = cameraEntity.IsValid();
@@ -71,10 +107,33 @@ namespace ByteForge
             const TransformComponent& transform = hasCamera ? cameraEntity.GetComponent<TransformComponent>()
                                                             : DefaultTransform;
 
-            m_Scene.Render(*m_Renderer, MakeSceneCamera(settings, transform, width / height));
+            const GameView view = ComputeGameView(settings, width, height);
+            Renderer::SetViewport(view.Rect);
+            m_Scene.Render(*m_Renderer, MakeSceneCamera(settings, transform, view.Aspect));
         }
 
     private:
+        [[nodiscard]] const CameraComponent& GetCameraSettings()
+        {
+            const Entity cameraEntity = m_Scene.GetPrimaryCamera();
+            return cameraEntity.IsValid() ? cameraEntity.GetComponent<CameraComponent>() : DefaultCamera;
+        }
+
+        static void PublishInput(const Window& window, const GameView& view)
+        {
+            const float scaleX = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetFramebufferWidth());
+            const float scaleY = static_cast<float>(window.GetHeight()) / static_cast<float>(window.GetFramebufferHeight());
+
+            const glm::vec2 origin{ static_cast<float>(view.Rect.X) * scaleX, static_cast<float>(view.Rect.Y) * scaleY };
+            const glm::vec2 size{ static_cast<float>(view.Rect.Width) * scaleX, static_cast<float>(view.Rect.Height) * scaleY };
+
+            Input::SetViewport({
+                .Size          = size,
+                .MousePosition = Input::GetMousePosition() - origin,
+                .CapturesMouse = false
+            });
+        }
+
         static void LoadGameScripts()
         {
             const std::filesystem::path assembly = GetGameScriptsPath();
