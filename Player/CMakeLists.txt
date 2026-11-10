@@ -4,6 +4,8 @@ add_executable(Player
 
 target_link_libraries(Player PRIVATE Engine ByteForgeWarnings)
 
+target_precompile_headers(Player PRIVATE ${BYTEFORGE_PCH_HEADER})
+
 byteforge_copy_directory(Player
         ${CMAKE_BINARY_DIR}/ScriptCore
         ${CMAKE_CURRENT_BINARY_DIR}/ScriptCore

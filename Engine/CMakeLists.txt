@@ -173,6 +173,10 @@ set_target_properties(Engine PROPERTIES
         VISIBILITY_INLINES_HIDDEN ON
 )
 
+set(BYTEFORGE_PCH_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/Engine/Core/PCH.h
+        CACHE INTERNAL "Precompiled header of ByteForge")
+target_precompile_headers(Engine PRIVATE ${BYTEFORGE_PCH_HEADER})
+
 set(BYTEFORGE_ENGINE_RESOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources
         CACHE INTERNAL "${CMAKE_CURRENT_BINARY_DIR}/${target}_${name}.stamp")
 

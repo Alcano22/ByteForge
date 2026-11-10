@@ -16,6 +16,8 @@
 #   error "ByteForge only supports Windows and GCC/Clang-based platforms currently"
 #endif
 
+#include "Engine/Core/Types.h"
+
 #include <memory>
 
 namespace ByteForge

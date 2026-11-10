@@ -71,6 +71,8 @@ target_link_libraries(Editor PRIVATE
         imgui_node_editor
 )
 
+target_precompile_headers(Editor PRIVATE ${BYTEFORGE_PCH_HEADER})
+
 byteforge_copy_directory(Editor
         ${CMAKE_CURRENT_SOURCE_DIR}/resources
         ${CMAKE_CURRENT_BINARY_DIR}/resources

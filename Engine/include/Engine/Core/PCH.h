@@ -1,0 +1,40 @@
+#pragma once
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <expected>
+#include <filesystem>
+#include <format>
+#include <functional>
+#include <limits>
+#include <map>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <variant>
+#include <vector>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <entt/entt.hpp>
+#include <imgui.h>
+#include <magic_enum/magic_enum.hpp>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
+#include "Engine/Core/Core.h"
+#include "Engine/Core/Log.h"
+#include "Engine/Core/Types.h"
