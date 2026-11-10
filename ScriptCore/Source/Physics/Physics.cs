@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using ByteForge.Interop;
 
@@ -21,9 +22,24 @@ public readonly struct RaycastHit
 
 public static class Physics
 {
-    public static bool Raycast(Vector2 origin, Vector2 direction, float maxDistance, out RaycastHit hit)
+    public const int AllLayers = -1;
+
+    public static int LayerMask(params int[] layers)
     {
-        ulong id = ScriptAPI.Physics_Raycast(origin, direction, maxDistance);
+        int mask = 0;
+        foreach (int layer in layers)
+        {
+            if (layer is < 0 or > 31)
+                throw new ArgumentOutOfRangeException(nameof(layers), "Physics layers range from 0 to 31.");
+            mask |= 1 << layer;
+        }
+        return mask;
+    }
+
+    public static bool Raycast(Vector2 origin, Vector2 direction, float maxDistance, 
+                               out RaycastHit hit, int layerMask = AllLayers)
+    {
+        ulong id = ScriptAPI.Physics_Raycast(origin, direction, maxDistance, layerMask);
         if (id == 0)
         {
             hit = default;
@@ -31,9 +47,9 @@ public static class Physics
         }
 
         hit = new RaycastHit(new Entity(id),
-                             ScriptAPI.Physics_RaycastPoint(origin, direction, maxDistance),
-                             ScriptAPI.Physics_RaycastNormal(origin, direction, maxDistance),
-                             ScriptAPI.Physics_RaycastDistance(origin, direction, maxDistance));
+                             ScriptAPI.Physics_RaycastPoint(origin, direction, maxDistance, layerMask),
+                             ScriptAPI.Physics_RaycastNormal(origin, direction, maxDistance, layerMask),
+                             ScriptAPI.Physics_RaycastDistance(origin, direction, maxDistance, layerMask));
         return true;
     }
 }

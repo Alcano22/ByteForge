@@ -169,15 +169,15 @@ namespace ByteForge
         }
 
         RaycastHit2D CastRay(const ScriptCallContext& context, const glm::vec2& origin, const glm::vec2& direction,
-                             const f32 maxDistance)
+                             const f32 maxDistance, const i32 layerMask)
         {
-            return RequireScene(context).Raycast2D(origin, direction, maxDistance);
+            return RequireScene(context).Raycast2D(origin, direction, maxDistance, static_cast<u32>(layerMask));
         }
 
         EntityRef PhysicsRaycast(const ScriptCallContext& context, const glm::vec2& origin,
-                                 const glm::vec2& direction, const f32 maxDistance)
+                                 const glm::vec2& direction, const f32 maxDistance, const i32 layerMask)
         {
-            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance, layerMask);
             if (!hit.Hit || !hit.HitEntity.IsValid())
                 return {};
 
@@ -185,9 +185,9 @@ namespace ByteForge
         }
 
         glm::vec2 PhysicsRaycastPoint(const ScriptCallContext& context, const glm::vec2& origin,
-                                      const glm::vec2& direction, const f32 maxDistance)
+                                      const glm::vec2& direction, const f32 maxDistance, const i32 layerMask)
         {
-            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance, layerMask);
             if (hit.Hit)
                 return hit.Point;
 
@@ -196,16 +196,16 @@ namespace ByteForge
         }
 
         glm::vec2 PhysicsRaycastNormal(const ScriptCallContext& context, const glm::vec2& origin,
-                                       const glm::vec2& direction, const f32 maxDistance)
+                                       const glm::vec2& direction, const f32 maxDistance, const i32 layerMask)
         {
-            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance, layerMask);
             return hit.Hit ? hit.Normal : glm::vec2(0.0f);
         }
 
         f32 PhysicsRaycastDistance(const ScriptCallContext& context, const glm::vec2& origin,
-                                     const glm::vec2& direction, const f32 maxDistance)
+                                     const glm::vec2& direction, const f32 maxDistance, const i32 layerMask)
         {
-            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
+            const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance, layerMask);
             return hit.Hit ? hit.Distance : maxDistance;
         }
 
@@ -336,10 +336,10 @@ namespace ByteForge
         api.Register<&Rigidbody2DApplyForce>("Rigidbody2D.ApplyForce", "Apply Force", Impure, { "Entity", "Force" });
         api.Register<&Rigidbody2DApplyImpulse>("Rigidbody2D.ApplyImpulse", "Apply Impulse", Impure, { "Entity", "Impulse" });
 
-        api.Register<&PhysicsRaycast>("Physics.Raycast", "Raycast", Pure, { "Origin", "Direction", "Max Distance" });
-        api.Register<&PhysicsRaycastPoint>("Physics.RaycastPoint", "Raycast Point", Pure, { "Origin", "Direction", "Max Distance" });
-        api.Register<&PhysicsRaycastNormal>("Physics.RaycastNormal", "Raycast Normal", Pure, { "Origin", "Direction", "Max Distance" });
-        api.Register<&PhysicsRaycastDistance>("Physics.RaycastDistance", "Raycast Distance", Pure, { "Origin", "Direction", "Max Distance" });
+        api.Register<&PhysicsRaycast>("Physics.Raycast", "Raycast", Pure, { "Origin", "Direction", "Max Distance", "Layer Mask" });
+        api.Register<&PhysicsRaycastPoint>("Physics.RaycastPoint", "Raycast Point", Pure, { "Origin", "Direction", "Max Distance", "Layer Mask" });
+        api.Register<&PhysicsRaycastNormal>("Physics.RaycastNormal", "Raycast Normal", Pure, { "Origin", "Direction", "Max Distance", "Layer Mask" });
+        api.Register<&PhysicsRaycastDistance>("Physics.RaycastDistance", "Raycast Distance", Pure, { "Origin", "Direction", "Max Distance", "Layer Mask" });
 
         api.Register<&AudioSourceExists>("AudioSource.Exists", "Has Audio Source", Pure, { "Entity" });
         api.Register<&AudioSourcePlay>("AudioSource.Play", "Play", Impure, { "Entity" });

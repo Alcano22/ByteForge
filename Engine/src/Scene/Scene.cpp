@@ -263,8 +263,8 @@ namespace ByteForge
     }
 
     RaycastHit2D Scene::Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                  const f32 maxDistance) const
+                                  const f32 maxDistance, const u32 layerMask) const
     {
-        return m_PhysicsWorld->Raycast2D(origin, direction, maxDistance, *this);
+        return m_PhysicsWorld->Raycast2D(origin, direction, maxDistance, *this, layerMask);
     }
 }

@@ -52,7 +52,8 @@ namespace ByteForge
             return {};
         }
 
-        b2ShapeDef MakeShapeDef(const f32 density, const bool isSensor, const PhysicsMaterial2D& material)
+        b2ShapeDef MakeShapeDef(const f32 density, const bool isSensor, const PhysicsMaterial2D& material,
+                                const Rigidbody2DComponent& rigidbody)
         {
             b2ShapeDef shapeDef = b2DefaultShapeDef();
             shapeDef.density = density;
@@ -61,6 +62,8 @@ namespace ByteForge
             shapeDef.isSensor = isSensor;
             shapeDef.enableSensorEvents = true;
             shapeDef.enableContactEvents = true;
+            shapeDef.filter.categoryBits = PhysicsLayers::ToBit(rigidbody.Layer);
+            shapeDef.filter.maskBits = rigidbody.CollisionMask;
             return shapeDef;
         }
     }
@@ -100,7 +103,7 @@ namespace ByteForge
         {
             const auto& collider = entity.GetComponent<BoxCollider2DComponent>();
             const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
-                                                     ResolveMaterial(collider.Material, rigidbody));
+                                                     ResolveMaterial(collider.Material, rigidbody), rigidbody);
 
             const b2Polygon box = b2MakeOffsetBox(collider.Size.x * 0.5f, collider.Size.y * 0.5f,
                                                   { collider.Offset.x, collider.Offset.y }, b2MakeRot(0.0f));
@@ -111,7 +114,7 @@ namespace ByteForge
         {
             const auto& collider = entity.GetComponent<CircleCollider2DComponent>();
             const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
-                                                     ResolveMaterial(collider.Material, rigidbody));
+                                                     ResolveMaterial(collider.Material, rigidbody), rigidbody);
 
             const b2Circle circle{ .center = { collider.Offset.x, collider.Offset.y }, .radius = collider.Radius };
             b2CreateCircleShape(body, &shapeDef, &circle);
@@ -128,7 +131,7 @@ namespace ByteForge
     }
 
     RaycastHit2D Physics2DWorld::Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                           const f32 maxDistance, const Scene& scene) const
+                                           const f32 maxDistance, const Scene& scene, const u32 layerMask) const
     {
         RaycastHit2D result;
 
@@ -139,7 +142,7 @@ namespace ByteForge
         const glm::vec2 normalizedDirection = direction / length;
         const b2Vec2 translation{ normalizedDirection.x * maxDistance, normalizedDirection.y * maxDistance };
 
-        const b2QueryFilter filter = b2DefaultQueryFilter();
+        const b2QueryFilter filter{ .categoryBits = ~u64{ 0 }, .maskBits = layerMask };
         const b2RayResult hit = b2World_CastRayClosest(m_World, { origin.x, origin.y }, translation, filter);
 
         result.Hit = hit.hit;

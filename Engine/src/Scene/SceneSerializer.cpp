@@ -118,6 +118,8 @@ namespace
             rb.Type = ToBodyType(r.value("type", std::string("Static")));
             rb.FixedRotation = r.value("fixedRotation", false);
             rb.GravityScale = r.value("gravityScale", 1.0f);
+            rb.Layer = std::min<u32>(r.value("layer", PhysicsLayers::DefaultLayer), PhysicsLayers::Count - 1);
+            rb.CollisionMask = r.value("collisionMask", PhysicsLayers::AllLayers);
             rb.Material = ReadMaterial(r);
         }
 
@@ -279,7 +281,9 @@ namespace ByteForge
             nlohmann::json rigidbodyJson{
                 { "type",          ToString(rb.Type) },
                 { "fixedRotation", rb.FixedRotation  },
-                { "gravityScale",  rb.GravityScale   }
+                { "gravityScale",  rb.GravityScale   },
+                { "layer",         rb.Layer          },
+                { "collisionMask", rb.CollisionMask  }
             };
             WriteMaterial(rigidbodyJson, rb.Material);
             entityJson["rigidbody2D"] = std::move(rigidbodyJson);

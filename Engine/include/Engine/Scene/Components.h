@@ -5,6 +5,7 @@
 #include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Audio/AudioEngine.h"
 #include "Engine/Scene/UUID.h"
+#include "Engine/Scene/PhysicsLayers.h"
 #include "Engine/Scripting/ScriptField.h"
 
 #include <glm/glm.hpp>
@@ -62,19 +63,25 @@ namespace ByteForge
         bool FixedRotation = false;
         f32 GravityScale = 1.0f;
 
+        u32 Layer = PhysicsLayers::DefaultLayer;
+        u32 CollisionMask = PhysicsLayers::AllLayers;
+
         Ref<PhysicsMaterialAsset> Material;
 
         Rigidbody2DComponent() = default;
 
         Rigidbody2DComponent(const Rigidbody2DComponent& other)
             : Type(other.Type), FixedRotation(other.FixedRotation),
-              GravityScale(other.GravityScale), Material(other.Material) {}
+              GravityScale(other.GravityScale), Layer(other.Layer), CollisionMask(other.CollisionMask),
+              Material(other.Material) {}
 
         Rigidbody2DComponent& operator=(const Rigidbody2DComponent& other)
         {
             Type = other.Type;
             FixedRotation = other.FixedRotation;
             GravityScale = other.GravityScale;
+            Layer = other.Layer;
+            CollisionMask = other.CollisionMask;
             Material = other.Material;
             return *this;
         }

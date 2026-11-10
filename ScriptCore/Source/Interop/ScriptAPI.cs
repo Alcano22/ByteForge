@@ -53,45 +53,45 @@ internal static unsafe class ScriptAPI
     {
         bool complete = true;
 
-        s_EntityIsValid                 = Resolve("Entity.IsValid",                "(Entity)->Bool",                   ref complete);
-        s_EntityGetName                 = Resolve("Entity.GetName",                "(Entity)->String",                 ref complete);
-        s_EntityCreate                  = Resolve("Entity.Create",                 "(String)->Entity",                 ref complete);
-        s_EntityInstantiate             = Resolve("Entity.Instantiate",            "(Entity)->Entity",                 ref complete);
-        s_EntityFindByName              = Resolve("Entity.FindByName",             "(String)->Entity",                 ref complete);
-        s_EntityDestroy                 = Resolve("Entity.Destroy",                "(Entity)->Void",                   ref complete);
-        s_TransformGetPosition          = Resolve("Transform.GetPosition",         "(Entity)->Vector3",                ref complete);
-        s_TransformSetPosition          = Resolve("Transform.SetPosition",         "(Entity,Vector3)->Void",           ref complete);
-        s_TransformGetRotation          = Resolve("Transform.GetRotation",         "(Entity)->Float",                  ref complete);
-        s_TransformSetRotation          = Resolve("Transform.SetRotation",         "(Entity,Float)->Void",             ref complete);
-        s_TransformGetScale             = Resolve("Transform.GetScale",            "(Entity)->Vector2",                ref complete);
-        s_TransformSetScale             = Resolve("Transform.SetScale",            "(Entity,Vector2)->Void",           ref complete);
-        s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                  ref complete);
-        s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                   ref complete);
-        s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",              ref complete);
-        s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",            "(Entity)->Bool",                   ref complete);
-        s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity", "(Entity)->Vector2",                ref complete);
-        s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity", "(Entity,Vector2)->Void",           ref complete);
-        s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",        "(Entity,Vector2)->Void",           ref complete);
-        s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",      "(Entity,Vector2)->Void",           ref complete);
-        s_PhysicsRaycast                = Resolve("Physics.Raycast",               "(Vector2,Vector2,Float)->Entity",  ref complete);
-        s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",          "(Vector2,Vector2,Float)->Vector2", ref complete);
-        s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",         "(Vector2,Vector2,Float)->Vector2", ref complete);
-        s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",       "(Vector2,Vector2,Float)->Float",   ref complete);
-        s_AudioSourceExists             = Resolve("AudioSource.Exists",            "(Entity)->Bool",                   ref complete);
-        s_AudioSourcePlay               = Resolve("AudioSource.Play",              "(Entity)->Void",                   ref complete);
-        s_AudioSourceStop               = Resolve("AudioSource.Stop",              "(Entity)->Void",                   ref complete);
-        s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",         "(Entity)->Bool",                   ref complete);
-        s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",             "(Asset:AudioClip)->Void",          ref complete);
-        s_InputIsKeyDown                = Resolve("Input.IsKeyDown",               "(Int)->Bool",                      ref complete);
-        s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",            "(Int)->Bool",                      ref complete);
-        s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",           "(Int)->Bool",                      ref complete);
-        s_InputIsMouseButtonDown        = Resolve("Input.IsMouseButtonDown",       "(Int)->Bool",                      ref complete);
-        s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",    "(Int)->Bool",                      ref complete);
-        s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",   "(Int)->Bool",                      ref complete);
-        s_InputGetMousePosition         = Resolve("Input.GetMousePosition",        "()->Vector2",                      ref complete);
-        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",   "()->Vector2",                      ref complete);
-        s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",           "()->Vector2",                      ref complete);
-        s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",          "()->Vector2",                      ref complete);
+        s_EntityIsValid                 = Resolve("Entity.IsValid",                "(Entity)->Bool",                       ref complete);
+        s_EntityGetName                 = Resolve("Entity.GetName",                "(Entity)->String",                     ref complete);
+        s_EntityCreate                  = Resolve("Entity.Create",                 "(String)->Entity",                     ref complete);
+        s_EntityInstantiate             = Resolve("Entity.Instantiate",            "(Entity)->Entity",                     ref complete);
+        s_EntityFindByName              = Resolve("Entity.FindByName",             "(String)->Entity",                     ref complete);
+        s_EntityDestroy                 = Resolve("Entity.Destroy",                "(Entity)->Void",                       ref complete);
+        s_TransformGetPosition          = Resolve("Transform.GetPosition",         "(Entity)->Vector3",                    ref complete);
+        s_TransformSetPosition          = Resolve("Transform.SetPosition",         "(Entity,Vector3)->Void",               ref complete);
+        s_TransformGetRotation          = Resolve("Transform.GetRotation",         "(Entity)->Float",                      ref complete);
+        s_TransformSetRotation          = Resolve("Transform.SetRotation",         "(Entity,Float)->Void",                 ref complete);
+        s_TransformGetScale             = Resolve("Transform.GetScale",            "(Entity)->Vector2",                    ref complete);
+        s_TransformSetScale             = Resolve("Transform.SetScale",            "(Entity,Vector2)->Void",               ref complete);
+        s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                      ref complete);
+        s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                       ref complete);
+        s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                  ref complete);
+        s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",            "(Entity)->Bool",                       ref complete);
+        s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity", "(Entity)->Vector2",                    ref complete);
+        s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity", "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",        "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",      "(Entity,Vector2)->Void",               ref complete);
+        s_PhysicsRaycast                = Resolve("Physics.Raycast",               "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
+        s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",          "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",         "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",       "(Vector2,Vector2,Float,Int)->Float",   ref complete);
+        s_AudioSourceExists             = Resolve("AudioSource.Exists",            "(Entity)->Bool",                       ref complete);
+        s_AudioSourcePlay               = Resolve("AudioSource.Play",              "(Entity)->Void",                       ref complete);
+        s_AudioSourceStop               = Resolve("AudioSource.Stop",              "(Entity)->Void",                       ref complete);
+        s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",         "(Entity)->Bool",                       ref complete);
+        s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",             "(Asset:AudioClip)->Void",              ref complete);
+        s_InputIsKeyDown                = Resolve("Input.IsKeyDown",               "(Int)->Bool",                          ref complete);
+        s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",            "(Int)->Bool",                          ref complete);
+        s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",           "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonDown        = Resolve("Input.IsMouseButtonDown",       "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",    "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",   "(Int)->Bool",                          ref complete);
+        s_InputGetMousePosition         = Resolve("Input.GetMousePosition",        "()->Vector2",                          ref complete);
+        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",   "()->Vector2",                          ref complete);
+        s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",           "()->Vector2",                          ref complete);
+        s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",          "()->Vector2",                          ref complete);
 
         return complete;
     }
@@ -166,21 +166,21 @@ internal static unsafe class ScriptAPI
 
     // Physics
 
-    public static ulong Physics_Raycast(Vector2 origin, Vector2 direction, float maxDistance) =>
+    public static ulong Physics_Raycast(Vector2 origin, Vector2 direction, float maxDistance, int layerMask) =>
         Call(s_PhysicsRaycast, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
-             new APIValue { Float = maxDistance }).Handle;
+             new APIValue { Float = maxDistance }, new APIValue { Int = layerMask }).Handle;
 
-    public static Vector2 Physics_RaycastPoint(Vector2 origin, Vector2 direction, float maxDistance) =>
+    public static Vector2 Physics_RaycastPoint(Vector2 origin, Vector2 direction, float maxDistance, int layerMask) =>
         Call(s_PhysicsRaycastPoint, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
-             new APIValue { Float = maxDistance }).Vector2;
+             new APIValue { Float = maxDistance }, new APIValue { Int = layerMask }).Vector2;
 
-    public static Vector2 Physics_RaycastNormal(Vector2 origin, Vector2 direction, float maxDistance) =>
+    public static Vector2 Physics_RaycastNormal(Vector2 origin, Vector2 direction, float maxDistance, int layerMask) =>
         Call(s_PhysicsRaycastNormal, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
-             new APIValue { Float = maxDistance }).Vector2;
+             new APIValue { Float = maxDistance }, new APIValue { Int = layerMask }).Vector2;
 
-    public static float Physics_RaycastDistance(Vector2 origin, Vector2 direction, float maxDistance) =>
+    public static float Physics_RaycastDistance(Vector2 origin, Vector2 direction, float maxDistance, int layerMask) =>
         Call(s_PhysicsRaycastDistance, new APIValue { Vector2 = origin }, new APIValue { Vector2 = direction },
-             new APIValue { Float = maxDistance }).Float;
+             new APIValue { Float = maxDistance }, new APIValue { Int = layerMask }).Float;
 
     // Audio
 
@@ -241,30 +241,17 @@ internal static unsafe class ScriptAPI
         return index;
     }
 
-    private static APIValue Call(uint function) => Invoke(function, null, 0);
-
-    private static APIValue Call(uint function, APIValue argument)
+    private static APIValue Call(uint function, params ReadOnlySpan<APIValue> arguments)
     {
-        APIValue* arguments = stackalloc APIValue[1];
-        arguments[0] = argument;
-        return Invoke(function, arguments, 1);
-    }
+        APIValue result = default;
 
-    private static APIValue Call(uint function, APIValue first, APIValue second)
-    {
-        APIValue* arguments = stackalloc APIValue[2];
-        arguments[0] = first;
-        arguments[1] = second;
-        return Invoke(function, arguments, 2);
-    }
+        fixed (APIValue* data = arguments)
+        {
+            if (Native.Api.Api_Invoke(function, data, arguments.Length, &result) != 0)
+                throw new ScriptException(Marshal.PtrToStringUTF8((IntPtr)Native.Api.Api_GetLastError()) ?? "Unknown engine error");
+        }
 
-    private static APIValue Call(uint function, APIValue first, APIValue second, APIValue third)
-    {
-        APIValue* arguments = stackalloc APIValue[3];
-        arguments[0] = first;
-        arguments[1] = second;
-        arguments[2] = third;
-        return Invoke(function, arguments, 3);
+        return result;
     }
 
     private static APIValue CallWithText(uint function, string text)
@@ -274,14 +261,5 @@ internal static unsafe class ScriptAPI
         {
             return Call(function, new APIValue { Text = data, TextLength = bytes.Length });
         }
-    }
-
-    private static APIValue Invoke(uint function, APIValue* arguments, int count)
-    {
-        APIValue result = default;
-        if (Native.Api.Api_Invoke(function, arguments, count, &result) != 0)
-            throw new ScriptException(Marshal.PtrToStringUTF8((IntPtr)Native.Api.Api_GetLastError()) ?? "Unknown engine error");
-
-        return result;
     }
 }

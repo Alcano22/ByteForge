@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Scene/PhysicsLayers.h"
+
 #include <entt/entt.hpp>
 #include <box2d/box2d.h>
 
@@ -28,7 +30,8 @@ namespace ByteForge
         void OnRigidbodyDestroyed(entt::registry& registry, entt::entity handle) const;
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                             f32 maxDistance, const Scene& scene) const;
+                                             f32 maxDistance, const Scene& scene,
+                                             u32 layerMask = PhysicsLayers::AllLayers) const;
 
     private:
         void CreateBody(Entity entity) const;

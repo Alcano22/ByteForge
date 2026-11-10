@@ -81,12 +81,46 @@ namespace ByteForge
             ImGui::Checkbox("Is Sensor", &isSensor);
         }
 
+        void DrawCollisionMask(const char* label, u32& mask)
+        {
+            const char* preview = mask == PhysicsLayers::AllLayers ? "Everything"
+                                : mask == 0                        ? "Nothing"
+                                                                   : "Mixed";
+
+            if (!ImGui::BeginCombo(label, preview)) return;
+
+            if (ImGui::Button("All"))
+                mask = PhysicsLayers::AllLayers;
+            ImGui::SameLine();
+            if (ImGui::Button("None"))
+                mask = 0;
+
+            for (u32 layer = 0; layer < PhysicsLayers::Count; ++layer)
+            {
+                ImGui::PushID(static_cast<i32>(layer));
+
+                bool enabled = (mask & PhysicsLayers::ToBit(layer)) != 0;
+                if (ImGui::Checkbox(std::format("Layer {}", layer).c_str(), &enabled))
+                    mask = enabled ? (mask | PhysicsLayers::ToBit(layer)) : (mask & ~PhysicsLayers::ToBit(layer));
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndCombo();
+        }
+
         void DrawRigidbody2D(Rigidbody2DComponent& rigidbody, Entity, EditorContext& context)
         {
             EditorUI::EnumCombo<Rigidbody2DComponent::BodyType>(
                 "Body Type", rigidbody.Type, magic_enum::enum_values<Rigidbody2DComponent::BodyType>());
             ImGui::Checkbox("Fixed Rotation", &rigidbody.FixedRotation);
             ImGui::DragFloat("Gravity Scale", &rigidbody.GravityScale, 0.05f);
+
+            i32 layer = static_cast<i32>(rigidbody.Layer);
+            if (ImGui::SliderInt("Layer", &layer, 0, static_cast<i32>(PhysicsLayers::Count) - 1))
+                rigidbody.Layer = static_cast<u32>(layer);
+            DrawCollisionMask("Collides with", rigidbody.CollisionMask);
+
             EditPhysicsMaterial("Material", rigidbody.Material, context.SelectionContext, "None (default)");
 
             if (rigidbody.HasRuntimeBody())

@@ -6,6 +6,7 @@
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/Renderer2D.h"
 #include "Engine/Scene/UUID.h"
+#include "Engine/Scene/PhysicsLayers.h"
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -55,7 +56,7 @@ namespace ByteForge
         [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                             f32 maxDistance) const;
+                                             f32 maxDistance, u32 layerMask = PhysicsLayers::AllLayers) const;
 
         template<typename... Components, typename Func>
         void Each(Func func)
