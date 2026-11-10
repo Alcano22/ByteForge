@@ -35,30 +35,30 @@ namespace ByteForge
         struct GameView
         {
             ViewportRect Rect;
-            float Aspect = 1.0f;
+            f32 Aspect = 1.0f;
         };
 
-        GameView ComputeGameView(const CameraComponent& settings, const uint32_t width, const uint32_t height)
+        GameView ComputeGameView(const CameraComponent& settings, const u32 width, const u32 height)
         {
-            const float windowAspect = static_cast<float>(width) / static_cast<float>(height);
+            const f32 windowAspect = static_cast<f32>(width) / static_cast<f32>(height);
 
             ViewportRect rect{ .X = 0, .Y = 0, .Width = width, .Height = height };
             if (!settings.UseFixedAspect)
                 return { rect, windowAspect };
 
-            const float aspect = settings.FixedAspect;
+            const f32 aspect = settings.FixedAspect;
             if (windowAspect > aspect)
             {
-                const auto fitted = static_cast<uint32_t>(std::lround(static_cast<float>(height) * aspect));
+                const auto fitted = static_cast<u32>(std::lround(static_cast<f32>(height) * aspect));
                 rect.Width = std::clamp(fitted, 1u, width);
             } else
             {
-                const auto fitted = static_cast<uint32_t>(std::lround(static_cast<float>(width) / aspect));
+                const auto fitted = static_cast<u32>(std::lround(static_cast<f32>(width) / aspect));
                 rect.Height = std::clamp(fitted, 1u, height);
             }
 
-            rect.X = static_cast<int>((width - rect.Width) / 2);
-            rect.Y = static_cast<int>((height - rect.Height) / 2);
+            rect.X = static_cast<i32>((width - rect.Width) / 2);
+            rect.Y = static_cast<i32>((height - rect.Height) / 2);
 
             return { rect, aspect };
         }
@@ -86,8 +86,8 @@ namespace ByteForge
         {
             const Window& window = Application::Get().GetWindow();
 
-            const uint32_t width = window.GetFramebufferWidth();
-            const uint32_t height = window.GetFramebufferHeight();
+            const u32 width = window.GetFramebufferWidth();
+            const u32 height = window.GetFramebufferHeight();
             const bool hasSurface = width >= 1 && height >= 1;
 
             if (hasSurface)
@@ -121,11 +121,11 @@ namespace ByteForge
 
         static void PublishInput(const Window& window, const GameView& view)
         {
-            const float scaleX = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetFramebufferWidth());
-            const float scaleY = static_cast<float>(window.GetHeight()) / static_cast<float>(window.GetFramebufferHeight());
+            const f32 scaleX = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetFramebufferWidth());
+            const f32 scaleY = static_cast<f32>(window.GetHeight()) / static_cast<f32>(window.GetFramebufferHeight());
 
-            const glm::vec2 origin{ static_cast<float>(view.Rect.X) * scaleX, static_cast<float>(view.Rect.Y) * scaleY };
-            const glm::vec2 size{ static_cast<float>(view.Rect.Width) * scaleX, static_cast<float>(view.Rect.Height) * scaleY };
+            const glm::vec2 origin{ static_cast<f32>(view.Rect.X) * scaleX, static_cast<f32>(view.Rect.Y) * scaleY };
+            const glm::vec2 size{ static_cast<f32>(view.Rect.Width) * scaleX, static_cast<f32>(view.Rect.Height) * scaleY };
 
             Input::SetViewport({
                 .Size          = size,
@@ -137,7 +137,16 @@ namespace ByteForge
         static void LoadGameScripts()
         {
             const std::filesystem::path assembly = GetGameScriptsPath();
-            if (!std::filesystem::exists(assembly)) return;
+            if (!std::filesystem::exists(assembly))
+            {
+                std::error_code error;
+                const std::filesystem::path absolute = std::filesystem::absolute(assembly, error);
+
+                APP_WARN("Game scripts not found at '{}', script components will not work "
+                         "(build the scripts in the editor first)",
+                         (error ? assembly : absolute).generic_string());
+                return;
+            }
 
             ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#");
             if (backend == nullptr)
@@ -178,7 +187,7 @@ namespace ByteForge
         if (!settings)
             throw std::runtime_error(std::format("Player::CreateApplication: {}", settings.error()));
 
-        if (static_cast<uint64_t>(settings->StartScene) == 0)
+        if (static_cast<u64>(settings->StartScene) == 0)
             throw std::runtime_error(std::format("Player::CreateApplication: '{}' does not define a start scene",
                                                  ProjectSettings::FileName));
 
