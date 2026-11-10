@@ -117,7 +117,7 @@ namespace ByteForge
             RequestLoad(handle, metadata);
         else
         {
-            CORE_ERROR("AssetManager: {} is not a known texture asset", static_cast<uint64_t>(handle));
+            CORE_ERROR("AssetManager: {} is not a known texture asset", static_cast<u64>(handle));
             asset->m_State = AssetLoadState::Failed;
         }
 
@@ -140,7 +140,7 @@ namespace ByteForge
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::PhysicsMaterial2D)
         {
-            CORE_ERROR("AssetManager: {} is not a known physics material", static_cast<uint64_t>(handle));
+            CORE_ERROR("AssetManager: {} is not a known physics material", static_cast<u64>(handle));
             return asset;
         }
 
@@ -248,7 +248,7 @@ namespace ByteForge
             } catch (const std::exception& e)
             {
                 CORE_ERROR("AssetManager: failed to load texture {}: {}",
-                           static_cast<uint64_t>(asset.GetHandle()), e.what());
+                           static_cast<u64>(asset.GetHandle()), e.what());
 
                 if (asset.m_State != AssetLoadState::Loaded)
                     asset.m_State = AssetLoadState::Failed;

@@ -52,7 +52,7 @@ namespace ByteForge
             return {};
         }
 
-        b2ShapeDef MakeShapeDef(const float density, const bool isSensor, const PhysicsMaterial2D& material)
+        b2ShapeDef MakeShapeDef(const f32 density, const bool isSensor, const PhysicsMaterial2D& material)
         {
             b2ShapeDef shapeDef = b2DefaultShapeDef();
             shapeDef.density = density;
@@ -128,11 +128,11 @@ namespace ByteForge
     }
 
     RaycastHit2D Physics2DWorld::Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                           const float maxDistance, const Scene& scene) const
+                                           const f32 maxDistance, const Scene& scene) const
     {
         RaycastHit2D result;
 
-        const float length = glm::length(direction);
+        const f32 length = glm::length(direction);
         if (length <= 0.0f || maxDistance <= 0.0f)
             return result;
 
@@ -162,11 +162,11 @@ namespace ByteForge
         });
     }
 
-    void Physics2DWorld::Step(const float ts, Scene& scene)
+    void Physics2DWorld::Step(const f32 ts, Scene& scene)
     {
         m_Accumulator += ts;
 
-        int steps = 0;
+        i32 steps = 0;
         while (m_Accumulator >= FixedTimestep && steps < MaxStepsPerFrame)
         {
             b2World_Step(m_World, FixedTimestep, 4);
@@ -203,7 +203,7 @@ namespace ByteForge
     {
         const b2SensorEvents events = b2World_GetSensorEvents(m_World);
 
-        for (int i = 0; i < events.beginCount; ++i)
+        for (i32 i = 0; i < events.beginCount; ++i)
         {
             const b2SensorBeginTouchEvent& event = events.beginEvents[i];
             const Entity sensorEntity = ResolveEntity(event.sensorShapeId, scene);
@@ -215,7 +215,7 @@ namespace ByteForge
             scene.DispatchSensorEvent(visitorEntity, sensorEntity, true);
         }
 
-        for (int i = 0; i < events.endCount; ++i)
+        for (i32 i = 0; i < events.endCount; ++i)
         {
             const b2SensorEndTouchEvent& event = events.endEvents[i];
             const Entity sensorEntity = ResolveEntity(event.sensorShapeId, scene);
@@ -232,7 +232,7 @@ namespace ByteForge
     {
         const b2ContactEvents events = b2World_GetContactEvents(m_World);
 
-        for (int i = 0; i < events.beginCount; ++i)
+        for (i32 i = 0; i < events.beginCount; ++i)
         {
             const b2ContactBeginTouchEvent& event = events.beginEvents[i];
             const Entity entityA = ResolveEntity(event.shapeIdA, scene);
@@ -244,7 +244,7 @@ namespace ByteForge
             scene.DispatchCollisionEvent(entityB, entityA, true);
         }
 
-        for (int i = 0; i < events.endCount; ++i)
+        for (i32 i = 0; i < events.endCount; ++i)
         {
             const b2ContactEndTouchEvent& event = events.endEvents[i];
             const Entity entityA = ResolveEntity(event.shapeIdA, scene);

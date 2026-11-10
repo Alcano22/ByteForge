@@ -7,13 +7,13 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr float DefaultHalfHeight = 5.0f;
-        constexpr float MinHalfHeight = 0.05f;
-        constexpr float MaxHalfHeight = 5000.0f;
+        constexpr f32 DefaultHalfHeight = 5.0f;
+        constexpr f32 MinHalfHeight = 0.05f;
+        constexpr f32 MaxHalfHeight = 5000.0f;
 
-        constexpr float ZoomPerStep = 1.15f;
-        constexpr float NearPlane = -100.0f;
-        constexpr float FarPlane = 100.0f;
+        constexpr f32 ZoomPerStep = 1.15f;
+        constexpr f32 NearPlane = -100.0f;
+        constexpr f32 FarPlane = 100.0f;
     }
 
     EditorCamera2D::EditorCamera2D()
@@ -29,21 +29,21 @@ namespace ByteForge
 
     void EditorCamera2D::Pan(const glm::vec2& pixelDelta)
     {
-        const float unitsPerPixel = GetWorldUnitsPerPixel();
+        const f32 unitsPerPixel = GetWorldUnitsPerPixel();
         Move({ -pixelDelta.x * unitsPerPixel, pixelDelta.y * unitsPerPixel });
     }
 
-    void EditorCamera2D::ZoomAt(const glm::vec2& viewportPoint, const float steps)
+    void EditorCamera2D::ZoomAt(const glm::vec2& viewportPoint, const f32 steps)
     {
         const glm::vec2 before = ViewportToWorld(viewportPoint);
 
-        const float halfHeight = m_Camera.GetSize() * std::pow(ZoomPerStep, -steps);
+        const f32 halfHeight = m_Camera.GetSize() * std::pow(ZoomPerStep, -steps);
         m_Camera.SetSize(std::clamp(halfHeight, MinHalfHeight, MaxHalfHeight));
 
         Move(before - ViewportToWorld(viewportPoint));
     }
 
-    void EditorCamera2D::Focus(const glm::vec2& center, const float height)
+    void EditorCamera2D::Focus(const glm::vec2& center, const f32 height)
     {
         m_Camera.SetSize(std::clamp(height * 0.5f, MinHalfHeight, MaxHalfHeight));
 
@@ -53,14 +53,14 @@ namespace ByteForge
 
     glm::vec2 EditorCamera2D::ViewportToWorld(const glm::vec2& viewportPoint) const
     {
-        const float unitsPerPixel = GetWorldUnitsPerPixel();
+        const f32 unitsPerPixel = GetWorldUnitsPerPixel();
         const glm::vec3& position = m_Camera.GetPosition();
 
         return { position.x + (viewportPoint.x - m_ViewportSize.x * 0.5f) * unitsPerPixel,
                  position.y - (viewportPoint.y - m_ViewportSize.y * 0.5f) * unitsPerPixel };
     }
 
-    float EditorCamera2D::GetWorldUnitsPerPixel() const
+    f32 EditorCamera2D::GetWorldUnitsPerPixel() const
     {
         return 2.0f * m_Camera.GetSize() / m_ViewportSize.y;
     }
@@ -77,7 +77,7 @@ namespace ByteForge
         return { position.x + m_Camera.GetSize() * m_Camera.GetAspectRatio(), position.y + m_Camera.GetSize() };
     }
 
-    float EditorCamera2D::GetZoom() const
+    f32 EditorCamera2D::GetZoom() const
     {
         return DefaultHalfHeight / m_Camera.GetSize();
     }

@@ -11,7 +11,7 @@ namespace ByteForge
     std::condition_variable_any JobSystem::s_Condition;
     bool JobSystem::s_Stop = false;
 
-    void JobSystem::Init(uint32_t threadCount)
+    void JobSystem::Init(u32 threadCount)
     {
         if (threadCount == 0)
             threadCount = std::max(2u, std::thread::hardware_concurrency()) - 1;
@@ -19,7 +19,7 @@ namespace ByteForge
         s_Stop = false;
         s_Workers.reserve(threadCount);
 
-        for (uint32_t i = 0; i < threadCount; ++i)
+        for (u32 i = 0; i < threadCount; ++i)
         {
             s_Workers.emplace_back([](std::stop_token stopToken)
             {

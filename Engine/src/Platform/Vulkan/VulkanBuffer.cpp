@@ -60,7 +60,7 @@ namespace ByteForge
             vmaDestroyBuffer(m_Allocator.GetHandle(), m_Buffer, m_Allocation);
     }
 
-    void VulkanBuffer::SetData(const void* data, const size_t size, const size_t offset) const
+    void VulkanBuffer::SetData(const void* data, const usize size, const usize offset) const
     {
         if (m_MappedData == nullptr)
             throw std::runtime_error("VulkanBuffer::SetData: buffer is not host-visible, use VulkanUploader");
@@ -73,7 +73,7 @@ namespace ByteForge
         VK_CHECK(vmaFlushAllocation(m_Allocator.GetHandle(), m_Allocation, offset, size));
     }
 
-    void VulkanBuffer::GetData(void* data, const size_t size, const size_t offset) const
+    void VulkanBuffer::GetData(void* data, const usize size, const usize offset) const
     {
         if (m_MappedData == nullptr)
             throw std::runtime_error("VulkanBuffer::GetData: buffer is not host-visible");

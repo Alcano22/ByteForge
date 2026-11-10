@@ -22,9 +22,9 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t IconCount = static_cast<size_t>(EditorIcon::Count);
+        constexpr usize IconCount = static_cast<usize>(EditorIcon::Count);
 
-        constexpr int SvgResolution = 256;
+        constexpr i32 SvgResolution = 256;
 
         constexpr std::string_view SvgStyleSheet = "svg { color: #ffffff; }";
 
@@ -51,7 +51,7 @@ namespace ByteForge
         constexpr auto GlyphStrings = []
         {
             std::array<std::array<char, 4>, IconCount> strings{};
-            for (size_t i = 0; i < IconCount; ++i)
+            for (usize i = 0; i < IconCount; ++i)
             {
                 const char32_t codepoint = FirstCodepoint + static_cast<char32_t>(i);
                 strings[i] = {
@@ -82,15 +82,15 @@ namespace ByteForge
 
             bitmap.convertToRGBA();
 
-            const auto width = static_cast<uint32_t>(bitmap.width());
-            const auto height = static_cast<uint32_t>(bitmap.height());
-            const size_t rowSize = static_cast<size_t>(width) * 4;
+            const auto width = static_cast<u32>(bitmap.width());
+            const auto height = static_cast<u32>(bitmap.height());
+            const usize rowSize = static_cast<usize>(width) * 4;
 
             std::vector<std::byte> pixels(rowSize * height);
-            for (uint32_t row = 0; row < height; ++row)
+            for (u32 row = 0; row < height; ++row)
             {
                 std::memcpy(pixels.data() + row * rowSize,
-                            bitmap.data() + static_cast<size_t>(row) * static_cast<size_t>(bitmap.stride()),
+                            bitmap.data() + static_cast<usize>(row) * static_cast<usize>(bitmap.stride()),
                             rowSize);
             }
 
@@ -109,7 +109,7 @@ namespace ByteForge
     {
         Ref<Texture2D> placeholder;
 
-        for (size_t i = 0; i < IconCount; ++i)
+        for (usize i = 0; i < IconCount; ++i)
         {
             const std::filesystem::path path = directory / IconFiles[i];
 
@@ -135,7 +135,7 @@ namespace ByteForge
 
     const Ref<Texture2D>& EditorIcons::Get(const EditorIcon icon) const
     {
-        const Ref<Texture2D>& texture = m_Icons.at(static_cast<size_t>(icon));
+        const Ref<Texture2D>& texture = m_Icons.at(static_cast<usize>(icon));
         if (!texture)
             throw std::runtime_error("EditorIcons::Get: icons are not loaded, call Load first");
 
@@ -171,7 +171,7 @@ namespace ByteForge
 
         std::string extension = path.extension().string();
         std::ranges::transform(extension, extension.begin(),
-                               [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                               [](const u8 c) { return static_cast<char>(std::tolower(c)); });
 
         const auto it = icons.find(extension);
         return it != icons.end() ? it->second : EditorIcon::FileGeneric;
@@ -181,7 +181,7 @@ namespace ByteForge
     {
         std::vector<ImFont*> added;
 
-        for (size_t i = 0; i < static_cast<size_t>(EditorFont::Count); ++i)
+        for (usize i = 0; i < static_cast<usize>(EditorFont::Count); ++i)
         {
             ImFont* font = fonts.Get(static_cast<EditorFont>(i));
             if (std::ranges::find(added, font) != added.end()) continue;
@@ -193,7 +193,7 @@ namespace ByteForge
 
     const char* EditorIcons::Glyph(const EditorIcon icon)
     {
-        return GlyphStrings.at(static_cast<size_t>(icon)).data();
+        return GlyphStrings.at(static_cast<usize>(icon)).data();
     }
 
     ImWchar EditorIcons::GetCodepoint(const EditorIcon icon)

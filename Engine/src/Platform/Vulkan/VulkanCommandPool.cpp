@@ -5,7 +5,7 @@
 
 namespace ByteForge
 {
-    VulkanCommandPool::VulkanCommandPool(const VulkanDevice& device, const uint32_t bufferCount)
+    VulkanCommandPool::VulkanCommandPool(const VulkanDevice& device, const u32 bufferCount)
         : m_Device(device)
     {
         const VkCommandPoolCreateInfo poolInfo{

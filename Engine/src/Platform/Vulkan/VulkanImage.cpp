@@ -34,7 +34,7 @@ namespace ByteForge
         const std::array<VkFormat, 2> viewFormats{ spec.Format, spec.AlternateViewFormat };
         const VkImageFormatListCreateInfo formatList{
             .sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
-            .viewFormatCount = static_cast<uint32_t>(viewFormats.size()),
+            .viewFormatCount = static_cast<u32>(viewFormats.size()),
             .pViewFormats    = viewFormats.data()
         };
 

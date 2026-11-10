@@ -29,7 +29,7 @@ namespace ByteForge
         [[nodiscard]] const ScriptGraph& GetGraph() const { return m_Graph; }
         [[nodiscard]] const std::vector<GraphDiagnostic>& GetDiagnostics() const { return m_Diagnostics; }
 
-        [[nodiscard]] uint64_t GetRevision() const { return m_Revision; }
+        [[nodiscard]] u64 GetRevision() const { return m_Revision; }
         [[nodiscard]] bool IsDirty() const { return m_History.IsDirty(); }
 
         template<typename Fn>
@@ -63,6 +63,6 @@ namespace ByteForge
         ScriptGraph m_Graph;
         CommandHistory m_History;
         std::vector<GraphDiagnostic> m_Diagnostics;
-        uint64_t m_Revision = 0;
+        u64 m_Revision = 0;
     };
 }

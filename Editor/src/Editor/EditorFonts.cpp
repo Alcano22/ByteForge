@@ -10,7 +10,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t FontCount = static_cast<size_t>(EditorFont::Count);
+        constexpr usize FontCount = static_cast<usize>(EditorFont::Count);
 
         constexpr std::array<std::string_view, FontCount> FontFiles{
             "inter_regular.ttf",
@@ -19,12 +19,12 @@ namespace ByteForge
         };
     }
 
-    void EditorFonts::Load(const std::filesystem::path& directory, const float size)
+    void EditorFonts::Load(const std::filesystem::path& directory, const f32 size)
     {
         ImGuiIO& io = ImGui::GetIO();
         ImFont* fallback = nullptr;
 
-        for (size_t i = 0; i < FontCount; ++i)
+        for (usize i = 0; i < FontCount; ++i)
         {
             const std::filesystem::path path = directory / FontFiles[i];
 
@@ -42,12 +42,12 @@ namespace ByteForge
             m_Fonts[i] = fallback;
         }
 
-        io.FontDefault = m_Fonts[static_cast<size_t>(EditorFont::Regular)];
+        io.FontDefault = m_Fonts[static_cast<usize>(EditorFont::Regular)];
     }
 
     ImFont* EditorFonts::Get(const EditorFont font) const
     {
-        ImFont* result = m_Fonts.at(static_cast<size_t>(font));
+        ImFont* result = m_Fonts.at(static_cast<usize>(font));
         if (result == nullptr)
             throw std::runtime_error("EditorFonts::Get: fonts are not loaded, call Load first");
 

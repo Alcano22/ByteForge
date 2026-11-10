@@ -61,12 +61,12 @@ namespace ByteForge::EditorUI
 
         void DrawScriptGraphInspector(const AssetMetadata& metadata)
         {
-            static uint64_t s_Handle = 0;
+            static u64 s_Handle = 0;
             static std::expected<ScriptGraph, std::string> s_Graph = std::unexpected(std::string());
             static std::vector<GraphDiagnostic> s_Diagnostics;
 
             const bool reload = ImGui::Button("Reload");
-            if (reload || s_Handle != static_cast<uint64_t>(metadata.Handle))
+            if (reload || s_Handle != static_cast<u64>(metadata.Handle))
             {
                 s_Handle = metadata.Handle;
                 s_Graph = LoadScriptGraph(AssetRegistry::Resolve(metadata.Handle));

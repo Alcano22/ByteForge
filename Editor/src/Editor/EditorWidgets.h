@@ -44,10 +44,10 @@ namespace ByteForge::EditorUI
     using ToggleOptions = std::type_identity_t<std::span<const ToggleOption<T>>>;
 
     template<typename T>
-    [[nodiscard]] size_t FindOption(const T& value, ToggleOptions<T> options)
+    [[nodiscard]] usize FindOption(const T& value, ToggleOptions<T> options)
     {
         const auto it = std::ranges::find(options, value, &ToggleOption<T>::Value);
-        return it != options.end() ? static_cast<size_t>(it - options.begin()) : 0;
+        return it != options.end() ? static_cast<usize>(it - options.begin()) : 0;
     }
 
     template<typename T>
@@ -64,7 +64,7 @@ namespace ByteForge::EditorUI
             if (options.empty())
                 return false;
 
-            const size_t index = FindOption(value, options);
+            const usize index = FindOption(value, options);
             const ToggleOption<T>& current = options[index];
             const ToggleOption<T>& next = options[(index + 1) % options.size()];
 
@@ -85,7 +85,7 @@ namespace ByteForge::EditorUI
     template<typename T>
     bool ToggleButton(const char* id, T& value, ToggleOptions<T> options, const char* shortcut = nullptr)
     {
-        float width = 0.0f;
+        f32 width = 0.0f;
         for (const ToggleOption<T>& option : options)
             width = std::max(width, ImGui::CalcTextSize(option.Label).x);
         width += ImGui::GetStyle().FramePadding.x * 2.0f;

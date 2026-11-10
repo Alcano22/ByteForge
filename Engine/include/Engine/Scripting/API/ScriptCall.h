@@ -28,7 +28,7 @@ namespace ByteForge
     {
         UUID Handle{ 0 };
 
-        [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Handle) != 0; }
+        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Handle) != 0; }
     };
 
     using AudioClipHandle = AssetHandle<AssetType::AudioClip>;
@@ -44,7 +44,7 @@ namespace ByteForge
         {
             T* component = Resolve(entity).TryGetComponent<T>();
             if (component == nullptr)
-                throw ScriptError(std::format("Entity {} has no {}", static_cast<uint64_t>(entity.Id),
+                throw ScriptError(std::format("Entity {} has no {}", static_cast<u64>(entity.Id),
                                               entt::type_name<T>::value()));
             return *component;
         }

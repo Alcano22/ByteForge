@@ -18,19 +18,19 @@ namespace ByteForge
     public:
         struct ManagedFunctions
         {
-            using FieldSink = void (*)(const char* name, int type, const void* value, void* userData);
+            using FieldSink = void (*)(const char* name, i32 type, const void* value, void* userData);
 
             void (CORECLR_DELEGATE_CALLTYPE* GetClassNames)(void (*sink)(const char*, void*), void* userData) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* GetClassFields)(const char* className, FieldSink sink, void* userData) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* GetField)(void* instance, const char* name, FieldSink sink, void* userData) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* SetField)(void* instance, const char* name, int type, const void* value) = nullptr;
-            void* (CORECLR_DELEGATE_CALLTYPE* CreateInstance)(const char* className, uint64_t entity) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* GetField)(void* instance, const char* name, FieldSink sink, void* userData) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* SetField)(void* instance, const char* name, i32 type, const void* value) = nullptr;
+            void* (CORECLR_DELEGATE_CALLTYPE* CreateInstance)(const char* className, u64 entity) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* DestroyInstance)(void* instance) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* LoadGameAssembly)(const char* path) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* OnCreate)(void* instance) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* OnUpdate)(void* instance, float deltaTime) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* OnDestroy)(void* instance) = nullptr;
-            int (CORECLR_DELEGATE_CALLTYPE* OnContact)(void* instance, int event, uint64_t other) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* LoadGameAssembly)(const char* path) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* OnCreate)(void* instance) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* OnUpdate)(void* instance, f32 deltaTime) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* OnDestroy)(void* instance) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* OnContact)(void* instance, i32 event, u64 other) = nullptr;
         };
 
         explicit CSharpScriptBackend(const std::filesystem::path& scriptCoreDirectory);

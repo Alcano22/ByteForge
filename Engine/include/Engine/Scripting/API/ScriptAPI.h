@@ -14,12 +14,12 @@
 
 namespace ByteForge
 {
-    enum class ScriptPurity : uint8_t { Impure, Pure };
+    enum class ScriptPurity : u8 { Impure, Pure };
 
     class BYTEFORGE_API ScriptAPI : NonCopyable
     {
     public:
-        template<auto Fn, size_t N>
+        template<auto Fn, usize N>
         void Register(std::string id, std::string displayName, const ScriptPurity purity,
                       const char* const (&parameterNames)[N])
         {
@@ -49,10 +49,10 @@ namespace ByteForge
         }
 
         [[nodiscard]] std::span<const ScriptFunction> GetFunctions() const { return m_Functions; }
-        [[nodiscard]] uint32_t FindIndex(std::string_view id) const;
+        [[nodiscard]] u32 FindIndex(std::string_view id) const;
         [[nodiscard]] const ScriptFunction* Find(std::string_view id) const;
 
-        [[nodiscard]] const ScriptFunction& GetFunction(uint32_t index) const;
+        [[nodiscard]] const ScriptFunction& GetFunction(u32 index) const;
 
         [[nodiscard]] static const ScriptAPI& Get();
 
@@ -62,10 +62,10 @@ namespace ByteForge
         void Add(ScriptFunction function);
 
     public:
-        static constexpr uint32_t InvalidIndex = std::numeric_limits<uint32_t>::max();
+        static constexpr u32 InvalidIndex = std::numeric_limits<u32>::max();
 
     private:
         std::vector<ScriptFunction> m_Functions;
-        std::map<std::string, uint32_t, std::less<>> m_Indices;
+        std::map<std::string, u32, std::less<>> m_Indices;
     };
 }

@@ -31,20 +31,20 @@ namespace ByteForge
 
         [[nodiscard]] const VulkanPipeline& GetVulkanPipeline() const;
 
-        [[nodiscard]] VkDescriptorSet GetDescriptorSet(uint32_t frameIndex) const;
+        [[nodiscard]] VkDescriptorSet GetDescriptorSet(u32 frameIndex) const;
 
     private:
         [[nodiscard]] bool WasDrawnThisFrame() const;
-        void WriteTextureDescriptors(uint32_t frame) const;
+        void WriteTextureDescriptors(u32 frame) const;
 
     private:
-        static constexpr uint32_t NoBinding = std::numeric_limits<uint32_t>::max();
+        static constexpr u32 NoBinding = std::numeric_limits<u32>::max();
 
         struct TextureSlot
         {
             std::string Name;
-            uint32_t ImageBinding = 0;
-            uint32_t SamplerBinding = NoBinding;
+            u32 ImageBinding = 0;
+            u32 SamplerBinding = NoBinding;
             Ref<Texture2D> Texture;
         };
 
@@ -57,6 +57,6 @@ namespace ByteForge
         Scope<VulkanUniformBuffer> m_Buffer;
         std::vector<VkDescriptorSet> m_Sets;
 
-        uint64_t m_LastDrawFrame = std::numeric_limits<uint64_t>::max();
+        u64 m_LastDrawFrame = std::numeric_limits<u64>::max();
     };
 }

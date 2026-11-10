@@ -6,8 +6,8 @@ namespace ByteForge
 {
     struct DrawRange
     {
-        uint32_t Count = 0;
-        uint32_t First = 0;
-        int VertexOffset = 0;
+        u32 Count = 0;
+        u32 First = 0;
+        i32 VertexOffset = 0;
     };
 }

@@ -24,7 +24,7 @@ namespace ByteForge
 
         ImageFormat EntityIdFormat = ImageFormat::None;
 
-        uint32_t MaxLines = 20000;
+        u32 MaxLines = 20000;
     };
 
     class BYTEFORGE_API LineRenderer : NonCopyable
@@ -37,7 +37,7 @@ namespace ByteForge
 
         void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color);
 
-        void DrawRect(const glm::vec3& center, const glm::vec2& size, float rotation, const glm::vec4& color);
+        void DrawRect(const glm::vec3& center, const glm::vec2& size, f32 rotation, const glm::vec4& color);
 
     private:
         void Flush();
@@ -58,12 +58,12 @@ namespace ByteForge
 
         std::vector<Vertex> m_Vertices;
 
-        uint64_t m_Frame = std::numeric_limits<uint64_t>::max();
-        uint32_t m_FrameLines = 0;
-        uint32_t m_BatchStart = 0;
+        u64 m_Frame = std::numeric_limits<u64>::max();
+        u32 m_FrameLines = 0;
+        u32 m_BatchStart = 0;
         bool m_InScene = false;
         bool m_LinearizeColors = false;
 
-        static constexpr uint32_t VerticesPerLine = 2;
+        static constexpr u32 VerticesPerLine = 2;
     };
 }

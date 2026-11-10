@@ -42,8 +42,8 @@ namespace ByteForge
         struct SpriteDrawItem
         {
             entt::entity Handle;
-            int Layer;
-            float Z;
+            i32 Layer;
+            f32 Z;
         };
     }
 
@@ -64,7 +64,7 @@ namespace ByteForge
         if (m_EntityByUUID.contains(uuid))
         {
             throw std::runtime_error(std::format("Scene::CreateEntityWithUUID: an entity with UUID {} already exists",
-                                                 static_cast<uint64_t>(uuid)));
+                                                 static_cast<u64>(uuid)));
         }
 
         const Entity entity(m_Registry.create(), this);
@@ -112,7 +112,7 @@ namespace ByteForge
         return it != m_EntityByUUID.end() ? Entity(it->second, this) : Entity{};
     }
 
-    Entity Scene::FindEntityByPickingId(const uint32_t pickingId)
+    Entity Scene::FindEntityByPickingId(const u32 pickingId)
     {
         if (pickingId == 0)
             return {};
@@ -142,9 +142,9 @@ namespace ByteForge
         destroyed.connect<&Physics2DWorld::OnRigidbodyDestroyed>(*m_PhysicsWorld);
     }
 
-    uint32_t Scene::ToPickingId(const entt::entity handle)
+    u32 Scene::ToPickingId(const entt::entity handle)
     {
-        return static_cast<uint32_t>(entt::to_integral(handle)) + 1u;
+        return static_cast<u32>(entt::to_integral(handle)) + 1u;
     }
 
     void Scene::OnUpdateRuntime(const Timestep ts)
@@ -189,7 +189,7 @@ namespace ByteForge
         for (const SpriteDrawItem& item : queue)
         {
             const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(item.Handle);
-            const uint32_t pickingId = ToPickingId(item.Handle);
+            const u32 pickingId = ToPickingId(item.Handle);
 
             if (spriteRenderer.Sprite)
             {
@@ -263,7 +263,7 @@ namespace ByteForge
     }
 
     RaycastHit2D Scene::Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                  const float maxDistance) const
+                                  const f32 maxDistance) const
     {
         return m_PhysicsWorld->Raycast2D(origin, direction, maxDistance, *this);
     }

@@ -19,7 +19,7 @@ namespace ByteForge
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.Capabilities);
 
-        uint32_t formatCount = 0;
+        u32 formatCount = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (formatCount != 0)
         {
@@ -27,7 +27,7 @@ namespace ByteForge
             vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
         }
 
-        uint32_t presentModeCount = 0;
+        u32 presentModeCount = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
         if (presentModeCount != 0)
         {
@@ -48,7 +48,7 @@ namespace ByteForge
         const VkPresentModeKHR presentMode = ChoosePresentMode(support.PresentModes);
         const VkExtent2D extent = ChooseExtent(support.Capabilities, windowHandle);
 
-        uint32_t imageCount = std::max<uint32_t>(3, support.Capabilities.minImageCount);
+        u32 imageCount = std::max<u32>(3, support.Capabilities.minImageCount);
         if (support.Capabilities.maxImageCount > 0)
             imageCount = std::min(imageCount, support.Capabilities.maxImageCount);
 
@@ -59,7 +59,7 @@ namespace ByteForge
         const std::array<VkFormat, 2> viewFormats{ surfaceFormat.format, m_ImGuiImageFormat };
         const VkImageFormatListCreateInfo formatListInfo{
             .sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
-            .viewFormatCount = static_cast<uint32_t>(viewFormats.size()),
+            .viewFormatCount = static_cast<u32>(viewFormats.size()),
             .pViewFormats    = viewFormats.data()
         };
 
@@ -82,7 +82,7 @@ namespace ByteForge
         };
 
         const auto& indices = m_Device.GetQueueFamilyIndices();
-        const uint32_t queueFamilyIndices[] = {
+        const u32 queueFamilyIndices[] = {
             indices.GraphicsFamily.value(),
             indices.PresentFamily.value()
         };
@@ -97,7 +97,7 @@ namespace ByteForge
 
         VK_CHECK(vkCreateSwapchainKHR(m_Device.GetHandle(), &createInfo, nullptr, &m_Swapchain));
 
-        uint32_t actualImageCount = 0;
+        u32 actualImageCount = 0;
         vkGetSwapchainImagesKHR(m_Device.GetHandle(), m_Swapchain, &actualImageCount, nullptr);
         m_Images.resize(actualImageCount);
         vkGetSwapchainImagesKHR(m_Device.GetHandle(), m_Swapchain, &actualImageCount, m_Images.data());
@@ -134,7 +134,7 @@ namespace ByteForge
     void VulkanSwapchain::CreateImageViews()
     {
         m_ImageViews.resize(m_Images.size());
-        for (size_t i = 0; i < m_Images.size(); ++i)
+        for (usize i = 0; i < m_Images.size(); ++i)
         {
             const VkImageViewCreateInfo viewInfo{
                 .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -161,7 +161,7 @@ namespace ByteForge
         CORE_INFO("Created {} swapchain image views", m_ImageViews.size());
 
         m_ImGuiImageViews.resize(m_Images.size());
-        for (size_t i = 0; i < m_Images.size(); ++i)
+        for (usize i = 0; i < m_Images.size(); ++i)
         {
             const VkImageViewCreateInfo viewInfo{
                 .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -224,13 +224,13 @@ namespace ByteForge
 
     VkExtent2D VulkanSwapchain::ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* windowHandle)
     {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        if (capabilities.currentExtent.width != std::numeric_limits<u32>::max())
             return capabilities.currentExtent;
 
-        int width, height;
+        i32 width, height;
         glfwGetFramebufferSize(windowHandle, &width, &height);
 
-        VkExtent2D actualExtent{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+        VkExtent2D actualExtent{ static_cast<u32>(width), static_cast<u32>(height) };
         actualExtent.width = std::clamp(actualExtent.width,
                                         capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
         actualExtent.height = std::clamp(actualExtent.height,

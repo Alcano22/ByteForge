@@ -19,11 +19,11 @@ namespace ByteForge
     class BYTEFORGE_API WindowResizedEvent : public Event
     {
     public:
-        WindowResizedEvent(const uint32_t width, const uint32_t height)
+        WindowResizedEvent(const u32 width, const u32 height)
             : m_Width(width), m_Height(height) {}
 
-        [[nodiscard]] uint32_t GetWidth() const { return m_Width; }
-        [[nodiscard]] uint32_t GetHeight() const { return m_Height; }
+        [[nodiscard]] u32 GetWidth() const { return m_Width; }
+        [[nodiscard]] u32 GetHeight() const { return m_Height; }
 
         [[nodiscard]] std::string ToString() const override
         {
@@ -34,17 +34,17 @@ namespace ByteForge
         EVENT_CLASS_CATEGORY(EventCategoryApplication)
 
     private:
-        uint32_t m_Width, m_Height;
+        u32 m_Width, m_Height;
     };
 
     class BYTEFORGE_API FramebufferResizedEvent : public Event
     {
     public:
-        FramebufferResizedEvent(const uint32_t width, const uint32_t height)
+        FramebufferResizedEvent(const u32 width, const u32 height)
             : m_Width(width), m_Height(height) {}
 
-        [[nodiscard]] uint32_t GetWidth() const { return m_Width; }
-        [[nodiscard]] uint32_t GetHeight() const { return m_Height; }
+        [[nodiscard]] u32 GetWidth() const { return m_Width; }
+        [[nodiscard]] u32 GetHeight() const { return m_Height; }
 
         [[nodiscard]] std::string ToString() const override
         {
@@ -55,6 +55,6 @@ namespace ByteForge
         EVENT_CLASS_CATEGORY(EventCategoryApplication)
 
     private:
-        uint32_t m_Width, m_Height;
+        u32 m_Width, m_Height;
     };
 }

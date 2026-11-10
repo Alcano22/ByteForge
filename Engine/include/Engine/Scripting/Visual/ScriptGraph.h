@@ -20,7 +20,7 @@ namespace ByteForge
 {
     inline constexpr const char* ScriptGraphExtension = ".bfgraph";
 
-    enum class PinDirection : uint8_t { Input, Output };
+    enum class PinDirection : u8 { Input, Output };
 
     struct BYTEFORGE_API PinType
     {
@@ -48,7 +48,7 @@ namespace ByteForge
         PinType Type;
     };
 
-    enum class GraphEvent : uint8_t
+    enum class GraphEvent : u8
     {
         OnCreate,
         OnUpdate,
@@ -58,7 +58,7 @@ namespace ByteForge
         OnCollisionEnter,
         OnCollisionExit
     };
-    inline constexpr size_t GraphEventCount = static_cast<size_t>(GraphEvent::OnCollisionExit) + 1;
+    inline constexpr usize GraphEventCount = static_cast<usize>(GraphEvent::OnCollisionExit) + 1;
 
     struct EventNode { GraphEvent Event = GraphEvent::OnUpdate; };
     struct CallNode { std::string Function; };
@@ -87,7 +87,7 @@ namespace ByteForge
 
         [[nodiscard]] bool operator==(const PinRef& other) const
         {
-            return static_cast<uint64_t>(Node) == static_cast<uint64_t>(other.Node) && Pin == other.Pin;
+            return static_cast<u64>(Node) == static_cast<u64>(other.Node) && Pin == other.Pin;
         }
     };
 
@@ -136,7 +136,7 @@ namespace ByteForge
         [[nodiscard]] std::expected<void, std::string> CheckVariableName(std::string_view name, UUID ignore) const;
 
     public:
-        static constexpr int FormatVersion = 1;
+        static constexpr i32 FormatVersion = 1;
 
     private:
         std::vector<GraphNode> m_Nodes;

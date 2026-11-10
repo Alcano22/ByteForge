@@ -14,12 +14,12 @@ namespace ByteForge
                                const ShaderStage stage, std::string entryPoint)
         : m_Device(device), m_EntryPoint(std::move(entryPoint))
     {
-        const std::vector<uint32_t> spirv = VulkanShaderCompiler::Get().Compile(source, stage, m_EntryPoint);
+        const std::vector<u32> spirv = VulkanShaderCompiler::Get().Compile(source, stage, m_EntryPoint);
         m_Reflection = ShaderReflection::Reflect(spirv, stage);
 
         const VkShaderModuleCreateInfo createInfo{
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = spirv.size() * sizeof(uint32_t),
+            .codeSize = spirv.size() * sizeof(u32),
             .pCode    = spirv.data()
         };
 

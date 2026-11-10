@@ -18,7 +18,7 @@ namespace ByteForge
 
         bool IsAnyMouseButtonDown()
         {
-            for (int button = 0; button < ImGuiMouseButton_COUNT; ++button)
+            for (i32 button = 0; button < ImGuiMouseButton_COUNT; ++button)
             {
                 if (ImGui::IsMouseDown(button))
                     return true;
@@ -28,7 +28,7 @@ namespace ByteForge
 
         bool IsAnyMouseButtonClicked()
         {
-            for (int button = 0; button < ImGuiMouseButton_COUNT; ++button)
+            for (i32 button = 0; button < ImGuiMouseButton_COUNT; ++button)
             {
                 if (ImGui::IsMouseClicked(button))
                     return true;
@@ -56,7 +56,7 @@ namespace ByteForge
         m_Canvas.SetFixedAspect(settings.UseFixedAspect ? std::optional(settings.FixedAspect) : std::nullopt);
 
         const glm::vec2 size = m_Canvas.GetSize();
-        const float aspect = settings.UseFixedAspect ? settings.FixedAspect : size.x / size.y;
+        const f32 aspect = settings.UseFixedAspect ? settings.FixedAspect : size.x / size.y;
         const OrthographicCamera camera = MakeSceneCamera(settings, transform, aspect);
 
         m_Canvas.Render([&](Renderer2D& sprites, LineRenderer&) { scene->Render(sprites, camera); });

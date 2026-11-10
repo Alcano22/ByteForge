@@ -16,8 +16,8 @@ namespace ByteForge
         VkPhysicalDeviceProperties props;
         vkGetPhysicalDeviceProperties(device.GetPhysicalDevice(), &props);
 
-        const uint32_t alignment = static_cast<uint32_t>(props.limits.minUniformBufferOffsetAlignment);
-        m_SliceStride = static_cast<uint32_t>((sizeof(SceneUniforms) + alignment - 1) / alignment * alignment);
+        const u32 alignment = static_cast<u32>(props.limits.minUniformBufferOffsetAlignment);
+        m_SliceStride = static_cast<u32>((sizeof(SceneUniforms) + alignment - 1) / alignment * alignment);
 
         const VkDescriptorSetLayoutBinding binding{
             .binding         = 0,
@@ -52,7 +52,7 @@ namespace ByteForge
     }
 
     VkDescriptorSetLayout VulkanFrameData::GetLayoutHandle() const { return m_Layout->GetHandle(); }
-    VkDescriptorSet VulkanFrameData::GetSet(const uint32_t frameIndex) const { return m_Pool->GetSet(frameIndex); }
+    VkDescriptorSet VulkanFrameData::GetSet(const u32 frameIndex) const { return m_Pool->GetSet(frameIndex); }
 
     void VulkanFrameData::WriteCurrentScene(const SceneUniforms& uniforms) const
     {

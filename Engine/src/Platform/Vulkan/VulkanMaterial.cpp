@@ -24,7 +24,7 @@ namespace ByteForge
         const std::vector<ReflectedDescriptorBinding>& bindings = vulkanPipeline.GetMaterialBindings();
         if (bindings.empty()) return;
 
-        constexpr uint32_t framesInFlight = VulkanContext::GetFramesInFlight();
+        constexpr u32 framesInFlight = VulkanContext::GetFramesInFlight();
 
         const ReflectedDescriptorBinding* parameterBinding = nullptr;
 
@@ -63,7 +63,7 @@ namespace ByteForge
 
         if (parameterBinding == nullptr) return;
 
-        for (uint32_t frame = 0; frame < framesInFlight; ++frame)
+        for (u32 frame = 0; frame < framesInFlight; ++frame)
         {
             const VkDescriptorBufferInfo bufferInfo{
                 .buffer = m_Buffer->GetHandle(frame),
@@ -160,11 +160,11 @@ namespace ByteForge
 
         if (m_Sets.empty()) return;
 
-        const uint32_t frame = VulkanContext::Get().GetCurrentFrameIndex();
+        const u32 frame = VulkanContext::Get().GetCurrentFrameIndex();
         if (!m_FrameDirty[frame]) return;
 
         if (m_Buffer)
-            m_Buffer->SetData(m_Shadow.data(), static_cast<uint32_t>(m_Shadow.size()));
+            m_Buffer->SetData(m_Shadow.data(), static_cast<u32>(m_Shadow.size()));
 
         WriteTextureDescriptors(frame);
 
@@ -176,7 +176,7 @@ namespace ByteForge
         return static_cast<const VulkanPipeline&>(*m_Pipeline);
     }
 
-    VkDescriptorSet VulkanMaterial::GetDescriptorSet(const uint32_t frameIndex) const
+    VkDescriptorSet VulkanMaterial::GetDescriptorSet(const u32 frameIndex) const
     {
         return m_Sets.empty() ? nullptr : m_Sets[frameIndex];
     }
@@ -187,7 +187,7 @@ namespace ByteForge
         return context.IsInFrame() && m_LastDrawFrame == context.GetFrameData().GetFrameNumber();
     }
 
-    void VulkanMaterial::WriteTextureDescriptors(const uint32_t frame) const
+    void VulkanMaterial::WriteTextureDescriptors(const u32 frame) const
     {
         if (m_TextureSlots.empty()) return;
 
@@ -228,6 +228,6 @@ namespace ByteForge
         }
 
         vkUpdateDescriptorSets(VulkanContext::Get().GetDevice().GetHandle(),
-                               static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+                               static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 }

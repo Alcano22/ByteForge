@@ -23,12 +23,12 @@ namespace ByteForge
         void SetGravity(const glm::vec2& gravity) const;
 
         void EnsureBodiesCreated(Scene& scene) const;
-        void Step(float ts, Scene& scene);
+        void Step(f32 ts, Scene& scene);
 
         void OnRigidbodyDestroyed(entt::registry& registry, entt::entity handle) const;
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                             float maxDistance, const Scene& scene) const;
+                                             f32 maxDistance, const Scene& scene) const;
 
     private:
         void CreateBody(Entity entity) const;
@@ -39,11 +39,11 @@ namespace ByteForge
         void DispatchContactEvents(const Scene& scene) const;
 
     public:
-        static constexpr float FixedTimestep = 1.0f / 60.0f;
-        static constexpr int MaxStepsPerFrame = 8;
+        static constexpr f32 FixedTimestep = 1.0f / 60.0f;
+        static constexpr i32 MaxStepsPerFrame = 8;
 
     private:
         b2WorldId m_World;
-        float m_Accumulator = 0.0f;
+        f32 m_Accumulator = 0.0f;
     };
 }

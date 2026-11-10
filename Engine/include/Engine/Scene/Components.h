@@ -28,7 +28,7 @@ namespace ByteForge
     struct TransformComponent
     {
         glm::vec3 Position{ 0.0f };
-        float Rotation = 0.0f;
+        f32 Rotation = 0.0f;
         glm::vec2 Scale{ 1.0f };
 
         bool operator==(const TransformComponent&) const = default;
@@ -38,20 +38,20 @@ namespace ByteForge
     {
         glm::vec4 Color{ 1.0f };
         Ref<ByteForge::Sprite> Sprite;
-        int SortingLayer = 0;
+        i32 SortingLayer = 0;
     };
 
     struct CameraComponent
     {
         bool Primary = true;
-        float OrthographicSize = 6.0f;
-        float Near = -1.0f;
-        float Far = 1.0f;
+        f32 OrthographicSize = 6.0f;
+        f32 Near = -1.0f;
+        f32 Far = 1.0f;
 
         glm::vec4 ClearColor{ 0.01f, 0.01f, 0.01f, 1.0f };
 
         bool UseFixedAspect = true;
-        float FixedAspect = 16.0f / 9.0f;
+        f32 FixedAspect = 16.0f / 9.0f;
     };
 
     struct BYTEFORGE_API Rigidbody2DComponent
@@ -60,7 +60,7 @@ namespace ByteForge
 
         BodyType Type = BodyType::Static;
         bool FixedRotation = false;
-        float GravityScale = 1.0f;
+        f32 GravityScale = 1.0f;
 
         Ref<PhysicsMaterialAsset> Material;
 
@@ -90,7 +90,7 @@ namespace ByteForge
         void ApplyForceToCenter(const glm::vec2& force, bool wake = true) const;
         void ApplyLinearImpulseToCenter(const glm::vec2& impulse, bool wake = true) const;
 
-        void Teleport(const glm::vec2& position, float rotation) const;
+        void Teleport(const glm::vec2& position, f32 rotation) const;
 
     private:
         void RequireRuntimeBody(const char* method) const;
@@ -98,7 +98,7 @@ namespace ByteForge
     private:
         friend class Physics2DWorld;
 
-        uint64_t m_RuntimeBodyId = 0;
+        u64 m_RuntimeBodyId = 0;
     };
 
     struct BoxCollider2DComponent
@@ -106,7 +106,7 @@ namespace ByteForge
         glm::vec2 Offset{ 0.0f, 0.0f };
         glm::vec2 Size{ 1.0f, 1.0f };
 
-        float Density = 1.0f;
+        f32 Density = 1.0f;
         bool IsSensor = false;
 
         Ref<PhysicsMaterialAsset> Material;
@@ -115,9 +115,9 @@ namespace ByteForge
     struct CircleCollider2DComponent
     {
         glm::vec2 Offset{ 0.0f, 0.0f };
-        float Radius = 0.5f;
+        f32 Radius = 0.5f;
 
-        float Density = 1.0f;
+        f32 Density = 1.0f;
         bool IsSensor = false;
 
         Ref<PhysicsMaterialAsset> Material;
@@ -126,8 +126,8 @@ namespace ByteForge
     struct BYTEFORGE_API AudioSourceComponent
     {
         UUID Clip{ 0 };
-        float Volume = 1.0f;
-        float Pitch = 1.0f;
+        f32 Volume = 1.0f;
+        f32 Pitch = 1.0f;
         bool Loop = false;
         bool PlayOnStart = true;
 

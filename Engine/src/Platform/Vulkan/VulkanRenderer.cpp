@@ -27,7 +27,7 @@ namespace ByteForge
         constexpr VkPipelineStageFlags2 DepthStages = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
                                                     | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 
-        DrawRange ResolveDrawRange(const DrawRange& range, const uint32_t available, const bool indexed)
+        DrawRange ResolveDrawRange(const DrawRange& range, const u32 available, const bool indexed)
         {
             const char* unit = indexed ? "indices" : "vertices";
 
@@ -44,7 +44,7 @@ namespace ByteForge
             {
                 throw std::runtime_error(std::format("Renderer::Submit: the draw range [{}, {}) exceeds the {} {} "
                                                      "of the mesh", range.First,
-                                                     static_cast<uint64_t>(range.First) + range.Count,
+                                                     static_cast<u64>(range.First) + range.Count,
                                                      available, unit));
             }
 
@@ -82,7 +82,7 @@ namespace ByteForge
 
     VulkanRenderer::VulkanRenderer(VulkanDevice& device, VulkanSwapchain& swapchain,
                                    VulkanCommandPool& commandPool, VulkanSyncObjects& syncObjects,
-                                   const VulkanFrameData& frameData, const uint32_t framesInFlight)
+                                   const VulkanFrameData& frameData, const u32 framesInFlight)
         : m_Device(device), m_Swapchain(&swapchain), m_CommandPool(commandPool),
           m_SyncObjects(syncObjects), m_FrameData(frameData), m_FramesInFlight(framesInFlight) {}
 
@@ -150,7 +150,7 @@ namespace ByteForge
         const VkBuffer vertexBufferHandle = vertexBuffer.GetHandleForDraw();
 
         VkBuffer indexBufferHandle = nullptr;
-        uint32_t available = mesh.GetVertexCount();
+        u32 available = mesh.GetVertexCount();
         if (mesh.HasIndexBuffer())
         {
             const auto& indexBuffer = static_cast<const VulkanIndexBuffer&>(*mesh.GetIndexBuffer());
@@ -324,7 +324,7 @@ namespace ByteForge
 
         const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();
         const VkDescriptorSet frameSet = m_FrameData.GetSet(m_CurrentFrame);
-        const uint32_t dynamicOffset = m_FrameData.GetDynamicOffset();
+        const u32 dynamicOffset = m_FrameData.GetDynamicOffset();
 
         vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
 
@@ -341,7 +341,7 @@ namespace ByteForge
         if (!pushConstants.empty())
         {
             vkCmdPushConstants(m_CurrentCommandBuffer, pipelineLayout, pipeline.GetPushConstantStages(),
-                               0, static_cast<uint32_t>(pushConstants.size()), pushConstants.data());
+                               0, static_cast<u32>(pushConstants.size()), pushConstants.data());
         }
 
         const VkBuffer vertexBuffers[] = { vertexBuffer };
@@ -428,20 +428,20 @@ namespace ByteForge
         {
             const ViewportRect& rect = *m_SwapchainViewport;
 
-            const int x = std::clamp(rect.X, 0, static_cast<int>(extent.width));
-            const int y = std::clamp(rect.Y, 0, static_cast<int>(extent.height));
-            const uint32_t width = std::min(rect.Width, extent.width - static_cast<uint32_t>(x));
-            const uint32_t height = std::min(rect.Height, extent.height - static_cast<uint32_t>(y));
+            const i32 x = std::clamp(rect.X, 0, static_cast<i32>(extent.width));
+            const i32 y = std::clamp(rect.Y, 0, static_cast<i32>(extent.height));
+            const u32 width = std::min(rect.Width, extent.width - static_cast<u32>(x));
+            const u32 height = std::min(rect.Height, extent.height - static_cast<u32>(y));
 
             if (width > 0 && height > 0)
                 area = { .offset = { x, y }, .extent = { width, height } };
         }
 
         const VkViewport viewport{
-            .x        = static_cast<float>(area.offset.x),
-            .y        = static_cast<float>(area.offset.y),
-            .width    = static_cast<float>(area.extent.width),
-            .height   = static_cast<float>(area.extent.height),
+            .x        = static_cast<f32>(area.offset.x),
+            .y        = static_cast<f32>(area.offset.y),
+            .width    = static_cast<f32>(area.extent.width),
+            .height   = static_cast<f32>(area.extent.height),
             .minDepth = 0.0f,
             .maxDepth = 1.0f
         };
@@ -467,7 +467,7 @@ namespace ByteForge
             .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
             .renderArea           = { .offset = { 0, 0 }, .extent = extent },
             .layerCount           = 1,
-            .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
+            .colorAttachmentCount = static_cast<u32>(colorAttachments.size()),
             .pColorAttachments    = colorAttachments.data(),
             .pDepthAttachment     = depthView != nullptr ? &depthAttachment : nullptr
         };
@@ -477,8 +477,8 @@ namespace ByteForge
         const VkViewport viewport{
             .x        = 0.0f,
             .y        = 0.0f,
-            .width    = static_cast<float>(extent.width),
-            .height   = static_cast<float>(extent.height),
+            .width    = static_cast<f32>(extent.width),
+            .height   = static_cast<f32>(extent.height),
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
         };

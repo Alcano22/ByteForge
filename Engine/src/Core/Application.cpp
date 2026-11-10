@@ -18,7 +18,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr double MaxTimestep = 0.1;
+        constexpr f64 MaxTimestep = 0.1;
     }
 
     Application* Application::s_Instance = nullptr;
@@ -61,8 +61,8 @@ namespace ByteForge
 
             AssetManager::Update();
 
-            const double time = glfwGetTime();
-            const Timestep ts = static_cast<float>(std::min(time - m_LastFrameTime, MaxTimestep));
+            const f64 time = glfwGetTime();
+            const Timestep ts = static_cast<f32>(std::min(time - m_LastFrameTime, MaxTimestep));
             m_LastFrameTime = time;
 
             if (m_ImGuiLayer)

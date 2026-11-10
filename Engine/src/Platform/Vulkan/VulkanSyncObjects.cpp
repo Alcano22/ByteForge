@@ -12,8 +12,8 @@ namespace ByteForge
         };
     }
 
-    VulkanSyncObjects::VulkanSyncObjects(const VulkanDevice& device, const uint32_t frameCount,
-                                         const uint32_t imageCount)
+    VulkanSyncObjects::VulkanSyncObjects(const VulkanDevice& device, const u32 frameCount,
+                                         const u32 imageCount)
         : m_Device(device)
     {
         m_ImageAvailable.resize(frameCount);
@@ -24,7 +24,7 @@ namespace ByteForge
             .flags = VK_FENCE_CREATE_SIGNALED_BIT
         };
 
-        for (uint32_t i = 0; i < frameCount; ++i)
+        for (u32 i = 0; i < frameCount; ++i)
         {
             VK_CHECK(vkCreateSemaphore(m_Device.GetHandle(), &SemaphoreInfo, nullptr, &m_ImageAvailable[i]));
             VK_CHECK(vkCreateFence(m_Device.GetHandle(), &fenceInfo, nullptr, &m_InFlightFences[i]));
@@ -46,7 +46,7 @@ namespace ByteForge
             vkDestroyFence(m_Device.GetHandle(), fence, nullptr);
     }
 
-    void VulkanSyncObjects::RecreateRenderFinished(const uint32_t imageCount)
+    void VulkanSyncObjects::RecreateRenderFinished(const u32 imageCount)
     {
         DestroyRenderFinished();
         CreateRenderFinished(imageCount);
@@ -54,7 +54,7 @@ namespace ByteForge
         CORE_TRACE("Recreated {} render-finished semaphores", imageCount);
     }
 
-    void VulkanSyncObjects::CreateRenderFinished(const uint32_t imageCount)
+    void VulkanSyncObjects::CreateRenderFinished(const u32 imageCount)
     {
         m_RenderFinished.assign(imageCount, nullptr);
 

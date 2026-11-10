@@ -23,16 +23,16 @@ namespace ByteForge::JsonValue
     nlohmann::json ToJson(const glm::vec2& v) { return { v.x, v.y }; }
     nlohmann::json ToJson(const glm::vec3& v) { return { v.x, v.y, v.z }; }
     nlohmann::json ToJson(const glm::vec4& v) { return { v.x, v.y, v.z, v.w }; }
-    nlohmann::json ToJson(const EntityRef& v) { return static_cast<uint64_t>(v.Id); }
+    nlohmann::json ToJson(const EntityRef& v) { return static_cast<u64>(v.Id); }
 
     nlohmann::json ToJson(const AssetRef& v)
     {
-        return { { "type", AssetTypeToString(v.Type) }, { "handle", static_cast<uint64_t>(v.Handle) } };
+        return { { "type", AssetTypeToString(v.Type) }, { "handle", static_cast<u64>(v.Handle) } };
     }
 
-    glm::vec2 ToVec2(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>() }; }
-    glm::vec3 ToVec3(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>() }; }
-    glm::vec4 ToVec4(const nlohmann::json& j) { return { j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>(), j.at(3).get<float>() }; }
+    glm::vec2 ToVec2(const nlohmann::json& j) { return { j.at(0).get<f32>(), j.at(1).get<f32>() }; }
+    glm::vec3 ToVec3(const nlohmann::json& j) { return { j.at(0).get<f32>(), j.at(1).get<f32>(), j.at(2).get<f32>() }; }
+    glm::vec4 ToVec4(const nlohmann::json& j) { return { j.at(0).get<f32>(), j.at(1).get<f32>(), j.at(2).get<f32>(), j.at(3).get<f32>() }; }
 
     nlohmann::json TypedValueToJson(const ScriptValue& value)
     {
@@ -52,16 +52,16 @@ namespace ByteForge::JsonValue
         switch (*type)
         {
             case ScriptFieldType::Bool:    return v.get<bool>();
-            case ScriptFieldType::Int:     return v.get<int32_t>();
-            case ScriptFieldType::Float:   return v.get<float>();
-            case ScriptFieldType::Double:  return v.get<double>();
+            case ScriptFieldType::Int:     return v.get<i32>();
+            case ScriptFieldType::Float:   return v.get<f32>();
+            case ScriptFieldType::Double:  return v.get<f64>();
             case ScriptFieldType::Vector2: return ToVec2(v);
             case ScriptFieldType::Vector3: return ToVec3(v);
             case ScriptFieldType::Vector4: return ToVec4(v);
-            case ScriptFieldType::Entity:  return EntityRef{ UUID(v.get<uint64_t>()) };
+            case ScriptFieldType::Entity:  return EntityRef{ UUID(v.get<u64>()) };
             case ScriptFieldType::Asset:
                 return AssetRef{ AssetTypeFromString(v.at("type").get<std::string>()),
-                                 UUID(v.at("handle").get<uint64_t>()) };
+                                 UUID(v.at("handle").get<u64>()) };
             case ScriptFieldType::String:  return v.get<std::string>();
         }
         return std::nullopt;

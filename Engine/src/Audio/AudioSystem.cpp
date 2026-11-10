@@ -14,7 +14,7 @@ namespace ByteForge
     {
         scene.Each<AudioSourceComponent>([](const Entity, AudioSourceComponent& source)
         {
-            if (static_cast<uint64_t>(source.m_LoadedClip) != static_cast<uint64_t>(source.Clip))
+            if (static_cast<u64>(source.m_LoadedClip) != static_cast<u64>(source.Clip))
                 Reload(source);
 
             Apply(source);
@@ -37,12 +37,12 @@ namespace ByteForge
         source.m_Sound.reset();
         source.m_LoadedClip = source.Clip;
 
-        if (static_cast<uint64_t>(source.Clip) == 0) return;
+        if (static_cast<u64>(source.Clip) == 0) return;
 
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(source.Clip, metadata) || metadata.Type != AssetType::AudioClip)
         {
-            CORE_WARN("AudioSource: {} is not a known audio clip", static_cast<uint64_t>(source.Clip));
+            CORE_WARN("AudioSource: {} is not a known audio clip", static_cast<u64>(source.Clip));
             return;
         }
 

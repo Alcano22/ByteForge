@@ -18,7 +18,7 @@ namespace ByteForge
         explicit VulkanDescriptorAllocator(const VulkanDevice& device);
         ~VulkanDescriptorAllocator();
 
-        [[nodiscard]] std::vector<VkDescriptorSet> Allocate(VkDescriptorSetLayout layout, uint32_t count);
+        [[nodiscard]] std::vector<VkDescriptorSet> Allocate(VkDescriptorSetLayout layout, u32 count);
 
         void Free(std::span<const VkDescriptorSet> sets);
 
@@ -28,10 +28,10 @@ namespace ByteForge
                              std::vector<VkDescriptorSet>& sets) const;
 
     public:
-        static constexpr uint32_t SetsPerPool = 64;
-        static constexpr uint32_t MaxUniformBuffersPerSet = 4;
-        static constexpr uint32_t MaxSampledImagesPerSet = 8;
-        static constexpr uint32_t MaxSamplersPerSet = 8;
+        static constexpr u32 SetsPerPool = 64;
+        static constexpr u32 MaxUniformBuffersPerSet = 4;
+        static constexpr u32 MaxSampledImagesPerSet = 8;
+        static constexpr u32 MaxSamplersPerSet = 8;
 
     private:
         const VulkanDevice& m_Device;

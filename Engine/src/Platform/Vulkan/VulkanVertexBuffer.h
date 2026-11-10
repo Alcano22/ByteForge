@@ -12,10 +12,10 @@ namespace ByteForge
     class VulkanVertexBuffer : public VertexBuffer
     {
     public:
-        explicit VulkanVertexBuffer(uint32_t size);
-        VulkanVertexBuffer(const void* vertices, uint32_t size);
+        explicit VulkanVertexBuffer(u32 size);
+        VulkanVertexBuffer(const void* vertices, u32 size);
 
-        void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
+        void SetData(const void* data, u32 size, u32 offset = 0) override;
 
         [[nodiscard]] const BufferLayout& GetLayout() const override { return m_Layout; }
         void SetLayout(const BufferLayout& layout) override { m_Layout = layout; }
@@ -26,6 +26,6 @@ namespace ByteForge
         Scope<VulkanBuffer> m_StaticBuffer;
         Scope<VulkanPerFrameBuffer> m_StreamingBuffer;
         BufferLayout m_Layout;
-        uint64_t m_LastWriteFrame = std::numeric_limits<uint64_t>::max();
+        u64 m_LastWriteFrame = std::numeric_limits<u64>::max();
     };
 }

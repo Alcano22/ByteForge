@@ -10,7 +10,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t MaxInstructionsPerRun = 100000;
+        constexpr usize MaxInstructionsPerRun = 100000;
 
         GraphEvent ToGraphEvent(const ContactEvent event)
         {
@@ -76,7 +76,7 @@ namespace ByteForge
 
     void GraphScriptInstance::Fire(const GraphEvent event, std::optional<ScriptValue> payload)
     {
-        const std::optional<GraphEntry>& entry = m_Program->Events[static_cast<size_t>(event)];
+        const std::optional<GraphEntry>& entry = m_Program->Events[static_cast<usize>(event)];
         if (!entry) return;
 
         if (payload && entry->PayloadSlot != NoSlot)
@@ -85,12 +85,12 @@ namespace ByteForge
         Run(entry->Instruction);
     }
 
-    void GraphScriptInstance::Run(uint32_t instruction)
+    void GraphScriptInstance::Run(u32 instruction)
     {
         const GraphProgram& program = *m_Program;
         const ScriptCallContext context{ .ActiveScene = m_Scene };
 
-        for (size_t budget = MaxInstructionsPerRun; budget > 0; --budget)
+        for (usize budget = MaxInstructionsPerRun; budget > 0; --budget)
         {
             if (instruction >= program.Code.size())
                 throw ScriptError("The graph jumped outside its code");
@@ -105,7 +105,7 @@ namespace ByteForge
                     {
                         std::vector<ScriptValue> arguments;
                         arguments.reserve(current.C);
-                        for (uint32_t i = 0; i < current.C; ++i)
+                        for (u32 i = 0; i < current.C; ++i)
                             arguments.push_back(m_Slots[program.Arguments[current.B + i]]);
 
                         std::optional<ScriptValue> result = ScriptAPI::Get().GetFunction(current.A).Invoke(context, arguments);
@@ -117,7 +117,7 @@ namespace ByteForge
                         m_Slots[current.B] = m_Slots[current.A];
                         break;
                     case GraphOp::IntToFloat:
-                        m_Slots[current.B] = static_cast<float>(std::get<int>(m_Slots[current.A]));
+                        m_Slots[current.B] = static_cast<f32>(std::get<i32>(m_Slots[current.A]));
                         break;
                     case GraphOp::Jump:
                         instruction = current.A;
@@ -127,7 +127,7 @@ namespace ByteForge
                             instruction = current.B;
                         break;
                     case GraphOp::Delay:
-                        StartDelay(current.A, std::get<float>(m_Slots[current.B]), instruction);
+                        StartDelay(current.A, std::get<f32>(m_Slots[current.B]), instruction);
                         return;
                     case GraphOp::Return:
                         return;
@@ -141,7 +141,7 @@ namespace ByteForge
         throw ScriptError("The graph ran too many steps at once; is there an exec loop without a Delay?");
     }
 
-    void GraphScriptInstance::StartDelay(const uint32_t id, const float duration, const uint32_t resume)
+    void GraphScriptInstance::StartDelay(const u32 id, const f32 duration, const u32 resume)
     {
         if (m_DelayRunning[id]) return;
 
@@ -149,7 +149,7 @@ namespace ByteForge
         m_Delays.push_back({ id, std::max(duration, 0.0f), resume });
     }
 
-    void GraphScriptInstance::AdvanceDelays(const float deltaTime)
+    void GraphScriptInstance::AdvanceDelays(const f32 deltaTime)
     {
         std::vector<PendingDelay> finished;
         for (PendingDelay& delay : m_Delays)

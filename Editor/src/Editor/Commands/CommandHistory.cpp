@@ -75,7 +75,7 @@ namespace ByteForge
         m_UndoStack.clear();
         m_RedoStack.clear();
 
-        m_CleanDepth = dirty ? std::nullopt : std::optional<size_t>(0);
+        m_CleanDepth = dirty ? std::nullopt : std::optional<usize>(0);
         ++m_Revision;
     }
 

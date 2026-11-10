@@ -16,7 +16,7 @@ namespace ByteForge
     {
         UUID UuidOf(const nlohmann::json& snapshot)
         {
-            return UUID(snapshot.at("uuid").get<uint64_t>());
+            return UUID(snapshot.at("uuid").get<u64>());
         }
 
         Entity FindOrThrow(Scene& scene, const nlohmann::json& snapshot)
@@ -25,7 +25,7 @@ namespace ByteForge
             if (!entity.IsValid())
             {
                 throw std::runtime_error(std::format("Entity {} no longer exists",
-                                                     static_cast<uint64_t>(UuidOf(snapshot))));
+                                                     static_cast<u64>(UuidOf(snapshot))));
             }
             return entity;
         }
@@ -35,7 +35,7 @@ namespace ByteForge
             if (scene.FindEntityByUUID(UuidOf(snapshot)).IsValid())
             {
                 throw std::runtime_error(std::format("Entity {} already exists",
-                                                     static_cast<uint64_t>(UuidOf(snapshot))));
+                                                     static_cast<u64>(UuidOf(snapshot))));
             }
 
             SceneSerializer::DeserializeEntity(scene, snapshot);
@@ -69,7 +69,7 @@ namespace ByteForge
     {
         const Entity entity = m_Scene.FindEntityByUUID(m_EntityId);
         if (!entity.IsValid())
-            throw std::runtime_error(std::format("Entity {} no longer exists", static_cast<uint64_t>(m_EntityId)));
+            throw std::runtime_error(std::format("Entity {} no longer exists", static_cast<u64>(m_EntityId)));
 
         entity.GetComponent<TransformComponent>() = transform;
     }

@@ -27,7 +27,7 @@ namespace ByteForge
 
     void VulkanDevice::PickPhysicalDevice()
     {
-        uint32_t deviceCount = 0;
+        u32 deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
 
         if (deviceCount == 0)
@@ -36,11 +36,11 @@ namespace ByteForge
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 
-        std::multimap<uint64_t, VkPhysicalDevice, std::greater<>> candidates;
+        std::multimap<u64, VkPhysicalDevice, std::greater<>> candidates;
 
         for (VkPhysicalDevice device : devices)
         {
-            const uint64_t score = RateDeviceSuitability(device);
+            const u64 score = RateDeviceSuitability(device);
 
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(device, &props);
@@ -61,7 +61,7 @@ namespace ByteForge
         CORE_INFO("Selected GPU: {} (score: {})", props.deviceName, candidates.begin()->first);
     }
 
-    uint64_t VulkanDevice::RateDeviceSuitability(const VkPhysicalDevice device) const
+    u64 VulkanDevice::RateDeviceSuitability(const VkPhysicalDevice device) const
     {
         if (!IsDeviceSuitable(device))
             return 0;
@@ -69,7 +69,7 @@ namespace ByteForge
         VkPhysicalDeviceProperties props;
         vkGetPhysicalDeviceProperties(device, &props);
 
-        uint64_t typeRank = 1;
+        u64 typeRank = 1;
 
         switch (props.deviceType)
         {
@@ -84,13 +84,13 @@ namespace ByteForge
         vkGetPhysicalDeviceMemoryProperties(device, &memProps);
 
         VkDeviceSize deviceLocalMemory = 0;
-        for (uint32_t i = 0; i < memProps.memoryHeapCount; ++i)
+        for (u32 i = 0; i < memProps.memoryHeapCount; ++i)
         {
             if (memProps.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
                 deviceLocalMemory += memProps.memoryHeaps[i].size;
         }
 
-        const uint64_t deviceLocalMebibytes = deviceLocalMemory / (1024 * 1024);
+        const u64 deviceLocalMebibytes = deviceLocalMemory / (1024 * 1024);
 
         return (typeRank << 32) | deviceLocalMebibytes;
     }
@@ -113,7 +113,7 @@ namespace ByteForge
 
     bool VulkanDevice::IsExtensionSupported(const VkPhysicalDevice device, const char* const extension)
     {
-        uint32_t extensionCount = 0;
+        u32 extensionCount = 0;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
@@ -159,12 +159,12 @@ namespace ByteForge
     {
         QueueFamilyIndices indices;
 
-        uint32_t queueFamilyCount = 0;
+        u32 queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-        for (uint32_t i = 0; i < queueFamilyCount; ++i)
+        for (u32 i = 0; i < queueFamilyCount; ++i)
         {
             const bool graphics = (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
 
@@ -186,15 +186,15 @@ namespace ByteForge
 
     void VulkanDevice::CreateLogicalDevice()
     {
-        const std::set<uint32_t> uniqueQueueFamilies = {
+        const std::set<u32> uniqueQueueFamilies = {
             m_QueueFamilyIndices.GraphicsFamily.value(),
             m_QueueFamilyIndices.PresentFamily.value()
         };
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        constexpr float queuePriority = 1.0f;
+        constexpr f32 queuePriority = 1.0f;
 
-        for (const uint32_t queueFamily : uniqueQueueFamilies)
+        for (const u32 queueFamily : uniqueQueueFamilies)
         {
             queueCreateInfos.push_back({
                 .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -227,9 +227,9 @@ namespace ByteForge
         VkDeviceCreateInfo createInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext                   = &features13,
-            .queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size()),
+            .queueCreateInfoCount    = static_cast<u32>(queueCreateInfos.size()),
             .pQueueCreateInfos       = queueCreateInfos.data(),
-            .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
+            .enabledExtensionCount   = static_cast<u32>(extensions.size()),
             .ppEnabledExtensionNames = extensions.data(),
             .pEnabledFeatures        = &deviceFeatures,
         };

@@ -18,7 +18,7 @@ namespace ByteForge
         static void Init(const std::filesystem::path& assetRoot);
 
         [[nodiscard]] static const std::filesystem::path& GetAssetRoot() { return s_AssetRoot; }
-        [[nodiscard]] static uint64_t GetRevision() { return s_Revision; }
+        [[nodiscard]] static u64 GetRevision() { return s_Revision; }
 
         static UUID Import(const std::filesystem::path& relativePath);
         static std::expected<void, std::string> Move(const std::filesystem::path& from,
@@ -44,6 +44,6 @@ namespace ByteForge
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
 
-        static uint64_t s_Revision;
+        static u64 s_Revision;
     };
 }

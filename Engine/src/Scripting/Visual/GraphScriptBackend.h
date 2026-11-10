@@ -36,6 +36,6 @@ namespace ByteForge
 
     private:
         mutable std::map<std::string, GraphClass, std::less<>> m_Classes;
-        mutable uint64_t m_Revision = std::numeric_limits<uint64_t>::max();
+        mutable u64 m_Revision = std::numeric_limits<u64>::max();
     };
 }

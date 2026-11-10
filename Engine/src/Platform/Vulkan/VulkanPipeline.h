@@ -31,7 +31,7 @@ namespace ByteForge
         }
 
         [[nodiscard]] VkShaderStageFlags GetPushConstantStages() const { return m_PushConstantStages; }
-        [[nodiscard]] uint32_t GetPushConstantSize() const { return m_PushConstantSize; }
+        [[nodiscard]] u32 GetPushConstantSize() const { return m_PushConstantSize; }
         [[nodiscard]] const std::vector<VkFormat>& GetColorFormats() const { return m_ColorFormats; }
         [[nodiscard]] VkFormat GetDepthFormat() const { return m_DepthFormat; }
 
@@ -49,7 +49,7 @@ namespace ByteForge
         VkPipelineLayout m_PipelineLayout = nullptr;
         VkPipeline m_Pipeline = nullptr;
         VkShaderStageFlags m_PushConstantStages = 0;
-        uint32_t m_PushConstantSize = 0;
+        u32 m_PushConstantSize = 0;
         std::vector<VkFormat> m_ColorFormats;
         VkFormat m_DepthFormat = VK_FORMAT_UNDEFINED;
     };

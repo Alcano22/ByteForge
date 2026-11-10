@@ -17,7 +17,7 @@ namespace ByteForge
     class CommandHistory
     {
     public:
-        explicit CommandHistory(const size_t capacity = 256)
+        explicit CommandHistory(const usize capacity = 256)
             : m_Capacity(capacity) {}
 
         void Execute(Scope<EditorCommand> command);
@@ -36,7 +36,7 @@ namespace ByteForge
         [[nodiscard]] bool IsDirty() const { return m_CleanDepth != m_UndoStack.size(); }
         void MarkClean() { m_CleanDepth = m_UndoStack.size(); }
 
-        [[nodiscard]] uint64_t GetRevision() const { return m_Revision; }
+        [[nodiscard]] u64 GetRevision() const { return m_Revision; }
 
     private:
         void Push(Scope<EditorCommand> command);
@@ -45,9 +45,9 @@ namespace ByteForge
     private:
         std::deque<Scope<EditorCommand>> m_UndoStack;
         std::vector<Scope<EditorCommand>> m_RedoStack;
-        size_t m_Capacity;
+        usize m_Capacity;
 
-        std::optional<size_t> m_CleanDepth = 0;
-        uint64_t m_Revision = 0;
+        std::optional<usize> m_CleanDepth = 0;
+        u64 m_Revision = 0;
     };
 }

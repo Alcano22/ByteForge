@@ -21,11 +21,11 @@ namespace ByteForge
     Renderer2D::Renderer2D(const Renderer2DSpec& spec)
         : m_Spec(spec)
     {
-        static_assert(sizeof(Vertex) == 9 * sizeof(float) + sizeof(uint32_t),
+        static_assert(sizeof(Vertex) == 9 * sizeof(f32) + sizeof(u32),
                       "Vertex must be tightly packed to match the buffer layout");
 
-        const auto maxSupportedQuads = static_cast<uint32_t>(
-            std::numeric_limits<uint32_t>::max() / (VerticesPerQuad * sizeof(Vertex)));
+        const auto maxSupportedQuads = static_cast<u32>(
+            std::numeric_limits<u32>::max() / (VerticesPerQuad * sizeof(Vertex)));
         if (spec.MaxQuads == 0 || spec.MaxQuads > maxSupportedQuads)
         {
             throw std::runtime_error(std::format("Renderer2DSpec::MaxQuads must be between 1 and {}",
@@ -42,18 +42,18 @@ namespace ByteForge
         };
 
         m_VertexBuffer = VertexBuffer::Create(
-            static_cast<uint32_t>(spec.MaxQuads * VerticesPerQuad * sizeof(Vertex)));
+            static_cast<u32>(spec.MaxQuads * VerticesPerQuad * sizeof(Vertex)));
         m_VertexBuffer->SetLayout(layout);
 
-        constexpr std::array<uint32_t, IndicesPerQuad> pattern{ 0, 1, 2, 2, 3, 0 };
+        constexpr std::array<u32, IndicesPerQuad> pattern{ 0, 1, 2, 2, 3, 0 };
 
-        std::vector<uint32_t> indices(static_cast<size_t>(spec.MaxQuads) * IndicesPerQuad);
-        for (uint32_t quad = 0; quad < spec.MaxQuads; ++quad)
+        std::vector<u32> indices(static_cast<usize>(spec.MaxQuads) * IndicesPerQuad);
+        for (u32 quad = 0; quad < spec.MaxQuads; ++quad)
         {
-            const uint32_t firstVertex = quad * VerticesPerQuad;
-            const size_t firstIndex = static_cast<size_t>(quad) * IndicesPerQuad;
+            const u32 firstVertex = quad * VerticesPerQuad;
+            const usize firstIndex = static_cast<usize>(quad) * IndicesPerQuad;
 
-            for (size_t i = 0; i < IndicesPerQuad; ++i)
+            for (usize i = 0; i < IndicesPerQuad; ++i)
                 indices[firstIndex + i] = firstVertex + pattern[i];
         }
 
@@ -82,7 +82,7 @@ namespace ByteForge
                                                   std::byte{ 255 }, std::byte{ 255 } };
         m_WhiteTexture = Texture2D::Create(1, 1, white, { .Filter = TextureFilter::Nearest, .GenerateMips = false });
 
-        m_Vertices.resize(static_cast<size_t>(spec.MaxQuads) * VerticesPerQuad);
+        m_Vertices.resize(static_cast<usize>(spec.MaxQuads) * VerticesPerQuad);
     }
 
     void Renderer2D::BeginScene(const Camera& camera)
@@ -90,7 +90,7 @@ namespace ByteForge
         if (m_InScene)
             throw std::runtime_error("Renderer2D::BeginScene: the previous scene has not been ended with EndScene");
 
-        const uint64_t frame = Renderer::GetFrameNumber();
+        const u64 frame = Renderer::GetFrameNumber();
         if (frame != m_Frame)
         {
             m_Frame = frame;
@@ -143,21 +143,21 @@ namespace ByteForge
         SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint, 0);
     }
 
-    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
-                                     const glm::vec4& color, const uint32_t entityId)
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
+                                     const glm::vec4& color, const u32 entityId)
     {
         SubmitQuad(position, size, rotation, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, entityId);
     }
 
-    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
-                                     const Ref<Texture2D>& texture, const glm::vec4& tint, const uint32_t entityId)
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
+                                     const Ref<Texture2D>& texture, const glm::vec4& tint, const u32 entityId)
     {
         SubmitQuad(position, size, rotation, texture, WholeTextureUVMin, WholeTextureUVMax, tint, entityId);
     }
 
-    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                      const Ref<SubTexture2D>& subTexture, const glm::vec4& tint,
-                                     const uint32_t entityId)
+                                     const u32 entityId)
     {
         if (!subTexture)
             throw std::runtime_error("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
@@ -166,16 +166,16 @@ namespace ByteForge
                    subTexture->GetUVMin(), subTexture->GetUVMax(), tint, entityId);
     }
 
-    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                      const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                                     const glm::vec4& tint, const uint32_t entityId)
+                                     const glm::vec4& tint, const u32 entityId)
     {
         SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint, entityId);
     }
 
-    void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const float rotation,
+    void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                 const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                                const glm::vec4& color, const uint32_t entityId)
+                                const glm::vec4& color, const u32 entityId)
     {
         if (!m_InScene)
             throw std::runtime_error("Renderer2D: quads can only be drawn between BeginScene and EndScene");
@@ -205,11 +205,11 @@ namespace ByteForge
 
         const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(color) : color;
 
-        const float sine = glm::sin(rotation);
-        const float cosine = glm::cos(rotation);
+        const f32 sine = glm::sin(rotation);
+        const f32 cosine = glm::cos(rotation);
 
-        Vertex* vertices = &m_Vertices[static_cast<size_t>(m_FrameQuads) * VerticesPerQuad];
-        for (size_t i = 0; i < VerticesPerQuad; ++i)
+        Vertex* vertices = &m_Vertices[static_cast<usize>(m_FrameQuads) * VerticesPerQuad];
+        for (usize i = 0; i < VerticesPerQuad; ++i)
         {
             const glm::vec2 local = corners[i] * size;
             const glm::vec2 rotated{ local.x * cosine - local.y * sine, local.x * sine + local.y * cosine };
@@ -228,19 +228,19 @@ namespace ByteForge
 
     void Renderer2D::Flush()
     {
-        const uint32_t quadCount = m_FrameQuads - m_BatchStart;
+        const u32 quadCount = m_FrameQuads - m_BatchStart;
         if (quadCount == 0) return;
 
-        const uint32_t firstVertex = m_BatchStart * VerticesPerQuad;
+        const u32 firstVertex = m_BatchStart * VerticesPerQuad;
 
         m_VertexBuffer->SetData(&m_Vertices[firstVertex],
-                                static_cast<uint32_t>(quadCount * VerticesPerQuad * sizeof(Vertex)),
-                                static_cast<uint32_t>(firstVertex * sizeof(Vertex)));
+                                static_cast<u32>(quadCount * VerticesPerQuad * sizeof(Vertex)),
+                                static_cast<u32>(firstVertex * sizeof(Vertex)));
 
         const DrawRange range{
             .Count        = quadCount * IndicesPerQuad,
             .First        = 0,
-            .VertexOffset = static_cast<int>(firstVertex)
+            .VertexOffset = static_cast<i32>(firstVertex)
         };
         Renderer::Submit(GetMaterial(m_CurrentTexture), m_Mesh, range);
 

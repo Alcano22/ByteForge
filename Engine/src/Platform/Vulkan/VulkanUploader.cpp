@@ -44,7 +44,7 @@ namespace ByteForge
     }
 
     void VulkanUploader::UploadBuffer(const VulkanBuffer& destination, const void* data,
-                                      const size_t size, const size_t offset)
+                                      const usize size, const usize offset)
     {
         if (size == 0) return;
 
@@ -65,8 +65,8 @@ namespace ByteForge
         });
     }
 
-    void VulkanUploader::UploadTexture(const VulkanImage& image, const uint32_t width, const uint32_t height,
-                                       const uint32_t mipLevels, const void* pixels, const size_t size)
+    void VulkanUploader::UploadTexture(const VulkanImage& image, const u32 width, const u32 height,
+                                       const u32 mipLevels, const void* pixels, const usize size)
     {
         const VulkanBuffer staging(m_Allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
         staging.SetData(pixels, size);
@@ -94,10 +94,10 @@ namespace ByteForge
             vkCmdCopyBufferToImage(commandBuffer, staging.GetHandle(), handle,
                                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-            int mipWidth = static_cast<int>(width);
-            int mipHeight = static_cast<int>(height);
+            i32 mipWidth = static_cast<i32>(width);
+            i32 mipHeight = static_cast<i32>(height);
 
-            for (uint32_t level = 1; level < mipLevels; ++level)
+            for (u32 level = 1; level < mipLevels; ++level)
             {
                 CmdImageBarrier(commandBuffer, handle,
                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -105,8 +105,8 @@ namespace ByteForge
                                 VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
                                 VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1);
 
-                const int nextWidth = std::max(mipWidth / 2, 1);
-                const int nextHeight = std::max(mipHeight / 2, 1);
+                const i32 nextWidth = std::max(mipWidth / 2, 1);
+                const i32 nextHeight = std::max(mipHeight / 2, 1);
 
                 const VkImageBlit blit{
                     .srcSubresource = {

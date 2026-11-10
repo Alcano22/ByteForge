@@ -25,8 +25,8 @@ namespace ByteForge
                      VulkanBufferMemory memory = VulkanBufferMemory::HostVisible);
         ~VulkanBuffer();
 
-        void SetData(const void* data, size_t size, size_t offset = 0) const;
-        void GetData(void* data, size_t size, size_t offset = 0) const;
+        void SetData(const void* data, usize size, usize offset = 0) const;
+        void GetData(void* data, usize size, usize offset = 0) const;
 
         [[nodiscard]] VkBuffer GetHandle() const { return m_Buffer; }
         [[nodiscard]] VkDeviceSize GetSize() const { return m_Size; }

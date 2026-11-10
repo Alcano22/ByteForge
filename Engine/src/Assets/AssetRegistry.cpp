@@ -34,7 +34,7 @@ namespace ByteForge
     std::unordered_map<UUID, AssetMetadata> AssetRegistry::s_Assets;
     std::unordered_map<std::string, UUID> AssetRegistry::s_PathToHandle;
 
-    uint64_t AssetRegistry::s_Revision = 0;
+    u64 AssetRegistry::s_Revision = 0;
 
     void AssetRegistry::Init(const std::filesystem::path& assetRoot)
     {
@@ -214,7 +214,7 @@ namespace ByteForge
     void AssetRegistry::WriteMeta(const std::filesystem::path& absolutePath, const AssetMetadata& metadata)
     {
         nlohmann::json data;
-        data["uuid"] = static_cast<uint64_t>(metadata.Handle);
+        data["uuid"] = static_cast<u64>(metadata.Handle);
         data["type"] = AssetTypeToString(metadata.Type);
         data["settings"] = SerializeAssetSettings(metadata.Settings);
 
@@ -247,7 +247,7 @@ namespace ByteForge
         if (!data.contains("uuid") || !data.contains("type"))
             return false;
 
-        outMetadata.Handle = UUID(data.at("uuid").get<uint64_t>());
+        outMetadata.Handle = UUID(data.at("uuid").get<u64>());
         outMetadata.Type = AssetTypeFromString(data.at("type").get<std::string>());
         outMetadata.Settings = DeserializeAssetSettings(outMetadata.Type,
                                                         data.value("settings", nlohmann::json::object()));

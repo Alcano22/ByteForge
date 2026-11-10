@@ -10,7 +10,7 @@ namespace ByteForge
     void Camera::LookAt(const glm::vec3& target, const glm::vec3 up)
     {
         const glm::vec3 offset = target - m_Position;
-        const float distance = glm::length(offset);
+        const f32 distance = glm::length(offset);
         if (distance <= 0.0f)
             throw std::runtime_error("Camera::LookAt: the target must differ from the camera position");
 

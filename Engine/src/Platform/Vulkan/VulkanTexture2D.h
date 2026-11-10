@@ -10,12 +10,12 @@ namespace ByteForge
     class VulkanTexture2D : public Texture2D
     {
     public:
-        VulkanTexture2D(uint32_t width, uint32_t height, std::span<const std::byte> pixels,
+        VulkanTexture2D(u32 width, u32 height, std::span<const std::byte> pixels,
                         const TextureSettings& settings);
 
-        [[nodiscard]] uint32_t GetWidth() const override { return m_Width; }
-        [[nodiscard]] uint32_t GetHeight() const override { return m_Height; }
-        [[nodiscard]] uint32_t GetMipLevels() const override { return m_MipLevels; }
+        [[nodiscard]] u32 GetWidth() const override { return m_Width; }
+        [[nodiscard]] u32 GetHeight() const override { return m_Height; }
+        [[nodiscard]] u32 GetMipLevels() const override { return m_MipLevels; }
         [[nodiscard]] TextureFilter GetFilter() const override { return m_Filter; }
         [[nodiscard]] VkImageView GetView() const { return m_Image->GetView(); }
         [[nodiscard]] VkSampler GetSampler() const { return m_Sampler; }
@@ -26,9 +26,9 @@ namespace ByteForge
         }
 
     private:
-        uint32_t m_Width;
-        uint32_t m_Height;
-        uint32_t m_MipLevels = 1;
+        u32 m_Width;
+        u32 m_Height;
+        u32 m_MipLevels = 1;
         TextureFilter m_Filter;
         Scope<VulkanImage> m_Image;
         VkSampler m_Sampler = nullptr;

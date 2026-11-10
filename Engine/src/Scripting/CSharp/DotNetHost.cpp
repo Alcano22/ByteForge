@@ -42,12 +42,12 @@ namespace ByteForge
     DotNetHost::DotNetHost(const std::filesystem::path& runtimeConfig)
     {
         std::array<char_t, 4096> hostFxrPath{};
-        size_t size = hostFxrPath.size();
-        const int pathResult = get_hostfxr_path(hostFxrPath.data(), &size, nullptr);
+        usize size = hostFxrPath.size();
+        const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, nullptr);
         if (pathResult != 0)
         {
             throw std::runtime_error(std::format("DotNetHost: no .NET runtime found (0{:08X})",
-                                                 static_cast<uint32_t>(pathResult)));
+                                                 static_cast<u32>(pathResult)));
         }
 
         m_HostFxr = MakeScope<SharedLibrary>(std::filesystem::path(hostFxrPath.data()));
@@ -60,23 +60,23 @@ namespace ByteForge
 
         setErrorWriter(&WriteHostError);
 
-        const int initResult = initialize(runtimeConfig.c_str(), nullptr, &m_Context);
+        const i32 initResult = initialize(runtimeConfig.c_str(), nullptr, &m_Context);
         if (initResult < 0 || m_Context == nullptr)
         {
             if (m_Context != nullptr)
                 m_Close(m_Context);
 
             throw std::runtime_error(std::format("DotNetHost: cannot start the runtime from '{}' (0x{:08X})",
-                                                 runtimeConfig.string(), static_cast<uint32_t>(initResult)));
+                                                 runtimeConfig.string(), static_cast<u32>(initResult)));
         }
 
         void* loader = nullptr;
-        const int delegateResult = getDelegate(m_Context, hdt_load_assembly_and_get_function_pointer, &loader);
+        const i32 delegateResult = getDelegate(m_Context, hdt_load_assembly_and_get_function_pointer, &loader);
         if (delegateResult != 0 || loader == nullptr)
         {
             m_Close(m_Context);
             throw std::runtime_error(std::format("DotNetHost: cannot get the assembly loader (0x{:08X})",
-                                                 static_cast<uint32_t>(delegateResult)));
+                                                 static_cast<u32>(delegateResult)));
         }
 
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
@@ -99,13 +99,13 @@ namespace ByteForge
         const std::basic_string<char_t> method = ToHostString(methodName);
 
         void* function = nullptr;
-        const int result = m_LoadAssemblyAndGetFunctionPointer(assembly.c_str(), type.c_str(), method.c_str(),
+        const i32 result = m_LoadAssemblyAndGetFunctionPointer(assembly.c_str(), type.c_str(), method.c_str(),
                                                                UNMANAGEDCALLERSONLY_METHOD, nullptr, &function);
         if (result != 0 || function == nullptr)
         {
             throw std::runtime_error(std::format("DotNetHost: cannot find {}.{} in '{}' (0x{:08X})",
                                                  typeName, methodName, assembly.string(),
-                                                 static_cast<uint32_t>(result)));
+                                                 static_cast<u32>(result)));
         }
 
         return function;

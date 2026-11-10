@@ -154,7 +154,7 @@ namespace ByteForge
 
             const NodeSignature* Find(const UUID id)
             {
-                const auto key = static_cast<uint64_t>(id);
+                const auto key = static_cast<u64>(id);
                 if (const auto it = m_Signatures.find(key); it != m_Signatures.end())
                     return &it->second;
 
@@ -167,10 +167,10 @@ namespace ByteForge
 
         private:
             const ScriptGraph& m_Graph;
-            std::map<uint64_t, NodeSignature> m_Signatures;
+            std::map<u64, NodeSignature> m_Signatures;
         };
 
-        using DataEdges = std::map<uint64_t, std::vector<uint64_t>>; // producer -> consumers
+        using DataEdges = std::map<u64, std::vector<u64>>; // producer -> consumers
 
         DataEdges CollectDataEdges(const ScriptGraph& graph, SignatureCache& cache)
         {
@@ -186,14 +186,14 @@ namespace ByteForge
             return edges;
         }
 
-        bool Reaches(const DataEdges& edges, const uint64_t start, const uint64_t target)
+        bool Reaches(const DataEdges& edges, const u64 start, const u64 target)
         {
-            std::vector<uint64_t> pending{ start };
-            std::set<uint64_t> visited;
+            std::vector<u64> pending{ start };
+            std::set<u64> visited;
 
             while (!pending.empty())
             {
-                const uint64_t node = pending.back();
+                const u64 node = pending.back();
                 pending.pop_back();
 
                 if (node == target)
@@ -209,10 +209,10 @@ namespace ByteForge
 
         std::optional<UUID> FindDataLoop(const DataEdges& edges)
         {
-            enum class Mark : uint8_t { Visiting, Done };
-            std::map<uint64_t, Mark> marks;
+            enum class Mark : u8 { Visiting, Done };
+            std::map<u64, Mark> marks;
 
-            const auto visit = [&](const auto& self, const uint64_t node) -> std::optional<UUID>
+            const auto visit = [&](const auto& self, const u64 node) -> std::optional<UUID>
             {
                 if (const auto it = marks.find(node); it != marks.end())
                     return it->second == Mark::Visiting ? std::optional(UUID(node)) : std::nullopt;
@@ -220,7 +220,7 @@ namespace ByteForge
                 marks.emplace(node, Mark::Visiting);
                 if (const auto it = edges.find(node); it != edges.end())
                 {
-                    for (const uint64_t next : it->second)
+                    for (const u64 next : it->second)
                     {
                         if (std::optional<UUID> loop = self(self, next))
                             return loop;
@@ -279,7 +279,7 @@ namespace ByteForge
 
     std::expected<PinType, std::string> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
     {
-        if (static_cast<uint64_t>(from.Node) == static_cast<uint64_t>(to.Node))
+        if (static_cast<u64>(from.Node) == static_cast<u64>(to.Node))
             return std::unexpected("A node cannot connect to itself");
 
         SignatureCache cache(graph);
@@ -321,7 +321,7 @@ namespace ByteForge
         }
 
         SignatureCache cache(graph);
-        std::set<uint64_t> nodeIds;
+        std::set<u64> nodeIds;
         std::set<GraphEvent> events;
 
         for (const GraphNode& node : graph.GetNodes())
@@ -359,9 +359,9 @@ namespace ByteForge
             }
         }
 
-        using PinKey = std::pair<uint64_t, std::string>;
-        std::map<PinKey, int> dataInputLinks;
-        std::map<PinKey, int> execOutputLinks;
+        using PinKey = std::pair<u64, std::string>;
+        std::map<PinKey, i32> dataInputLinks;
+        std::map<PinKey, i32> execOutputLinks;
 
         for (const GraphLink& link : graph.GetLinks())
         {

@@ -23,7 +23,7 @@ namespace ByteForge
         void Update(bool canLoad);
 
         [[nodiscard]] bool IsBuilding() const { return m_Build.valid(); }
-        [[nodiscard]] float GetBuildSeconds() const;
+        [[nodiscard]] f32 GetBuildSeconds() const;
 
         [[nodiscard]] static std::expected<std::string, std::string> FindClassForAsset(UUID scriptAsset);
 

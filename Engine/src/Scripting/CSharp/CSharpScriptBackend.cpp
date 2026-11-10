@@ -23,13 +23,13 @@ namespace ByteForge
         constexpr const char* BootstrapType  = "ByteForge.Interop.Bootstrap, ScriptCore";
         constexpr const char* ScriptHostType = "ByteForge.Interop.ScriptHost, ScriptCore";
 
-        using InitializeFn = int (CORECLR_DELEGATE_CALLTYPE*)(const NativeAPI* api);
+        using InitializeFn = i32 (CORECLR_DELEGATE_CALLTYPE*)(const NativeAPI* api);
 
         using FieldBuffer = std::array<std::byte, ManagedValue::SlotSize>;
 
-        bool IsValidFieldType(const int type)
+        bool IsValidFieldType(const i32 type)
         {
-            return type >= 0 && static_cast<size_t>(type) < ScriptFieldTypeCount;
+            return type >= 0 && static_cast<usize>(type) < ScriptFieldTypeCount;
         }
 
         void CollectClassName(const char* name, void* userData)
@@ -40,7 +40,7 @@ namespace ByteForge
             } catch (...) {}
         }
 
-        void CollectField(const char* name, const int type, const void* value, void* userData)
+        void CollectField(const char* name, const i32 type, const void* value, void* userData)
         {
             if (!IsValidFieldType(type)) return;
 
@@ -55,7 +55,7 @@ namespace ByteForge
             } catch (...) {}
         }
 
-        void ReceiveField(const char*, const int type, const void* value, void* userData)
+        void ReceiveField(const char*, const i32 type, const void* value, void* userData)
         {
             if (!IsValidFieldType(type)) return;
 
@@ -84,8 +84,8 @@ namespace ByteForge
 
             void OnContact(const ContactEvent event, const Entity other) override
             {
-                Check(m_Functions.OnContact(m_Handle, static_cast<int>(event),
-                                            static_cast<uint64_t>(other.GetUUID())));
+                Check(m_Functions.OnContact(m_Handle, static_cast<i32>(event),
+                                            static_cast<u64>(other.GetUUID())));
             }
 
             std::optional<ScriptValue> GetField(const std::string_view name) const override
@@ -106,11 +106,11 @@ namespace ByteForge
                 ManagedValue::Write(value, buffer.data());
 
                 return m_Functions.SetField(m_Handle, fieldName.c_str(),
-                                            static_cast<int>(GetFieldType(value)), buffer.data()) == 0;
+                                            static_cast<i32>(GetFieldType(value)), buffer.data()) == 0;
             }
 
         private:
-            static void Check(const int result)
+            static void Check(const i32 result)
             {
                 if (result != 0)
                     throw std::runtime_error(ScriptGlue::TakeManagedException());
@@ -148,7 +148,7 @@ namespace ByteForge
         resolve(m_Functions.OnContact, ScriptHostType, "OnContact");
 
         const NativeAPI api = ScriptGlue::CreateNativeAPI();
-        if (const int result = initialize(&api); result != 0)
+        if (const i32 result = initialize(&api); result != 0)
             throw std::runtime_error(std::format("ScriptCore initialization failed (code {})", result));
 
         RefreshClasses();
@@ -189,7 +189,7 @@ namespace ByteForge
     {
         const std::string name(className);
 
-        void* handle = m_Functions.CreateInstance(name.c_str(), static_cast<uint64_t>(entity.GetUUID()));
+        void* handle = m_Functions.CreateInstance(name.c_str(), static_cast<u64>(entity.GetUUID()));
         if (handle == nullptr)
             throw std::runtime_error(ScriptGlue::TakeManagedException());
 

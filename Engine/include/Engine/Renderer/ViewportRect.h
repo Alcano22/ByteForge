@@ -6,9 +6,9 @@ namespace ByteForge
 {
     struct ViewportRect
     {
-        int X = 0;
-        int Y = 0;
-        uint32_t Width = 0;
-        uint32_t Height = 0;
+        i32 X = 0;
+        i32 Y = 0;
+        u32 Width = 0;
+        u32 Height = 0;
     };
 }

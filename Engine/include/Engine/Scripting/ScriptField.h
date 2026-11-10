@@ -19,11 +19,11 @@ namespace ByteForge
     {
         UUID Id{ 0 };
 
-        [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Id) != 0; }
+        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Id) != 0; }
 
         [[nodiscard]] bool operator==(const EntityRef& other) const
         {
-            return static_cast<uint64_t>(Id) == static_cast<uint64_t>(other.Id);
+            return static_cast<u64>(Id) == static_cast<u64>(other.Id);
         }
     };
 
@@ -32,20 +32,20 @@ namespace ByteForge
         AssetType Type = AssetType::None;
         UUID Handle{ 0 };
 
-        [[nodiscard]] bool IsSet() const { return static_cast<uint64_t>(Handle) != 0; }
+        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Handle) != 0; }
 
         [[nodiscard]] bool operator==(const AssetRef& other) const
         {
-            return Type == other.Type && static_cast<uint64_t>(Handle) == static_cast<uint64_t>(other.Handle);
+            return Type == other.Type && static_cast<u64>(Handle) == static_cast<u64>(other.Handle);
         }
     };
 
-    enum class ScriptFieldType : uint8_t { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset, String };
+    enum class ScriptFieldType : u8 { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset, String };
 
-    using ScriptValue = std::variant<bool, int, float, double, glm::vec2, glm::vec3, glm::vec4,
+    using ScriptValue = std::variant<bool, i32, f32, f64, glm::vec2, glm::vec3, glm::vec4,
                                      EntityRef, AssetRef, std::string>;
 
-    inline constexpr size_t ScriptFieldTypeCount = std::variant_size_v<ScriptValue>;
+    inline constexpr usize ScriptFieldTypeCount = std::variant_size_v<ScriptValue>;
 
     [[nodiscard]] constexpr ScriptFieldType GetFieldType(const ScriptValue& value)
     {
@@ -61,12 +61,12 @@ namespace ByteForge
 
     [[nodiscard]] constexpr std::string_view ScriptFieldTypeName(const ScriptFieldType type)
     {
-        return Detail::ScriptFieldTypeNames[static_cast<size_t>(type)];
+        return Detail::ScriptFieldTypeNames[static_cast<usize>(type)];
     }
 
     [[nodiscard]] constexpr std::optional<ScriptFieldType> ParseScriptFieldType(const std::string_view name)
     {
-        for (size_t i = 0; i < Detail::ScriptFieldTypeNames.size(); ++i)
+        for (usize i = 0; i < Detail::ScriptFieldTypeNames.size(); ++i)
         {
             if (Detail::ScriptFieldTypeNames[i] == name)
                 return static_cast<ScriptFieldType>(i);

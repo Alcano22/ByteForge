@@ -12,7 +12,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr float BuildStatusWidth = 200.0f;
+        constexpr f32 BuildStatusWidth = 200.0f;
 
         void ActionButton(EditorContext& context, const char* id, const EditorAction& action,
                           const EditorIcon icon, const bool active)
@@ -37,7 +37,7 @@ namespace ByteForge
 
             const std::string overlay = std::format("Compiling scripts {:.1f}s", scripts.GetBuildSeconds());
 
-            ImGui::ProgressBar(-1.0f * static_cast<float>(ImGui::GetTime()),
+            ImGui::ProgressBar(-1.0f * static_cast<f32>(ImGui::GetTime()),
                                ImVec2(BuildStatusWidth, ImGui::GetFrameHeight()), overlay.c_str());
         }
     }
@@ -47,9 +47,9 @@ namespace ByteForge
         ImGui::Separator();
 
         const ImGuiStyle& style = ImGui::GetStyle();
-        const float buttonWidth = ImGui::GetTextLineHeight() + style.FramePadding.x * 2.0f;
-        constexpr float buttonCount = 3.0f;
-        const float groupWidth = buttonWidth * buttonCount + style.ItemSpacing.x * (buttonCount - 1.0f);
+        const f32 buttonWidth = ImGui::GetTextLineHeight() + style.FramePadding.x * 2.0f;
+        constexpr f32 buttonCount = 3.0f;
+        const f32 groupWidth = buttonWidth * buttonCount + style.ItemSpacing.x * (buttonCount - 1.0f);
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - groupWidth) * 0.5f);
 
         const bool editing = context.IsEditing();

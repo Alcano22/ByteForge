@@ -19,7 +19,7 @@ namespace ByteForge
             if (context)
                 return context;
 
-            glfwSetErrorCallback([](const int code, const char* description)
+            glfwSetErrorCallback([](const i32 code, const char* description)
             {
                 CORE_ERROR("GLFW error {}: {}", code, description);
             });
@@ -27,7 +27,7 @@ namespace ByteForge
             if (!glfwInit())
                 throw std::runtime_error("Failed to initialize GLFW");
 
-            static int s_GlfwSentinel = 0;
+            static i32 s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
             s_GlfwContext = context;
             return context;
@@ -45,8 +45,8 @@ namespace ByteForge
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
         GLFWwindow* rawWindow = glfwCreateWindow(
-            static_cast<int>(m_Data.Width),
-            static_cast<int>(m_Data.Height),
+            static_cast<i32>(m_Data.Width),
+            static_cast<i32>(m_Data.Height),
             props.Title.c_str(),
             nullptr,
             nullptr
@@ -57,10 +57,10 @@ namespace ByteForge
 
         m_Window = WrapScope(rawWindow, GlfwWindowDestroyer{});
 
-        int framebufferWidth = 0, framebufferHeight = 0;
+        i32 framebufferWidth = 0, framebufferHeight = 0;
         glfwGetFramebufferSize(m_Window.get(), &framebufferWidth, &framebufferHeight);
-        m_Data.FramebufferWidth = static_cast<uint32_t>(framebufferWidth);
-        m_Data.FramebufferHeight = static_cast<uint32_t>(framebufferHeight);
+        m_Data.FramebufferWidth = static_cast<u32>(framebufferWidth);
+        m_Data.FramebufferHeight = static_cast<u32>(framebufferHeight);
 
         glfwSetWindowUserPointer(m_Window.get(), &m_Data);
         SetupCallbacks();
@@ -93,27 +93,27 @@ namespace ByteForge
             data.EventCallback(event);
         });
 
-        glfwSetWindowSizeCallback(m_Window.get(), [](GLFWwindow* window, const int width, const int height)
+        glfwSetWindowSizeCallback(m_Window.get(), [](GLFWwindow* window, const i32 width, const i32 height)
         {
             auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
-            data.Width = static_cast<uint32_t>(width);
-            data.Height = static_cast<uint32_t>(height);
+            data.Width = static_cast<u32>(width);
+            data.Height = static_cast<u32>(height);
 
             WindowResizedEvent event(data.Width, data.Height);
             data.EventCallback(event);
         });
 
-        glfwSetFramebufferSizeCallback(m_Window.get(), [](GLFWwindow* window, const int width, const int height)
+        glfwSetFramebufferSizeCallback(m_Window.get(), [](GLFWwindow* window, const i32 width, const i32 height)
         {
             auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
-            data.FramebufferWidth = static_cast<uint32_t>(width);
-            data.FramebufferHeight = static_cast<uint32_t>(height);
+            data.FramebufferWidth = static_cast<u32>(width);
+            data.FramebufferHeight = static_cast<u32>(height);
 
             FramebufferResizedEvent event(data.FramebufferWidth, data.FramebufferHeight);
             data.EventCallback(event);
         });
 
-        glfwSetKeyCallback(m_Window.get(), [](GLFWwindow* window, const int key, int, const int action, int)
+        glfwSetKeyCallback(m_Window.get(), [](GLFWwindow* window, const i32 key, i32, const i32 action, i32)
         {
             const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
 
@@ -141,14 +141,14 @@ namespace ByteForge
             }
         });
 
-        glfwSetCharCallback(m_Window.get(), [](GLFWwindow* window, const unsigned int codepoint)
+        glfwSetCharCallback(m_Window.get(), [](GLFWwindow* window, const u32 codepoint)
         {
             const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
             KeyTypedEvent event(codepoint);
             data.EventCallback(event);
         });
 
-        glfwSetMouseButtonCallback(m_Window.get(), [](GLFWwindow* window, const int button, const int action, int)
+        glfwSetMouseButtonCallback(m_Window.get(), [](GLFWwindow* window, const i32 button, const i32 action, i32)
         {
             const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
 
@@ -170,17 +170,17 @@ namespace ByteForge
             }
         });
 
-        glfwSetScrollCallback(m_Window.get(), [](GLFWwindow* window, const double offsetX, const double offsetY)
+        glfwSetScrollCallback(m_Window.get(), [](GLFWwindow* window, const f64 offsetX, const f64 offsetY)
         {
             const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
-            MouseScrolledEvent event(static_cast<float>(offsetX), static_cast<float>(offsetY));
+            MouseScrolledEvent event(static_cast<f32>(offsetX), static_cast<f32>(offsetY));
             data.EventCallback(event);
         });
 
-        glfwSetCursorPosCallback(m_Window.get(), [](GLFWwindow* window, const double posX, const double posY)
+        glfwSetCursorPosCallback(m_Window.get(), [](GLFWwindow* window, const f64 posX, const f64 posY)
         {
             const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
-            MouseMovedEvent event(static_cast<float>(posX), static_cast<float>(posY));
+            MouseMovedEvent event(static_cast<f32>(posX), static_cast<f32>(posY));
             data.EventCallback(event);
         });
     }

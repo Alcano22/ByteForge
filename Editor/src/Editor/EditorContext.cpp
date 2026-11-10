@@ -183,10 +183,10 @@ namespace ByteForge
 
         if (base.ends_with(')'))
         {
-            if (const size_t open = base.rfind(" ("); open != std::string_view::npos)
+            if (const usize open = base.rfind(" ("); open != std::string_view::npos)
             {
                 const std::string_view digits = base.substr(open + 2, base.size() - open - 3);
-                const auto isDigit = [](const char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; };
+                const auto isDigit = [](const char c) { return std::isdigit(static_cast<u8>(c)) != 0; };
                 if (!digits.empty() && std::ranges::all_of(digits, isDigit))
                     base = base.substr(0, open);
             }
@@ -198,7 +198,7 @@ namespace ByteForge
         if (!taken.contains(std::string(base)))
             return std::string(base);
 
-        for (int index = 1;; ++index)
+        for (i32 index = 1;; ++index)
         {
             std::string candidate = std::format("{} ({})", base, index);
             if (!taken.contains(candidate))

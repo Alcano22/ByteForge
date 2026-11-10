@@ -57,7 +57,7 @@ namespace ByteForge
         [[nodiscard]] static ImWchar GetCodepoint(EditorIcon icon);
 
     private:
-        std::array<Ref<Texture2D>, static_cast<size_t>(EditorIcon::Count)> m_Icons;
+        std::array<Ref<Texture2D>, static_cast<usize>(EditorIcon::Count)> m_Icons;
         SvgIconFont m_Font;
     };
 }

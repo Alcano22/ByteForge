@@ -27,12 +27,12 @@ namespace ByteForge
     class RenderBackend : public GraphicsContext
     {
     public:
-        [[nodiscard]] virtual Ref<VertexBuffer> CreateVertexBuffer(uint32_t size) = 0;
-        [[nodiscard]] virtual Ref<VertexBuffer> CreateVertexBuffer(const void* vertices, uint32_t size) = 0;
+        [[nodiscard]] virtual Ref<VertexBuffer> CreateVertexBuffer(u32 size) = 0;
+        [[nodiscard]] virtual Ref<VertexBuffer> CreateVertexBuffer(const void* vertices, u32 size) = 0;
 
-        [[nodiscard]] virtual Ref<IndexBuffer> CreateIndexBuffer(std::span<const uint32_t> indices) = 0;
+        [[nodiscard]] virtual Ref<IndexBuffer> CreateIndexBuffer(std::span<const u32> indices) = 0;
 
-        [[nodiscard]] virtual Ref<UniformBuffer> CreateUniformBuffer(uint32_t size) = 0;
+        [[nodiscard]] virtual Ref<UniformBuffer> CreateUniformBuffer(u32 size) = 0;
 
         [[nodiscard]] virtual Ref<Shader> CreateShader(const std::string& vertexSource,
                                                        const std::string& fragmentSource) = 0;
@@ -42,7 +42,7 @@ namespace ByteForge
 
         [[nodiscard]] virtual Ref<Material> CreateMaterial(const Ref<Pipeline>& pipeline) = 0;
 
-        [[nodiscard]] virtual Ref<Texture2D> CreateTexture2D(uint32_t width, uint32_t height,
+        [[nodiscard]] virtual Ref<Texture2D> CreateTexture2D(u32 width, u32 height,
                                                              std::span<const std::byte> pixels,
                                                              const TextureSettings& settings) = 0;
 
@@ -60,7 +60,7 @@ namespace ByteForge
         virtual void SetViewport(const std::optional<ViewportRect>& rect) = 0;
         virtual void OnFramebufferResized() = 0;
         virtual void WaitIdle() = 0;
-        [[nodiscard]] virtual uint64_t GetFrameNumber() const = 0;
+        [[nodiscard]] virtual u64 GetFrameNumber() const = 0;
         [[nodiscard]] virtual bool IsSwapchainSrgb() const = 0;
 
         [[nodiscard]] static RenderBackend& Get();

@@ -44,10 +44,10 @@ namespace ByteForge
 
         ProcessResult result;
         std::array<char, 4096> buffer{};
-        while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+        while (fgets(buffer.data(), static_cast<i32>(buffer.size()), pipe) != nullptr)
             result.Output += buffer.data();
 
-        const int status = pclose(pipe);
+        const i32 status = pclose(pipe);
         result.ExitCode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
         return result;
     }

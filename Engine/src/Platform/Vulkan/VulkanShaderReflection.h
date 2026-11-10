@@ -16,32 +16,32 @@ namespace ByteForge
     struct ReflectedBlockMember
     {
         std::string Name;
-        uint32_t Offset = 0;
-        uint32_t Size = 0;
+        u32 Offset = 0;
+        u32 Size = 0;
     };
 
     struct ReflectedDescriptorBinding
     {
         std::string Name;
-        uint32_t Set = 0;
-        uint32_t Binding = 0;
+        u32 Set = 0;
+        u32 Binding = 0;
         VkDescriptorType Type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         VkShaderStageFlags Stages = 0;
-        uint32_t Size = 0;
+        u32 Size = 0;
         std::vector<ReflectedBlockMember> Members;
     };
 
     struct ReflectedVertexInput
     {
         std::string Name;
-        uint32_t Location = 0;
+        u32 Location = 0;
         VkFormat Format = VK_FORMAT_UNDEFINED;
     };
 
     struct ReflectedPushConstants
     {
         VkShaderStageFlags Stages = 0;
-        uint32_t Size = 0;
+        u32 Size = 0;
     };
 
     struct ShaderReflection
@@ -50,7 +50,7 @@ namespace ByteForge
         std::vector<ReflectedVertexInput> VertexInputs;
         ReflectedPushConstants PushConstants;
 
-        [[nodiscard]] static ShaderReflection Reflect(std::span<const uint32_t> spirv, ShaderStage stage);
+        [[nodiscard]] static ShaderReflection Reflect(std::span<const u32> spirv, ShaderStage stage);
 
         [[nodiscard]] static ShaderReflection Merge(const ShaderReflection& vertex,
                                                     const ShaderReflection& fragment);

@@ -43,12 +43,12 @@ namespace ByteForge
             NE::Resume();
         }
 
-        float SnapRasterizerDensity(const float density)
+        f32 SnapRasterizerDensity(const f32 density)
         {
             return std::clamp(std::round(density * 4.0f) / 4.0f, 0.25f, 4.0f);
         }
 
-        constexpr float InputSideOffset = 220.0f;
+        constexpr f32 InputSideOffset = 220.0f;
 
         void ConnectNewNode(ScriptGraph& graph, const DrawnPin& dragged, const UUID node)
         {
@@ -93,7 +93,7 @@ namespace ByteForge
         m_Open = true;
         m_FocusRequested = true;
 
-        if (m_Document && static_cast<uint64_t>(m_Document->GetAsset()) == static_cast<uint64_t>(asset))
+        if (m_Document && static_cast<u64>(m_Document->GetAsset()) == static_cast<u64>(asset))
             return;
 
         if (m_Document && m_Document->IsDirty())
@@ -120,7 +120,7 @@ namespace ByteForge
             NE::DestroyEditor(m_Editor);
         m_Editor = CreateNodeEditor();
 
-        m_SyncedRevision = std::numeric_limits<uint64_t>::max();
+        m_SyncedRevision = std::numeric_limits<u64>::max();
         m_FramesSinceLoad = 0;
     }
 
@@ -201,8 +201,8 @@ namespace ByteForge
             document.Redo();
         ImGui::EndDisabled();
 
-        size_t errors = 0;
-        size_t warnings = 0;
+        usize errors = 0;
+        usize warnings = 0;
         for (const GraphDiagnostic& diagnostic : document.GetDiagnostics())
             ++(diagnostic.Severity == GraphSeverity::Error ? errors : warnings);
 
@@ -235,8 +235,8 @@ namespace ByteForge
 
         SyncPositionsToEditor();
 
-        const float previousDensity = ImGui::GetFontRasterizerDensity();
-        const float canvasScale = 1.0f / NE::GetCurrentZoom();
+        const f32 previousDensity = ImGui::GetFontRasterizerDensity();
+        const f32 canvasScale = 1.0f / NE::GetCurrentZoom();
         ImGui::SetFontRasterizerDensity(SnapRasterizerDensity(previousDensity * canvasScale));
         m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics());
         ImGui::SetFontRasterizerDensity(previousDensity);

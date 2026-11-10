@@ -9,7 +9,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr int FormatVersion = 1;
+        constexpr i32 FormatVersion = 1;
     }
 
     std::expected<ProjectSettings, std::string> ProjectSettings::Load(const std::filesystem::path& file)
@@ -28,7 +28,7 @@ namespace ByteForge
         try
         {
             settings.Name = json.value("name", defaults.Name);
-            settings.StartScene = UUID(json.value("startScene", uint64_t{ 0 }));
+            settings.StartScene = UUID(json.value("startScene", u64{ 0 }));
 
             if (const auto window = json.find("window"); window != json.end() && window->is_object())
             {
@@ -55,7 +55,7 @@ namespace ByteForge
         const nlohmann::json json{
             { "version",    FormatVersion },
             { "name",       Name          },
-            { "startScene", static_cast<uint64_t>(StartScene) },
+            { "startScene", static_cast<u64>(StartScene) },
             { "window", {
                 { "title",  WindowTitle  },
                 { "width",  WindowWidth  },

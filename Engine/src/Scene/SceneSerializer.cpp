@@ -21,7 +21,7 @@ namespace
     void WriteMaterial(nlohmann::json& json, const Ref<PhysicsMaterialAsset>& material)
     {
         if (material && material->IsFileBacked())
-            json["material"] = static_cast<uint64_t>(material->GetHandle());
+            json["material"] = static_cast<u64>(material->GetHandle());
     }
 
     Ref<PhysicsMaterialAsset> ReadMaterial(const nlohmann::json& json)
@@ -29,7 +29,7 @@ namespace
         if (!json.contains("material"))
             return nullptr;
 
-        return AssetManager::LoadPhysicsMaterial(UUID(json.at("material").get<uint64_t>()));
+        return AssetManager::LoadPhysicsMaterial(UUID(json.at("material").get<u64>()));
     }
 
     const char* ToString(const Rigidbody2DComponent::BodyType type)
@@ -77,7 +77,7 @@ namespace
             const auto& t = entityJson.at("transform");
             auto& transform = entity.GetComponent<TransformComponent>();
             transform.Position = ToVec3(t.at("position"));
-            transform.Rotation = t.at("rotation").get<float>();
+            transform.Rotation = t.at("rotation").get<f32>();
             transform.Scale = ToVec2(t.at("scale"));
         }
 
@@ -91,7 +91,7 @@ namespace
             if (s.contains("sprite"))
             {
                 const auto& sp = s.at("sprite");
-                sprite.Sprite = MakeRef<Sprite>(AssetManager::LoadTexture2D(UUID(sp.at("texture").get<uint64_t>())),
+                sprite.Sprite = MakeRef<Sprite>(AssetManager::LoadTexture2D(UUID(sp.at("texture").get<u64>())),
                                                 ToVec2(sp.at("uvMin")), ToVec2(sp.at("uvMax")));
             }
         }
@@ -147,7 +147,7 @@ namespace
         {
             const auto& a = entityJson.at("audioSource");
             auto& source = entity.AddComponent<AudioSourceComponent>();
-            source.Clip = UUID(a.value("clip", uint64_t{ 0 }));
+            source.Clip = UUID(a.value("clip", u64{ 0 }));
             source.Volume = a.value("volume", 1.0f);
             source.Pitch = a.value("pitch", 1.0f);
             source.Loop = a.value("loop", false);
@@ -229,7 +229,7 @@ namespace ByteForge
     nlohmann::json SceneSerializer::SerializeEntity(const Entity entity)
     {
         nlohmann::json entityJson;
-        entityJson["uuid"] = static_cast<uint64_t>(entity.GetUUID());
+        entityJson["uuid"] = static_cast<u64>(entity.GetUUID());
         entityJson["tag"] = entity.GetTag();
 
         const auto& transform = entity.GetComponent<TransformComponent>();
@@ -250,7 +250,7 @@ namespace ByteForge
             if (sprite.Sprite)
             {
                 spriteJson["sprite"] = {
-                    { "texture", static_cast<uint64_t>(sprite.Sprite->GetTextureAsset()->GetHandle()) },
+                    { "texture", static_cast<u64>(sprite.Sprite->GetTextureAsset()->GetHandle()) },
                     { "uvMin",   ToJson(sprite.Sprite->GetUVMin())                                    },
                     { "uvMax",   ToJson(sprite.Sprite->GetUVMax())                                    }
                 };
@@ -321,8 +321,8 @@ namespace ByteForge
                 { "playOnStart", source.PlayOnStart }
             };
 
-            if (static_cast<uint64_t>(source.Clip) != 0)
-                sourceJson["clip"] = static_cast<uint64_t>(source.Clip);
+            if (static_cast<u64>(source.Clip) != 0)
+                sourceJson["clip"] = static_cast<u64>(source.Clip);
 
             entityJson["audioSource"] = std::move(sourceJson);
         }
@@ -343,7 +343,7 @@ namespace ByteForge
 
     Entity SceneSerializer::DeserializeEntity(Scene& scene, const nlohmann::json& data)
     {
-        const Entity entity = scene.CreateEntityWithUUID(UUID(data.at("uuid").get<uint64_t>()),
+        const Entity entity = scene.CreateEntityWithUUID(UUID(data.at("uuid").get<u64>()),
                                                          data.value("tag", std::string("Entity")));
 
         ReadComponents(entity, data);

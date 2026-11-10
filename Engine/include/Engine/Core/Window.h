@@ -17,8 +17,8 @@ namespace ByteForge
     struct WindowProps
     {
         std::string Title = "ByteForge Application";
-        uint32_t Width = 1280;
-        uint32_t Height = 720;
+        u32 Width = 1280;
+        u32 Height = 720;
     };
 
     class BYTEFORGE_API Window
@@ -38,10 +38,10 @@ namespace ByteForge
 
         void CancelClose() const { glfwSetWindowShouldClose(m_Window.get(), GLFW_FALSE); }
 
-        [[nodiscard]] uint32_t GetWidth() const { return m_Data.Width; }
-        [[nodiscard]] uint32_t GetHeight() const { return m_Data.Height; }
-        [[nodiscard]] uint32_t GetFramebufferWidth() const { return m_Data.FramebufferWidth; }
-        [[nodiscard]] uint32_t GetFramebufferHeight() const { return m_Data.FramebufferHeight; }
+        [[nodiscard]] u32 GetWidth() const { return m_Data.Width; }
+        [[nodiscard]] u32 GetHeight() const { return m_Data.Height; }
+        [[nodiscard]] u32 GetFramebufferWidth() const { return m_Data.FramebufferWidth; }
+        [[nodiscard]] u32 GetFramebufferHeight() const { return m_Data.FramebufferHeight; }
         [[nodiscard]] GLFWwindow* GetNativeWindow() const { return m_Window.get(); }
 
     private:
@@ -56,10 +56,10 @@ namespace ByteForge
         struct WindowData
         {
             std::string Title;
-            uint32_t Width = 0;
-            uint32_t Height = 0;
-            uint32_t FramebufferWidth = 0;
-            uint32_t FramebufferHeight = 0;
+            u32 Width = 0;
+            u32 Height = 0;
+            u32 FramebufferWidth = 0;
+            u32 FramebufferHeight = 0;
             EventCallbackFn EventCallback = [](Event&) {};
         };
 

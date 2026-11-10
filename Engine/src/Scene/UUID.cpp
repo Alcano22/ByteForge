@@ -15,7 +15,7 @@ namespace ByteForge
 
     UUID::UUID()
     {
-        static std::uniform_int_distribution<uint64_t> distribution;
+        static std::uniform_int_distribution<u64> distribution;
         m_UUID = distribution(RandomEngine());
     }
 }

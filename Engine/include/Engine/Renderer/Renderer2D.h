@@ -27,13 +27,13 @@ namespace ByteForge
 
         ImageFormat EntityIdFormat = ImageFormat::None;
 
-        uint32_t MaxQuads = 20000;
+        u32 MaxQuads = 20000;
     };
 
     struct Renderer2DStats
     {
-        uint32_t DrawCalls = 0;
-        uint32_t Quads = 0;
+        u32 DrawCalls = 0;
+        u32 Quads = 0;
     };
 
     // Colors and tints are in sRGB, exactly as a color picker shows them. When rendering into an
@@ -54,24 +54,24 @@ namespace ByteForge
         void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                       const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint = glm::vec4(1.0f));
 
-        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
-                             const glm::vec4& color, uint32_t entityId = 0);
-        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
+                             const glm::vec4& color, u32 entityId = 0);
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                              const Ref<Texture2D>& texture, const glm::vec4& tint = glm::vec4(1.0f),
-                             uint32_t entityId = 0);
-        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
+                             u32 entityId = 0);
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                              const Ref<SubTexture2D>& subTexture, const glm::vec4& tint = glm::vec4(1.0f),
-                             uint32_t entityId = 0);
-        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
+                             u32 entityId = 0);
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                              const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                             const glm::vec4& tint = glm::vec4(1.0f), uint32_t entityId = 0);
+                             const glm::vec4& tint = glm::vec4(1.0f), u32 entityId = 0);
 
         [[nodiscard]] const Renderer2DStats& GetStats() const { return m_Stats; }
 
     private:
-        void SubmitQuad(const glm::vec3& position, const glm::vec2& size, float rotation,
+        void SubmitQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                         const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                        const glm::vec4& color, uint32_t entityId);
+                        const glm::vec4& color, u32 entityId);
         void Flush();
 
         [[nodiscard]] Ref<Material> GetMaterial(const Ref<Texture2D>& texture);
@@ -83,7 +83,7 @@ namespace ByteForge
             glm::vec3 Position;
             glm::vec2 UV;
             glm::vec4 Color;
-            uint32_t EntityId;
+            u32 EntityId;
         };
 
         struct MaterialEntry
@@ -102,16 +102,16 @@ namespace ByteForge
 
         std::vector<Vertex> m_Vertices;
 
-        uint64_t m_Frame = std::numeric_limits<uint64_t>::max();
-        uint32_t m_FrameQuads = 0;
-        uint32_t m_BatchStart = 0;
+        u64 m_Frame = std::numeric_limits<u64>::max();
+        u32 m_FrameQuads = 0;
+        u32 m_BatchStart = 0;
         Ref<Texture2D> m_CurrentTexture;
         bool m_InScene = false;
         bool m_LinearizeColors = false;
 
         Renderer2DStats m_Stats;
 
-        static constexpr uint32_t VerticesPerQuad = 4;
-        static constexpr uint32_t IndicesPerQuad = 6;
+        static constexpr u32 VerticesPerQuad = 4;
+        static constexpr u32 IndicesPerQuad = 6;
     };
 }

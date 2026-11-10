@@ -25,18 +25,18 @@ namespace ByteForge
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
-            return { { "node", static_cast<uint64_t>(pin.Node) }, { "pin", pin.Pin } };
+            return { { "node", static_cast<u64>(pin.Node) }, { "pin", pin.Pin } };
         }
 
         PinRef ReadPinRef(const nlohmann::json& json)
         {
-            return { UUID(json.at("node").get<uint64_t>()), json.at("pin").get<std::string>() };
+            return { UUID(json.at("node").get<u64>()), json.at("pin").get<std::string>() };
         }
 
         nlohmann::json WriteNode(const GraphNode& node)
         {
             nlohmann::json json{
-                { "id",       static_cast<uint64_t>(node.Id)       },
+                { "id",       static_cast<u64>(node.Id)       },
                 { "position", JsonValue::ToJson(node.Position)     }
             };
 
@@ -49,7 +49,7 @@ namespace ByteForge
                 else if constexpr (std::is_same_v<T, CallNode>)
                     json["function"] = data.Function;
                 else if constexpr (std::is_same_v<T, GetVariableNode> || std::is_same_v<T, SetVariableNode>)
-                    json["variable"] = static_cast<uint64_t>(data.Variable);
+                    json["variable"] = static_cast<u64>(data.Variable);
                 else if constexpr (std::is_same_v<T, LiteralNode>)
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
             }, node.Data);
@@ -84,9 +84,9 @@ namespace ByteForge
             if (kind == NodeKindName<DelayNode>)
                 return DelayNode{};
             if (kind == NodeKindName<GetVariableNode>)
-                return GetVariableNode{ UUID(json.at("variable").get<uint64_t>()) };
+                return GetVariableNode{ UUID(json.at("variable").get<u64>()) };
             if (kind == NodeKindName<SetVariableNode>)
-                return SetVariableNode{ UUID(json.at("variable").get<uint64_t>()) };
+                return SetVariableNode{ UUID(json.at("variable").get<u64>()) };
             if (kind == NodeKindName<LiteralNode>)
             {
                 std::optional<ScriptValue> value = JsonValue::ReadScriptValue(json.at("value"));
@@ -101,7 +101,7 @@ namespace ByteForge
         GraphNode ReadNode(const nlohmann::json& json)
         {
             GraphNode node{
-                .Id       = UUID(json.at("id").get<uint64_t>()),
+                .Id       = UUID(json.at("id").get<u64>()),
                 .Data     = ReadNodeData(json),
                 .Position = JsonValue::ToVec2(json.at("position"))
             };
@@ -121,7 +121,7 @@ namespace ByteForge
         nlohmann::json WriteVariable(const GraphVariable& variable)
         {
             return {
-                { "id",      static_cast<uint64_t>(variable.Id)              },
+                { "id",      static_cast<u64>(variable.Id)              },
                 { "name",    variable.Name                                   },
                 { "exposed", variable.Exposed                                },
                 { "default", JsonValue::TypedValueToJson(variable.Default)   }
@@ -137,7 +137,7 @@ namespace ByteForge
                 throw std::runtime_error(std::format("variable '{}' has an unreadable default value", name));
 
             return {
-                .Id      = UUID(json.at("id").get<uint64_t>()),
+                .Id      = UUID(json.at("id").get<u64>()),
                 .Name    = std::move(name),
                 .Default = std::move(*value),
                 .Exposed = json.value("exposed", true)
@@ -174,7 +174,7 @@ namespace ByteForge
             if (!data.is_object())
                 return std::unexpected("expected a JSON object");
 
-            const int version = data.value("version", 0);
+            const i32 version = data.value("version", 0);
             if (version < 1)
                 return std::unexpected("the format version is missing");
             if (version > ScriptGraph::FormatVersion)

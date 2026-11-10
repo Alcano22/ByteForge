@@ -185,7 +185,7 @@ namespace ByteForge
 
             failed->second.Failed = true;
             CORE_ERROR("Script '{}' on entity {} failed in {}: {} (disabled until the next play)",
-                       failed->second.ClassName, static_cast<uint64_t>(failed->second.EntityId), callback, e.what());
+                       failed->second.ClassName, static_cast<u64>(failed->second.EntityId), callback, e.what());
         }
     }
 }

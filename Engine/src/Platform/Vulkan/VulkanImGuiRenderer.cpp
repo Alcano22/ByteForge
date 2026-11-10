@@ -44,7 +44,7 @@ namespace ByteForge
             .Queue = device.GetGraphicsQueue(),
             .DescriptorPoolSize = 1000,
             .MinImageCount = 2,
-            .ImageCount = static_cast<uint32_t>(context.GetSwapchain().GetImages().size()),
+            .ImageCount = static_cast<u32>(context.GetSwapchain().GetImages().size()),
             .PipelineInfoMain = {
                 .MSAASamples = VK_SAMPLE_COUNT_1_BIT
             },

@@ -14,9 +14,9 @@ namespace ByteForge
     public:
         VulkanPerFrameBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
 
-        void SetData(const void* data, size_t size, size_t offset = 0) const;
+        void SetData(const void* data, usize size, usize offset = 0) const;
 
-        [[nodiscard]] VkBuffer GetHandle(const uint32_t frameIndex) const { return m_Buffers[frameIndex]->GetHandle(); }
+        [[nodiscard]] VkBuffer GetHandle(const u32 frameIndex) const { return m_Buffers[frameIndex]->GetHandle(); }
         [[nodiscard]] VkBuffer GetCurrentHandle() const;
 
     private:

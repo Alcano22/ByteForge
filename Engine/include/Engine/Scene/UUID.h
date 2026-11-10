@@ -12,21 +12,21 @@ namespace ByteForge
     public:
         UUID();
 
-        explicit UUID(const uint64_t uuid)
+        explicit UUID(const u64 uuid)
             : m_UUID(uuid) {}
 
-        [[nodiscard]] operator uint64_t() const { return m_UUID; }
+        [[nodiscard]] operator u64() const { return m_UUID; }
 
     private:
-        uint64_t m_UUID;
+        u64 m_UUID;
     };
 }
 
 template<>
 struct std::hash<ByteForge::UUID>
 {
-    size_t operator()(const ByteForge::UUID& uuid) const noexcept
+    ByteForge::usize operator()(const ByteForge::UUID& uuid) const noexcept
     {
-        return std::hash<uint64_t>()(static_cast<uint64_t>(uuid));
+        return std::hash<ByteForge::u64>()(static_cast<ByteForge::u64>(uuid));
     }
 };

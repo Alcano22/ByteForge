@@ -49,7 +49,7 @@ namespace ByteForge
             std::string Label;
             std::optional<ScriptValue> Editor;
             std::string EditorKey;
-            float Width = 0.0f;
+            f32 Width = 0.0f;
         };
 
         [[nodiscard]] PinView MakePinView(const GraphNode& node, const PinInfo& pin) const;
@@ -62,7 +62,7 @@ namespace ByteForge
     private:
         struct ActiveEdit
         {
-            uint64_t Node = 0;
+            u64 Node = 0;
             std::string Key;
             ScriptValue Value;
         };
@@ -70,7 +70,7 @@ namespace ByteForge
         std::unordered_map<uintptr_t, DrawnPin> m_Pins;
         std::unordered_map<uintptr_t, GraphLink> m_Links;
         std::unordered_set<uintptr_t> m_ConnectedPins;
-        std::unordered_map<uint64_t, std::string> m_Errors;
+        std::unordered_map<u64, std::string> m_Errors;
 
         std::optional<ActiveEdit> m_Active;
         std::vector<ValueEdit> m_Edits;

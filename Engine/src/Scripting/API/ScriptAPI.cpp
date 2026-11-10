@@ -15,7 +15,7 @@ namespace ByteForge
 
         const Entity resolved = ActiveScene->FindEntityByUUID(entity.Id);
         if (!resolved.IsValid())
-            throw ScriptError(std::format("Entity {} no longer exists", static_cast<uint64_t>(entity.Id)));
+            throw ScriptError(std::format("Entity {} no longer exists", static_cast<u64>(entity.Id)));
 
         return resolved;
     }
@@ -31,7 +31,7 @@ namespace ByteForge
     std::string GetSignature(const ScriptFunction& function)
     {
         std::string signature = "(";
-        for (size_t i = 0; i < function.Parameters.size(); ++i)
+        for (usize i = 0; i < function.Parameters.size(); ++i)
         {
             if (i > 0)
                 signature += ',';
@@ -49,7 +49,7 @@ namespace ByteForge
             throw ScriptError(std::format("{} expects {} argument(s), got {}",
                                           function.Id, function.Parameters.size(), arguments.size()));
 
-        for (size_t i = 0; i < arguments.size(); ++i)
+        for (usize i = 0; i < arguments.size(); ++i)
         {
             const ScriptParameter& parameter = function.Parameters[i];
 
@@ -71,7 +71,7 @@ namespace ByteForge
         return instance;
     }
 
-    uint32_t ScriptAPI::FindIndex(const std::string_view id) const
+    u32 ScriptAPI::FindIndex(const std::string_view id) const
     {
         const auto it = m_Indices.find(id);
         return it != m_Indices.end() ? it->second : InvalidIndex;
@@ -79,11 +79,11 @@ namespace ByteForge
 
     const ScriptFunction* ScriptAPI::Find(const std::string_view id) const
     {
-        const uint32_t index = FindIndex(id);
+        const u32 index = FindIndex(id);
         return index != InvalidIndex ? &m_Functions[index] : nullptr;
     }
 
-    const ScriptFunction& ScriptAPI::GetFunction(const uint32_t index) const
+    const ScriptFunction& ScriptAPI::GetFunction(const u32 index) const
     {
         if (index >= m_Functions.size())
             throw ScriptError(std::format("Unknown script function index {}", index));
@@ -92,7 +92,7 @@ namespace ByteForge
 
     void ScriptAPI::Add(ScriptFunction function)
     {
-        const size_t dot = function.Id.find('.');
+        const usize dot = function.Id.find('.');
         if (dot == std::string::npos || dot == 0 || dot + 1 == function.Id.size())
             throw std::logic_error(std::format("Script function id '{}' must look like 'Category.Name'", function.Id));
 
@@ -100,7 +100,7 @@ namespace ByteForge
             throw std::logic_error(std::format("Script function '{}' is registered twice", function.Id));
 
         function.Category = function.Id.substr(0, dot);
-        m_Indices.emplace(function.Id, static_cast<uint32_t>(m_Functions.size()));
+        m_Indices.emplace(function.Id, static_cast<u32>(m_Functions.size()));
         m_Functions.push_back(std::move(function));
     }
 }

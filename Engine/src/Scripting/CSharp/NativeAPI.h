@@ -6,13 +6,13 @@ namespace ByteForge
 {
     struct NativeAPI
     {
-        int Size;
+        i32 Size;
 
-        void (*Log)(int level, const char* message);
+        void (*Log)(i32 level, const char* message);
         void (*ReportException)(const char* message);
 
-        uint32_t (*Api_FindFunction)(const char* id, const char* signature);
-        int (*Api_Invoke)(uint32_t function, const void* arguments, int argumentCount, void* result);
+        u32 (*Api_FindFunction)(const char* id, const char* signature);
+        i32 (*Api_Invoke)(u32 function, const void* arguments, i32 argumentCount, void* result);
         const char* (*Api_GetLastError)();
     };
 }

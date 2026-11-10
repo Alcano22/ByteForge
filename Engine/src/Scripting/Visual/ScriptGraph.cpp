@@ -11,11 +11,11 @@ namespace ByteForge
     {
         bool UsesVariable(const GraphNode& node, const UUID variable)
         {
-            const auto key = static_cast<uint64_t>(variable);
+            const auto key = static_cast<u64>(variable);
             if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
-                return static_cast<uint64_t>(get->Variable) == key;
+                return static_cast<u64>(get->Variable) == key;
             if (const auto* set = std::get_if<SetVariableNode>(&node.Data))
-                return static_cast<uint64_t>(set->Variable) == key;
+                return static_cast<u64>(set->Variable) == key;
             return false;
         }
     }
@@ -38,8 +38,8 @@ namespace ByteForge
 
     const GraphNode* ScriptGraph::FindNode(const UUID id) const
     {
-        const auto it = std::ranges::find(m_Nodes, static_cast<uint64_t>(id),
-                                          [](const GraphNode& node) { return static_cast<uint64_t>(node.Id); });
+        const auto it = std::ranges::find(m_Nodes, static_cast<u64>(id),
+                                          [](const GraphNode& node) { return static_cast<u64>(node.Id); });
         return it != m_Nodes.end() ? &*it : nullptr;
     }
 
@@ -50,8 +50,8 @@ namespace ByteForge
 
     const GraphVariable* ScriptGraph::FindVariable(const UUID id) const
     {
-        const auto it = std::ranges::find(m_Variables, static_cast<uint64_t>(id),
-                                          [](const GraphVariable& variable) { return static_cast<uint64_t>(variable.Id); });
+        const auto it = std::ranges::find(m_Variables, static_cast<u64>(id),
+                                          [](const GraphVariable& variable) { return static_cast<u64>(variable.Id); });
         return it != m_Variables.end() ? &*it : nullptr;
     }
 
@@ -68,12 +68,12 @@ namespace ByteForge
 
     void ScriptGraph::RemoveNode(const UUID id)
     {
-        const auto key = static_cast<uint64_t>(id);
+        const auto key = static_cast<u64>(id);
         std::erase_if(m_Links, [key](const GraphLink& link)
         {
-            return static_cast<uint64_t>(link.From.Node) == key || static_cast<uint64_t>(link.To.Node) == key;
+            return static_cast<u64>(link.From.Node) == key || static_cast<u64>(link.To.Node) == key;
         });
-        std::erase_if(m_Nodes, [key](const GraphNode& node) { return static_cast<uint64_t>(node.Id) == key; });
+        std::erase_if(m_Nodes, [key](const GraphNode& node) { return static_cast<u64>(node.Id) == key; });
     }
 
     std::expected<void, std::string> ScriptGraph::Connect(const PinRef& from, const PinRef& to)
@@ -121,10 +121,10 @@ namespace ByteForge
 
     std::expected<void, std::string> ScriptGraph::RenameVariable(const UUID id, std::string name)
     {
-        const auto it = std::ranges::find(m_Variables, static_cast<uint64_t>(id),
+        const auto it = std::ranges::find(m_Variables, static_cast<u64>(id),
                                           [](const GraphVariable& variable)
                                           {
-                                              return static_cast<uint64_t>(variable.Id);
+                                              return static_cast<u64>(variable.Id);
                                           });
         if (it == m_Variables.end())
             return std::unexpected("The variable does not exist");
@@ -148,9 +148,9 @@ namespace ByteForge
         for (const UUID node : users)
             RemoveNode(node);
 
-        std::erase_if(m_Variables, [key = static_cast<uint64_t>(id)](const GraphVariable& variable)
+        std::erase_if(m_Variables, [key = static_cast<u64>(id)](const GraphVariable& variable)
         {
-            return static_cast<uint64_t>(variable.Id) == key;
+            return static_cast<u64>(variable.Id) == key;
         });
     }
 
@@ -161,7 +161,7 @@ namespace ByteForge
             return std::unexpected("A variable needs a name");
 
         const GraphVariable* existing = FindVariable(name);
-        if (existing != nullptr && static_cast<uint64_t>(existing->Id) != static_cast<uint64_t>(ignore))
+        if (existing != nullptr && static_cast<u64>(existing->Id) != static_cast<u64>(ignore))
             return std::unexpected(std::format("A variable named '{}' already exists", name));
 
         return {};
@@ -169,6 +169,6 @@ namespace ByteForge
 
     std::string ScriptGraphClassName(const UUID graphAsset)
     {
-        return std::format("Graph:{}", static_cast<uint64_t>(graphAsset));
+        return std::format("Graph:{}", static_cast<u64>(graphAsset));
     }
 }

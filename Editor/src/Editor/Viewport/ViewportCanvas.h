@@ -19,7 +19,7 @@ namespace ByteForge
     {
         glm::vec4 ClearColor{ 0.01f, 0.01f, 0.01f, 1.0f };
 
-        std::optional<float> FixedAspect;
+        std::optional<f32> FixedAspect;
 
         bool EntityIds = false;
     };
@@ -42,9 +42,9 @@ namespace ByteForge
         void Draw();
 
         void SetClearColor(const glm::vec4& color) { m_Spec.ClearColor = color; }
-        void SetFixedAspect(const std::optional<float> aspect) { m_Spec.FixedAspect = aspect; }
+        void SetFixedAspect(const std::optional<f32> aspect) { m_Spec.FixedAspect = aspect; }
 
-        [[nodiscard]] uint32_t ReadEntityId(const glm::vec2& viewportPoint) const;
+        [[nodiscard]] u32 ReadEntityId(const glm::vec2& viewportPoint) const;
 
         [[nodiscard]] bool IsHovered() const { return m_Hovered; }
         [[nodiscard]] glm::vec2 GetSize() const { return glm::vec2(m_Size); }

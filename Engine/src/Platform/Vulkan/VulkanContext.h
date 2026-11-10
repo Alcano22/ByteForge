@@ -33,12 +33,12 @@ namespace ByteForge
 
         void Init() override;
 
-        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(uint32_t size) override;
-        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(const void* vertices, uint32_t size) override;
+        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(u32 size) override;
+        [[nodiscard]] Ref<VertexBuffer> CreateVertexBuffer(const void* vertices, u32 size) override;
 
-        [[nodiscard]] Ref<IndexBuffer> CreateIndexBuffer(std::span<const uint32_t> indices) override;
+        [[nodiscard]] Ref<IndexBuffer> CreateIndexBuffer(std::span<const u32> indices) override;
 
-        [[nodiscard]] Ref<UniformBuffer> CreateUniformBuffer(uint32_t size) override;
+        [[nodiscard]] Ref<UniformBuffer> CreateUniformBuffer(u32 size) override;
 
         [[nodiscard]] Ref<Shader> CreateShader(const std::string& vertexSource,
                                                const std::string& fragmentSource) override;
@@ -48,7 +48,7 @@ namespace ByteForge
 
         [[nodiscard]] Ref<Material> CreateMaterial(const Ref<Pipeline>& pipeline) override;
 
-        [[nodiscard]] Ref<Texture2D> CreateTexture2D(uint32_t width, uint32_t height,
+        [[nodiscard]] Ref<Texture2D> CreateTexture2D(u32 width, u32 height,
                                                      std::span<const std::byte> pixels,
                                                      const TextureSettings& settings) override;
 
@@ -66,7 +66,7 @@ namespace ByteForge
         void SetViewport(const std::optional<ViewportRect>& rect) override;
         void OnFramebufferResized() override { m_FramebufferResized = true; }
         void WaitIdle() override;
-        [[nodiscard]] uint64_t GetFrameNumber() const override;
+        [[nodiscard]] u64 GetFrameNumber() const override;
         [[nodiscard]] bool IsSwapchainSrgb() const override;
 
         [[nodiscard]] VkInstance GetInstanceHandle() const { return m_Instance->GetHandle(); }
@@ -80,13 +80,13 @@ namespace ByteForge
         [[nodiscard]] VulkanDeletionQueue& GetDeletionQueue() const { return *m_DeletionQueue; }
         [[nodiscard]] VulkanSamplerCache& GetSamplerCache() const { return *m_SamplerCache; }
 
-        [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
+        [[nodiscard]] u32 GetCurrentFrameIndex() const;
         [[nodiscard]] bool IsInFrame() const { return m_InFrame; }
 
         static VulkanContext& Get() { return *s_Instance; }
         static VulkanContext* TryGet() { return s_Instance; }
 
-        static constexpr uint32_t GetFramesInFlight() { return MaxFramesInFlight; }
+        static constexpr u32 GetFramesInFlight() { return MaxFramesInFlight; }
 
 
     private:
@@ -117,6 +117,6 @@ namespace ByteForge
 
         static VulkanContext* s_Instance;
 
-        static constexpr uint32_t MaxFramesInFlight = 2;
+        static constexpr u32 MaxFramesInFlight = 2;
     };
 }

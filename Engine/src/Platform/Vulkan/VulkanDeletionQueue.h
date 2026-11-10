@@ -11,7 +11,7 @@ namespace ByteForge
     class VulkanDeletionQueue : NonCopyable
     {
     public:
-        explicit VulkanDeletionQueue(const uint32_t framesInFlight)
+        explicit VulkanDeletionQueue(const u32 framesInFlight)
             : m_FramesInFlight(framesInFlight) {}
 
         void Push(std::function<void()> destroy);
@@ -27,12 +27,12 @@ namespace ByteForge
     private:
         struct Entry
         {
-            uint64_t SubmittedFrames;
+            u64 SubmittedFrames;
             std::function<void()> Destroy;
         };
 
         std::deque<Entry> m_Pending;
-        uint32_t m_FramesInFlight;
-        uint64_t m_SubmittedFrames = 0;
+        u32 m_FramesInFlight;
+        u64 m_SubmittedFrames = 0;
     };
 }

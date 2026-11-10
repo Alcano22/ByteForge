@@ -19,13 +19,13 @@ namespace ByteForge::TransformGizmo
 {
     namespace
     {
-        constexpr float DepthRange = 1000.0f;
+        constexpr f32 DepthRange = 1000.0f;
 
-        constexpr float MinScale = 1e-4f;
+        constexpr f32 MinScale = 1e-4f;
 
-        constexpr float MoveSnap = 0.5f;
-        constexpr float RotateSnapDegrees = 15.0f;
-        constexpr float ScaleSnap = 0.1f;
+        constexpr f32 MoveSnap = 0.5f;
+        constexpr f32 RotateSnapDegrees = 15.0f;
+        constexpr f32 ScaleSnap = 0.1f;
 
         ImGuizmo::OPERATION ToOperation(const TransformTool tool)
         {
@@ -46,7 +46,7 @@ namespace ByteForge::TransformGizmo
             return space == TransformSpace::Global ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
         }
 
-        float SnapValue(const TransformTool tool)
+        f32 SnapValue(const TransformTool tool)
         {
             switch (tool)
             {
@@ -57,7 +57,7 @@ namespace ByteForge::TransformGizmo
             return MoveSnap;
         }
 
-        float NonZero(const float value)
+        f32 NonZero(const f32 value)
         {
             return std::abs(value) < MinScale ? std::copysign(MinScale, value) : value;
         }
@@ -84,9 +84,9 @@ namespace ByteForge::TransformGizmo
                 case TransformTool::Rotate:
                 {
                     const glm::vec2 direction = transform.Scale.x < 0.0f ? -axisX : axisX;
-                    const float angle = std::atan2(direction.y, direction.x);
+                    const f32 angle = std::atan2(direction.y, direction.x);
 
-                    transform.Rotation += std::remainder(angle - transform.Rotation, glm::two_pi<float>());
+                    transform.Rotation += std::remainder(angle - transform.Rotation, glm::two_pi<f32>());
                     break;
                 }
 
@@ -122,8 +122,8 @@ namespace ByteForge::TransformGizmo
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(origin.x, origin.y, size.x, size.y);
 
-        const float snapValue = SnapValue(tool);
-        const std::array<float, 3> snapValues{ snapValue, snapValue, snapValue };
+        const f32 snapValue = SnapValue(tool);
+        const std::array<f32, 3> snapValues{ snapValue, snapValue, snapValue };
 
         glm::mat4 matrix = ToMatrix(transform);
         const bool changed = ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection),

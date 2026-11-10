@@ -78,7 +78,7 @@ namespace ByteForge
     {
         EditorContext& context = GetContext();
 
-        const auto uuid = static_cast<uint64_t>(entity.GetUUID());
+        const auto uuid = static_cast<u64>(entity.GetUUID());
         ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(uuid)));
 
         if (entity == m_RenameTarget)
@@ -172,7 +172,7 @@ namespace ByteForge
     void SceneHierarchyPanel::BeginRename(const Entity entity)
     {
         const std::string& tag = entity.GetTag();
-        const size_t length = std::min(tag.size(), m_RenameBuffer.size() - 1);
+        const usize length = std::min(tag.size(), m_RenameBuffer.size() - 1);
         std::memcpy(m_RenameBuffer.data(), tag.data(), length);
         m_RenameBuffer[length] = '\0';
 

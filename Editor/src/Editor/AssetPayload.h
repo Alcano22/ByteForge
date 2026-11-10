@@ -15,7 +15,7 @@ namespace ByteForge
 
     struct AssetPayload
     {
-        uint64_t Handle = 0;
+        u64 Handle = 0;
         AssetType Type = AssetType::None;
     };
 
@@ -24,7 +24,7 @@ namespace ByteForge
     [[nodiscard]] inline std::optional<AssetPayload> ReadAssetPayload(const ImGuiPayload* payload)
     {
         if (payload == nullptr || !payload->IsDataType(AssetPayloadType) ||
-            payload->DataSize != static_cast<int>(sizeof(AssetPayload)))
+            payload->DataSize != static_cast<i32>(sizeof(AssetPayload)))
             return std::nullopt;
 
         AssetPayload result;

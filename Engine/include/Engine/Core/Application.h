@@ -49,7 +49,7 @@ namespace ByteForge
         LayerStack m_LayerStack;
 
         bool m_IsRunning = true;
-        double m_LastFrameTime = 0.0f;
+        f64 m_LastFrameTime = 0.0f;
 
         static Application* s_Instance;
     };

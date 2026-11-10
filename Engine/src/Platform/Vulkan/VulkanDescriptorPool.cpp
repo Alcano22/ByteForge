@@ -7,7 +7,7 @@
 namespace ByteForge
 {
     VulkanDescriptorPool::VulkanDescriptorPool(const VulkanDevice& device, const VkDescriptorSetLayout layout,
-                                               const VulkanUniformBuffer& uniformBuffer, const uint32_t framesInFlight,
+                                               const VulkanUniformBuffer& uniformBuffer, const u32 framesInFlight,
                                                const VkDescriptorType type, const VkDeviceSize range)
         : m_Device(device)
     {
@@ -36,7 +36,7 @@ namespace ByteForge
         m_Sets.resize(framesInFlight);
         VK_CHECK(vkAllocateDescriptorSets(m_Device.GetHandle(), &allocInfo, m_Sets.data()));
 
-        for (uint32_t i = 0; i < framesInFlight; ++i)
+        for (u32 i = 0; i < framesInFlight; ++i)
         {
             const VkDescriptorBufferInfo bufferInfo{
                 .buffer = uniformBuffer.GetHandle(i),

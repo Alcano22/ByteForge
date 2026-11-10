@@ -18,15 +18,15 @@ namespace ByteForge
 
     struct LogEntry
     {
-        uint64_t Id = 0;
+        u64 Id = 0;
         LogLevel Level = LogLevel::Info;
         std::string Logger;
         std::string Message;
         std::chrono::system_clock::time_point Time;
         std::string File;
-        int Line = 0;
+        i32 Line = 0;
         std::string Function;
-        size_t ThreadId = 0;
+        usize ThreadId = 0;
     };
 
     using LogCallback = std::function<void(const LogEntry&)>;
@@ -56,13 +56,13 @@ namespace ByteForge
         void Reset();
 
     private:
-        explicit LogSubscription(const uint64_t id)
+        explicit LogSubscription(const u64 id)
             : m_Id(id) {}
 
     private:
         friend class Log;
 
-        uint64_t m_Id = 0;
+        u64 m_Id = 0;
     };
 
     class BYTEFORGE_API Log
@@ -76,7 +76,7 @@ namespace ByteForge
         static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 
     private:
-        static void Unsubscribe(uint64_t id);
+        static void Unsubscribe(u64 id);
 
     private:
         friend class LogSubscription;

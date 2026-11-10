@@ -13,7 +13,7 @@ namespace ByteForge
     LineRenderer::LineRenderer(const LineRendererSpec& spec)
         : m_Spec(spec)
     {
-        static_assert(sizeof(Vertex) == 7 * sizeof(float), "Vertex must be tightly packed to match the buffer layout");
+        static_assert(sizeof(Vertex) == 7 * sizeof(f32), "Vertex must be tightly packed to match the buffer layout");
 
         if (spec.MaxLines == 0)
             throw std::runtime_error("LineRendererSpec::MaxLines must be at least 1");
@@ -25,8 +25,8 @@ namespace ByteForge
             { ShaderDataType::Float4, "Color"    }
         };
 
-        const uint32_t vertexCount = spec.MaxLines * VerticesPerLine;
-        m_VertexBuffer = VertexBuffer::Create(static_cast<uint32_t>(vertexCount * sizeof(Vertex)));
+        const u32 vertexCount = spec.MaxLines * VerticesPerLine;
+        m_VertexBuffer = VertexBuffer::Create(static_cast<u32>(vertexCount * sizeof(Vertex)));
         m_VertexBuffer->SetLayout(layout);
         m_Mesh = MakeRef<Mesh>(m_VertexBuffer, vertexCount);
 
@@ -53,7 +53,7 @@ namespace ByteForge
         if (m_InScene)
             throw std::runtime_error("LineRenderer::BeginScene: the previous scene has not been ended with EndScene");
 
-        const uint64_t frame = Renderer::GetFrameNumber();
+        const u64 frame = Renderer::GetFrameNumber();
         if (frame != m_Frame)
         {
             m_Frame = frame;
@@ -87,21 +87,21 @@ namespace ByteForge
 
         const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(color) : color;
 
-        Vertex* vertices = &m_Vertices[static_cast<size_t>(m_FrameLines) * VerticesPerLine];
+        Vertex* vertices = &m_Vertices[static_cast<usize>(m_FrameLines) * VerticesPerLine];
         vertices[0] = { .Position = from, .Color = vertexColor };
         vertices[1] = { .Position = to, .Color = vertexColor };
 
         ++m_FrameLines;
     }
 
-    void LineRenderer::DrawRect(const glm::vec3& center, const glm::vec2& size, const float rotation,
+    void LineRenderer::DrawRect(const glm::vec3& center, const glm::vec2& size, const f32 rotation,
                                 const glm::vec4& color)
     {
         const glm::vec2 half = size * 0.5f;
-        const float cosine = std::cos(rotation);
-        const float sine = std::sin(rotation);
+        const f32 cosine = std::cos(rotation);
+        const f32 sine = std::sin(rotation);
 
-        const auto corner = [&](const float x, const float y)
+        const auto corner = [&](const f32 x, const f32 y)
         {
             return glm::vec3(center.x + x * cosine - y * sine, center.y + x * sine + y * cosine, center.z);
         };
@@ -110,20 +110,20 @@ namespace ByteForge
             corner(-half.x, -half.y), corner(half.x, -half.y), corner(half.x, half.y), corner(-half.x, half.y)
         };
 
-        for (size_t i = 0; i < corners.size(); ++i)
+        for (usize i = 0; i < corners.size(); ++i)
             DrawLine(corners[i], corners[(i + 1) % corners.size()], color);
     }
 
     void LineRenderer::Flush()
     {
-        const uint32_t lineCount = m_FrameLines - m_BatchStart;
+        const u32 lineCount = m_FrameLines - m_BatchStart;
         if (lineCount == 0) return;
 
-        const uint32_t firstVertex = m_BatchStart * VerticesPerLine;
-        const uint32_t vertexCount = lineCount * VerticesPerLine;
+        const u32 firstVertex = m_BatchStart * VerticesPerLine;
+        const u32 vertexCount = lineCount * VerticesPerLine;
 
-        m_VertexBuffer->SetData(&m_Vertices[firstVertex], static_cast<uint32_t>(vertexCount * sizeof(Vertex)),
-                                static_cast<uint32_t>(firstVertex * sizeof(Vertex)));
+        m_VertexBuffer->SetData(&m_Vertices[firstVertex], static_cast<u32>(vertexCount * sizeof(Vertex)),
+                                static_cast<u32>(firstVertex * sizeof(Vertex)));
 
         Renderer::Submit(m_Material, m_Mesh, DrawRange{ .Count = vertexCount, .First = firstVertex });
         m_BatchStart = m_FrameLines;

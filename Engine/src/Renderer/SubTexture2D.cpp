@@ -29,8 +29,8 @@ namespace ByteForge
         if (!texture)
             throw std::runtime_error("SubTexture2D::CreateFromPixels: the texture must not be null");
 
-        const auto width = static_cast<float>(texture->GetWidth());
-        const auto height = static_cast<float>(texture->GetHeight());
+        const auto width = static_cast<f32>(texture->GetWidth());
+        const auto height = static_cast<f32>(texture->GetHeight());
 
         if (pixelMin.x < 0.0f || pixelMin.y < 0.0f || pixelMax.x > width || pixelMax.y > height)
         {

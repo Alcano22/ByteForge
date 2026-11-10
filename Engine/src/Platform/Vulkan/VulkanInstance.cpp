@@ -74,13 +74,13 @@ namespace ByteForge
         VkInstanceCreateInfo createInfo{
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pApplicationInfo        = &appInfo,
-            .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
+            .enabledExtensionCount   = static_cast<u32>(extensions.size()),
             .ppEnabledExtensionNames = extensions.data()
         };
 
         if (m_ValidationEnabled)
         {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+            createInfo.enabledLayerCount = static_cast<u32>(s_ValidationLayers.size());
             createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
         }
 
@@ -134,7 +134,7 @@ namespace ByteForge
 
     bool VulkanInstance::CheckValidationLayerSupport()
     {
-        uint32_t layerCount = 0;
+        u32 layerCount = 0;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
@@ -162,7 +162,7 @@ namespace ByteForge
 
     std::vector<const char*> VulkanInstance::GetRequiredExtensions(const bool validationEnabled)
     {
-        uint32_t glfwExtensionCount = 0;
+        u32 glfwExtensionCount = 0;
         const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         if (!glfwExtensions)

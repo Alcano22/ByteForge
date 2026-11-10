@@ -14,16 +14,16 @@ namespace ByteForge
         void SetViewportSize(const glm::vec2& size);
 
         void Pan(const glm::vec2& pixelDelta);
-        void ZoomAt(const glm::vec2& viewportPoint, float steps);
-        void Focus(const glm::vec2& center, float height);
+        void ZoomAt(const glm::vec2& viewportPoint, f32 steps);
+        void Focus(const glm::vec2& center, f32 height);
 
         [[nodiscard]] glm::vec2 ViewportToWorld(const glm::vec2& viewportPoint) const;
-        [[nodiscard]] float GetWorldUnitsPerPixel() const;
+        [[nodiscard]] f32 GetWorldUnitsPerPixel() const;
 
         [[nodiscard]] glm::vec2 GetVisibleMin() const;
         [[nodiscard]] glm::vec2 GetVisibleMax() const;
 
-        [[nodiscard]] float GetZoom() const;
+        [[nodiscard]] f32 GetZoom() const;
 
         [[nodiscard]] const Camera& GetCamera() const { return m_Camera; }
 

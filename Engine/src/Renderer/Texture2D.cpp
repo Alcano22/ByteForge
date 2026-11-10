@@ -7,7 +7,7 @@
 
 namespace ByteForge
 {
-    Ref<Texture2D> Texture2D::Create(const uint32_t width, const uint32_t height,
+    Ref<Texture2D> Texture2D::Create(const u32 width, const u32 height,
                                      const std::span<const std::byte> pixels, const TextureSettings& settings)
     {
         return RenderBackend::Get().CreateTexture2D(width, height, pixels, settings);

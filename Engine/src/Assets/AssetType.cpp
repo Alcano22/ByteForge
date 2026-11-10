@@ -22,7 +22,7 @@ namespace ByteForge
     AssetType AssetTypeFromExtension(const std::string& extension)
     {
         std::string ext = extension;
-        std::ranges::transform(ext, ext.begin(), [](const unsigned char c) { return std::tolower(c); });
+        std::ranges::transform(ext, ext.begin(), [](const u8 c) { return std::tolower(c); });
 
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".tga")
             return AssetType::Texture2D;

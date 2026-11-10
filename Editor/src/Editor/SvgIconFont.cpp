@@ -33,12 +33,12 @@ namespace ByteForge
         }
 
         bool FontBakedLoadGlyph(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void*,
-                                const ImWchar codepoint, ImFontGlyph* outGlyph, float* outAdvanceX)
+                                const ImWchar codepoint, ImFontGlyph* outGlyph, f32* outAdvanceX)
         {
             const lunasvg::Document* document = GetIconFont(src).Find(codepoint);
             if (document == nullptr) return false;
 
-            const float size = baked->Size;
+            const f32 size = baked->Size;
 
             if (outAdvanceX != nullptr)
             {
@@ -46,8 +46,8 @@ namespace ByteForge
                 return true;
             }
 
-            const float density = src->RasterizerDensity * baked->RasterizerDensity;
-            const int pixels = std::max(1, static_cast<int>(std::ceil(size * density)));
+            const f32 density = src->RasterizerDensity * baked->RasterizerDensity;
+            const i32 pixels = std::max(1, static_cast<i32>(std::ceil(size * density)));
 
             lunasvg::Bitmap bitmap = document->renderToBitmap(pixels, pixels);
             if (bitmap.isNull()) return false;
@@ -58,7 +58,7 @@ namespace ByteForge
             if (packId == ImFontAtlasRectId_Invalid) return false;
             ImTextureRect* rect = ImFontAtlasPackGetRect(atlas, packId);
 
-            const float extent = static_cast<float>(pixels) / density;
+            const f32 extent = static_cast<f32>(pixels) / density;
 
             outGlyph->Codepoint = codepoint;
             outGlyph->AdvanceX = size;

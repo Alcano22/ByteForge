@@ -18,7 +18,7 @@ namespace ByteForge
     class BYTEFORGE_API JobSystem
     {
     public:
-        static void Init(uint32_t threadCount = 0);
+        static void Init(u32 threadCount = 0);
         static void Shutdown();
 
         template<typename F>

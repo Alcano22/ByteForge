@@ -60,7 +60,7 @@ namespace ByteForge
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(scene, metadata) || metadata.Type != AssetType::Scene)
         {
-            APP_ERROR("Cannot open asset {}: it is not a scene", static_cast<uint64_t>(scene));
+            APP_ERROR("Cannot open asset {}: it is not a scene", static_cast<u64>(scene));
             return false;
         }
 
@@ -93,7 +93,7 @@ namespace ByteForge
         if (!state.contains("lastScene") || !state.at("lastScene").is_number_unsigned())
             return false;
 
-        const UUID scene(state.at("lastScene").get<uint64_t>());
+        const UUID scene(state.at("lastScene").get<u64>());
 
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(scene, metadata))
@@ -222,7 +222,7 @@ namespace ByteForge
     void SceneDocument::RememberAsLast() const
     {
         nlohmann::json state = ReadState();
-        state["lastScene"] = static_cast<uint64_t>(*m_Handle);
+        state["lastScene"] = static_cast<u64>(*m_Handle);
         WriteState(state);
     }
 }

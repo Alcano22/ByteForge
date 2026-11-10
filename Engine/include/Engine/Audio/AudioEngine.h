@@ -22,8 +22,8 @@ namespace ByteForge
         void Stop() const;
         [[nodiscard]] bool IsPlaying() const;
 
-        void SetVolume(float volume) const;
-        void SetPitch(float pitch) const;
+        void SetVolume(f32 volume) const;
+        void SetPitch(f32 pitch) const;
         void SetLooping(bool looping) const;
 
     private:
@@ -36,7 +36,7 @@ namespace ByteForge
         Scope<Impl> m_Impl;
     };
 
-    enum class AudioBus : uint8_t { Editor, Game };
+    enum class AudioBus : u8 { Editor, Game };
 
     class BYTEFORGE_API AudioEngine : NonCopyable
     {
@@ -46,8 +46,8 @@ namespace ByteForge
 
         [[nodiscard]] bool IsAvailable() const { return m_Impl != nullptr; }
 
-        [[nodiscard]] float GetMasterVolume() const;
-        void SetMasterVolume(float volume) const;
+        [[nodiscard]] f32 GetMasterVolume() const;
+        void SetMasterVolume(f32 volume) const;
 
         void PlayOneShot(const std::filesystem::path& file, AudioBus bus);
 

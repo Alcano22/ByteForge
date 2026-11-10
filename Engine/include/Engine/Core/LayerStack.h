@@ -22,6 +22,6 @@ namespace ByteForge
 
     private:
         std::vector<Scope<Layer>> m_Layers;
-        size_t m_LayerInsertIndex = 0;
+        usize m_LayerInsertIndex = 0;
     };
 }

@@ -20,7 +20,7 @@ namespace ByteForge
         Bool
     };
 
-    inline uint32_t ShaderDataTypeSize(const ShaderDataType type)
+    inline u32 ShaderDataTypeSize(const ShaderDataType type)
     {
         switch (type)
         {
@@ -49,8 +49,8 @@ namespace ByteForge
     {
         std::string Name;
         ShaderDataType Type;
-        uint32_t Size;
-        size_t Offset;
+        u32 Size;
+        usize Offset;
         bool Normalized;
 
         BufferElement() = default;
@@ -58,7 +58,7 @@ namespace ByteForge
         BufferElement(const ShaderDataType type, std::string name, const bool normalized = false)
             : Name(std::move(name)), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized) {}
 
-        [[nodiscard]] uint32_t GetComponentCount() const
+        [[nodiscard]] u32 GetComponentCount() const
         {
             switch (Type)
             {
@@ -95,7 +95,7 @@ namespace ByteForge
             CalculateOffsetsAndStride();
         }
 
-        [[nodiscard]] uint32_t GetStride() const { return m_Stride; }
+        [[nodiscard]] u32 GetStride() const { return m_Stride; }
         [[nodiscard]] const std::vector<BufferElement>& GetElements() const { return m_Elements; }
 
         [[nodiscard]] auto begin() const { return m_Elements.begin(); }
@@ -104,7 +104,7 @@ namespace ByteForge
     private:
         void CalculateOffsetsAndStride()
         {
-            size_t offset = 0;
+            usize offset = 0;
             m_Stride = 0;
             for (auto& element : m_Elements)
             {
@@ -116,7 +116,7 @@ namespace ByteForge
 
     private:
         std::vector<BufferElement> m_Elements;
-        uint32_t m_Stride = 0;
+        u32 m_Stride = 0;
     };
 
     class BYTEFORGE_API VertexBuffer
@@ -124,13 +124,13 @@ namespace ByteForge
     public:
         virtual ~VertexBuffer() = default;
 
-        virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+        virtual void SetData(const void* data, u32 size, u32 offset = 0) = 0;
 
         [[nodiscard]] virtual const BufferLayout& GetLayout() const = 0;
         virtual void SetLayout(const BufferLayout& layout) = 0;
 
-        static Ref<VertexBuffer> Create(uint32_t size);
-        static Ref<VertexBuffer> Create(const void* vertices, uint32_t size);
+        static Ref<VertexBuffer> Create(u32 size);
+        static Ref<VertexBuffer> Create(const void* vertices, u32 size);
     };
 
     class BYTEFORGE_API IndexBuffer
@@ -138,8 +138,8 @@ namespace ByteForge
     public:
         virtual ~IndexBuffer() = default;
 
-        [[nodiscard]] virtual uint32_t GetCount() const = 0;
+        [[nodiscard]] virtual u32 GetCount() const = 0;
 
-        static Ref<IndexBuffer> Create(std::span<const uint32_t> indices);
+        static Ref<IndexBuffer> Create(std::span<const u32> indices);
     };
 }

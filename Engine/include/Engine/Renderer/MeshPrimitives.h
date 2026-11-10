@@ -5,5 +5,5 @@
 
 namespace ByteForge::MeshPrimitives
 {
-    [[nodiscard]] BYTEFORGE_API Ref<Mesh> CreateCube(float size = 1.0f);
+    [[nodiscard]] BYTEFORGE_API Ref<Mesh> CreateCube(f32 size = 1.0f);
 }

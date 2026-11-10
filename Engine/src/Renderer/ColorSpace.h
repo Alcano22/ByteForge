@@ -6,7 +6,7 @@
 
 namespace ByteForge
 {
-    [[nodiscard]] inline float SrgbToLinear(const float channel)
+    [[nodiscard]] inline f32 SrgbToLinear(const f32 channel)
     {
         return channel <= 0.04045f ? channel / 12.92f : std::pow((channel + 0.055f) / 1.055f, 2.4f);
     }

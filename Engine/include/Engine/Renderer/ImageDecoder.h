@@ -11,7 +11,7 @@ namespace ByteForge
 {
     struct DecodedImage
     {
-        uint32_t Width = 0, Height = 0;
+        u32 Width = 0, Height = 0;
         std::vector<std::byte> Pixels;
     };
 

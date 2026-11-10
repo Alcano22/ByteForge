@@ -8,8 +8,8 @@
 
 namespace ByteForge::GraphTheme
 {
-    inline constexpr float ExecLinkThickness = 3.0f;
-    inline constexpr float DataLinkThickness = 2.0f;
+    inline constexpr f32 ExecLinkThickness = 3.0f;
+    inline constexpr f32 DataLinkThickness = 2.0f;
 
     [[nodiscard]] ImU32 PinColor(const PinType& type);
     [[nodiscard]] ImU32 CategoryColor(std::string_view category);

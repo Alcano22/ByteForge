@@ -33,7 +33,7 @@ namespace ByteForge
 
                 for (const GraphVariable& variable : m_Graph.GetVariables())
                 {
-                    const uint32_t slot = AddSlot(variable.Default);
+                    const u32 slot = AddSlot(variable.Default);
                     m_VariableSlots.emplace(variable.Id, slot);
                     m_Program.VariableSlots.emplace(variable.Name, slot);
 
@@ -47,18 +47,18 @@ namespace ByteForge
                     const auto* event = std::get_if<EventNode>(&node.Data);
                     if (event == nullptr) continue;
 
-                    uint32_t payload = NoSlot;
+                    u32 payload = NoSlot;
                     for (const PinInfo& pin : Signature(node.Id).Pins)
                     {
                         if (pin.Direction == PinDirection::Output && !pin.Type.IsExec)
                             payload = OutputSlot(node.Id, pin);
                     }
 
-                    const uint32_t entry = Here();
+                    const u32 entry = Here();
                     m_Label = Label(node.Id);
                     EmitContinuation(node.Id, GraphPin::Then);
 
-                    m_Program.Events[static_cast<size_t>(event->Event)] = GraphEntry{ entry, payload };
+                    m_Program.Events[static_cast<usize>(event->Event)] = GraphEntry{ entry, payload };
                 }
 
                 return std::move(m_Program);
@@ -106,15 +106,15 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode& node, const CallNode& call)
             {
-                std::set<uint64_t> evaluated;
+                std::set<u64> evaluated;
                 EmitCall(node, call, evaluated);
                 EmitContinuation(node.Id, GraphPin::Then);
             }
 
             void EmitStatement(const GraphNode& node, const SetVariableNode& set)
             {
-                std::set<uint64_t> evaluated;
-                const uint32_t value = ResolveInput(node, RequirePin(node.Id, GraphPin::Value, PinDirection::Input),
+                std::set<u64> evaluated;
+                const u32 value = ResolveInput(node, RequirePin(node.Id, GraphPin::Value, PinDirection::Input),
                                                     evaluated);
 
                 m_Label = Label(node.Id);
@@ -124,11 +124,11 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode& node, const BranchNode&)
             {
-                std::set<uint64_t> evaluated;
-                const uint32_t condition = ResolveInput(node, RequirePin(node.Id, GraphPin::Condition, PinDirection::Input), evaluated);
+                std::set<u64> evaluated;
+                const u32 condition = ResolveInput(node, RequirePin(node.Id, GraphPin::Condition, PinDirection::Input), evaluated);
 
                 m_Label = Label(node.Id);
-                const uint32_t jump = Emit(GraphOp::JumpIfFalse, condition);
+                const u32 jump = Emit(GraphOp::JumpIfFalse, condition);
                 EmitContinuation(node.Id, GraphPin::True);
 
                 m_Program.Code[jump].B = Here();
@@ -137,8 +137,8 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode& node, const DelayNode&)
             {
-                std::set<uint64_t> evaluated;
-                const uint32_t duration = ResolveInput(node, RequirePin(node.Id, GraphPin::Duration, PinDirection::Input), evaluated);
+                std::set<u64> evaluated;
+                const u32 duration = ResolveInput(node, RequirePin(node.Id, GraphPin::Duration, PinDirection::Input), evaluated);
 
                 m_Label = Label(node.Id);
                 Emit(GraphOp::Delay, m_Program.DelayCount++, duration);
@@ -149,10 +149,10 @@ namespace ByteForge
             void EmitStatement(const GraphNode&, const GetVariableNode&) { Emit(GraphOp::Return); }
             void EmitStatement(const GraphNode&, const LiteralNode&) { Emit(GraphOp::Return); }
 
-            void EmitCall(const GraphNode& node, const CallNode& call, std::set<uint64_t>& evaluated)
+            void EmitCall(const GraphNode& node, const CallNode& call, std::set<u64>& evaluated)
             {
-                std::vector<uint32_t> arguments;
-                uint32_t result = NoSlot;
+                std::vector<u32> arguments;
+                u32 result = NoSlot;
 
                 for (const PinInfo& pin : Signature(node.Id).Pins)
                 {
@@ -164,21 +164,21 @@ namespace ByteForge
                         result = OutputSlot(node.Id, pin);
                 }
 
-                const auto first = static_cast<uint32_t>(m_Program.Arguments.size());
+                const auto first = static_cast<u32>(m_Program.Arguments.size());
                 m_Program.Arguments.insert(m_Program.Arguments.end(), arguments.begin(), arguments.end());
 
                 m_Label = Label(node.Id);
                 Emit(GraphOp::Call, ScriptAPI::Get().FindIndex(call.Function), first,
-                     static_cast<uint32_t>(arguments.size()), result);
+                     static_cast<u32>(arguments.size()), result);
             }
 
-            void EmitPure(const GraphNode& node, std::set<uint64_t>& evaluated)
+            void EmitPure(const GraphNode& node, std::set<u64>& evaluated)
             {
                 if (const auto* call = std::get_if<CallNode>(&node.Data))
                     EmitCall(node, *call, evaluated);
             }
 
-            uint32_t ResolveInput(const GraphNode& node, const PinInfo& input, std::set<uint64_t>& evaluated)
+            u32 ResolveInput(const GraphNode& node, const PinInfo& input, std::set<u64>& evaluated)
             {
                 if (const GraphLink* link = FindLinkTo(node.Id, input.Name))
                 {
@@ -188,11 +188,11 @@ namespace ByteForge
                     if (source.Pure && evaluated.insert(link->From.Node).second)
                         EmitPure(*m_Graph.FindNode(link->From.Node), evaluated);
 
-                    const uint32_t slot = OutputSlot(link->From.Node, output);
+                    const u32 slot = OutputSlot(link->From.Node, output);
                     if (!NeedsIntToFloat(output.Type, input.Type))
                         return slot;
 
-                    const uint32_t converted = AddSlot(0.0f);
+                    const u32 converted = AddSlot(0.0f);
                     Emit(GraphOp::IntToFloat, slot, converted);
                     return converted;
                 }
@@ -201,7 +201,7 @@ namespace ByteForge
                     it != node.Defaults.end() && IsAssignable(PinType::Of(it->second), input.Type))
                 {
                     if (NeedsIntToFloat(PinType::Of(it->second), input.Type))
-                        return AddSlot(static_cast<float>(std::get<int>(it->second)));
+                        return AddSlot(static_cast<f32>(std::get<i32>(it->second)));
                     return AddSlot(it->second);
                 }
 
@@ -211,7 +211,7 @@ namespace ByteForge
                 return AddSlot(DefaultValueFor(input.Type));
             }
 
-            uint32_t OutputSlot(const UUID node, const PinInfo& pin)
+            u32 OutputSlot(const UUID node, const PinInfo& pin)
             {
                 const GraphNode& graphNode = *m_Graph.FindNode(node);
                 if (const auto* get = std::get_if<GetVariableNode>(&graphNode.Data))
@@ -219,19 +219,19 @@ namespace ByteForge
                 if (const auto* set = std::get_if<SetVariableNode>(&graphNode.Data))
                     return m_VariableSlots.at(set->Variable);
 
-                std::pair<uint64_t, std::string> key{ node, pin.Name };
+                std::pair<u64, std::string> key{ node, pin.Name };
                 if (const auto it = m_OutputSlots.find(key); it != m_OutputSlots.end())
                     return it->second;
 
                 const auto* literal = std::get_if<LiteralNode>(&graphNode.Data);
-                const uint32_t slot = AddSlot(literal != nullptr ? literal->Value : DefaultValueFor(pin.Type));
+                const u32 slot = AddSlot(literal != nullptr ? literal->Value : DefaultValueFor(pin.Type));
                 m_OutputSlots.emplace(std::move(key), slot);
                 return slot;
             }
 
             const NodeSignature& Signature(const UUID node)
             {
-                const auto key = static_cast<uint64_t>(node);
+                const auto key = static_cast<u64>(node);
                 if (const auto it = m_Signatures.find(key); it != m_Signatures.end())
                     return it->second;
 
@@ -247,7 +247,7 @@ namespace ByteForge
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
-                    if (static_cast<uint64_t>(link.From.Node) == static_cast<uint64_t>(node) && link.From.Pin == pin)
+                    if (static_cast<u64>(link.From.Node) == static_cast<u64>(node) && link.From.Pin == pin)
                         return &link;
                 }
                 return nullptr;
@@ -257,49 +257,49 @@ namespace ByteForge
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
-                    if (static_cast<uint64_t>(link.To.Node) == static_cast<uint64_t>(node) && link.To.Pin == pin)
+                    if (static_cast<u64>(link.To.Node) == static_cast<u64>(node) && link.To.Pin == pin)
                         return &link;
                 }
                 return nullptr;
             }
 
-            uint32_t Label(const UUID node)
+            u32 Label(const UUID node)
             {
-                const auto key = static_cast<uint64_t>(node);
+                const auto key = static_cast<u64>(node);
                 if (const auto it = m_Labels.find(key); it != m_Labels.end())
                     return it->second;
 
-                const auto index = static_cast<uint32_t>(m_Program.Labels.size());
+                const auto index = static_cast<u32>(m_Program.Labels.size());
                 m_Program.Labels.push_back(Signature(node).Title);
                 m_Labels.emplace(key, index);
                 return index;
             }
 
-            uint32_t Here() const { return static_cast<uint32_t>(m_Program.Code.size()); }
+            u32 Here() const { return static_cast<u32>(m_Program.Code.size()); }
 
-            uint32_t Emit(const GraphOp op, const uint32_t a = 0, const uint32_t b = 0,
-                          const uint32_t c = 0, const uint32_t d = 0)
+            u32 Emit(const GraphOp op, const u32 a = 0, const u32 b = 0,
+                          const u32 c = 0, const u32 d = 0)
             {
                 m_Program.Code.push_back({ op, a, b, c, d, m_Label });
                 return Here() - 1;
             }
 
-            uint32_t AddSlot(ScriptValue initial)
+            u32 AddSlot(ScriptValue initial)
             {
                 m_Program.InitialSlots.push_back(std::move(initial));
-                return static_cast<uint32_t>(m_Program.InitialSlots.size() - 1);
+                return static_cast<u32>(m_Program.InitialSlots.size() - 1);
             }
 
         private:
             const ScriptGraph& m_Graph;
             GraphProgram m_Program;
 
-            std::map<uint64_t, NodeSignature> m_Signatures;
-            std::map<uint64_t, uint32_t> m_VariableSlots;
-            std::map<std::pair<uint64_t, std::string>, uint32_t> m_OutputSlots;
-            std::map<uint64_t, uint32_t> m_NodeCode;
-            std::map<uint64_t, uint32_t> m_Labels;
-            uint32_t m_Label = 0;
+            std::map<u64, NodeSignature> m_Signatures;
+            std::map<u64, u32> m_VariableSlots;
+            std::map<std::pair<u64, std::string>, u32> m_OutputSlots;
+            std::map<u64, u32> m_NodeCode;
+            std::map<u64, u32> m_Labels;
+            u32 m_Label = 0;
         };
     }
 

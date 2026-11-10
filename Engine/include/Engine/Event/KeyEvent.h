@@ -33,7 +33,7 @@ namespace ByteForge
 
         [[nodiscard]] std::string ToString() const override
         {
-            return std::format("KeyPressedEvent: {} (repeat = {})", static_cast<uint16_t>(m_KeyCode), m_IsRepeat);
+            return std::format("KeyPressedEvent: {} (repeat = {})", static_cast<u16>(m_KeyCode), m_IsRepeat);
         }
 
         EVENT_CLASS_TYPE(KeyPressed)
@@ -50,7 +50,7 @@ namespace ByteForge
 
         [[nodiscard]] std::string ToString() const override
         {
-            return std::format("KeyReleasedEvent: {}", static_cast<uint16_t>(m_KeyCode));
+            return std::format("KeyReleasedEvent: {}", static_cast<u16>(m_KeyCode));
         }
 
         EVENT_CLASS_TYPE(KeyReleased)
@@ -59,10 +59,10 @@ namespace ByteForge
     class BYTEFORGE_API KeyTypedEvent : public Event
     {
     public:
-        explicit KeyTypedEvent(const uint32_t codepoint)
+        explicit KeyTypedEvent(const u32 codepoint)
             : m_Codepoint(codepoint) {}
 
-        [[nodiscard]] uint32_t GetCodepoint() const { return m_Codepoint; }
+        [[nodiscard]] u32 GetCodepoint() const { return m_Codepoint; }
 
         [[nodiscard]] std::string ToString() const override
         {
@@ -73,6 +73,6 @@ namespace ByteForge
         EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
 
     private:
-        uint32_t m_Codepoint;
+        u32 m_Codepoint;
     };
 }

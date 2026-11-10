@@ -20,15 +20,15 @@ namespace ByteForge
         constexpr CameraComponent DefaultCamera;
         constexpr TransformComponent DefaultTransform;
 
-        float MathAddFloat(const ScriptCallContext&, const float a, const float b) { return a + b; }
-        float MathSubtractFloat(const ScriptCallContext&, const float a, const float b) { return a - b; }
-        float MathMultiplyFloat(const ScriptCallContext&, const float a, const float b) { return a * b; }
-        float MathDivideFloat(const ScriptCallContext&, const float a, const float b) { return a / b; }
-        bool MathGreaterFloat(const ScriptCallContext&, const float a, const float b) { return a > b; }
-        bool MathLessFloat(const ScriptCallContext&, const float a, const float b) { return a < b; }
+        f32 MathAddFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a + b; }
+        f32 MathSubtractFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a - b; }
+        f32 MathMultiplyFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a * b; }
+        f32 MathDivideFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a / b; }
+        bool MathGreaterFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a > b; }
+        bool MathLessFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a < b; }
 
         glm::vec3 MathAddVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return a + b; }
-        glm::vec3 MathScaleVector3(const ScriptCallContext&, const glm::vec3& v, const float s) { return v * s; }
+        glm::vec3 MathScaleVector3(const ScriptCallContext&, const glm::vec3& v, const f32 s) { return v * s; }
 
         void DebugLog(const ScriptCallContext&, const std::string& message) { APP_INFO("{}", message); }
 
@@ -105,12 +105,12 @@ namespace ByteForge
             TeleportBodyToTransform(context, entity);
         }
 
-        float TransformGetRotation(const ScriptCallContext& context, const EntityRef entity)
+        f32 TransformGetRotation(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Require<TransformComponent>(entity).Rotation;
         }
 
-        void TransformSetRotation(const ScriptCallContext& context, const EntityRef entity, const float rotation)
+        void TransformSetRotation(const ScriptCallContext& context, const EntityRef entity, const f32 rotation)
         {
             context.Require<TransformComponent>(entity).Rotation = rotation;
             TeleportBodyToTransform(context, entity);
@@ -131,12 +131,12 @@ namespace ByteForge
             return context.Resolve(entity).HasComponent<SpriteRendererComponent>();
         }
 
-        int SpriteRendererGetSortingLayer(const ScriptCallContext& context, const EntityRef entity)
+        i32 SpriteRendererGetSortingLayer(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Require<SpriteRendererComponent>(entity).SortingLayer;
         }
 
-        void SpriteRendererSetSortingLayer(const ScriptCallContext& context, const EntityRef entity, const int layer)
+        void SpriteRendererSetSortingLayer(const ScriptCallContext& context, const EntityRef entity, const i32 layer)
         {
             context.Require<SpriteRendererComponent>(entity).SortingLayer = layer;
         }
@@ -169,13 +169,13 @@ namespace ByteForge
         }
 
         RaycastHit2D CastRay(const ScriptCallContext& context, const glm::vec2& origin, const glm::vec2& direction,
-                             const float maxDistance)
+                             const f32 maxDistance)
         {
             return RequireScene(context).Raycast2D(origin, direction, maxDistance);
         }
 
         EntityRef PhysicsRaycast(const ScriptCallContext& context, const glm::vec2& origin,
-                                 const glm::vec2& direction, const float maxDistance)
+                                 const glm::vec2& direction, const f32 maxDistance)
         {
             const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
             if (!hit.Hit || !hit.HitEntity.IsValid())
@@ -185,25 +185,25 @@ namespace ByteForge
         }
 
         glm::vec2 PhysicsRaycastPoint(const ScriptCallContext& context, const glm::vec2& origin,
-                                      const glm::vec2& direction, const float maxDistance)
+                                      const glm::vec2& direction, const f32 maxDistance)
         {
             const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
             if (hit.Hit)
                 return hit.Point;
 
-            const float length = glm::length(direction);
+            const f32 length = glm::length(direction);
             return length > 0.0f ? origin + direction / length * maxDistance : origin;
         }
 
         glm::vec2 PhysicsRaycastNormal(const ScriptCallContext& context, const glm::vec2& origin,
-                                       const glm::vec2& direction, const float maxDistance)
+                                       const glm::vec2& direction, const f32 maxDistance)
         {
             const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
             return hit.Hit ? hit.Normal : glm::vec2(0.0f);
         }
 
-        float PhysicsRaycastDistance(const ScriptCallContext& context, const glm::vec2& origin,
-                                     const glm::vec2& direction, const float maxDistance)
+        f32 PhysicsRaycastDistance(const ScriptCallContext& context, const glm::vec2& origin,
+                                     const glm::vec2& direction, const f32 maxDistance)
         {
             const RaycastHit2D hit = CastRay(context, origin, direction, maxDistance);
             return hit.Hit ? hit.Distance : maxDistance;
@@ -238,37 +238,37 @@ namespace ByteForge
             AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(clip.Handle), AudioBus::Game);
         }
 
-        KeyCode ToKeyCode(const int key)
+        KeyCode ToKeyCode(const i32 key)
         {
-            if (key < 0 || key > std::numeric_limits<uint16_t>::max())
+            if (key < 0 || key > std::numeric_limits<u16>::max())
                 throw ScriptError(std::format("{} is not a valid key code", key));
 
             return static_cast<KeyCode>(key);
         }
 
-        MouseButton ToMouseButton(const int button)
+        MouseButton ToMouseButton(const i32 button)
         {
-            if (button < 0 || button > static_cast<int>(MouseButton::ButtonLast))
+            if (button < 0 || button > static_cast<i32>(MouseButton::ButtonLast))
                 throw ScriptError(std::format("{} is not a valid mouse button", button));
 
             return static_cast<MouseButton>(button);
         }
 
-        bool InputIsKeyDown(const ScriptCallContext&, const int key) { return Input::IsKeyDown(ToKeyCode(key)); }
-        bool InputIsKeyPressed(const ScriptCallContext&, const int key) { return Input::IsKeyPressed(ToKeyCode(key)); }
-        bool InputIsKeyReleased(const ScriptCallContext&, const int key) { return Input::IsKeyReleased(ToKeyCode(key)); }
+        bool InputIsKeyDown(const ScriptCallContext&, const i32 key) { return Input::IsKeyDown(ToKeyCode(key)); }
+        bool InputIsKeyPressed(const ScriptCallContext&, const i32 key) { return Input::IsKeyPressed(ToKeyCode(key)); }
+        bool InputIsKeyReleased(const ScriptCallContext&, const i32 key) { return Input::IsKeyReleased(ToKeyCode(key)); }
 
-        bool InputIsMouseButtonDown(const ScriptCallContext&, const int button)
+        bool InputIsMouseButtonDown(const ScriptCallContext&, const i32 button)
         {
             return Input::IsMouseButtonDown(ToMouseButton(button));
         }
 
-        bool InputIsMouseButtonPressed(const ScriptCallContext&, const int button)
+        bool InputIsMouseButtonPressed(const ScriptCallContext&, const i32 button)
         {
             return Input::IsMouseButtonPressed(ToMouseButton(button));
         }
 
-        bool InputIsMouseButtonReleased(const ScriptCallContext&, const int button)
+        bool InputIsMouseButtonReleased(const ScriptCallContext&, const i32 button)
         {
             return Input::IsMouseButtonReleased(ToMouseButton(button));
         }

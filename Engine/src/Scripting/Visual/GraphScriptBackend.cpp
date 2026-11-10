@@ -60,7 +60,7 @@ namespace ByteForge
 
     void GraphScriptBackend::Refresh(const bool force) const
     {
-        const uint64_t revision = AssetRegistry::GetRevision();
+        const u64 revision = AssetRegistry::GetRevision();
         if (!force && revision == m_Revision) return;
         m_Revision = revision;
 

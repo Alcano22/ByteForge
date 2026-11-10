@@ -11,8 +11,8 @@ namespace ByteForge
 {
     struct QueueFamilyIndices
     {
-        std::optional<uint32_t> GraphicsFamily;
-        std::optional<uint32_t> PresentFamily;
+        std::optional<u32> GraphicsFamily;
+        std::optional<u32> PresentFamily;
 
         [[nodiscard]] bool IsComplete() const { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
     };
@@ -43,7 +43,7 @@ namespace ByteForge
 
         [[nodiscard]] bool IsDeviceSuitable(VkPhysicalDevice device) const;
         [[nodiscard]] QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
-        [[nodiscard]] uint64_t RateDeviceSuitability(VkPhysicalDevice device) const;
+        [[nodiscard]] u64 RateDeviceSuitability(VkPhysicalDevice device) const;
 
         [[nodiscard]] static bool IsExtensionSupported(VkPhysicalDevice device, const char* extension);
         [[nodiscard]] static bool CheckRequiredExtensions(VkPhysicalDevice device);

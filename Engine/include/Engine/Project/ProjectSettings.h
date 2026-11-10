@@ -18,8 +18,8 @@ namespace ByteForge
         UUID StartScene{ 0 };
 
         std::string WindowTitle = "ByteForge Game";
-        uint32_t WindowWidth = 1280;
-        uint32_t WindowHeight = 720;
+        u32 WindowWidth = 1280;
+        u32 WindowHeight = 720;
 
         [[nodiscard]] static std::expected<ProjectSettings, std::string> Load(const std::filesystem::path& file);
         [[nodiscard]] std::expected<void, std::string> Save(const std::filesystem::path& file) const;

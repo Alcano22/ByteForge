@@ -38,7 +38,7 @@ namespace ByteForge
             if (!context.History.IsDirty()) return;
 
             constexpr const char* label = "Unsaved changes";
-            const float width = ImGui::CalcTextSize(label).x;
+            const f32 width = ImGui::CalcTextSize(label).x;
             ImGui::SameLine(ImGui::GetWindowWidth() - width - ImGui::GetStyle().ItemSpacing.x * 2.0f);
             ImGui::TextDisabled("%s", label);
         }

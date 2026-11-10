@@ -20,5 +20,5 @@ namespace ByteForge
         }
     };
 
-    static_assert(sizeof(MeshVertex) == 6 * sizeof(float), "MeshVertex must be tightly packed");
+    static_assert(sizeof(MeshVertex) == 6 * sizeof(f32), "MeshVertex must be tightly packed");
 }

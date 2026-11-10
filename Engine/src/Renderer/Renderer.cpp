@@ -49,7 +49,7 @@ namespace ByteForge
 
     void Renderer::OnFramebufferResized() { RenderBackend::Get().OnFramebufferResized(); }
     void Renderer::WaitIdle() { RenderBackend::Get().WaitIdle(); }
-    uint64_t Renderer::GetFrameNumber() { return RenderBackend::Get().GetFrameNumber(); }
+    u64 Renderer::GetFrameNumber() { return RenderBackend::Get().GetFrameNumber(); }
 
     bool Renderer::IsSrgb(const ImageFormat format)
     {

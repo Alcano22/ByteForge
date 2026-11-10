@@ -15,11 +15,11 @@ namespace ByteForge
     {
     public:
         VulkanDescriptorPool(const VulkanDevice& device, VkDescriptorSetLayout layout,
-                             const VulkanUniformBuffer& uniformBuffer, uint32_t framesInFlight,
+                             const VulkanUniformBuffer& uniformBuffer, u32 framesInFlight,
                              VkDescriptorType type, VkDeviceSize range);
         ~VulkanDescriptorPool();
 
-        [[nodiscard]] VkDescriptorSet GetSet(const uint32_t frameIndex) const { return m_Sets[frameIndex]; }
+        [[nodiscard]] VkDescriptorSet GetSet(const u32 frameIndex) const { return m_Sets[frameIndex]; }
 
     private:
         const VulkanDevice& m_Device;

@@ -13,9 +13,9 @@
 
 namespace ByteForge
 {
-    inline constexpr uint32_t NoSlot = std::numeric_limits<uint32_t>::max();
+    inline constexpr u32 NoSlot = std::numeric_limits<u32>::max();
 
-    enum class GraphOp : uint8_t
+    enum class GraphOp : u8
     {
         Call,        // A: function index, B: first entry in Arguments, C: argument count, D: result slot or NoSlot
         Copy,        // A: source slot, B: target slot
@@ -29,32 +29,32 @@ namespace ByteForge
     struct GraphInstruction
     {
         GraphOp Op = GraphOp::Return;
-        uint32_t A = 0;
-        uint32_t B = 0;
-        uint32_t C = 0;
-        uint32_t D = 0;
-        uint32_t Label = 0;
+        u32 A = 0;
+        u32 B = 0;
+        u32 C = 0;
+        u32 D = 0;
+        u32 Label = 0;
     };
 
     struct GraphEntry
     {
-        uint32_t Instruction = 0;
-        uint32_t PayloadSlot = NoSlot;
+        u32 Instruction = 0;
+        u32 PayloadSlot = NoSlot;
     };
 
     struct GraphProgram
     {
-        static constexpr uint32_t SelfSlot = 0;
+        static constexpr u32 SelfSlot = 0;
 
         std::vector<GraphInstruction> Code;
-        std::vector<uint32_t> Arguments;
+        std::vector<u32> Arguments;
         std::vector<ScriptValue> InitialSlots;
         std::array<std::optional<GraphEntry>, GraphEventCount> Events;
 
-        std::map<std::string, uint32_t, std::less<>> VariableSlots;
+        std::map<std::string, u32, std::less<>> VariableSlots;
         std::vector<ScriptFieldInfo> Fields;
 
-        uint32_t DelayCount = 0;
+        u32 DelayCount = 0;
         std::vector<std::string> Labels{ "Graph" };
     };
 }

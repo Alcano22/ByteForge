@@ -112,9 +112,9 @@ namespace ByteForge
 
         void ValidateShaderResources(const ShaderReflection& reflection)
         {
-            uint32_t uniformBuffers = 0;
-            uint32_t sampledImages = 0;
-            uint32_t samplers = 0;
+            u32 uniformBuffers = 0;
+            u32 sampledImages = 0;
+            u32 samplers = 0;
 
             for (const ReflectedDescriptorBinding& binding : reflection.Bindings)
             {
@@ -340,14 +340,14 @@ namespace ByteForge
         };
 
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-        uint32_t location = 0;
+        u32 location = 0;
         for (const auto& element : spec.VertexLayout)
         {
             attributeDescriptions.push_back({
                 .location = location++,
                 .binding  = 0,
                 .format   = ShaderDataTypeToVkFormat(element.Type),
-                .offset   = static_cast<uint32_t>(element.Offset)
+                .offset   = static_cast<u32>(element.Offset)
             });
         }
 
@@ -355,7 +355,7 @@ namespace ByteForge
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount   = 1,
             .pVertexBindingDescriptions      = &bindingDescription,
-            .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+            .vertexAttributeDescriptionCount = static_cast<u32>(attributeDescriptions.size()),
             .pVertexAttributeDescriptions    = attributeDescriptions.data()
         };
 
@@ -372,7 +372,7 @@ namespace ByteForge
 
         const VkPipelineDynamicStateCreateInfo dynamicState{
             .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+            .dynamicStateCount = static_cast<u32>(dynamicStates.size()),
             .pDynamicStates    = dynamicStates.data()
         };
 
@@ -402,7 +402,7 @@ namespace ByteForge
         const VkPipelineColorBlendStateCreateInfo colorBlending{
             .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable   = VK_FALSE,
-            .attachmentCount = static_cast<uint32_t>(blendAttachments.size()),
+            .attachmentCount = static_cast<u32>(blendAttachments.size()),
             .pAttachments    = blendAttachments.data()
         };
 
@@ -415,7 +415,7 @@ namespace ByteForge
 
         const VkPipelineRenderingCreateInfo renderingInfo{
             .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .colorAttachmentCount    = static_cast<uint32_t>(m_ColorFormats.size()),
+            .colorAttachmentCount    = static_cast<u32>(m_ColorFormats.size()),
             .pColorAttachmentFormats = m_ColorFormats.data(),
             .depthAttachmentFormat   = m_DepthFormat
         };
@@ -423,7 +423,7 @@ namespace ByteForge
         const VkGraphicsPipelineCreateInfo pipelineInfo{
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .pNext               = &renderingInfo,
-            .stageCount          = static_cast<uint32_t>(shaderStages.size()),
+            .stageCount          = static_cast<u32>(shaderStages.size()),
             .pStages             = shaderStages.data(),
             .pVertexInputState   = &vertexInputInfo,
             .pInputAssemblyState = &inputAssembly,

@@ -39,7 +39,7 @@ namespace ByteForge
         Entity DuplicateEntity(Entity source);
 
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
-        [[nodiscard]] Entity FindEntityByPickingId(uint32_t pickingId);
+        [[nodiscard]] Entity FindEntityByPickingId(u32 pickingId);
         [[nodiscard]] Entity GetPrimaryCamera();
 
         void OnUpdateRuntime(Timestep ts);
@@ -55,7 +55,7 @@ namespace ByteForge
         [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }
 
         [[nodiscard]] RaycastHit2D Raycast2D(const glm::vec2& origin, const glm::vec2& direction,
-                                             float maxDistance) const;
+                                             f32 maxDistance) const;
 
         template<typename... Components, typename Func>
         void Each(Func func)
@@ -74,7 +74,7 @@ namespace ByteForge
 
         void FlushPendingDestroy();
 
-        [[nodiscard]] static uint32_t ToPickingId(entt::entity handle);
+        [[nodiscard]] static u32 ToPickingId(entt::entity handle);
 
         static void DispatchSensorEvent(Entity self, Entity other, bool entered);
         static void DispatchCollisionEvent(Entity self, Entity other, bool entered);

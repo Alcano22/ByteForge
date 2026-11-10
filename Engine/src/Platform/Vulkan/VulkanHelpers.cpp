@@ -5,11 +5,11 @@
 namespace ByteForge
 {
     std::string VulkanException::BuildMessage(const VkResult result, const char* expression,
-                                              const char* file, const int line)
+                                              const char* file, const i32 line)
     {
         return std::format("Vulkan error {} ({}) in '{}' at {}: {}",
                            VkResultToString(result),
-                           std::to_string(static_cast<int>(result)),
+                           std::to_string(static_cast<i32>(result)),
                            expression, file, line);
     }
 
@@ -109,8 +109,8 @@ namespace ByteForge
                          const VkImageLayout oldLayout, const VkImageLayout newLayout,
                          const VkPipelineStageFlags2 srcStage, const VkAccessFlags2 srcAccess,
                          const VkPipelineStageFlags2 dstStage, const VkAccessFlags2 dstAccess,
-                         const VkImageAspectFlags aspect, const uint32_t baseMipLevel,
-                         const uint32_t levelCount)
+                         const VkImageAspectFlags aspect, const u32 baseMipLevel,
+                         const u32 levelCount)
     {
         const VkImageMemoryBarrier2 barrier{
             .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,

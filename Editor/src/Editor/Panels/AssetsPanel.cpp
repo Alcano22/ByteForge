@@ -46,7 +46,7 @@ namespace ByteForge
             const fs::path& root = AssetRegistry::GetAssetRoot();
             std::error_code error;
 
-            for (int index = 0;; ++index)
+            for (i32 index = 0;; ++index)
             {
                 const std::string name = index == 0 ? std::format("{}{}", stem, extension)
                                                     : std::format("{} {}{}", stem, index, extension);
@@ -56,50 +56,50 @@ namespace ByteForge
             }
         }
 
-        ImVec2 FitToSquare(const Texture2D& texture, const float size)
+        ImVec2 FitToSquare(const Texture2D& texture, const f32 size)
         {
-            const float width = static_cast<float>(texture.GetWidth());
-            const float height = static_cast<float>(texture.GetHeight());
-            const float scale = size / std::max(width, height);
+            const f32 width = static_cast<f32>(texture.GetWidth());
+            const f32 height = static_cast<f32>(texture.GetHeight());
+            const f32 scale = size / std::max(width, height);
             return { width * scale, height * scale };
         }
 
-        constexpr int MaxLabelLines = 2;
+        constexpr i32 MaxLabelLines = 2;
         constexpr const char* Ellipsis = "\xE2\x80\xA6";
 
-        size_t NextCharEnd(const std::string_view text, size_t pos)
+        usize NextCharEnd(const std::string_view text, usize pos)
         {
             ++pos;
-            while (pos < text.size() && (static_cast<unsigned char>(text[pos]) & 0xC0) == 0x80)
+            while (pos < text.size() && (static_cast<u8>(text[pos]) & 0xC0) == 0x80)
                 ++pos;
             return pos;
         }
 
-        size_t PreviousCharStart(const std::string_view text, size_t pos)
+        usize PreviousCharStart(const std::string_view text, usize pos)
         {
             while (pos > 0)
             {
                 --pos;
-                if ((static_cast<unsigned char>(text[pos]) & 0xC0) != 0x80) break;
+                if ((static_cast<u8>(text[pos]) & 0xC0) != 0x80) break;
             }
             return pos;
         }
 
-        float TextWidth(const std::string_view text)
+        f32 TextWidth(const std::string_view text)
         {
             return ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
         }
 
         bool IsBreakAfter(const char c) { return c == ' ' || c == '_' || c == '-'; }
 
-        std::vector<std::string> LayoutLabel(std::string_view text, const float maxWidth, const int maxLines)
+        std::vector<std::string> LayoutLabel(std::string_view text, const f32 maxWidth, const i32 maxLines)
         {
             std::vector<std::string> lines;
 
-            while (!text.empty() && static_cast<int>(lines.size()) < maxLines)
+            while (!text.empty() && static_cast<i32>(lines.size()) < maxLines)
             {
-                size_t fit = 0;
-                for (size_t end = NextCharEnd(text, 0);
+                usize fit = 0;
+                for (usize end = NextCharEnd(text, 0);
                      TextWidth(text.substr(0, end)) <= maxWidth;
                      end = NextCharEnd(text, end))
                 {
@@ -113,9 +113,9 @@ namespace ByteForge
                     break;
                 }
 
-                if (static_cast<int>(lines.size()) == maxLines - 1)
+                if (static_cast<i32>(lines.size()) == maxLines - 1)
                 {
-                    const float ellipsisWidth = TextWidth(Ellipsis);
+                    const f32 ellipsisWidth = TextWidth(Ellipsis);
                     while (fit > 0 && TextWidth(text.substr(0, fit)) + ellipsisWidth > maxWidth)
                         fit = PreviousCharStart(text, fit);
 
@@ -123,8 +123,8 @@ namespace ByteForge
                     break;
                 }
 
-                size_t lineEnd = fit;
-                for (size_t i = fit; i > 0; --i)
+                usize lineEnd = fit;
+                for (usize i = fit; i > 0; --i)
                 {
                     if (!IsBreakAfter(text[i - 1])) continue;
 
@@ -199,7 +199,7 @@ namespace ByteForge
         DrawToolbar();
         ImGui::Separator();
 
-        const float height = ImGui::GetContentRegionAvail().y;
+        const f32 height = ImGui::GetContentRegionAvail().y;
 
         ImGui::BeginChild("##tree", ImVec2(m_TreeWidth, 0.0f), ImGuiChildFlags_Borders);
         DrawTree(m_Root);
@@ -212,7 +212,7 @@ namespace ByteForge
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         if (ImGui::IsItemActive())
         {
-            const float maxWidth = std::max(100.0f, ImGui::GetWindowWidth() - 200.0f);
+            const f32 maxWidth = std::max(100.0f, ImGui::GetWindowWidth() - 200.0f);
             m_TreeWidth = std::clamp(m_TreeWidth + ImGui::GetIO().MouseDelta.x, 100.0f, maxWidth);
         }
 
@@ -374,8 +374,8 @@ namespace ByteForge
         }
 
         const ImGuiStyle& style = ImGui::GetStyle();
-        const float cellWidth = m_ThumbnailSize + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
-        const int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / cellWidth));
+        const f32 cellWidth = m_ThumbnailSize + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
+        const i32 columns = std::max(1, static_cast<i32>(ImGui::GetContentRegionAvail().x / cellWidth));
 
         if (ImGui::BeginTable("##grid", columns))
         {
@@ -405,8 +405,8 @@ namespace ByteForge
 
         ImGui::PushID(entry.Name.c_str());
 
-        const float padding = style.FramePadding.x;
-        const float lineHeight = ImGui::GetTextLineHeight();
+        const f32 padding = style.FramePadding.x;
+        const f32 lineHeight = ImGui::GetTextLineHeight();
 
         const ImVec2 tileSize{ m_ThumbnailSize + padding * 2.0f,
                                m_ThumbnailSize + padding * 2.0f +
@@ -414,7 +414,7 @@ namespace ByteForge
 
         const ImVec2 tileMin = ImGui::GetCursorScreenPos();
         const ImVec2 tileMax{ tileMin.x + tileSize.x, tileMin.y + tileSize.y };
-        const float labelY = tileMin.y + padding + m_ThumbnailSize + style.ItemInnerSpacing.y;
+        const f32 labelY = tileMin.y + padding + m_ThumbnailSize + style.ItemInnerSpacing.y;
 
         Ref<Texture2D> image;
         if (ImGui::IsRectVisible(tileSize))
@@ -426,7 +426,7 @@ namespace ByteForge
 
         const ImVec4 tint = isIcon ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        const float buttonHeight = renaming ? labelY - tileMin.y : tileSize.y;
+        const f32 buttonHeight = renaming ? labelY - tileMin.y : tileSize.y;
         const bool pressed = ImGui::InvisibleButton("##tile", ImVec2(tileSize.x, buttonHeight));
         const bool hovered = ImGui::IsItemHovered();
 
@@ -478,10 +478,10 @@ namespace ByteForge
             const std::vector<std::string> lines = LayoutLabel(GetDisplayName(entry.Path, entry.IsDirectory),
                                                                m_ThumbnailSize, MaxLabelLines);
 
-            float lineY = labelY;
+            f32 lineY = labelY;
             for (const std::string& line : lines)
             {
-                const float lineX = tileMin.x + padding + (m_ThumbnailSize - TextWidth(line)) * 0.5f;
+                const f32 lineX = tileMin.x + padding + (m_ThumbnailSize - TextWidth(line)) * 0.5f;
                 drawList.AddText(ImVec2(lineX, lineY), ImGui::GetColorU32(ImGuiCol_Text), line.c_str());
                 lineY += lineHeight;
             }
@@ -493,7 +493,7 @@ namespace ByteForge
     void AssetsPanel::BeginRename(const Entry& entry)
     {
         const std::string name = GetDisplayName(entry.Path, entry.IsDirectory);
-        const size_t length = std::min(name.size(), m_RenameBuffer.size() - 1);
+        const usize length = std::min(name.size(), m_RenameBuffer.size() - 1);
         std::memcpy(m_RenameBuffer.data(), name.data(), length);
         m_RenameBuffer[length] = '\0';
 
@@ -533,7 +533,7 @@ namespace ByteForge
         m_RefreshRequested = true;
     }
 
-    void AssetsPanel::DrawRenameField(const ImVec2& position, const float width, const float bottom)
+    void AssetsPanel::DrawRenameField(const ImVec2& position, const f32 width, const f32 bottom)
     {
         ImGui::SetCursorScreenPos(position);
         ImGui::SetNextItemWidth(width);
@@ -554,7 +554,7 @@ namespace ByteForge
                 CommitRename();
         }
 
-        const float fieldBottom = ImGui::GetItemRectMax().y;
+        const f32 fieldBottom = ImGui::GetItemRectMax().y;
         ImGui::SetCursorScreenPos(ImVec2(position.x, fieldBottom));
         ImGui::Dummy(ImVec2(width, std::max(0.0f, bottom - fieldBottom)));
     }

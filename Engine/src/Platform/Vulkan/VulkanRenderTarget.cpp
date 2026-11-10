@@ -69,7 +69,7 @@ namespace ByteForge
 
         if (std::ranges::any_of(m_Colors, &ColorAttachment::IsInteger))
         {
-            m_ReadbackBuffer = MakeScope<VulkanBuffer>(context.GetAllocator(), sizeof(uint32_t),
+            m_ReadbackBuffer = MakeScope<VulkanBuffer>(context.GetAllocator(), sizeof(u32),
                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT, VulkanBufferMemory::Readback);
         }
 
@@ -78,7 +78,7 @@ namespace ByteForge
         CORE_INFO("Render target created ({}x{}, {} color attachment(s))", spec.Width, spec.Height, m_Colors.size());
     }
 
-    uint32_t VulkanRenderTarget::ReadPixel(const uint32_t attachment, const uint32_t x, const uint32_t y) const
+    u32 VulkanRenderTarget::ReadPixel(const u32 attachment, const u32 x, const u32 y) const
     {
         if (attachment >= m_Colors.size() || !m_Colors[attachment].IsInteger)
             throw std::runtime_error("RenderTarget::ReadPixel: only integer color attachments can be read");
@@ -104,7 +104,7 @@ namespace ByteForge
                     .baseArrayLayer = 0,
                     .layerCount     = 1
                 },
-                .imageOffset      = { static_cast<int32_t>(x), static_cast<int32_t>(y), 0 },
+                .imageOffset      = { static_cast<i32>(x), static_cast<i32>(y), 0 },
                 .imageExtent      = { 1, 1, 1 }
             };
             vkCmdCopyImageToBuffer(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &region);
@@ -130,7 +130,7 @@ namespace ByteForge
             vkCmdPipelineBarrier2(commandBuffer, &dependency);
         });
 
-        uint32_t value = 0;
+        u32 value = 0;
         m_ReadbackBuffer->GetData(&value, sizeof(value));
         return value;
     }

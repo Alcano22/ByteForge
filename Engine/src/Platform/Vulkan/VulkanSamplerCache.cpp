@@ -18,7 +18,7 @@ namespace ByteForge
 
     VkSampler VulkanSamplerCache::Get(const TextureFilter filter, const TextureWrap wrap)
     {
-        const size_t index = static_cast<size_t>(filter) * WrapCount + static_cast<size_t>(wrap);
+        const usize index = static_cast<usize>(filter) * WrapCount + static_cast<usize>(wrap);
 
         VkSampler& sampler = m_Samplers.at(index);
         if (sampler != nullptr)

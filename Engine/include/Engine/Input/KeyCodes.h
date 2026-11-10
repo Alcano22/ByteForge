@@ -4,7 +4,7 @@
 
 namespace ByteForge
 {
-    enum class KeyCode : uint16_t
+    enum class KeyCode : u16
     {
         Space = 32,
         Apostrophe = 39,

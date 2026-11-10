@@ -14,13 +14,13 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t MaxRows = 5000;
+        constexpr usize MaxRows = 5000;
 
-        constexpr size_t InfoCategory    = 0;
-        constexpr size_t WarningCategory = 1;
-        constexpr size_t ErrorCategory   = 2;
+        constexpr usize InfoCategory    = 0;
+        constexpr usize WarningCategory = 1;
+        constexpr usize ErrorCategory   = 2;
 
-        size_t CategoryOf(const LogLevel level)
+        usize CategoryOf(const LogLevel level)
         {
             switch (level)
             {
@@ -36,7 +36,7 @@ namespace ByteForge
             return std::string(text.substr(0, text.find('\n')));
         }
 
-        void CategoryToggle(const char* label, const size_t count, bool& enabled, const ImVec4& color)
+        void CategoryToggle(const char* label, const usize count, bool& enabled, const ImVec4& color)
         {
             const std::string text = std::format("{} {}###{}", label, count, label);
 
@@ -156,12 +156,12 @@ namespace ByteForge
             Selection& selection = GetContext().SelectionContext;
 
             ImGuiListClipper clipper;
-            clipper.Begin(static_cast<int>(visible.size()));
+            clipper.Begin(static_cast<i32>(visible.size()));
             while (clipper.Step())
             {
-                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+                for (i32 i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
                 {
-                    const Row& row = *visible[static_cast<size_t>(i)];
+                    const Row& row = *visible[static_cast<usize>(i)];
                     const LogEntry& entry = row.Entry;
 
                     ImGui::TableNextRow();

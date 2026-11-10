@@ -26,10 +26,10 @@ namespace ByteForge::EditorUI
 {
     namespace
     {
-        constexpr float FieldPadding = 4.0f;
-        constexpr float PreviewSize = 64.0f;
-        constexpr float TooltipPreviewSize = 192.0f;
-        constexpr float PickerThumbnailSize = 32.0f;
+        constexpr f32 FieldPadding = 4.0f;
+        constexpr f32 PreviewSize = 64.0f;
+        constexpr f32 TooltipPreviewSize = 192.0f;
+        constexpr f32 PickerThumbnailSize = 32.0f;
         constexpr const char* PickerPopupId = "##TexturePicker";
         constexpr const char* AssetPickerPopupId = "##AssetPicker";
 
@@ -38,27 +38,27 @@ namespace ByteForge::EditorUI
 
         ImVec2 FitToBounds(const Texture2D& texture, const ImVec2& bounds)
         {
-            const float width = static_cast<float>(texture.GetWidth());
-            const float height = static_cast<float>(texture.GetHeight());
-            const float scale = std::min(bounds.x / width, bounds.y / height);
+            const f32 width = static_cast<f32>(texture.GetWidth());
+            const f32 height = static_cast<f32>(texture.GetHeight());
+            const f32 scale = std::min(bounds.x / width, bounds.y / height);
             return { width * scale, height * scale };
         }
 
         void DrawCheckerboard(ImDrawList& drawList, const ImVec2& min, const ImVec2& max)
         {
-            const float cell = std::max(4.0f, std::floor((max.x - min.x) / 8.0f));
-            const int columns = static_cast<int>(std::ceil((max.x - min.x) / cell));
-            const int rows = static_cast<int>(std::ceil((max.y - min.y) / cell));
+            const f32 cell = std::max(4.0f, std::floor((max.x - min.x) / 8.0f));
+            const i32 columns = static_cast<i32>(std::ceil((max.x - min.x) / cell));
+            const i32 rows = static_cast<i32>(std::ceil((max.y - min.y) / cell));
 
             drawList.AddRectFilled(min, max, CheckerDark);
-            for (int row = 0; row < rows; ++row)
+            for (i32 row = 0; row < rows; ++row)
             {
-                for (int column = 0; column < columns; ++column)
+                for (i32 column = 0; column < columns; ++column)
                 {
                     if ((row + column) % 2 != 0) continue;
 
-                    const ImVec2 cellMin{ min.x + static_cast<float>(column) * cell,
-                                          min.y + static_cast<float>(row) * cell };
+                    const ImVec2 cellMin{ min.x + static_cast<f32>(column) * cell,
+                                          min.y + static_cast<f32>(row) * cell };
                     const ImVec2 cellMax{ std::min(cellMin.x + cell, max.x), std::min(cellMin.y + cell, max.y) };
                     drawList.AddRectFilled(cellMin, cellMax, CheckerLight);
                 }
@@ -168,7 +168,7 @@ namespace ByteForge::EditorUI
             if (!dragged)
                 return false;
 
-            const float rounding = ImGui::GetStyle().FrameRounding;
+            const f32 rounding = ImGui::GetStyle().FrameRounding;
             const bool compatible = dragged->Type == AssetType::Texture2D;
 
             if (compatible)
@@ -199,7 +199,7 @@ namespace ByteForge::EditorUI
             return changed;
         }
 
-        void DrawPickerRow(const AssetMetadata& metadata, const ImVec2& min, const float rowHeight)
+        void DrawPickerRow(const AssetMetadata& metadata, const ImVec2& min, const f32 rowHeight)
         {
             ImDrawList& drawList = *ImGui::GetWindowDrawList();
 
@@ -212,7 +212,7 @@ namespace ByteForge::EditorUI
             const std::string folder = metadata.Path.has_parent_path()
                                      ? "Assets/" + metadata.Path.parent_path().generic_string() : "Assets";
 
-            const float lineHeight = ImGui::GetTextLineHeight();
+            const f32 lineHeight = ImGui::GetTextLineHeight();
             const ImVec2 textPos{ thumbnailMin.x + PickerThumbnailSize + ImGui::GetStyle().ItemSpacing.x,
                                   min.y + (rowHeight - lineHeight * 2.0f) * 0.5f };
 
@@ -252,7 +252,7 @@ namespace ByteForge::EditorUI
             }
 
             const std::string_view query(s_Filter.data());
-            const float rowHeight = std::max(PickerThumbnailSize, ImGui::GetTextLineHeight() * 2.0f + 2.0f);
+            const f32 rowHeight = std::max(PickerThumbnailSize, ImGui::GetTextLineHeight() * 2.0f + 2.0f);
             bool anyMatch = false;
 
             for (const AssetMetadata& metadata : s_Candidates)
@@ -319,7 +319,7 @@ namespace ByteForge::EditorUI
             ImGui::Separator();
 
             bool changed = false;
-            const bool hasAsset = static_cast<uint64_t>(handle) != 0;
+            const bool hasAsset = static_cast<u64>(handle) != 0;
 
             ImGui::BeginChild("##results");
 
@@ -342,7 +342,7 @@ namespace ByteForge::EditorUI
 
                 ImGui::PushID(path.c_str());
 
-                const bool selected = static_cast<uint64_t>(handle) == static_cast<uint64_t>(metadata.Handle);
+                const bool selected = static_cast<u64>(handle) == static_cast<u64>(metadata.Handle);
                 if ((ImGui::Selectable(AssetLabel(metadata).c_str(), selected) || pickedByEnter) && !selected)
                 {
                     handle = metadata.Handle;
@@ -398,8 +398,8 @@ namespace ByteForge::EditorUI
         DrawAssetInfo(asset.get());
         ImGui::EndGroup();
 
-        const float browseWidth = ImGui::CalcTextSize("Browse").x + style.FramePadding.x * 2.0f;
-        const float clearWidth = asset
+        const f32 browseWidth = ImGui::CalcTextSize("Browse").x + style.FramePadding.x * 2.0f;
+        const f32 clearWidth = asset
             ? ImGui::CalcTextSize("Clear").x + style.FramePadding.x * 2.0f + style.ItemSpacing.x : 0.0f;
         ImGui::SetCursorScreenPos(ImVec2(end.x - FieldPadding - browseWidth - clearWidth, previewMin.y));
 
@@ -432,7 +432,7 @@ namespace ByteForge::EditorUI
         bool changed = false;
         ImGui::PushID(label);
 
-        const bool hasAsset = static_cast<uint64_t>(handle) != 0;
+        const bool hasAsset = static_cast<u64>(handle) != 0;
         AssetMetadata metadata;
         const bool known = hasAsset && AssetRegistry::TryGetMetadata(handle, metadata);
 
@@ -511,7 +511,7 @@ namespace ByteForge::EditorUI
 
             scene.Each<TagComponent>([&](const Entity entity, const TagComponent& tag)
             {
-                const auto id = static_cast<uint64_t>(entity.GetUUID());
+                const auto id = static_cast<u64>(entity.GetUUID());
                 ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
 
                 const bool selected = target == entity;
@@ -530,9 +530,9 @@ namespace ByteForge::EditorUI
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EntityPayloadType);
-                payload != nullptr && payload->DataSize == static_cast<int>(sizeof(uint64_t)))
+                payload != nullptr && payload->DataSize == static_cast<i32>(sizeof(u64)))
             {
-                uint64_t id = 0;
+                u64 id = 0;
                 std::memcpy(&id, payload->Data, sizeof(id));
                 reference.Id = UUID(id);
                 changed = true;
@@ -546,7 +546,7 @@ namespace ByteForge::EditorUI
 
     bool IconButton(const char* id, const Ref<Texture2D>& icon, const bool active)
     {
-        const float size = ImGui::GetTextLineHeight();
+        const f32 size = ImGui::GetTextLineHeight();
 
         if (active)
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));

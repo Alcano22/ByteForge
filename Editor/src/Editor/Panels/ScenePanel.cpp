@@ -20,8 +20,8 @@ namespace ByteForge
     namespace
     {
         constexpr glm::vec4 BackgroundColor{ 0.03f, 0.03f, 0.035f, 1.0f };
-        constexpr float FocusPadding = 3.0f;
-        constexpr float OverlayMargin = 8.0f;
+        constexpr f32 FocusPadding = 3.0f;
+        constexpr f32 OverlayMargin = 8.0f;
         constexpr ImGuiKey SpaceToggleKey = ImGuiKey_X;
         constexpr const char* SpaceToggleKeyName = "X";
 
@@ -168,7 +168,7 @@ namespace ByteForge
         Scene* scene = GetContext().ActiveScene;
         if (scene == nullptr) return;
 
-        const uint32_t pickingId = m_Canvas.ReadEntityId(m_Canvas.ToViewport(ImGui::GetIO().MousePos));
+        const u32 pickingId = m_Canvas.ReadEntityId(m_Canvas.ToViewport(ImGui::GetIO().MousePos));
 
         Selection& selection = GetContext().SelectionContext;
         if (const Entity picked = scene->FindEntityByPickingId(pickingId); picked.IsValid())
@@ -246,7 +246,7 @@ namespace ByteForge
 
         EditorContext& context = GetContext();
         if (context.ActiveScene == nullptr ||
-            static_cast<uint64_t>(drag.EntityId) != static_cast<uint64_t>(entity.GetUUID())) return;
+            static_cast<u64>(drag.EntityId) != static_cast<u64>(entity.GetUUID())) return;
 
         const TransformComponent& after = entity.GetComponent<TransformComponent>();
         if (after == drag.Before) return;

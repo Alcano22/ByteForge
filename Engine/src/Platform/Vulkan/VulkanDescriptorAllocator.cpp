@@ -19,7 +19,7 @@ namespace ByteForge
     }
 
     std::vector<VkDescriptorSet> VulkanDescriptorAllocator::Allocate(const VkDescriptorSetLayout layout,
-                                                                     const uint32_t count)
+                                                                     const u32 count)
     {
         if (count == 0 || count > SetsPerPool)
         {
@@ -81,7 +81,7 @@ namespace ByteForge
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
             .maxSets       = SetsPerPool,
-            .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+            .poolSizeCount = static_cast<u32>(poolSizes.size()),
             .pPoolSizes    = poolSizes.data()
         };
 
@@ -100,7 +100,7 @@ namespace ByteForge
         const VkDescriptorSetAllocateInfo allocInfo{
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool     = pool,
-            .descriptorSetCount = static_cast<uint32_t>(sets.size()),
+            .descriptorSetCount = static_cast<u32>(sets.size()),
             .pSetLayouts        = layouts.data()
         };
 

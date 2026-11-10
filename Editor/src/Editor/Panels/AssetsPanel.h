@@ -57,7 +57,7 @@ namespace ByteForge
 
         void BeginRename(const Entry& entry);
         void CommitRename();
-        void DrawRenameField(const ImVec2& position, float width, float bottom);
+        void DrawRenameField(const ImVec2& position, f32 width, f32 bottom);
 
         void DrawContextMenu();
         void CreateFolder();
@@ -93,10 +93,10 @@ namespace ByteForge
         struct LocalSelection
         {
             std::filesystem::path Path;
-            uint64_t Revision = 0;
+            u64 Revision = 0;
         };
         std::optional<LocalSelection> m_LocalSelection;
-        uint64_t m_SeenAssetRevision = 0;
+        u64 m_SeenAssetRevision = 0;
 
         std::optional<std::filesystem::path> m_RenamingPath;
         std::array<char, 256> m_RenameBuffer{};
@@ -106,7 +106,7 @@ namespace ByteForge
         std::optional<std::filesystem::path> m_PendingDirectory;
         bool m_RefreshRequested = true;
 
-        float m_TreeWidth = 200.0f;
-        float m_ThumbnailSize = 80.0f;
+        f32 m_TreeWidth = 200.0f;
+        f32 m_ThumbnailSize = 80.0f;
     };
 }

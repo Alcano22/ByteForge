@@ -17,7 +17,7 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr float MaxFloat = std::numeric_limits<float>::max();
+        constexpr f32 MaxFloat = std::numeric_limits<f32>::max();
 
         template<typename T>
         void ResetComponent(T& component) { component = T{}; }
@@ -28,7 +28,7 @@ namespace ByteForge
         {
             ImGui::DragFloat3("Position", glm::value_ptr(transform.Position), 0.1f);
 
-            float rotationDeg = glm::degrees(transform.Rotation);
+            f32 rotationDeg = glm::degrees(transform.Rotation);
             if (ImGui::DragFloat("Rotation", &rotationDeg, 0.5f))
                 transform.Rotation = glm::radians(rotationDeg);
 
@@ -69,11 +69,11 @@ namespace ByteForge
             if (!EditorUI::AssetReferenceField(label, AssetType::PhysicsMaterial2D, handle, selection, noneText))
                 return false;
 
-            material = static_cast<uint64_t>(handle) != 0 ? AssetManager::LoadPhysicsMaterial(handle) : nullptr;
+            material = static_cast<u64>(handle) != 0 ? AssetManager::LoadPhysicsMaterial(handle) : nullptr;
             return true;
         }
 
-        void DrawColliderSettings(float& density, bool& isSensor, Ref<PhysicsMaterialAsset>& material,
+        void DrawColliderSettings(f32& density, bool& isSensor, Ref<PhysicsMaterialAsset>& material,
                                   Selection& selection)
         {
             ImGui::DragFloat("Density", &density, 0.05f, 0.0f, MaxFloat);

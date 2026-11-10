@@ -20,17 +20,17 @@ namespace ByteForge
 
     namespace
     {
-        constexpr float ColumnGap   = 24.0f;
-        constexpr float HeaderGap   = 5.0f;
-        constexpr float TextPadding = 10.0f;
+        constexpr f32 ColumnGap   = 24.0f;
+        constexpr f32 HeaderGap   = 5.0f;
+        constexpr f32 TextPadding = 10.0f;
 
-        constexpr float NumberWidth = 56.0f;
-        constexpr float TextWidth   = 120.0f;
-        constexpr float AssetWidth  = 110.0f;
+        constexpr f32 NumberWidth = 56.0f;
+        constexpr f32 TextWidth   = 120.0f;
+        constexpr f32 AssetWidth  = 110.0f;
 
         void DrawPinIcon(const PinType& type, const PinDirection direction, const bool connected)
         {
-            const float size = ImGui::GetTextLineHeight();
+            const f32 size = ImGui::GetTextLineHeight();
             const ImVec2 min = ImGui::GetCursorScreenPos();
             ImGui::Dummy(ImVec2(size, size));
 
@@ -40,7 +40,7 @@ namespace ByteForge
             ImDrawList& drawList = *ImGui::GetWindowDrawList();
             const ImU32 color = GraphTheme::PinColor(type);
             const ImVec2 center(min.x + size * 0.5f, min.y + size * 0.5f);
-            constexpr float thickness = 1.5f;
+            constexpr f32 thickness = 1.5f;
 
             if (type.IsExec)
             {
@@ -53,7 +53,7 @@ namespace ByteForge
                     drawList.AddTriangle(a, b, c, color, thickness);
             } else if (type.Value == ScriptFieldType::Asset)
             {
-                const float half = size * 0.24f;
+                const f32 half = size * 0.24f;
                 const ImVec2 a(center.x - half, center.y - half);
                 const ImVec2 b(center.x + half, center.y + half);
                 if (connected)
@@ -62,7 +62,7 @@ namespace ByteForge
                     drawList.AddRect(a, b, color, 2.0f, 0, thickness);
             } else
             {
-                const float radius = size * 0.26f;
+                const f32 radius = size * 0.26f;
                 if (connected)
                     drawList.AddCircleFilled(center, radius, color);
                 else
@@ -89,7 +89,7 @@ namespace ByteForge
             return !type.IsExec && type.Value != ScriptFieldType::Entity;
         }
 
-        float InlineEditorWidth(const ScriptValue& value)
+        f32 InlineEditorWidth(const ScriptValue& value)
         {
             switch (GetFieldType(value))
             {
@@ -142,9 +142,9 @@ namespace ByteForge
 
             return std::visit(Overloaded{
                 [](bool& v)        { return ImGui::Checkbox("##value", &v); },
-                [](int& v)         { return ImGui::DragInt("##value", &v, 0.1f); },
-                [](float& v)       { return ImGui::DragFloat("##value", &v, 0.01f, 0.0f, 0.0f, "%.3g"); },
-                [](double& v)      { return ImGui::DragScalar("##value", ImGuiDataType_Double, &v, 0.01f, nullptr, nullptr, "%.3g"); },
+                [](i32& v)         { return ImGui::DragInt("##value", &v, 0.1f); },
+                [](f32& v)       { return ImGui::DragFloat("##value", &v, 0.01f, 0.0f, 0.0f, "%.3g"); },
+                [](f64& v)      { return ImGui::DragScalar("##value", ImGuiDataType_Double, &v, 0.01f, nullptr, nullptr, "%.3g"); },
                 [](glm::vec2& v)   { return ImGui::DragFloat2("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
                 [](glm::vec3& v)   { return ImGui::DragFloat3("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
                 [](glm::vec4& v)   { return ImGui::DragFloat4("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
@@ -165,7 +165,7 @@ namespace ByteForge
         for (const GraphDiagnostic& diagnostic : diagnostics)
         {
             if (diagnostic.Severity == GraphSeverity::Error)
-                m_Errors.try_emplace(static_cast<uint64_t>(diagnostic.Node), diagnostic.Message);
+                m_Errors.try_emplace(static_cast<u64>(diagnostic.Node), diagnostic.Message);
         }
 
         for (const GraphLink& link : graph.GetLinks())
@@ -233,7 +233,7 @@ namespace ByteForge
             }
         }
 
-        const float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+        const f32 spacing = ImGui::GetStyle().ItemInnerSpacing.x;
         view.Width = ImGui::GetTextLineHeight();
         if (!view.Label.empty())
             view.Width += spacing + ImGui::CalcTextSize(view.Label.c_str()).x;
@@ -248,7 +248,7 @@ namespace ByteForge
     void GraphNodeRenderer::DrawNode(const ScriptGraph& graph, const GraphNode& node)
     {
         const NodeSignature signature = DescribeNode(graph, node);
-        const auto error = m_Errors.find(static_cast<uint64_t>(node.Id));
+        const auto error = m_Errors.find(static_cast<u64>(node.Id));
         const bool failed = error != m_Errors.end();
 
         std::vector<PinView> inputs;
@@ -258,35 +258,35 @@ namespace ByteForge
 
         const auto columnWidth = [](const std::vector<PinView>& pins)
         {
-            float width = 0.0f;
+            f32 width = 0.0f;
             for (const PinView& pin : pins)
                 width = std::max(width, pin.Width);
             return width;
         };
 
-        const float inputWidth = columnWidth(inputs);
-        const float outputWidth = columnWidth(outputs);
-        const float gap = !inputs.empty() && !outputs.empty() ? ColumnGap : 0.0f;
-        const float titleWidth = ImGui::CalcTextSize(signature.Title.c_str()).x + 2.0f * TextPadding;
-        const float nodeWidth = std::max(titleWidth, inputWidth + gap + outputWidth);
+        const f32 inputWidth = columnWidth(inputs);
+        const f32 outputWidth = columnWidth(outputs);
+        const f32 gap = !inputs.empty() && !outputs.empty() ? ColumnGap : 0.0f;
+        const f32 titleWidth = ImGui::CalcTextSize(signature.Title.c_str()).x + 2.0f * TextPadding;
+        const f32 nodeWidth = std::max(titleWidth, inputWidth + gap + outputWidth);
 
         const NE::NodeId id = GraphIds::Node(node.Id);
         if (failed)
             NE::PushStyleColor(NE::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()));
 
         NE::BeginNode(id);
-        ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(static_cast<uint64_t>(node.Id))));
+        ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(static_cast<u64>(node.Id))));
 
         const ImVec2 start = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(ImVec2(start.x + TextPadding, start.y));
         ImGui::TextUnformatted(signature.Title.c_str());
-        const float headerBottom = ImGui::GetItemRectMax().y + HeaderGap;
+        const f32 headerBottom = ImGui::GetItemRectMax().y + HeaderGap;
 
         ImGui::SetCursorScreenPos(ImVec2(start.x, ImGui::GetCursorScreenPos().y));
         ImGui::Dummy(ImVec2(nodeWidth, HeaderGap));
 
-        const size_t rows = std::max(inputs.size(), outputs.size());
-        for (size_t row = 0; row < rows; ++row)
+        const usize rows = std::max(inputs.size(), outputs.size());
+        for (usize row = 0; row < rows; ++row)
         {
             const ImVec2 rowStart = ImGui::GetCursorScreenPos();
             ImGui::BeginGroup();
@@ -325,7 +325,7 @@ namespace ByteForge
     {
         const PinInfo& pin = *view.Pin;
         const bool input = pin.Direction == PinDirection::Input;
-        const float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+        const f32 spacing = ImGui::GetStyle().ItemInnerSpacing.x;
 
         // Outputs are right-aligned, so their padding sits on the inner side
         if (!input && (!view.Label.empty() || view.Editor))
@@ -367,7 +367,7 @@ namespace ByteForge
 
     void GraphNodeRenderer::DrawInlineEditor(const UUID node, const std::string& key, const ScriptValue& stored)
     {
-        const auto nodeKey = static_cast<uint64_t>(node);
+        const auto nodeKey = static_cast<u64>(node);
         const bool editing = m_Active && m_Active->Node == nodeKey && m_Active->Key == key;
         ScriptValue value = editing ? m_Active->Value : stored;
 
@@ -391,7 +391,7 @@ namespace ByteForge
         const NE::NodeId hovered = NE::GetHoveredNode();
         if (hovered.Get() == 0) return;
 
-        const auto it = m_Errors.find(static_cast<uint64_t>(GraphIds::ToUUID(hovered)));
+        const auto it = m_Errors.find(static_cast<u64>(GraphIds::ToUUID(hovered)));
         if (it == m_Errors.end()) return;
 
         NE::Suspend();

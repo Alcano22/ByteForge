@@ -20,13 +20,13 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr float PaletteWidth = 280.0f;
-        constexpr float ListHeight   = 320.0f;
+        constexpr f32 PaletteWidth = 280.0f;
+        constexpr f32 ListHeight   = 320.0f;
 
         std::string ToLower(const std::string_view text)
         {
             std::string result(text);
-            std::ranges::transform(result, result.begin(), [](const unsigned char c)
+            std::ranges::transform(result, result.begin(), [](const u8 c)
             {
                 return static_cast<char>(std::tolower(c));
             });
@@ -151,16 +151,16 @@ namespace ByteForge
 
         if (m_Search.empty())
         {
-            for (size_t first = 0; first < m_Entries.size();)
+            for (usize first = 0; first < m_Entries.size();)
             {
                 const std::string& category = m_Entries[first].Category;
-                size_t end = first;
+                usize end = first;
                 while (end < m_Entries.size() && m_Entries[end].Category == category)
                     ++end;
 
                 if (ImGui::BeginMenu(category.c_str()))
                 {
-                    for (size_t i = first; i < end; ++i)
+                    for (usize i = first; i < end; ++i)
                     {
                         ImGui::PushID(&m_Entries[i]);
                         if (ImGui::MenuItem(m_Entries[i].Title.c_str()))

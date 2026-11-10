@@ -11,8 +11,8 @@ namespace ByteForge
 
     struct PhysicsMaterial2D
     {
-        float Friction = 0.6f;
-        float Bounciness = 0.0f;
+        f32 Friction = 0.6f;
+        f32 Bounciness = 0.0f;
 
         bool operator==(const PhysicsMaterial2D&) const = default;
     };
@@ -24,7 +24,7 @@ namespace ByteForge
             : m_Handle(handle), m_Material(material) {}
 
         [[nodiscard]] UUID GetHandle() const { return m_Handle; }
-        [[nodiscard]] bool IsFileBacked() const { return static_cast<uint64_t>(m_Handle) != 0; }
+        [[nodiscard]] bool IsFileBacked() const { return static_cast<u64>(m_Handle) != 0; }
         [[nodiscard]] const PhysicsMaterial2D& GetMaterial() const { return m_Material; }
 
     private:

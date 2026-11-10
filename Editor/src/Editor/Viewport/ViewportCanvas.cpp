@@ -12,7 +12,7 @@ namespace ByteForge
         constexpr ImageFormat DepthFormat    = ImageFormat::Depth32F;
         constexpr ImageFormat EntityIdFormat = ImageFormat::R32_UINT;
 
-        constexpr uint32_t EntityIdAttachment = 1;
+        constexpr u32 EntityIdAttachment = 1;
     }
 
     ViewportCanvas::ViewportCanvas(ViewportCanvasSpec spec)
@@ -45,7 +45,7 @@ namespace ByteForge
         ImVec2 imageSize = available;
         if (m_Spec.FixedAspect)
         {
-            const float aspect = *m_Spec.FixedAspect;
+            const f32 aspect = *m_Spec.FixedAspect;
             imageSize = available.x / available.y > aspect ? ImVec2(available.y * aspect, available.y)
                                                            : ImVec2(available.x, available.x / aspect);
 
@@ -57,19 +57,19 @@ namespace ByteForge
         }
 
         m_ScreenMin = ImGui::GetCursorScreenPos();
-        m_Size = { static_cast<uint32_t>(imageSize.x), static_cast<uint32_t>(imageSize.y) };
+        m_Size = { static_cast<u32>(imageSize.x), static_cast<u32>(imageSize.y) };
 
         UI::Image(m_Target, imageSize);
         m_Hovered = ImGui::IsItemHovered();
     }
 
-    uint32_t ViewportCanvas::ReadEntityId(const glm::vec2& viewportPoint) const
+    u32 ViewportCanvas::ReadEntityId(const glm::vec2& viewportPoint) const
     {
         if (!m_Spec.EntityIds || viewportPoint.x < 0.0f || viewportPoint.y < 0.0f)
             return 0;
 
-        const uint32_t x = static_cast<uint32_t>(viewportPoint.x);
-        const uint32_t y = static_cast<uint32_t>(viewportPoint.y);
+        const u32 x = static_cast<u32>(viewportPoint.x);
+        const u32 y = static_cast<u32>(viewportPoint.y);
         if (x >= m_Target->GetWidth() || y >= m_Target->GetHeight())
             return 0;
 

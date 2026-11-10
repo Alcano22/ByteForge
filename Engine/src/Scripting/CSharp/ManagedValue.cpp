@@ -19,7 +19,7 @@ namespace ByteForge::ManagedValue
 {
     namespace
     {
-        constexpr size_t SecondaryOffset = 8;
+        constexpr usize SecondaryOffset = 8;
 
         static_assert(sizeof(glm::vec4) == SlotSize, "glm::vec4 must match System.Numerics.Vector4");
         static_assert(sizeof(const char*) == SecondaryOffset, "ByteForge requires a 64-bit target");
@@ -45,21 +45,21 @@ namespace ByteForge::ManagedValue
 
         switch (type)
         {
-            case ScriptFieldType::Bool:    return Load<uint8_t>(slot) != 0;
-            case ScriptFieldType::Int:     return Load<int32_t>(slot);
-            case ScriptFieldType::Float:   return Load<float>(slot);
-            case ScriptFieldType::Double:  return Load<double>(slot);
+            case ScriptFieldType::Bool:    return Load<u8>(slot) != 0;
+            case ScriptFieldType::Int:     return Load<i32>(slot);
+            case ScriptFieldType::Float:   return Load<f32>(slot);
+            case ScriptFieldType::Double:  return Load<f64>(slot);
             case ScriptFieldType::Vector2: return Load<glm::vec2>(slot);
             case ScriptFieldType::Vector3: return Load<glm::vec3>(slot);
             case ScriptFieldType::Vector4: return Load<glm::vec4>(slot);
-            case ScriptFieldType::Entity:  return EntityRef{ UUID(Load<uint64_t>(slot)) };
+            case ScriptFieldType::Entity:  return EntityRef{ UUID(Load<u64>(slot)) };
             case ScriptFieldType::Asset:
-                return AssetRef{ static_cast<AssetType>(Load<uint8_t>(secondary)), UUID(Load<uint64_t>(slot)) };
+                return AssetRef{ static_cast<AssetType>(Load<u8>(secondary)), UUID(Load<u64>(slot)) };
             case ScriptFieldType::String:
             {
                 const auto* text = Load<const char*>(slot);
-                const auto length = Load<int32_t>(secondary);
-                return text != nullptr && length > 0 ? std::string(text, static_cast<size_t>(length)) : std::string();
+                const auto length = Load<i32>(secondary);
+                return text != nullptr && length > 0 ? std::string(text, static_cast<usize>(length)) : std::string();
             }
         }
         throw std::runtime_error("Unknown script value type");
@@ -72,20 +72,20 @@ namespace ByteForge::ManagedValue
         std::visit([slot, secondary]<typename T>(const T& v)
         {
             if constexpr (std::is_same_v<T, bool>)
-                Store(slot, static_cast<uint8_t>(v));
+                Store(slot, static_cast<u8>(v));
             else if constexpr (std::is_same_v<T, EntityRef>)
-                Store(slot, static_cast<uint64_t>(v.Id));
+                Store(slot, static_cast<u64>(v.Id));
             else if constexpr (std::is_same_v<T, AssetRef>)
             {
-                Store(slot, static_cast<uint64_t>(v.Handle));
-                Store(secondary, static_cast<uint8_t>(v.Type));
+                Store(slot, static_cast<u64>(v.Handle));
+                Store(secondary, static_cast<u8>(v.Type));
             } else if constexpr (std::is_same_v<T, std::string>)
             {
-                if (v.size() > static_cast<size_t>(std::numeric_limits<int32_t>::max()))
+                if (v.size() > static_cast<usize>(std::numeric_limits<i32>::max()))
                     throw std::length_error("Script string is too long");
 
                 Store(slot, v.data());
-                Store(secondary, static_cast<int32_t>(v.size()));
+                Store(secondary, static_cast<i32>(v.size()));
             } else
             {
                 static_assert(sizeof(T) <= SlotSize);

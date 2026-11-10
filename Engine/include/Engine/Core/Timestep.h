@@ -5,15 +5,15 @@ namespace ByteForge
     class Timestep
     {
     public:
-        Timestep(const float seconds = 0.0f)
+        Timestep(const f32 seconds = 0.0f)
             : m_Seconds(seconds) {}
 
-        operator float() const { return m_Seconds; }
+        operator f32() const { return m_Seconds; }
 
-        [[nodiscard]] float GetSeconds() const { return m_Seconds; }
-        [[nodiscard]] float GetMilliseconds() const { return m_Seconds * 1000.0f; }
+        [[nodiscard]] f32 GetSeconds() const { return m_Seconds; }
+        [[nodiscard]] f32 GetMilliseconds() const { return m_Seconds * 1000.0f; }
 
     private:
-        float m_Seconds;
+        f32 m_Seconds;
     };
 }

@@ -38,7 +38,7 @@ namespace ByteForge
         }
 
         [[nodiscard]] const Value& Get() const { return m_Value; }
-        [[nodiscard]] uint64_t GetRevision() const { return m_Revision; }
+        [[nodiscard]] u64 GetRevision() const { return m_Revision; }
 
         [[nodiscard]] Entity GetEntity() const
         {
@@ -69,10 +69,10 @@ namespace ByteForge
         [[nodiscard]] bool IsAsset(const UUID handle) const
         {
             const auto* selected = std::get_if<AssetSelection>(&m_Value);
-            return selected != nullptr && static_cast<uint64_t>(selected->Handle) == static_cast<uint64_t>(handle);
+            return selected != nullptr && static_cast<u64>(selected->Handle) == static_cast<u64>(handle);
         }
 
-        [[nodiscard]] bool IsLogEntry(const uint64_t id) const
+        [[nodiscard]] bool IsLogEntry(const u64 id) const
         {
             const LogEntry* entry = GetLogEntry();
             return entry != nullptr && entry->Id == id;
@@ -87,6 +87,6 @@ namespace ByteForge
 
     private:
         Value m_Value;
-        uint64_t m_Revision = 0;
+        u64 m_Revision = 0;
     };
 }

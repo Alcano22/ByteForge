@@ -126,12 +126,12 @@ namespace ByteForge
         }
     }
 
-    float ScriptProject::GetBuildSeconds() const
+    f32 ScriptProject::GetBuildSeconds() const
     {
         if (!IsBuilding())
             return 0.0f;
 
-        return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_BuildStart).count();
+        return std::chrono::duration<f32>(std::chrono::steady_clock::now() - m_BuildStart).count();
     }
 
     void ScriptProject::StartBuild()

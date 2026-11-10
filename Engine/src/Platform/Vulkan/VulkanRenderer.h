@@ -31,7 +31,7 @@ namespace ByteForge
         enum class FrameResult { Ok, NeedsRecreation };
 
         VulkanRenderer(VulkanDevice& device, VulkanSwapchain& swapchain, VulkanCommandPool& commandPool,
-                       VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, uint32_t framesInFlight);
+                       VulkanSyncObjects& syncObjects, const VulkanFrameData& frameData, u32 framesInFlight);
 
         FrameResult BeginFrame();
         void Submit(Material& material, const Mesh& mesh, std::span<const std::byte> pushConstants,
@@ -48,7 +48,7 @@ namespace ByteForge
 
         void UpdateSwapchain(VulkanSwapchain& swapchain) { m_Swapchain = &swapchain; }
 
-        [[nodiscard]] uint32_t GetCurrentFrameIndex() const { return m_CurrentFrame; }
+        [[nodiscard]] u32 GetCurrentFrameIndex() const { return m_CurrentFrame; }
         [[nodiscard]] VkCommandBuffer GetCurrentCommandBuffer() const { return m_CurrentCommandBuffer; }
         [[nodiscard]] bool IsFrameSkipped() const { return m_FrameSkipped; }
 
@@ -77,9 +77,9 @@ namespace ByteForge
         VulkanSyncObjects& m_SyncObjects;
         const VulkanFrameData& m_FrameData;
 
-        uint32_t m_FramesInFlight;
-        uint32_t m_CurrentFrame = 0;
-        uint32_t m_CurrentImageIndex = 0;
+        u32 m_FramesInFlight;
+        u32 m_CurrentFrame = 0;
+        u32 m_CurrentImageIndex = 0;
         VkCommandBuffer m_CurrentCommandBuffer = nullptr;
         bool m_FrameSkipped = false;
 

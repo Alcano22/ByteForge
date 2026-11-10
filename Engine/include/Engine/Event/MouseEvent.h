@@ -30,7 +30,7 @@ namespace ByteForge
 
         [[nodiscard]] std::string ToString() const override
         {
-            return std::format("MouseButtonPressedEvent: {}", static_cast<uint16_t>(m_Button));
+            return std::format("MouseButtonPressedEvent: {}", static_cast<u16>(m_Button));
         }
 
         EVENT_CLASS_TYPE(MouseButtonPressed)
@@ -44,7 +44,7 @@ namespace ByteForge
 
         [[nodiscard]] std::string ToString() const override
         {
-            return std::format("MouseButtonReleasedEvent: {}", static_cast<uint16_t>(m_Button));
+            return std::format("MouseButtonReleasedEvent: {}", static_cast<u16>(m_Button));
         }
 
         EVENT_CLASS_TYPE(MouseButtonReleased)
@@ -53,11 +53,11 @@ namespace ByteForge
     class BYTEFORGE_API MouseScrolledEvent : public Event
     {
     public:
-        MouseScrolledEvent(const float offsetX, const float offsetY)
+        MouseScrolledEvent(const f32 offsetX, const f32 offsetY)
             : m_OffsetX(offsetX), m_OffsetY(offsetY) {}
 
-        [[nodiscard]] float GetOffsetX() const { return m_OffsetX; }
-        [[nodiscard]] float GetOffsetY() const { return m_OffsetY; }
+        [[nodiscard]] f32 GetOffsetX() const { return m_OffsetX; }
+        [[nodiscard]] f32 GetOffsetY() const { return m_OffsetY; }
 
         [[nodiscard]] std::string ToString() const override
         {
@@ -68,17 +68,17 @@ namespace ByteForge
         EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
 
     private:
-        float m_OffsetX, m_OffsetY;
+        f32 m_OffsetX, m_OffsetY;
     };
 
     class BYTEFORGE_API MouseMovedEvent : public Event
     {
     public:
-        MouseMovedEvent(const float x, const float y)
+        MouseMovedEvent(const f32 x, const f32 y)
             : m_MouseX(x), m_MouseY(y) {}
 
-        [[nodiscard]] float GetX() const { return m_MouseX; }
-        [[nodiscard]] float GetY() const { return m_MouseY; }
+        [[nodiscard]] f32 GetX() const { return m_MouseX; }
+        [[nodiscard]] f32 GetY() const { return m_MouseY; }
 
         [[nodiscard]] std::string ToString() const override
         {
@@ -89,6 +89,6 @@ namespace ByteForge
         EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
 
     private:
-        float m_MouseX, m_MouseY;
+        f32 m_MouseX, m_MouseY;
     };
 }

@@ -14,9 +14,9 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t AudioBusCount = 2;
+        constexpr usize AudioBusCount = 2;
 
-        constexpr size_t BusIndex(const AudioBus bus) { return static_cast<size_t>(bus); }
+        constexpr usize BusIndex(const AudioBus bus) { return static_cast<usize>(bus); }
 
         struct OneShot
         {
@@ -55,8 +55,8 @@ namespace ByteForge
 
     bool Sound::IsPlaying() const { return ma_sound_is_playing(&m_Impl->Handle) == MA_TRUE; }
 
-    void Sound::SetVolume(const float volume) const { ma_sound_set_volume(&m_Impl->Handle, std::max(volume, 0.0f)); }
-    void Sound::SetPitch(const float pitch) const { ma_sound_set_pitch(&m_Impl->Handle, std::max(pitch, 0.01f)); }
+    void Sound::SetVolume(const f32 volume) const { ma_sound_set_volume(&m_Impl->Handle, std::max(volume, 0.0f)); }
+    void Sound::SetPitch(const f32 pitch) const { ma_sound_set_pitch(&m_Impl->Handle, std::max(pitch, 0.01f)); }
     void Sound::SetLooping(const bool looping) const { ma_sound_set_looping(&m_Impl->Handle, looping ? MA_TRUE : MA_FALSE); }
 
     struct AudioEngine::Impl
@@ -92,7 +92,7 @@ namespace ByteForge
             CORE_ERROR("Audio unavailable: {}", ma_result_description(result));
         } else
         {
-            size_t initialized = 0;
+            usize initialized = 0;
             ma_result groupResult = MA_SUCCESS;
 
             for (; initialized < AudioBusCount; ++initialized)
@@ -103,7 +103,7 @@ namespace ByteForge
 
             if (groupResult != MA_SUCCESS)
             {
-                for (size_t i = 0; i < initialized; ++i)
+                for (usize i = 0; i < initialized; ++i)
                     ma_sound_group_uninit(&impl->Buses[i]);
                 ma_engine_uninit(&impl->Engine);
 
@@ -140,12 +140,12 @@ namespace ByteForge
         return *s_Instance;
     }
 
-    float AudioEngine::GetMasterVolume() const
+    f32 AudioEngine::GetMasterVolume() const
     {
         return m_Impl ? ma_engine_get_volume(&m_Impl->Engine) : 0.0f;
     }
 
-    void AudioEngine::SetMasterVolume(const float volume) const
+    void AudioEngine::SetMasterVolume(const f32 volume) const
     {
         if (m_Impl)
             ma_engine_set_volume(&m_Impl->Engine, std::max(volume, 0.0f));

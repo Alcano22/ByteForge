@@ -12,8 +12,8 @@ namespace ByteForge
 {
     struct RenderTargetSpec
     {
-        uint32_t Width = 1280;
-        uint32_t Height = 720;
+        u32 Width = 1280;
+        u32 Height = 720;
 
         std::vector<ImageFormat> ColorFormats{ ImageFormat::RGBA8_SRGB };
         ImageFormat DepthFormat = ImageFormat::Depth32F;
@@ -25,10 +25,10 @@ namespace ByteForge
     public:
         virtual ~RenderTarget() = default;
 
-        [[nodiscard]] virtual uint32_t GetWidth() const = 0;
-        [[nodiscard]] virtual uint32_t GetHeight() const = 0;
+        [[nodiscard]] virtual u32 GetWidth() const = 0;
+        [[nodiscard]] virtual u32 GetHeight() const = 0;
 
-        [[nodiscard]] virtual uint32_t ReadPixel(uint32_t attachment, uint32_t x, uint32_t y) const = 0;
+        [[nodiscard]] virtual u32 ReadPixel(u32 attachment, u32 x, u32 y) const = 0;
 
         static Ref<RenderTarget> Create(const RenderTargetSpec& spec);
     };

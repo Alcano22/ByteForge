@@ -21,7 +21,7 @@ namespace ByteForge
 
         thread_local std::optional<ScriptValue> t_LastResult;
 
-        void LogMessage(const int level, const char* message)
+        void LogMessage(const i32 level, const char* message)
         {
             try
             {
@@ -51,12 +51,12 @@ namespace ByteForge
             } catch (...) {}
         }
 
-        uint32_t FindFunction(const char* id, const char* signature)
+        u32 FindFunction(const char* id, const char* signature)
         {
             try
             {
                 const ScriptAPI& api = ScriptAPI::Get();
-                const uint32_t index = api.FindIndex(id != nullptr ? id : "");
+                const u32 index = api.FindIndex(id != nullptr ? id : "");
                 if (index == ScriptAPI::InvalidIndex)
                     return index;
 
@@ -75,12 +75,12 @@ namespace ByteForge
             }
         }
 
-        int InvokeFunction(const uint32_t index, const void* arguments, const int argumentCount, void* result)
+        i32 InvokeFunction(const u32 index, const void* arguments, const i32 argumentCount, void* result)
         {
             try
             {
                 const ScriptFunction& function = ScriptAPI::Get().GetFunction(index);
-                if (argumentCount < 0 || static_cast<size_t>(argumentCount) != function.Parameters.size())
+                if (argumentCount < 0 || static_cast<usize>(argumentCount) != function.Parameters.size())
                     throw ScriptError(std::format("{} expects {} argument(s), got {}",
                                                   function.Id, function.Parameters.size(), argumentCount));
 
@@ -88,7 +88,7 @@ namespace ByteForge
                 std::vector<ScriptValue> values;
                 values.reserve(function.Parameters.size());
 
-                for (size_t i = 0; i < function.Parameters.size(); ++i)
+                for (usize i = 0; i < function.Parameters.size(); ++i)
                 {
                     values.push_back(ManagedValue::Read(function.Parameters[i].Type,
                                                         slots + i * ManagedValue::SlotSize));

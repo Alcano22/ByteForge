@@ -17,22 +17,22 @@
 
 namespace ByteForge
 {
-    Ref<VertexBuffer> VulkanContext::CreateVertexBuffer(const uint32_t size)
+    Ref<VertexBuffer> VulkanContext::CreateVertexBuffer(const u32 size)
     {
         return MakeVulkanObject<VertexBuffer, VulkanVertexBuffer>(size);
     }
 
-    Ref<VertexBuffer> VulkanContext::CreateVertexBuffer(const void* vertices, const uint32_t size)
+    Ref<VertexBuffer> VulkanContext::CreateVertexBuffer(const void* vertices, const u32 size)
     {
         return MakeVulkanObject<VertexBuffer, VulkanVertexBuffer>(vertices, size);
     }
 
-    Ref<IndexBuffer> VulkanContext::CreateIndexBuffer(const std::span<const uint32_t> indices)
+    Ref<IndexBuffer> VulkanContext::CreateIndexBuffer(const std::span<const u32> indices)
     {
         return MakeVulkanObject<IndexBuffer, VulkanIndexBuffer>(indices);
     }
 
-    Ref<UniformBuffer> VulkanContext::CreateUniformBuffer(const uint32_t size)
+    Ref<UniformBuffer> VulkanContext::CreateUniformBuffer(const u32 size)
     {
         return MakeVulkanObject<UniformBuffer, VulkanUniformBuffer>(size);
     }
@@ -57,7 +57,7 @@ namespace ByteForge
         return MakeVulkanObject<Material, VulkanMaterial>(pipeline);
     }
 
-    Ref<Texture2D> VulkanContext::CreateTexture2D(const uint32_t width, const uint32_t height,
+    Ref<Texture2D> VulkanContext::CreateTexture2D(const u32 width, const u32 height,
                                                   const std::span<const std::byte> pixels,
                                                   const TextureSettings& settings)
     {
@@ -100,7 +100,7 @@ namespace ByteForge
         m_Device->WaitIdle();
     }
 
-    uint64_t VulkanContext::GetFrameNumber() const
+    u64 VulkanContext::GetFrameNumber() const
     {
         return m_FrameData->GetFrameNumber();
     }

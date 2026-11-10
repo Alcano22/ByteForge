@@ -102,8 +102,8 @@ namespace ByteForge
 
         ImGui::PushID(inspector.Name);
 
-        const float buttonSize = ImGui::GetFrameHeight();
-        const float headerEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+        const f32 buttonSize = ImGui::GetFrameHeight();
+        const f32 headerEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
 
         const bool open = ImGui::TreeNodeEx("##header", flags, "%s  %s",
                                             EditorIcons::Glyph(inspector.Icon), inspector.Name);
@@ -143,12 +143,12 @@ namespace ByteForge
         auto& tag = entity.GetComponent<TagComponent>();
 
         std::array<char, 256> buffer{};
-        const size_t length = std::min(tag.Tag.size(), buffer.size() - 1);
+        const usize length = std::min(tag.Tag.size(), buffer.size() - 1);
         std::memcpy(buffer.data(), tag.Tag.data(), length);
         buffer[length] = '\0';
 
         const ImGuiStyle& style = ImGui::GetStyle();
-        const float buttonWidth = ImGui::CalcTextSize("Add Component").x + style.FramePadding.x * 2.0f;
+        const f32 buttonWidth = ImGui::CalcTextSize("Add Component").x + style.FramePadding.x * 2.0f;
 
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x);
         if (ImGui::InputText("##Tag", buffer.data(), buffer.size()))

@@ -46,7 +46,7 @@ namespace ByteForge::EditorUI
             ImDrawList& drawList = *ImGui::GetWindowDrawList();
             const ImVec2 min = ImGui::GetItemRectMin();
             const ImVec2 max = ImGui::GetItemRectMax();
-            const float rounding = ImGui::GetStyle().FrameRounding;
+            const f32 rounding = ImGui::GetStyle().FrameRounding;
 
             drawList.AddRect(min, max, ImGui::GetColorU32(ImGuiCol_DragDropTarget, 0.35f), rounding);
 
@@ -87,9 +87,9 @@ namespace ByteForge::EditorUI
         {
             return std::visit(Overloaded{
                 [&](bool& v)        { return ImGui::Checkbox(label, &v); },
-                [&](int& v)         { return ImGui::DragInt(label, &v); },
-                [&](float& v)       { return ImGui::DragFloat(label, &v, 0.1f); },
-                [&](double& v)      { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
+                [&](i32& v)         { return ImGui::DragInt(label, &v); },
+                [&](f32& v)       { return ImGui::DragFloat(label, &v, 0.1f); },
+                [&](f64& v)      { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
                 [&](glm::vec2& v)   { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
                 [&](glm::vec3& v)   { return ImGui::DragFloat3(label, glm::value_ptr(v), 0.1f); },
                 [&](glm::vec4& v)   { return ImGui::DragFloat4(label, glm::value_ptr(v), 0.1f); },

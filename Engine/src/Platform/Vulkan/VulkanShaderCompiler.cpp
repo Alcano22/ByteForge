@@ -78,7 +78,7 @@ namespace ByteForge
 
     VulkanShaderCompiler::~VulkanShaderCompiler() = default;
 
-    std::vector<uint32_t> VulkanShaderCompiler::Compile(const ShaderSource& source, const ShaderStage stage,
+    std::vector<u32> VulkanShaderCompiler::Compile(const ShaderSource& source, const ShaderStage stage,
                                                         const std::string& entryPoint) const
     {
         const bool fromFile = !source.Path.empty();
@@ -158,8 +158,8 @@ namespace ByteForge
         result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&rawObject), nullptr);
         const ComScope<IDxcBlob> object(rawObject, ComDeleter<IDxcBlob>{});
 
-        const uint32_t* data = static_cast<const uint32_t*>(object->GetBufferPointer());
-        const size_t wordCount = object->GetBufferSize() / sizeof(uint32_t);
+        const u32* data = static_cast<const u32*>(object->GetBufferPointer());
+        const usize wordCount = object->GetBufferSize() / sizeof(u32);
         return { data, data + wordCount };
     }
 }

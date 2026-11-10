@@ -8,7 +8,7 @@ namespace ByteForge
     {
         glm::vec3 Direction{ -0.4f, -1.0f, -0.3f };
         glm::vec3 Color{ 1.0f };
-        float Intensity = 1.0f;
+        f32 Intensity = 1.0f;
     };
 
     struct SceneLighting

@@ -13,17 +13,17 @@ namespace ByteForge
     class VulkanSyncObjects : NonCopyable
     {
     public:
-        VulkanSyncObjects(const VulkanDevice& device, uint32_t frameCount, uint32_t imageCount);
+        VulkanSyncObjects(const VulkanDevice& device, u32 frameCount, u32 imageCount);
         ~VulkanSyncObjects();
 
-        [[nodiscard]] VkSemaphore GetImageAvailable(const size_t frame) const { return m_ImageAvailable[frame]; }
-        [[nodiscard]] VkSemaphore GetRenderFinished(const size_t imageIndex) const { return m_RenderFinished[imageIndex]; }
-        [[nodiscard]] VkFence GetInFlightFence(const size_t frame) const { return m_InFlightFences[frame]; }
+        [[nodiscard]] VkSemaphore GetImageAvailable(const usize frame) const { return m_ImageAvailable[frame]; }
+        [[nodiscard]] VkSemaphore GetRenderFinished(const usize imageIndex) const { return m_RenderFinished[imageIndex]; }
+        [[nodiscard]] VkFence GetInFlightFence(const usize frame) const { return m_InFlightFences[frame]; }
 
-        void RecreateRenderFinished(uint32_t imageCount);
+        void RecreateRenderFinished(u32 imageCount);
 
     private:
-        void CreateRenderFinished(uint32_t imageCount);
+        void CreateRenderFinished(u32 imageCount);
         void DestroyRenderFinished();
 
     private:

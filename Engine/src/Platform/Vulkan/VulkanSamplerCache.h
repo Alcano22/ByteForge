@@ -21,8 +21,8 @@ namespace ByteForge
         [[nodiscard]] VkSampler Get(TextureFilter filter, TextureWrap wrap);
 
     private:
-        static constexpr size_t FilterCount = 2;
-        static constexpr size_t WrapCount = 2;
+        static constexpr usize FilterCount = 2;
+        static constexpr usize WrapCount = 2;
 
         const VulkanDevice& m_Device;
         std::array<VkSampler, FilterCount * WrapCount> m_Samplers{};

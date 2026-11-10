@@ -3,7 +3,7 @@
 
 namespace ByteForge
 {
-    Ref<UniformBuffer> UniformBuffer::Create(const uint32_t size)
+    Ref<UniformBuffer> UniformBuffer::Create(const u32 size)
     {
         return RenderBackend::Get().CreateUniformBuffer(size);
     }

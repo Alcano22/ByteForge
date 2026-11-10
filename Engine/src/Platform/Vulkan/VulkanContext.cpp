@@ -72,7 +72,7 @@ namespace ByteForge
         m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, *m_Allocator, m_Surface, m_WindowHandle);
         m_CommandPool = MakeScope<VulkanCommandPool>(*m_Device, MaxFramesInFlight);
         m_SyncObjects = MakeScope<VulkanSyncObjects>(*m_Device, MaxFramesInFlight,
-                                                     static_cast<uint32_t>(m_Swapchain->GetImages().size()));
+                                                     static_cast<u32>(m_Swapchain->GetImages().size()));
 
         m_FrameData = MakeScope<VulkanFrameData>(*m_Device);
 
@@ -127,7 +127,7 @@ namespace ByteForge
 
     bool VulkanContext::RecreateSwapchain()
     {
-        int width = 0, height = 0;
+        i32 width = 0, height = 0;
         glfwGetFramebufferSize(m_WindowHandle, &width, &height);
 
         while (width == 0 || height == 0)
@@ -144,7 +144,7 @@ namespace ByteForge
         m_Swapchain = MakeScope<VulkanSwapchain>(*m_Device, *m_Allocator, m_Surface,
                                                  m_WindowHandle, m_Swapchain->GetHandle());
 
-        m_SyncObjects->RecreateRenderFinished(static_cast<uint32_t>(m_Swapchain->GetImages().size()));
+        m_SyncObjects->RecreateRenderFinished(static_cast<u32>(m_Swapchain->GetImages().size()));
         m_Renderer->UpdateSwapchain(*m_Swapchain);
 
         m_FramebufferResized = false;
@@ -155,12 +155,12 @@ namespace ByteForge
 
     bool VulkanContext::SwapchainMatchesWindow() const
     {
-        int width = 0, height = 0;
+        i32 width = 0, height = 0;
         glfwGetFramebufferSize(m_WindowHandle, &width, &height);
 
         const VkExtent2D extent = m_Swapchain->GetExtent();
-        return static_cast<uint32_t>(width) == extent.width && static_cast<uint32_t>(height) == extent.height;
+        return static_cast<u32>(width) == extent.width && static_cast<u32>(height) == extent.height;
     }
 
-    uint32_t VulkanContext::GetCurrentFrameIndex() const { return m_Renderer->GetCurrentFrameIndex(); }
+    u32 VulkanContext::GetCurrentFrameIndex() const { return m_Renderer->GetCurrentFrameIndex(); }
 }

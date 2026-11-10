@@ -35,7 +35,7 @@ namespace ByteForge
 
     private:
         std::deque<Row> m_Rows;
-        std::array<size_t, 3> m_Counts{};
+        std::array<usize, 3> m_Counts{};
         std::array<bool, 3> m_ShowCategory{ true, true, true };
         std::array<char, 128> m_Filter{};
         bool m_AutoScroll = true;

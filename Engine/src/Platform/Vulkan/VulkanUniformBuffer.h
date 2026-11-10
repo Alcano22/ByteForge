@@ -11,15 +11,15 @@ namespace ByteForge
     class VulkanUniformBuffer : public UniformBuffer
     {
     public:
-        explicit VulkanUniformBuffer(uint32_t size);
+        explicit VulkanUniformBuffer(u32 size);
 
-        void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
+        void SetData(const void* data, u32 size, u32 offset = 0) override;
 
-        [[nodiscard]] VkBuffer GetHandle(const uint32_t frameIndex) const { return m_Buffers.GetHandle(frameIndex); }
-        [[nodiscard]] uint32_t GetSize() const { return m_Size; }
+        [[nodiscard]] VkBuffer GetHandle(const u32 frameIndex) const { return m_Buffers.GetHandle(frameIndex); }
+        [[nodiscard]] u32 GetSize() const { return m_Size; }
 
     private:
         VulkanPerFrameBuffer m_Buffers;
-        uint32_t m_Size;
+        u32 m_Size;
     };
 }

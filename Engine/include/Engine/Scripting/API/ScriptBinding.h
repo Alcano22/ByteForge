@@ -26,9 +26,9 @@ namespace ByteForge::Detail
     };
 
     template<> struct ScriptTypeTraits<bool>        : DirectScriptType<bool,        ScriptFieldType::Bool> {};
-    template<> struct ScriptTypeTraits<int>         : DirectScriptType<int,         ScriptFieldType::Int> {};
-    template<> struct ScriptTypeTraits<float>       : DirectScriptType<float,       ScriptFieldType::Float> {};
-    template<> struct ScriptTypeTraits<double>      : DirectScriptType<double,      ScriptFieldType::Double> {};
+    template<> struct ScriptTypeTraits<i32>         : DirectScriptType<i32,         ScriptFieldType::Int> {};
+    template<> struct ScriptTypeTraits<f32>       : DirectScriptType<f32,       ScriptFieldType::Float> {};
+    template<> struct ScriptTypeTraits<f64>      : DirectScriptType<f64,      ScriptFieldType::Double> {};
     template<> struct ScriptTypeTraits<glm::vec2>   : DirectScriptType<glm::vec2,   ScriptFieldType::Vector2> {};
     template<> struct ScriptTypeTraits<glm::vec3>   : DirectScriptType<glm::vec3,   ScriptFieldType::Vector3> {};
     template<> struct ScriptTypeTraits<glm::vec4>   : DirectScriptType<glm::vec4,   ScriptFieldType::Vector4> {};
@@ -59,7 +59,7 @@ namespace ByteForge::Detail
     {
         using Return = R;
         using Arguments = std::tuple<Args...>;
-        static constexpr size_t Arity = sizeof...(Args);
+        static constexpr usize Arity = sizeof...(Args);
     };
 
     template<typename T>
@@ -68,13 +68,13 @@ namespace ByteForge::Detail
         return { std::move(name), ScriptTraitsOf<T>::Type, ScriptTraitsOf<T>::Asset };
     }
 
-    template<auto Fn, size_t N>
+    template<auto Fn, usize N>
     std::vector<ScriptParameter> DescribeParameters(const char* const (&names)[N])
     {
         using Traits = FunctionTraits<decltype(Fn)>;
         static_assert(N == Traits::Arity, "Every parameter of a script function needs exactly one name");
 
-        return [&]<size_t... I>(std::index_sequence<I...>)
+        return [&]<usize... I>(std::index_sequence<I...>)
         {
             return std::vector<ScriptParameter>{
                 DescribeParameter<std::tuple_element_t<I, typename Traits::Arguments>>(names[I])...
@@ -97,7 +97,7 @@ namespace ByteForge::Detail
     {
         using Traits = FunctionTraits<decltype(Fn)>;
 
-        return [&]<size_t... I>(std::index_sequence<I...>) -> std::optional<ScriptValue>
+        return [&]<usize... I>(std::index_sequence<I...>) -> std::optional<ScriptValue>
         {
             if constexpr (std::is_void_v<typename Traits::Return>)
             {

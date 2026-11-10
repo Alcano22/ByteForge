@@ -32,7 +32,7 @@ namespace ByteForge
             Scene* OwnerScene = nullptr;
             UUID EntityId;
             nlohmann::json Before;
-            uint64_t Revision = 0;
+            u64 Revision = 0;
         };
 
         nlohmann::json m_FrameStart;

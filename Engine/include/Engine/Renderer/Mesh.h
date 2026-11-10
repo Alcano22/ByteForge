@@ -11,14 +11,14 @@ namespace ByteForge
     class BYTEFORGE_API Mesh
     {
     public:
-        Mesh(Ref<VertexBuffer> vertexBuffer, const uint32_t vertexCount)
+        Mesh(Ref<VertexBuffer> vertexBuffer, const u32 vertexCount)
             : m_VertexBuffer(std::move(vertexBuffer)), m_VertexCount(vertexCount) {}
 
         Mesh(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
             : m_VertexBuffer(std::move(vertexBuffer)), m_IndexBuffer(std::move(indexBuffer)) {}
 
         [[nodiscard]] const Ref<VertexBuffer>& GetVertexBuffer() const { return m_VertexBuffer; }
-        [[nodiscard]] uint32_t GetVertexCount() const { return m_VertexCount; }
+        [[nodiscard]] u32 GetVertexCount() const { return m_VertexCount; }
 
         [[nodiscard]] const Ref<IndexBuffer>& GetIndexBuffer() const { return m_IndexBuffer; }
         [[nodiscard]] bool HasIndexBuffer() const { return m_IndexBuffer != nullptr; }
@@ -26,6 +26,6 @@ namespace ByteForge
     private:
         Ref<VertexBuffer> m_VertexBuffer;
         Ref<IndexBuffer> m_IndexBuffer;
-        uint32_t m_VertexCount = 0;
+        u32 m_VertexCount = 0;
     };
 }

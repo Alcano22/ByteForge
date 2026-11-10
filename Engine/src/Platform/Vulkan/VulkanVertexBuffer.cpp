@@ -7,17 +7,17 @@
 
 namespace ByteForge
 {
-    VulkanVertexBuffer::VulkanVertexBuffer(const uint32_t size)
+    VulkanVertexBuffer::VulkanVertexBuffer(const u32 size)
         : m_StreamingBuffer(MakeScope<VulkanPerFrameBuffer>(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)) {}
 
-    VulkanVertexBuffer::VulkanVertexBuffer(const void* vertices, const uint32_t size)
+    VulkanVertexBuffer::VulkanVertexBuffer(const void* vertices, const u32 size)
         : m_StaticBuffer(MakeScope<VulkanBuffer>(VulkanContext::Get().GetAllocator(), size,
                                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VulkanBufferMemory::DeviceLocal))
     {
         VulkanContext::Get().GetUploader().UploadBuffer(*m_StaticBuffer, vertices, size);
     }
 
-    void VulkanVertexBuffer::SetData(const void* data, const uint32_t size, const uint32_t offset)
+    void VulkanVertexBuffer::SetData(const void* data, const u32 size, const u32 offset)
     {
         if (!m_StreamingBuffer)
         {

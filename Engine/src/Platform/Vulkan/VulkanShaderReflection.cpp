@@ -45,14 +45,14 @@ namespace ByteForge
             if (result != SPV_REFLECT_RESULT_SUCCESS)
             {
                 throw std::runtime_error(std::format("SPIRV-Reflect failed to {} (SpvReflectResult {})",
-                                                     what, static_cast<int>(result)));
+                                                     what, static_cast<i32>(result)));
             }
         }
 
         template<typename T, typename Fn>
         std::vector<T*> Enumerate(Fn&& enumerate, const char* what)
         {
-            uint32_t count = 0;
+            u32 count = 0;
             CheckReflect(enumerate(&count, nullptr), what);
 
             std::vector<T*> items(count);
@@ -61,7 +61,7 @@ namespace ByteForge
         }
     }
 
-    ShaderReflection ShaderReflection::Reflect(const std::span<const uint32_t> spirv, const ShaderStage stage)
+    ShaderReflection ShaderReflection::Reflect(const std::span<const u32> spirv, const ShaderStage stage)
     {
         const spv_reflect::ShaderModule module(spirv.size_bytes(), spirv.data());
         CheckReflect(module.GetResult(), "parse SPIR-V");
@@ -70,7 +70,7 @@ namespace ByteForge
         ShaderReflection result;
 
         const auto bindings = Enumerate<SpvReflectDescriptorBinding>(
-            [&](uint32_t* count, SpvReflectDescriptorBinding** out)
+            [&](u32* count, SpvReflectDescriptorBinding** out)
             {
                 return module.EnumerateDescriptorBindings(count, out);
             }, "enumerate descriptor bindings");
@@ -89,7 +89,7 @@ namespace ByteForge
                 .Size    = binding->block.size
             };
 
-            for (uint32_t i = 0; i < binding->block.member_count; ++i)
+            for (u32 i = 0; i < binding->block.member_count; ++i)
             {
                 const SpvReflectBlockVariable& member = binding->block.members[i];
                 reflected.Members.push_back({
@@ -103,7 +103,7 @@ namespace ByteForge
         }
 
         const auto pushConstantBlocks = Enumerate<SpvReflectBlockVariable>(
-            [&](uint32_t* count, SpvReflectBlockVariable** out)
+            [&](u32* count, SpvReflectBlockVariable** out)
             {
                 return module.EnumeratePushConstantBlocks(count, out);
             }, "enumerate push constant blocks");
@@ -123,7 +123,7 @@ namespace ByteForge
         if (stage == ShaderStage::Vertex)
         {
             const auto inputs = Enumerate<SpvReflectInterfaceVariable>(
-                [&](uint32_t* count, SpvReflectInterfaceVariable** out)
+                [&](u32* count, SpvReflectInterfaceVariable** out)
                 {
                     return module.EnumerateInputVariables(count, out);
                 }, "enumerate input variables");

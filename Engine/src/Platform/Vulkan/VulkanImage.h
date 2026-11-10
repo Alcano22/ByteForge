@@ -14,13 +14,13 @@ namespace ByteForge
 
     struct VulkanImageSpec
     {
-        uint32_t Width = 0;
-        uint32_t Height = 0;
+        u32 Width = 0;
+        u32 Height = 0;
         VkFormat Format = VK_FORMAT_UNDEFINED;
         VkImageUsageFlags Usage = 0;
         VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT;
         VkFormat AlternateViewFormat = VK_FORMAT_UNDEFINED;
-        uint32_t MipLevels = 1;
+        u32 MipLevels = 1;
         bool DedicatedMemory = true;
     };
 

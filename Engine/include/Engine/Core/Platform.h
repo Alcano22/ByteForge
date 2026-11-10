@@ -13,7 +13,7 @@ namespace ByteForge::Platform
 
     struct ProcessResult
     {
-        int ExitCode = -1;
+        i32 ExitCode = -1;
         std::string Output;
     };
 

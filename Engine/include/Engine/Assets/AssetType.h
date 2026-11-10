@@ -7,7 +7,7 @@
 
 namespace ByteForge
 {
-    enum class AssetType : uint8_t
+    enum class AssetType : u8
     {
         None = 0,
         Texture2D,

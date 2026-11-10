@@ -14,15 +14,15 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t MaxHistory = 2000;
+        constexpr usize MaxHistory = 2000;
 
         struct LogState
         {
             std::mutex Mutex;
             std::deque<LogEntry> History;
-            std::vector<std::pair<uint64_t, LogCallback>> Callbacks;
-            uint64_t NextEntryId = 1;
-            uint64_t NextSubscriptionId = 1;
+            std::vector<std::pair<u64, LogCallback>> Callbacks;
+            u64 NextEntryId = 1;
+            u64 NextSubscriptionId = 1;
         };
 
         LogState& GetState()
@@ -142,12 +142,12 @@ namespace ByteForge
                 callback(entry);
         }
 
-        const uint64_t id = state.NextSubscriptionId++;
+        const u64 id = state.NextSubscriptionId++;
         state.Callbacks.emplace_back(id, std::move(callback));
         return LogSubscription(id);
     }
 
-    void Log::Unsubscribe(const uint64_t id)
+    void Log::Unsubscribe(const u64 id)
     {
         LogState& state = GetState();
         const std::lock_guard lock(state.Mutex);

@@ -26,12 +26,12 @@ namespace ByteForge
     public:
         virtual ~Texture2D() = default;
 
-        [[nodiscard]] virtual uint32_t GetWidth() const = 0;
-        [[nodiscard]] virtual uint32_t GetHeight() const = 0;
-        [[nodiscard]] virtual uint32_t GetMipLevels() const = 0;
+        [[nodiscard]] virtual u32 GetWidth() const = 0;
+        [[nodiscard]] virtual u32 GetHeight() const = 0;
+        [[nodiscard]] virtual u32 GetMipLevels() const = 0;
         [[nodiscard]] virtual TextureFilter GetFilter() const = 0;
 
-        static Ref<Texture2D> Create(uint32_t width, uint32_t height, std::span<const std::byte> pixels,
+        static Ref<Texture2D> Create(u32 width, u32 height, std::span<const std::byte> pixels,
                                      const TextureSettings& settings = {});
 
         static Ref<Texture2D> Load(const std::filesystem::path& path, const TextureSettings& settings = {});

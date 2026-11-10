@@ -24,16 +24,16 @@ namespace ByteForge
 
     private:
         void Fire(GraphEvent event, std::optional<ScriptValue> payload);
-        void Run(uint32_t instruction);
-        void StartDelay(uint32_t id, float duration, uint32_t resume);
-        void AdvanceDelays(float deltaTime);
+        void Run(u32 instruction);
+        void StartDelay(u32 id, f32 duration, u32 resume);
+        void AdvanceDelays(f32 deltaTime);
 
     private:
         struct PendingDelay
         {
-            uint32_t Id = 0;
-            float Remaining = 0.0f;
-            uint32_t Resume = 0;
+            u32 Id = 0;
+            f32 Remaining = 0.0f;
+            u32 Resume = 0;
         };
 
         Ref<const GraphProgram> m_Program;

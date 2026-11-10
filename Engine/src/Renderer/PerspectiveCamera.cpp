@@ -7,10 +7,10 @@
 
 namespace ByteForge
 {
-    void PerspectiveCamera::SetProjection(const float verticalFov, const float aspectRatio,
-                                          const float nearPlane, const float farPlane)
+    void PerspectiveCamera::SetProjection(const f32 verticalFov, const f32 aspectRatio,
+                                          const f32 nearPlane, const f32 farPlane)
     {
-        if (verticalFov <= 0.0f || verticalFov >= glm::pi<float>())
+        if (verticalFov <= 0.0f || verticalFov >= glm::pi<f32>())
             throw std::runtime_error("PerspectiveCamera: the field of view must be between 0 and pi radians");
         if (aspectRatio <= 0.0f)
             throw std::runtime_error("PerspectiveCamera: the aspect ratio must be greater than zero");

@@ -44,7 +44,7 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API std::expected<PinType, std::string> CanConnect(const ScriptGraph& graph,
                                                                                const PinRef& from, const PinRef& to);
 
-    enum class GraphSeverity : uint8_t { Warning, Error };
+    enum class GraphSeverity : u8 { Warning, Error };
 
     struct GraphDiagnostic
     {

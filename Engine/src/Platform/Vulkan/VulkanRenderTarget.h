@@ -15,11 +15,11 @@ namespace ByteForge
     public:
         explicit VulkanRenderTarget(const RenderTargetSpec& spec);
 
-        [[nodiscard]] uint32_t GetWidth() const override { return m_Spec.Width; }
-        [[nodiscard]] uint32_t GetHeight() const override { return m_Spec.Height; }
+        [[nodiscard]] u32 GetWidth() const override { return m_Spec.Width; }
+        [[nodiscard]] u32 GetHeight() const override { return m_Spec.Height; }
         [[nodiscard]] VkExtent2D GetExtent() const { return { m_Spec.Width, m_Spec.Height }; }
 
-        [[nodiscard]] uint32_t ReadPixel(uint32_t attachment, uint32_t x, uint32_t y) const override;
+        [[nodiscard]] u32 ReadPixel(u32 attachment, u32 x, u32 y) const override;
 
         [[nodiscard]] const std::vector<VkFormat>& GetColorFormats() const { return m_ColorFormats; }
         [[nodiscard]] VkImageView GetDepthView() const { return m_Depth ? m_Depth->GetView() : nullptr; }

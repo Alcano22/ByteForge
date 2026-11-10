@@ -52,8 +52,8 @@ namespace ByteForge
         GraphNodePalette m_Palette;
         std::optional<DrawnPin> m_PendingPin;
 
-        uint64_t m_SyncedRevision = std::numeric_limits<uint64_t>::max();
-        int m_FramesSinceLoad = 0;
+        u64 m_SyncedRevision = std::numeric_limits<u64>::max();
+        i32 m_FramesSinceLoad = 0;
 
         std::optional<UUID> m_PendingOpen;
         bool m_FocusRequested = false;

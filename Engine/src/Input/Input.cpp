@@ -10,8 +10,8 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr size_t KeyCount = static_cast<size_t>(KeyCode::Menu) + 1;
-        constexpr size_t MouseButtonCount = static_cast<size_t>(MouseButton::ButtonLast) + 1;
+        constexpr usize KeyCount = static_cast<usize>(KeyCode::Menu) + 1;
+        constexpr usize MouseButtonCount = static_cast<usize>(MouseButton::ButtonLast) + 1;
 
         struct State
         {
@@ -31,14 +31,14 @@ namespace ByteForge
 
         State s_State;
 
-        template<size_t N>
-        bool Query(const std::bitset<N>& bits, const size_t index, const bool blocked)
+        template<usize N>
+        bool Query(const std::bitset<N>& bits, const usize index, const bool blocked)
         {
             return !blocked && index < N && bits[index];
         }
 
-        template<size_t N>
-        void Press(std::bitset<N>& down, std::bitset<N>& pressed, const size_t index)
+        template<usize N>
+        void Press(std::bitset<N>& down, std::bitset<N>& pressed, const usize index)
         {
             if (index >= N) return;
 
@@ -48,8 +48,8 @@ namespace ByteForge
             down.set(index);
         }
 
-        template<size_t N>
-        void Release(std::bitset<N>& down, std::bitset<N>& released, const size_t index)
+        template<usize N>
+        void Release(std::bitset<N>& down, std::bitset<N>& released, const usize index)
         {
             if (index >= N) return;
 
@@ -62,32 +62,32 @@ namespace ByteForge
 
     bool Input::IsKeyDown(const KeyCode key)
     {
-        return Query(s_State.KeyDown, static_cast<size_t>(key), s_State.KeyboardBlocked);
+        return Query(s_State.KeyDown, static_cast<usize>(key), s_State.KeyboardBlocked);
     }
 
     bool Input::IsKeyPressed(const KeyCode key)
     {
-        return Query(s_State.KeyPressed, static_cast<size_t>(key), s_State.KeyboardBlocked);
+        return Query(s_State.KeyPressed, static_cast<usize>(key), s_State.KeyboardBlocked);
     }
 
     bool Input::IsKeyReleased(const KeyCode key)
     {
-        return Query(s_State.KeyReleased, static_cast<size_t>(key), s_State.KeyboardBlocked);
+        return Query(s_State.KeyReleased, static_cast<usize>(key), s_State.KeyboardBlocked);
     }
 
     bool Input::IsMouseButtonDown(const MouseButton button)
     {
-        return Query(s_State.MouseDown, static_cast<size_t>(button), s_State.MouseBlocked);
+        return Query(s_State.MouseDown, static_cast<usize>(button), s_State.MouseBlocked);
     }
 
     bool Input::IsMouseButtonPressed(const MouseButton button)
     {
-        return Query(s_State.MousePressed, static_cast<size_t>(button), s_State.MouseBlocked);
+        return Query(s_State.MousePressed, static_cast<usize>(button), s_State.MouseBlocked);
     }
 
     bool Input::IsMouseButtonReleased(const MouseButton button)
     {
-        return Query(s_State.MouseReleased, static_cast<size_t>(button), s_State.MouseBlocked);
+        return Query(s_State.MouseReleased, static_cast<usize>(button), s_State.MouseBlocked);
     }
 
     glm::vec2 Input::GetMousePosition() { return s_State.MousePosition; }
@@ -135,25 +135,25 @@ namespace ByteForge
             {
                 const auto& keyEvent = static_cast<const KeyPressedEvent&>(event);
                 if (!keyEvent.IsRepeat())
-                    Press(s_State.KeyDown, s_State.KeyPressed, static_cast<size_t>(keyEvent.GetKeyCode()));
+                    Press(s_State.KeyDown, s_State.KeyPressed, static_cast<usize>(keyEvent.GetKeyCode()));
                 break;
             }
             case EventType::KeyReleased:
             {
                 const auto& keyEvent = static_cast<const KeyReleasedEvent&>(event);
-                Release(s_State.KeyDown, s_State.KeyReleased, static_cast<size_t>(keyEvent.GetKeyCode()));
+                Release(s_State.KeyDown, s_State.KeyReleased, static_cast<usize>(keyEvent.GetKeyCode()));
                 break;
             }
             case EventType::MouseButtonPressed:
             {
                 const auto& buttonEvent = static_cast<const MouseButtonPressedEvent&>(event);
-                Press(s_State.MouseDown, s_State.MousePressed, static_cast<size_t>(buttonEvent.GetButton()));
+                Press(s_State.MouseDown, s_State.MousePressed, static_cast<usize>(buttonEvent.GetButton()));
                 break;
             }
             case EventType::MouseButtonReleased:
             {
                 const auto& buttonEvent = static_cast<const MouseButtonReleasedEvent&>(event);
-                Release(s_State.MouseDown, s_State.MouseReleased, static_cast<size_t>(buttonEvent.GetButton()));
+                Release(s_State.MouseDown, s_State.MouseReleased, static_cast<usize>(buttonEvent.GetButton()));
                 break;
             }
             case EventType::MouseMoved:
