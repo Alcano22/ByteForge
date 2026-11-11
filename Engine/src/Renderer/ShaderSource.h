@@ -8,7 +8,7 @@ namespace ByteForge
 {
     struct ShaderSource
     {
-        std::filesystem::path Path;
+        fs::path Path;
         std::string Code;
         std::vector<std::string> Defines;
     };

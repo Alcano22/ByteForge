@@ -12,7 +12,7 @@
 
 namespace ByteForge
 {
-    SharedLibrary::SharedLibrary(const std::filesystem::path& path)
+    SharedLibrary::SharedLibrary(const fs::path& path)
         : m_Handle(dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL))
     {
         if (m_Handle == nullptr)
@@ -55,10 +55,10 @@ namespace ByteForge
 
 namespace ByteForge::Platform::Detail
 {
-    std::filesystem::path QueryExecutablePath()
+    fs::path QueryExecutablePath()
     {
         std::error_code error;
-        std::filesystem::path path = std::filesystem::read_symlink("/proc/self/exe", error);
+        fs::path path = fs::read_symlink("/proc/self/exe", error);
         if (error)
             throw std::runtime_error(std::format("Platform: cannot resolve /proc/self/exe: {}", error.message()));
 

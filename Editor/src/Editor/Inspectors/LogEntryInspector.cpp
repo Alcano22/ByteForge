@@ -41,7 +41,7 @@ namespace ByteForge::EditorUI
             row("Source", "unknown");
         else
         {
-            const std::filesystem::path file(entry.File);
+            const fs::path file(entry.File);
             row("Source", std::format("{}:{}", file.filename().string(), entry.Line));
             ImGui::SetItemTooltip("%s", entry.File.c_str());
 

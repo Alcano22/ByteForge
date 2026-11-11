@@ -160,7 +160,7 @@ namespace ByteForge
         SceneState State = SceneState::Edit;
         EditorIcons Icons;
         EditorFonts Fonts;
-        ScriptProject Scripts{ std::filesystem::current_path() };
+        ScriptProject Scripts{ fs::current_path() };
 
     private:
         std::vector<std::pair<std::type_index, Scope<EditorPanel>>> m_Panels;

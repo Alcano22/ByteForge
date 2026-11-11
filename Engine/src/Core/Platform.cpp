@@ -3,15 +3,15 @@
 
 namespace ByteForge::Platform
 {
-    const std::filesystem::path& GetExecutablePath()
+    const fs::path& GetExecutablePath()
     {
-        static const std::filesystem::path path = Detail::QueryExecutablePath();
+        static const fs::path path = Detail::QueryExecutablePath();
         return path;
     }
 
-    const std::filesystem::path& GetExecutableDirectory()
+    const fs::path& GetExecutableDirectory()
     {
-        static const std::filesystem::path directory = GetExecutablePath().parent_path();
+        static const fs::path directory = GetExecutablePath().parent_path();
         return directory;
     }
 }

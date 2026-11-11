@@ -7,7 +7,7 @@
 
 namespace ByteForge
 {
-    [[nodiscard]] inline std::filesystem::path GetBuiltinShaderPath(const std::string_view fileName)
+    [[nodiscard]] inline fs::path GetBuiltinShaderPath(const std::string_view fileName)
     {
         return Platform::GetExecutableDirectory() / "engine" / "shaders" / fileName;
     }

@@ -128,10 +128,10 @@ namespace ByteForge
 
     void ScriptEngine::TryRegisterCSharpBackend()
     {
-        const std::filesystem::path directory = Platform::GetExecutableDirectory() / "ScriptCore";
+        const fs::path directory = Platform::GetExecutableDirectory() / "ScriptCore";
 
         std::error_code error;
-        if (!std::filesystem::is_regular_file(directory / "ScriptCore.dll", error))
+        if (!fs::is_regular_file(directory / "ScriptCore.dll", error))
         {
             CORE_INFO("C# scripting unavailable: no ScriptCore next to the executable");
             return;

@@ -14,8 +14,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
-
     namespace
     {
 #ifdef _WIN32
@@ -157,8 +155,8 @@ namespace ByteForge
         }
     }
 
-    std::expected<ExportResult, std::string> GameExporter::Export(const std::filesystem::path& projectRoot,
-                                                                  const std::filesystem::path& outputRoot)
+    std::expected<ExportResult, std::string> GameExporter::Export(const fs::path& projectRoot,
+                                                                  const fs::path& outputRoot)
     {
         const fs::path editorDirectory = Platform::GetExecutableDirectory();
         const fs::path assetsDirectory = projectRoot / "assets";

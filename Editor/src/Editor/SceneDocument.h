@@ -23,22 +23,22 @@ namespace ByteForge
         bool OpenLast();
 
         bool Save();
-        bool SaveAs(const std::filesystem::path& relativePath);
+        bool SaveAs(const fs::path& relativePath);
 
         bool SetAsStartupScene() const;
 
         [[nodiscard]] bool HasFile() const { return m_Handle.has_value(); }
         [[nodiscard]] bool IsDirty() const;
 
-        [[nodiscard]] std::filesystem::path GetPath() const;
+        [[nodiscard]] fs::path GetPath() const;
         [[nodiscard]] std::string GetName() const;
 
         void Update() const;
 
-        [[nodiscard]] static std::filesystem::path ToScenePath(std::string_view name);
+        [[nodiscard]] static fs::path ToScenePath(std::string_view name);
 
     private:
-        bool Write(const std::filesystem::path& absolutePath);
+        bool Write(const fs::path& absolutePath);
 
         void ResetEditorState() const;
         void RememberAsLast() const;

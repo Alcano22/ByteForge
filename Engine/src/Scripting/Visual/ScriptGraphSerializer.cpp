@@ -201,7 +201,7 @@ namespace ByteForge
         }
     }
 
-    std::expected<ScriptGraph, std::string> LoadScriptGraph(const std::filesystem::path& path)
+    std::expected<ScriptGraph, std::string> LoadScriptGraph(const fs::path& path)
     {
         std::ifstream file(path);
         if (!file.is_open())
@@ -218,7 +218,7 @@ namespace ByteForge
         }
     }
 
-    std::expected<void, std::string> SaveScriptGraph(const ScriptGraph& graph, const std::filesystem::path& path)
+    std::expected<void, std::string> SaveScriptGraph(const ScriptGraph& graph, const fs::path& path)
     {
         std::ofstream file(path);
         if (!file.is_open())

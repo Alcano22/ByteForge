@@ -4,5 +4,5 @@
 
 namespace ByteForge::Platform::Detail
 {
-    [[nodiscard]] std::filesystem::path QueryExecutablePath();
+    [[nodiscard]] fs::path QueryExecutablePath();
 }

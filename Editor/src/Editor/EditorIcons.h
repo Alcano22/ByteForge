@@ -44,11 +44,11 @@ namespace ByteForge
     class EditorIcons
     {
     public:
-        void Load(const std::filesystem::path& directory);
+        void Load(const fs::path& directory);
 
         [[nodiscard]] const Ref<Texture2D>& Get(EditorIcon icon) const;
 
-        [[nodiscard]] static EditorIcon ForFile(const std::filesystem::path& path);
+        [[nodiscard]] static EditorIcon ForFile(const fs::path& path);
 
         void AddToFonts(const EditorFonts& fonts);
 

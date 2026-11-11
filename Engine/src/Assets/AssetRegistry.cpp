@@ -9,8 +9,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
-
     namespace
     {
         constexpr const char* MetaExtension = ".meta";
@@ -36,7 +34,7 @@ namespace ByteForge
 
     u64 AssetRegistry::s_Revision = 0;
 
-    void AssetRegistry::Init(const std::filesystem::path& assetRoot)
+    void AssetRegistry::Init(const fs::path& assetRoot)
     {
         Clear();
         s_AssetRoot = assetRoot;
@@ -57,7 +55,7 @@ namespace ByteForge
         CORE_INFO("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), s_AssetRoot.string());
     }
 
-    UUID AssetRegistry::Import(const std::filesystem::path& relativePath)
+    UUID AssetRegistry::Import(const fs::path& relativePath)
     {
         const std::string key = relativePath.generic_string();
 
@@ -158,13 +156,13 @@ namespace ByteForge
         return true;
     }
 
-    UUID AssetRegistry::GetHandle(const std::filesystem::path& relativePath)
+    UUID AssetRegistry::GetHandle(const fs::path& relativePath)
     {
         const auto it = s_PathToHandle.find(relativePath.generic_string());
         return it != s_PathToHandle.end() ? it->second : UUID(0);
     }
 
-    std::filesystem::path AssetRegistry::Resolve(const UUID handle)
+    fs::path AssetRegistry::Resolve(const UUID handle)
     {
         AssetMetadata metadata;
         if (!TryGetMetadata(handle, metadata))
@@ -211,7 +209,7 @@ namespace ByteForge
         ++s_Revision;
     }
 
-    void AssetRegistry::WriteMeta(const std::filesystem::path& absolutePath, const AssetMetadata& metadata)
+    void AssetRegistry::WriteMeta(const fs::path& absolutePath, const AssetMetadata& metadata)
     {
         nlohmann::json data;
         data["uuid"] = static_cast<u64>(metadata.Handle);
@@ -228,7 +226,7 @@ namespace ByteForge
         file << data.dump(4);
     }
 
-    bool AssetRegistry::ReadMeta(const std::filesystem::path& metaPath, AssetMetadata& outMetadata)
+    bool AssetRegistry::ReadMeta(const fs::path& metaPath, AssetMetadata& outMetadata)
     {
         std::ifstream file(metaPath);
         if (!file.is_open())

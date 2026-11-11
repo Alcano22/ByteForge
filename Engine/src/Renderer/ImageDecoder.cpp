@@ -9,7 +9,7 @@
 
 namespace ByteForge
 {
-    std::expected<DecodedImage, std::string> DecodeImage(const std::filesystem::path& path)
+    std::expected<DecodedImage, std::string> DecodeImage(const fs::path& path)
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file)

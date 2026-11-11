@@ -49,12 +49,12 @@ namespace ByteForge
         [[nodiscard]] f32 GetMasterVolume() const;
         void SetMasterVolume(f32 volume) const;
 
-        void PlayOneShot(const std::filesystem::path& file, AudioBus bus);
+        void PlayOneShot(const fs::path& file, AudioBus bus);
 
         void StopAll(AudioBus bus);
         void SetPaused(AudioBus bus, bool paused) const;
 
-        [[nodiscard]] Scope<Sound> CreateSound(const std::filesystem::path& file, const AudioClipSettings& settings,
+        [[nodiscard]] Scope<Sound> CreateSound(const fs::path& file, const AudioClipSettings& settings,
                                                AudioBus bus = AudioBus::Game) const;
 
         [[nodiscard]] static AudioEngine& Get();

@@ -19,7 +19,7 @@ namespace ByteForge
     {
     public:
         [[nodiscard]] static std::expected<UUID, std::string> Create(Entity root,
-                                                                     const std::filesystem::path& relativePath);
+                                                                     const fs::path& relativePath);
 
         [[nodiscard]] static std::expected<Entity, std::string> Instantiate(
             Scene& scene, UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);

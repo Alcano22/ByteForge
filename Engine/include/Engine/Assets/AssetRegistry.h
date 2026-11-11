@@ -15,19 +15,19 @@ namespace ByteForge
     class BYTEFORGE_API AssetRegistry
     {
     public:
-        static void Init(const std::filesystem::path& assetRoot);
+        static void Init(const fs::path& assetRoot);
 
-        [[nodiscard]] static const std::filesystem::path& GetAssetRoot() { return s_AssetRoot; }
+        [[nodiscard]] static const fs::path& GetAssetRoot() { return s_AssetRoot; }
         [[nodiscard]] static u64 GetRevision() { return s_Revision; }
 
-        static UUID Import(const std::filesystem::path& relativePath);
-        static std::expected<void, std::string> Move(const std::filesystem::path& from,
-                                                     const std::filesystem::path& to);
+        static UUID Import(const fs::path& relativePath);
+        static std::expected<void, std::string> Move(const fs::path& from,
+                                                     const fs::path& to);
 
         [[nodiscard]] static bool TryGetMetadata(UUID handle, AssetMetadata& outMetadata);
-        [[nodiscard]] static UUID GetHandle(const std::filesystem::path& relativePath);
+        [[nodiscard]] static UUID GetHandle(const fs::path& relativePath);
 
-        [[nodiscard]] static std::filesystem::path Resolve(UUID handle);
+        [[nodiscard]] static fs::path Resolve(UUID handle);
 
         [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
 
@@ -36,11 +36,11 @@ namespace ByteForge
         static void Clear();
 
     private:
-        static void WriteMeta(const std::filesystem::path& absolutePath, const AssetMetadata& metadata);
-        [[nodiscard]] static bool ReadMeta(const std::filesystem::path& metaPath, AssetMetadata& outMetadata);
+        static void WriteMeta(const fs::path& absolutePath, const AssetMetadata& metadata);
+        [[nodiscard]] static bool ReadMeta(const fs::path& metaPath, AssetMetadata& outMetadata);
 
     private:
-        static std::filesystem::path s_AssetRoot;
+        static fs::path s_AssetRoot;
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
 

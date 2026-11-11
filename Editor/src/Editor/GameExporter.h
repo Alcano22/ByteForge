@@ -10,7 +10,7 @@ namespace ByteForge
 
     struct ExportResult
     {
-        std::filesystem::path Directory;
+        fs::path Directory;
         usize FileCount = 0;
     };
 
@@ -18,7 +18,7 @@ namespace ByteForge
     {
     public:
         [[nodiscard]] static std::expected<ExportResult, std::string> Export(
-            const std::filesystem::path& projectRoot, const std::filesystem::path& outputRoot);
+            const fs::path& projectRoot, const fs::path& outputRoot);
     };
 
     void ExportGameWithDialog(EditorContext& context);

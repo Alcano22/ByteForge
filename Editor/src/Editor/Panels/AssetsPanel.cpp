@@ -25,8 +25,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
-
     namespace
     {
         bool IsMetaFile(const fs::path& path) { return path.extension() == ".meta"; }
@@ -147,7 +145,7 @@ namespace ByteForge
             return lines;
         }
 
-        std::string GetDisplayName(const std::filesystem::path& path, const bool isDirectory)
+        std::string GetDisplayName(const fs::path& path, const bool isDirectory)
         {
             return isDirectory ? path.filename().string() : path.stem().string();
         }
@@ -687,7 +685,7 @@ namespace ByteForge
         return entry.Handle && GetContext().SelectionContext.IsAsset(*entry.Handle);
     }
 
-    const std::filesystem::path* AssetsPanel::GetLocalSelection() const
+    const fs::path* AssetsPanel::GetLocalSelection() const
     {
         if (!m_LocalSelection || m_LocalSelection->Revision != GetContext().SelectionContext.GetRevision())
             return nullptr;

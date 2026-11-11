@@ -15,7 +15,7 @@ namespace ByteForge
         return RenderBackend::Get().CreateShader(vertexSrc, fragmentSrc);
     }
 
-    Ref<Shader> Shader::Load(const std::filesystem::path& path, std::vector<std::string> defines)
+    Ref<Shader> Shader::Load(const fs::path& path, std::vector<std::string> defines)
     {
         std::ifstream file(path, std::ios::binary);
         if (!file.is_open())

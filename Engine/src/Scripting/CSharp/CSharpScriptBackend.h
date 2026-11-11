@@ -33,7 +33,7 @@ namespace ByteForge
             i32 (CORECLR_DELEGATE_CALLTYPE* OnContact)(void* instance, i32 event, u64 other) = nullptr;
         };
 
-        explicit CSharpScriptBackend(const std::filesystem::path& scriptCoreDirectory);
+        explicit CSharpScriptBackend(const fs::path& scriptCoreDirectory);
 
         [[nodiscard]] std::string_view GetName() const override { return "C#"; }
         [[nodiscard]] std::vector<std::string> GetClassNames() const override;
@@ -42,7 +42,7 @@ namespace ByteForge
 
         [[nodiscard]] Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) override;
 
-        bool LoadModule(const std::filesystem::path& path) override;
+        bool LoadModule(const fs::path& path) override;
 
         void OnRuntimeStart(Scene& scene) override;
         void OnRuntimeStop(Scene& scene) override;

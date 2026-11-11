@@ -24,7 +24,7 @@ namespace ByteForge
             AudioBus Bus = AudioBus::Game;
         };
 
-        ma_result InitSound(ma_engine& engine, const std::filesystem::path& file, const ma_uint32 flags,
+        ma_result InitSound(ma_engine& engine, const fs::path& file, const ma_uint32 flags,
                             ma_sound_group& group, ma_sound& sound)
         {
 #ifdef _WIN32
@@ -151,7 +151,7 @@ namespace ByteForge
             ma_engine_set_volume(&m_Impl->Engine, std::max(volume, 0.0f));
     }
 
-    void AudioEngine::PlayOneShot(const std::filesystem::path& file, const AudioBus bus)
+    void AudioEngine::PlayOneShot(const fs::path& file, const AudioBus bus)
     {
         if (!m_Impl) return;
 
@@ -192,7 +192,7 @@ namespace ByteForge
             ma_sound_group_start(&group);
     }
 
-    Scope<Sound> AudioEngine::CreateSound(const std::filesystem::path& file, const AudioClipSettings& settings,
+    Scope<Sound> AudioEngine::CreateSound(const fs::path& file, const AudioClipSettings& settings,
                                           const AudioBus bus) const
     {
         if (!m_Impl)

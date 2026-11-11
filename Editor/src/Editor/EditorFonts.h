@@ -19,7 +19,7 @@ namespace ByteForge
     class EditorFonts
     {
     public:
-        void Load(const std::filesystem::path& directory, f32 size);
+        void Load(const fs::path& directory, f32 size);
 
         [[nodiscard]] ImFont* Get(EditorFont font) const;
 

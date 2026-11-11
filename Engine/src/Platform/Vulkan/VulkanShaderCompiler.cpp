@@ -87,7 +87,7 @@ namespace ByteForge
 
         const std::wstring path = source.Path.wstring();
 
-        const std::filesystem::path directory = source.Path.parent_path();
+        const fs::path directory = source.Path.parent_path();
         const std::wstring includeDirectory = directory.empty() ? std::wstring(L".") : directory.wstring();
 
         std::vector<std::wstring> defines;

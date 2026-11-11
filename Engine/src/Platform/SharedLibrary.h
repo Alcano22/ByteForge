@@ -7,7 +7,7 @@ namespace ByteForge
     class SharedLibrary
     {
     public:
-        explicit SharedLibrary(const std::filesystem::path& path);
+        explicit SharedLibrary(const fs::path& path);
         ~SharedLibrary();
 
         SharedLibrary(const SharedLibrary&) = delete;

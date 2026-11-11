@@ -21,13 +21,13 @@ namespace ByteForge
 
         constexpr std::array<FileFilter, 1> SceneFilters{ { { "ByteForge Scene", "bfscene" } } };
 
-        std::optional<std::filesystem::path> ToAssetPath(const std::filesystem::path& absolutePath)
+        std::optional<fs::path> ToAssetPath(const fs::path& absolutePath)
         {
             std::error_code error;
-            const std::filesystem::path root =
-                std::filesystem::weakly_canonical(AssetRegistry::GetAssetRoot(), error);
-            const std::filesystem::path relative =
-                std::filesystem::weakly_canonical(absolutePath, error).lexically_relative(root);
+            const fs::path root =
+                fs::weakly_canonical(AssetRegistry::GetAssetRoot(), error);
+            const fs::path relative =
+                fs::weakly_canonical(absolutePath, error).lexically_relative(root);
 
             if (relative.empty() || relative.begin()->string() == "..")
                 return std::nullopt;
@@ -56,10 +56,10 @@ namespace ByteForge
     {
         if (!EnsureEditing("open a scene")) return;
 
-        const std::optional<std::filesystem::path> chosen = FileDialogs::OpenFile(SceneFilters, GetDefaultDirectory());
+        const std::optional<fs::path> chosen = FileDialogs::OpenFile(SceneFilters, GetDefaultDirectory());
         if (!chosen) return;
 
-        const std::optional<std::filesystem::path> relative = ToAssetPath(*chosen);
+        const std::optional<fs::path> relative = ToAssetPath(*chosen);
         if (!relative)
         {
             APP_ERROR("Scenes must be inside the asset folder: '{}'", chosen->string());
@@ -83,12 +83,12 @@ namespace ByteForge
             return false;
 
         const std::string defaultName = m_Context.Document.GetName() + SceneDocument::Extension;
-        const std::optional<std::filesystem::path> chosen =
+        const std::optional<fs::path> chosen =
             FileDialogs::SaveFile(SceneFilters, GetDefaultDirectory(), defaultName);
         if (!chosen)
             return false;
 
-        const std::optional<std::filesystem::path> relative = ToAssetPath(*chosen);
+        const std::optional<fs::path> relative = ToAssetPath(*chosen);
         if (!relative)
         {
             APP_ERROR("Scenes must be saved inside the asset folder: '{}'", chosen->string());
@@ -176,15 +176,15 @@ namespace ByteForge
         return false;
     }
 
-    std::filesystem::path SceneDialogs::GetDefaultDirectory() const
+    fs::path SceneDialogs::GetDefaultDirectory() const
     {
-        const std::filesystem::path root = std::filesystem::absolute(AssetRegistry::GetAssetRoot());
+        const fs::path root = fs::absolute(AssetRegistry::GetAssetRoot());
 
-        if (const std::filesystem::path current = m_Context.Document.GetPath(); !current.empty())
+        if (const fs::path current = m_Context.Document.GetPath(); !current.empty())
             return (root / current).parent_path();
 
         std::error_code error;
-        const std::filesystem::path scenes = root / "scenes";
-        return std::filesystem::is_directory(scenes, error) ? scenes : root;
+        const fs::path scenes = root / "scenes";
+        return fs::is_directory(scenes, error) ? scenes : root;
     }
 }

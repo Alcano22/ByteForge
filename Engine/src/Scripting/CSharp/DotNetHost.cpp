@@ -21,7 +21,7 @@ namespace ByteForge
 
         std::string FromHostString(const char_t* text)
         {
-            return std::filesystem::path(text).string();
+            return fs::path(text).string();
         }
 
         template<typename Fn>
@@ -39,7 +39,7 @@ namespace ByteForge
         }
     }
 
-    DotNetHost::DotNetHost(const std::filesystem::path& runtimeConfig)
+    DotNetHost::DotNetHost(const fs::path& runtimeConfig)
     {
         std::array<char_t, 4096> hostFxrPath{};
         usize size = hostFxrPath.size();
@@ -50,7 +50,7 @@ namespace ByteForge
                                                  static_cast<u32>(pathResult)));
         }
 
-        m_HostFxr = MakeScope<SharedLibrary>(std::filesystem::path(hostFxrPath.data()));
+        m_HostFxr = MakeScope<SharedLibrary>(fs::path(hostFxrPath.data()));
 
         const auto setErrorWriter = Resolve<hostfxr_set_error_writer_fn>(*m_HostFxr, "hostfxr_set_error_writer");
         const auto initialize = Resolve<hostfxr_initialize_for_runtime_config_fn>(
@@ -92,7 +92,7 @@ namespace ByteForge
         static_cast<void>(m_HostFxr.release());
     }
 
-    void* DotNetHost::GetFunction(const std::filesystem::path& assembly, const std::string_view typeName,
+    void* DotNetHost::GetFunction(const fs::path& assembly, const std::string_view typeName,
                                   const std::string_view methodName) const
     {
         const std::basic_string<char_t> type = ToHostString(typeName);

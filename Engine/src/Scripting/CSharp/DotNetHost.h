@@ -14,17 +14,17 @@ namespace ByteForge
     class DotNetHost
     {
     public:
-        explicit DotNetHost(const std::filesystem::path& runtimeConfig);
+        explicit DotNetHost(const fs::path& runtimeConfig);
         ~DotNetHost();
 
         DotNetHost(const DotNetHost&) = delete;
         DotNetHost& operator=(const DotNetHost&) = delete;
 
-        [[nodiscard]] void* GetFunction(const std::filesystem::path& assembly, std::string_view typeName,
+        [[nodiscard]] void* GetFunction(const fs::path& assembly, std::string_view typeName,
                                         std::string_view methodName) const;
 
         template<typename Fn>
-        [[nodiscard]] Fn GetFunction(const std::filesystem::path& assembly, const std::string_view typeName,
+        [[nodiscard]] Fn GetFunction(const fs::path& assembly, const std::string_view typeName,
                                      const std::string_view methodName) const
         {
             return reinterpret_cast<Fn>(GetFunction(assembly, typeName, methodName));

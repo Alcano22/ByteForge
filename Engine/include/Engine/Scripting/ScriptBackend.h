@@ -48,7 +48,7 @@ namespace ByteForge
 
         [[nodiscard]] virtual Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) = 0;
 
-        virtual bool LoadModule(const std::filesystem::path&) { return false; }
+        virtual bool LoadModule(const fs::path&) { return false; }
 
         virtual void OnRuntimeStart(Scene&) {}
         virtual void OnRuntimeStop(Scene&) {}

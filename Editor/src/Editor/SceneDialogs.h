@@ -31,7 +31,7 @@ namespace ByteForge
         void RunContinuation();
         bool EnsureEditing(const char* what) const;
 
-        [[nodiscard]] std::filesystem::path GetDefaultDirectory() const;
+        [[nodiscard]] fs::path GetDefaultDirectory() const;
 
     private:
         EditorContext& m_Context;

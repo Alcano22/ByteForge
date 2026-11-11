@@ -15,7 +15,7 @@ namespace ByteForge
 
         static Ref<Shader> Create(const std::string& vertexSrc, const std::string& fragmentSrc);
 
-        [[nodiscard]] static Ref<Shader> Load(const std::filesystem::path& path,
+        [[nodiscard]] static Ref<Shader> Load(const fs::path& path,
                                               std::vector<std::string> defines = {});
     };
 }

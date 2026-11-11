@@ -21,8 +21,8 @@ namespace ByteForge
         void Reload();
         void Apply();
 
-        [[nodiscard]] static std::filesystem::path GetFile();
-        [[nodiscard]] static std::filesystem::file_time_type ReadFileTime();
+        [[nodiscard]] static fs::path GetFile();
+        [[nodiscard]] static fs::file_time_type ReadFileTime();
 
     private:
         std::array<char, 128> m_Name{};
@@ -31,7 +31,7 @@ namespace ByteForge
         UUID m_StartScene{ 0 };
 
         std::string m_Error;
-        std::filesystem::file_time_type m_FileTime{};
+        fs::file_time_type m_FileTime{};
         bool m_Loaded = false;
         bool m_Dirty = false;
     };

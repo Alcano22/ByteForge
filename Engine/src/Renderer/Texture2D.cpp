@@ -13,7 +13,7 @@ namespace ByteForge
         return RenderBackend::Get().CreateTexture2D(width, height, pixels, settings);
     }
 
-    Ref<Texture2D> Texture2D::Load(const std::filesystem::path& path, const TextureSettings& settings)
+    Ref<Texture2D> Texture2D::Load(const fs::path& path, const TextureSettings& settings)
     {
         const auto image = DecodeImage(path);
         if (!image)

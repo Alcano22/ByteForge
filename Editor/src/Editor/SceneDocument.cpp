@@ -22,9 +22,9 @@ namespace ByteForge
     {
         constexpr const char* WindowTitle = "ByteForge Editor";
 
-        std::filesystem::path GetStateFile()
+        fs::path GetStateFile()
         {
-            return std::filesystem::current_path() / ".byteforge" / "EditorState.json";
+            return fs::current_path() / ".byteforge" / "EditorState.json";
         }
 
         nlohmann::json ReadState()
@@ -39,10 +39,10 @@ namespace ByteForge
 
         void WriteState(const nlohmann::json& state)
         {
-            const std::filesystem::path file = GetStateFile();
+            const fs::path file = GetStateFile();
 
             std::error_code error;
-            std::filesystem::create_directories(file.parent_path(), error);
+            fs::create_directories(file.parent_path(), error);
 
             std::ofstream(file) << state.dump(4);
         }
@@ -110,12 +110,12 @@ namespace ByteForge
         return Write(AssetRegistry::Resolve(*m_Handle));
     }
 
-    bool SceneDocument::SaveAs(const std::filesystem::path& relativePath)
+    bool SceneDocument::SaveAs(const fs::path& relativePath)
     {
-        const std::filesystem::path absolutePath = AssetRegistry::GetAssetRoot() / relativePath;
+        const fs::path absolutePath = AssetRegistry::GetAssetRoot() / relativePath;
 
         std::error_code error;
-        std::filesystem::create_directories(absolutePath.parent_path(), error);
+        fs::create_directories(absolutePath.parent_path(), error);
 
         if (!Write(absolutePath))
             return false;
@@ -130,11 +130,11 @@ namespace ByteForge
         if (!m_Handle)
             return false;
 
-        const std::filesystem::path root = std::filesystem::current_path();
-        const std::filesystem::path file = root / ProjectSettings::FileName;
+        const fs::path root = fs::current_path();
+        const fs::path file = root / ProjectSettings::FileName;
 
         ProjectSettings settings;
-        if (std::filesystem::exists(file))
+        if (fs::exists(file))
         {
             auto loaded = ProjectSettings::Load(file);
             if (!loaded)
@@ -163,7 +163,7 @@ namespace ByteForge
 
     bool SceneDocument::IsDirty() const { return m_Context.History.IsDirty(); }
 
-    std::filesystem::path SceneDocument::GetPath() const
+    fs::path SceneDocument::GetPath() const
     {
         AssetMetadata metadata;
         if (!m_Handle || !AssetRegistry::TryGetMetadata(*m_Handle, metadata))
@@ -173,7 +173,7 @@ namespace ByteForge
 
     std::string SceneDocument::GetName() const
     {
-        const std::filesystem::path path = GetPath();
+        const fs::path path = GetPath();
         return path.empty() ? "Untitled" : path.stem().string();
     }
 
@@ -182,15 +182,15 @@ namespace ByteForge
         Application::Get().GetWindow().SetTitle(std::format("{} - {}{}", WindowTitle, GetName(), IsDirty() ? "*" : ""));
     }
 
-    std::filesystem::path SceneDocument::ToScenePath(const std::string_view name)
+    fs::path SceneDocument::ToScenePath(const std::string_view name)
     {
-        std::filesystem::path path(name);
+        fs::path path(name);
         if (path.extension().string() != Extension)
             path += Extension;
         return path.lexically_normal();
     }
 
-    bool SceneDocument::Write(const std::filesystem::path& absolutePath)
+    bool SceneDocument::Write(const fs::path& absolutePath)
     {
         if (!m_Context.IsEditing())
         {

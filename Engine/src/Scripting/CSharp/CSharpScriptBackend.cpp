@@ -122,10 +122,10 @@ namespace ByteForge
         };
     }
 
-    CSharpScriptBackend::CSharpScriptBackend(const std::filesystem::path& scriptCoreDirectory)
+    CSharpScriptBackend::CSharpScriptBackend(const fs::path& scriptCoreDirectory)
         : m_Host(scriptCoreDirectory / "ScriptCore.runtimeconfig.json")
     {
-        const std::filesystem::path assembly = scriptCoreDirectory / "ScriptCore.dll";
+        const fs::path assembly = scriptCoreDirectory / "ScriptCore.dll";
 
         const auto resolve = [&]<typename Fn>(Fn& target, const char* type, const char* method)
         {
@@ -196,7 +196,7 @@ namespace ByteForge
         return MakeScope<CSharpScriptInstance>(m_Functions, handle);
     }
 
-    bool CSharpScriptBackend::LoadModule(const std::filesystem::path& path)
+    bool CSharpScriptBackend::LoadModule(const fs::path& path)
     {
         const std::u8string file = path.u8string();
 

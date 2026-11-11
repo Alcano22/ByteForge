@@ -13,7 +13,7 @@ namespace ByteForge
     {
         UUID Handle;
         AssetType Type = AssetType::None;
-        std::filesystem::path Path;
+        fs::path Path;
         AssetSettings Settings;
 
         [[nodiscard]] bool IsValid() const { return Type != AssetType::None; }

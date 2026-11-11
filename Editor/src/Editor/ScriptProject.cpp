@@ -24,12 +24,12 @@ namespace ByteForge
     {
         constexpr const char* TargetFramework = "net10.0";
 
-        std::string Quote(const std::filesystem::path& path)
+        std::string Quote(const fs::path& path)
         {
             return std::format("\"{}\"", path.string());
         }
 
-        std::string ReadFile(const std::filesystem::path& path)
+        std::string ReadFile(const fs::path& path)
         {
             std::ifstream file(path, std::ios::binary);
             return { std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
@@ -60,12 +60,12 @@ namespace ByteForge
         }
     }
 
-    ScriptProject::ScriptProject(std::filesystem::path root)
+    ScriptProject::ScriptProject(fs::path root)
         : m_Root(std::move(root)) {}
 
     void ScriptProject::GenerateProjectFile() const
     {
-        const std::filesystem::path scriptCore = Platform::GetExecutableDirectory() / "ScriptCore" / "ScriptCore.dll";
+        const fs::path scriptCore = Platform::GetExecutableDirectory() / "ScriptCore" / "ScriptCore.dll";
 
         const std::string content = std::format(R"(
 <Project Sdk="Microsoft.NET.Sdk">
@@ -94,7 +94,7 @@ namespace ByteForge
 </Project>
 )", TargetFramework, scriptCore.string());
 
-        const std::filesystem::path file = GetProjectFile();
+        const fs::path file = GetProjectFile();
         if (ReadFile(file) == content) return;
 
         std::ofstream(file, std::ios::binary | std::ios::trunc) << content;

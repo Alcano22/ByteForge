@@ -21,8 +21,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
-
     namespace
     {
         struct DecodedTexture
@@ -125,7 +123,7 @@ namespace ByteForge
         return asset;
     }
 
-    Ref<TextureAsset> AssetManager::LoadTexture2D(const std::filesystem::path& relativePath)
+    Ref<TextureAsset> AssetManager::LoadTexture2D(const fs::path& relativePath)
     {
         return LoadTexture2D(AssetRegistry::Import(relativePath));
     }
@@ -189,7 +187,7 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
-    std::expected<UUID, std::string> AssetManager::CreateScriptGraph(const std::filesystem::path& relativePath)
+    std::expected<UUID, std::string> AssetManager::CreateScriptGraph(const fs::path& relativePath)
     {
         const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
 

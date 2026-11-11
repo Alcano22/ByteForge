@@ -19,17 +19,17 @@ namespace ByteForge
         };
     }
 
-    void EditorFonts::Load(const std::filesystem::path& directory, const f32 size)
+    void EditorFonts::Load(const fs::path& directory, const f32 size)
     {
         ImGuiIO& io = ImGui::GetIO();
         ImFont* fallback = nullptr;
 
         for (usize i = 0; i < FontCount; ++i)
         {
-            const std::filesystem::path path = directory / FontFiles[i];
+            const fs::path path = directory / FontFiles[i];
 
             std::error_code error;
-            if (std::filesystem::is_regular_file(path, error))
+            if (fs::is_regular_file(path, error))
             {
                 m_Fonts[i] = io.Fonts->AddFontFromFileTTF(path.string().c_str(), size);
                 if (m_Fonts[i] != nullptr) continue;

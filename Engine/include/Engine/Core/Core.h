@@ -17,6 +17,7 @@
 #endif
 
 #include "Engine/Core/Types.h"
+#include "Engine/Core/Aliases.h"
 
 #include <memory>
 

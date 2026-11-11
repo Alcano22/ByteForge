@@ -68,7 +68,7 @@ namespace ByteForge
         for (const AssetMetadata& metadata : AssetRegistry::GetAssetsOfType(AssetType::ScriptGraph))
         {
             GraphClass graphClass{
-                .DisplayName = std::filesystem::path(metadata.Path).replace_extension().generic_string()
+                .DisplayName = fs::path(metadata.Path).replace_extension().generic_string()
             };
 
             if (auto graph = LoadScriptGraph(AssetRegistry::GetAssetRoot() / metadata.Path); !graph)

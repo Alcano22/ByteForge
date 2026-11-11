@@ -14,7 +14,7 @@ namespace ByteForge
     class ScriptProject
     {
     public:
-        explicit ScriptProject(std::filesystem::path root);
+        explicit ScriptProject(fs::path root);
 
         void GenerateProjectFile() const;
 
@@ -31,11 +31,11 @@ namespace ByteForge
         void StartBuild();
         void FinishBuild();
 
-        [[nodiscard]] std::filesystem::path GetProjectFile() const { return m_Root / "GameScripts.csproj"; }
-        [[nodiscard]] std::filesystem::path GetOutputDirectory() const { return m_Root / ".byteforge" / "ScriptAssemblies"; }
+        [[nodiscard]] fs::path GetProjectFile() const { return m_Root / "GameScripts.csproj"; }
+        [[nodiscard]] fs::path GetOutputDirectory() const { return m_Root / ".byteforge" / "ScriptAssemblies"; }
 
     private:
-        std::filesystem::path m_Root;
+        fs::path m_Root;
 
         std::future<Platform::ProcessResult> m_Build;
         std::chrono::steady_clock::time_point m_BuildStart;

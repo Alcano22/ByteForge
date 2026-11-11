@@ -34,6 +34,6 @@ namespace ByteForge
         static Ref<Texture2D> Create(u32 width, u32 height, std::span<const std::byte> pixels,
                                      const TextureSettings& settings = {});
 
-        static Ref<Texture2D> Load(const std::filesystem::path& path, const TextureSettings& settings = {});
+        static Ref<Texture2D> Load(const fs::path& path, const TextureSettings& settings = {});
     };
 }

@@ -64,7 +64,7 @@ namespace ByteForge
             return strings;
         }();
 
-        std::unique_ptr<lunasvg::Document> ParseSvg(const std::filesystem::path& path)
+        std::unique_ptr<lunasvg::Document> ParseSvg(const fs::path& path)
         {
             std::unique_ptr<lunasvg::Document> document = lunasvg::Document::loadFromFile(path.string());
             if (!document)
@@ -74,7 +74,7 @@ namespace ByteForge
             return document;
         }
 
-        Ref<Texture2D> RasterizeSvg(const lunasvg::Document& document, const std::filesystem::path& path)
+        Ref<Texture2D> RasterizeSvg(const lunasvg::Document& document, const fs::path& path)
         {
             lunasvg::Bitmap bitmap = document.renderToBitmap(SvgResolution, SvgResolution);
             if (bitmap.isNull())
@@ -105,13 +105,13 @@ namespace ByteForge
         }
     }
 
-    void EditorIcons::Load(const std::filesystem::path& directory)
+    void EditorIcons::Load(const fs::path& directory)
     {
         Ref<Texture2D> placeholder;
 
         for (usize i = 0; i < IconCount; ++i)
         {
-            const std::filesystem::path path = directory / IconFiles[i];
+            const fs::path path = directory / IconFiles[i];
 
             try
             {
@@ -142,7 +142,7 @@ namespace ByteForge
         return texture;
     }
 
-    EditorIcon EditorIcons::ForFile(const std::filesystem::path& path)
+    EditorIcon EditorIcons::ForFile(const fs::path& path)
     {
         static const std::unordered_map<std::string_view, EditorIcon> icons{
             { ".cs",        EditorIcon::FileScript          },

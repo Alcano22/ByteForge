@@ -18,7 +18,7 @@ namespace ByteForge
         static void Clear();
 
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(UUID handle);
-        [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(const std::filesystem::path& relativePath);
+        [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(const fs::path& relativePath);
 
         [[nodiscard]] static Ref<PhysicsMaterialAsset> LoadPhysicsMaterial(UUID handle);
 
@@ -26,10 +26,10 @@ namespace ByteForge
         static bool SavePhysicsMaterial(UUID handle);
 
         [[nodiscard]] static std::expected<UUID, std::string> CreatePhysicsMaterial(
-            const std::filesystem::path& relativePath);
+            const fs::path& relativePath);
 
         [[nodiscard]] static std::expected<UUID, std::string> CreateScriptGraph(
-            const std::filesystem::path& relativePath);
+            const fs::path& relativePath);
 
         static void Reload(UUID handle);
     };

@@ -46,7 +46,7 @@ namespace ByteForge::FileDialogs
             return result;
         }
 
-        std::string ToUtf8(const std::filesystem::path& path)
+        std::string ToUtf8(const fs::path& path)
         {
             const std::u8string text = path.u8string();
             return { text.begin(), text.end() };
@@ -59,13 +59,13 @@ namespace ByteForge::FileDialogs
             io.ClearInputMouse();
         }
 
-        std::optional<std::filesystem::path> Finish(const nfdresult_t result, nfdu8char_t* path)
+        std::optional<fs::path> Finish(const nfdresult_t result, nfdu8char_t* path)
         {
             ResetImGuiInput();
 
             if (result == NFD_OKAY)
             {
-                std::filesystem::path chosen(std::u8string_view(reinterpret_cast<const char8_t*>(path)));
+                fs::path chosen(std::u8string_view(reinterpret_cast<const char8_t*>(path)));
                 NFD_FreePathU8(path);
                 return chosen;
             }
@@ -77,8 +77,8 @@ namespace ByteForge::FileDialogs
         }
     }
 
-    std::optional<std::filesystem::path> OpenFile(const std::span<const FileFilter> filters,
-                                                  const std::filesystem::path& defaultDirectory)
+    std::optional<fs::path> OpenFile(const std::span<const FileFilter> filters,
+                                                  const fs::path& defaultDirectory)
     {
         const Session session;
         if (!session.IsReady())
@@ -94,8 +94,8 @@ namespace ByteForge::FileDialogs
         return Finish(result, path);
     }
 
-    std::optional<std::filesystem::path> SaveFile(const std::span<const FileFilter> filters,
-                                                  const std::filesystem::path& defaultDirectory,
+    std::optional<fs::path> SaveFile(const std::span<const FileFilter> filters,
+                                                  const fs::path& defaultDirectory,
                                                   const std::string& defaultName)
     {
         const Session session;
@@ -113,7 +113,7 @@ namespace ByteForge::FileDialogs
         return Finish(result, path);
     }
 
-    std::optional<std::filesystem::path> PickFolder(const std::filesystem::path& defaultDirectory)
+    std::optional<fs::path> PickFolder(const fs::path& defaultDirectory)
     {
         const Session session;
         if (!session.IsReady())

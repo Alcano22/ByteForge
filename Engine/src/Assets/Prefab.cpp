@@ -15,7 +15,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
     using namespace ByteForge::JsonValue;
 
     namespace

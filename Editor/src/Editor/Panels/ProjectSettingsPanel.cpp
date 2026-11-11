@@ -14,8 +14,6 @@
 
 namespace ByteForge
 {
-    namespace fs = std::filesystem;
-
     namespace
     {
         constexpr i32 MinWindowSize = 1;

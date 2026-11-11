@@ -18,7 +18,7 @@
 
 namespace ByteForge
 {
-    SharedLibrary::SharedLibrary(const std::filesystem::path& path)
+    SharedLibrary::SharedLibrary(const fs::path& path)
         : m_Handle(LoadLibraryW(path.c_str()))
     {
         if (m_Handle == nullptr)
@@ -59,7 +59,7 @@ namespace ByteForge
 
 namespace ByteForge::Platform::Detail
 {
-    std::filesystem::path QueryExecutablePath()
+    fs::path QueryExecutablePath()
     {
         std::wstring buffer(MAX_PATH, L'\0');
 
@@ -72,7 +72,7 @@ namespace ByteForge::Platform::Detail
             if (length < buffer.size())
             {
                 buffer.resize(length);
-                return std::filesystem::path(buffer);
+                return fs::path(buffer);
             }
 
             buffer.resize(buffer.size() * 2);

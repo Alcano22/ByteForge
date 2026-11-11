@@ -7,9 +7,9 @@
 
 namespace ByteForge::Platform
 {
-    [[nodiscard]] BYTEFORGE_API const std::filesystem::path& GetExecutablePath();
+    [[nodiscard]] BYTEFORGE_API const fs::path& GetExecutablePath();
 
-    [[nodiscard]] BYTEFORGE_API const std::filesystem::path& GetExecutableDirectory();
+    [[nodiscard]] BYTEFORGE_API const fs::path& GetExecutableDirectory();
 
     struct ProcessResult
     {

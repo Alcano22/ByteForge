@@ -14,7 +14,7 @@
 
 namespace ByteForge
 {
-    SharedLibrary::SharedLibrary(const std::filesystem::path& path)
+    SharedLibrary::SharedLibrary(const fs::path& path)
         : m_Handle(dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL))
     {
         if (m_Handle == nullptr)
@@ -57,7 +57,7 @@ namespace ByteForge
 
 namespace ByteForge::Platform::Detail
 {
-    std::filesystem::path QueryExecutablePath()
+    fs::path QueryExecutablePath()
     {
         u32 size = 0;
         _NSGetExecutablePath(nullptr, &size);
@@ -68,6 +68,6 @@ namespace ByteForge::Platform::Detail
 
         buffer.resize(std::strlen(buffer.c_str()));
 
-        return std::filesystem::canonical(buffer);
+        return fs::canonical(buffer);
     }
 }

@@ -28,9 +28,9 @@ namespace ByteForge
         constexpr CameraComponent DefaultCamera;
         constexpr TransformComponent DefaultTransform;
 
-        std::filesystem::path GetGameScriptsPath()
+        fs::path GetGameScriptsPath()
         {
-            return std::filesystem::path(".byteforge") / "ScriptAssemblies" / "GameScripts.dll";
+            return fs::path(".byteforge") / "ScriptAssemblies" / "GameScripts.dll";
         }
 
         struct GameView
@@ -137,11 +137,11 @@ namespace ByteForge
 
         static void LoadGameScripts()
         {
-            const std::filesystem::path assembly = GetGameScriptsPath();
-            if (!std::filesystem::exists(assembly))
+            const fs::path assembly = GetGameScriptsPath();
+            if (!fs::exists(assembly))
             {
                 std::error_code error;
-                const std::filesystem::path absolute = std::filesystem::absolute(assembly, error);
+                const fs::path absolute = fs::absolute(assembly, error);
 
                 APP_WARN("Game scripts not found at '{}', script components will not work "
                          "(build the scripts in the editor first)",
@@ -182,10 +182,10 @@ namespace ByteForge
 
     Application* CreateApplication()
     {
-        if (std::filesystem::exists(Platform::GetExecutableDirectory() / ProjectSettings::FileName))
-            std::filesystem::current_path(Platform::GetExecutableDirectory());
+        if (fs::exists(Platform::GetExecutableDirectory() / ProjectSettings::FileName))
+            fs::current_path(Platform::GetExecutableDirectory());
 
-        const std::filesystem::path projectFile = std::filesystem::current_path() / ProjectSettings::FileName;
+        const fs::path projectFile = fs::current_path() / ProjectSettings::FileName;
 
         auto settings = ProjectSettings::Load(projectFile);
         if (!settings)
