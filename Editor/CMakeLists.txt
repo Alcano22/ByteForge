@@ -30,6 +30,7 @@ add_executable(Editor
         src/Editor/SceneDialogs.cpp
         src/Editor/FileDialogs.cpp
         src/Editor/SvgIconFont.cpp
+        src/Editor/GameExporter.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp
         src/Editor/Shell/Toolbar.cpp
@@ -85,3 +86,15 @@ byteforge_copy_directory(Editor
 )
 
 byteforge_add_engine_resources(Editor)
+
+add_dependencies(Editor Player)
+add_custom_command(TARGET Editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Editor>/player"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Player>" "$<TARGET_FILE_DIR:Editor>/player/"
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=$<TARGET_FILE_DIR:Engine>
+        -DDESTINATION=$<TARGET_FILE_DIR:Editor>/player
+        -P ${CMAKE_SOURCE_DIR}/cmake/CopyRuntimeLibraries.cmake
+    COMMENT "Preparing the player runtime for game export"
+    VERBATIM
+)

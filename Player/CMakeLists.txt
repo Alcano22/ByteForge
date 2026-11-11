@@ -13,3 +13,7 @@ byteforge_copy_directory(Player
 )
 
 byteforge_add_engine_resources(Player)
+
+if(UNIX AND NOT APPLE)
+    set_target_properties(Player PROPERTIES BUILD_RPATH "$ORIGIN")
+endif()

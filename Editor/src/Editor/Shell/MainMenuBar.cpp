@@ -1,6 +1,7 @@
 #include "Editor/Shell/MainMenuBar.h"
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
+#include "Editor/GameExporter.h"
 
 #include <imgui.h>
 
@@ -58,6 +59,9 @@ namespace ByteForge
                 ImGui::Separator();
                 if (ImGui::MenuItem("Set as Startup Scene", nullptr, false, context.Document.HasFile()))
                     context.Document.SetAsStartupScene();
+                ImGui::Separator();
+                if (ImGui::MenuItem("Export Game...", nullptr, false, context.IsEditing()))
+                    ExportGameWithDialog(context);
                 ImGui::EndMenu();
             }
 

@@ -21,5 +21,7 @@ namespace ByteForge
         [[nodiscard]] std::optional<std::filesystem::path> SaveFile(std::span<const FileFilter> filters,
                                                                     const std::filesystem::path& defaultDirectory = {},
                                                                     const std::string& defaultName = {});
+
+        [[nodiscard]] std::optional<std::filesystem::path> PickFolder(const std::filesystem::path& defaultDirectory = {});
     }
 }

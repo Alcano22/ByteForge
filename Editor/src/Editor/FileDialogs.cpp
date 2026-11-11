@@ -112,4 +112,17 @@ namespace ByteForge::FileDialogs
                                                     defaultName.empty() ? nullptr : defaultName.c_str());
         return Finish(result, path);
     }
+
+    std::optional<std::filesystem::path> PickFolder(const std::filesystem::path& defaultDirectory)
+    {
+        const Session session;
+        if (!session.IsReady())
+            return std::nullopt;
+
+        const std::string directory = ToUtf8(defaultDirectory);
+
+        nfdu8char_t* path = nullptr;
+        const nfdresult_t result = NFD_PickFolderU8(&path, directory.empty() ? nullptr : directory.c_str());
+        return Finish(result, path);
+    }
 }

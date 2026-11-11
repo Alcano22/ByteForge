@@ -3,6 +3,7 @@
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Platform.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/Renderer.h>
@@ -181,6 +182,9 @@ namespace ByteForge
 
     Application* CreateApplication()
     {
+        if (std::filesystem::exists(Platform::GetExecutableDirectory() / ProjectSettings::FileName))
+            std::filesystem::current_path(Platform::GetExecutableDirectory());
+
         const std::filesystem::path projectFile = std::filesystem::current_path() / ProjectSettings::FileName;
 
         auto settings = ProjectSettings::Load(projectFile);
