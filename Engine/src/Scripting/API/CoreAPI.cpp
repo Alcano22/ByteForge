@@ -42,12 +42,12 @@ namespace ByteForge
 
         TransformComponent GetWorld(const ScriptCallContext& context, const EntityRef entity)
         {
-            return RequireScene(context).GetWorldTransform(context.Resolve(entity));
+            return context.Resolve(entity).GetWorldTransform();
         }
 
         void SetWorld(const ScriptCallContext& context, const EntityRef entity, const TransformComponent& world)
         {
-            RequireScene(context).SetWorldTransform(context.Resolve(entity), world);
+            context.Resolve(entity).SetWorldTransform(world);
         }
 
         bool EntityIsValid(const ScriptCallContext& context, const EntityRef entity)
@@ -93,6 +93,41 @@ namespace ByteForge
             RequireScene(context).QueueDestroyEntity(target.GetUUID());
         }
 
+        EntityRef EntityGetParent(const ScriptCallContext& context, const EntityRef entity)
+        {
+            const Entity parent = context.Resolve(entity).GetParent();
+            return parent.IsValid() ? EntityRef{ parent.GetUUID() } : EntityRef{};
+        }
+
+        void EntitySetParent(const ScriptCallContext& context, const EntityRef entity, const EntityRef parent,
+                             const bool keepWorldTransform)
+        {
+            const Entity child = context.Resolve(entity);
+            const Entity newParent = parent.IsSet() ? context.Resolve(parent) : Entity{};
+
+            if (newParent.IsValid() && (newParent == child || newParent.IsDescendantOf(child)))
+                throw ScriptError("An entity cannot become a child of itself or of one of its own children");
+
+            child.SetParent(newParent, keepWorldTransform);
+        }
+
+        i32 EntityGetChildCount(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return static_cast<i32>(context.Resolve(entity).GetChildren().size());
+        }
+
+        EntityRef EntityGetChild(const ScriptCallContext& context, const EntityRef entity, const i32 index)
+        {
+            const std::vector<Entity> children = context.Resolve(entity).GetChildren();
+            if (index < 0 || static_cast<usize>(index) >= children.size())
+            {
+                throw ScriptError(std::format("Child index {} is out of range (the entity has {} children)",
+                                              index, children.size()));
+            }
+
+            return EntityRef{ children[static_cast<usize>(index)].GetUUID() };
+        }
+
         void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
         {
             const Entity target = context.Resolve(entity);
@@ -100,7 +135,7 @@ namespace ByteForge
             const auto* rigidbody = target.TryGetComponent<Rigidbody2DComponent>();
             if (rigidbody == nullptr) return;
 
-            const TransformComponent world = RequireScene(context).GetWorldTransform(target);
+            const TransformComponent world = target.GetWorldTransform();
             rigidbody->Teleport({ world.Position.x, world.Position.y }, world.Rotation);
         }
 
@@ -140,6 +175,39 @@ namespace ByteForge
             TransformComponent world = GetWorld(context, entity);
             world.Scale = scale;
             SetWorld(context, entity, world);
+        }
+
+        glm::vec3 TransformGetLocalPosition(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TransformComponent>(entity).Position;
+        }
+
+        void TransformSetLocalPosition(const ScriptCallContext& context, const EntityRef entity,
+                                       const glm::vec3& position)
+        {
+            context.Require<TransformComponent>(entity).Position = position;
+            TeleportBodyToTransform(context, entity);
+        }
+
+        f32 TransformGetLocalRotation(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TransformComponent>(entity).Rotation;
+        }
+
+        void TransformSetLocalRotation(const ScriptCallContext& context, const EntityRef entity, const f32 rotation)
+        {
+            context.Require<TransformComponent>(entity).Rotation = rotation;
+            TeleportBodyToTransform(context, entity);
+        }
+
+        glm::vec2 TransformGetLocalScale(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TransformComponent>(entity).Scale;
+        }
+
+        void TransformSetLocalScale(const ScriptCallContext& context, const EntityRef entity, const glm::vec2& scale)
+        {
+            context.Require<TransformComponent>(entity).Scale = scale;
         }
 
         bool SpriteRendererExists(const ScriptCallContext& context, const EntityRef entity)
@@ -298,7 +366,7 @@ namespace ByteForge
 
             const CameraComponent& settings = hasCamera ? cameraEntity.GetComponent<CameraComponent>()
                                                         : DefaultCamera;
-            const TransformComponent transform = hasCamera ? RequireScene(context).GetWorldTransform(cameraEntity)
+            const TransformComponent transform = hasCamera ? cameraEntity.GetWorldTransform()
                                                            : DefaultTransform;
 
             const glm::vec2 viewportSize = Input::GetViewportSize();
@@ -334,6 +402,10 @@ namespace ByteForge
         api.Register<&EntityInstantiate>("Entity.Instantiate", "Instantiate", Impure, { "Source" });
         api.Register<&EntityFindByName>("Entity.FindByName", "Find By Name", Pure, { "Name" });
         api.Register<&EntityDestroy>("Entity.Destroy", "Destroy", Impure, { "Entity" });
+        api.Register<&EntityGetParent>("Entity.GetParent", "Get Parent", Pure, { "Entity" });
+        api.Register<&EntitySetParent>("Entity.SetParent", "Set Parent", Impure, { "Entity", "Parent", "Keep World Transform" });
+        api.Register<&EntityGetChildCount>("Entity.GetChildCount", "Get Child Count", Pure, { "Entity" });
+        api.Register<&EntityGetChild>("Entity.GetChild", "Get Child", Pure, { "Entity", "Index" });
 
         api.Register<&TransformGetPosition>("Transform.GetPosition", "Get Position", Pure, { "Entity" });
         api.Register<&TransformSetPosition>("Transform.SetPosition", "Set Position", Impure, { "Entity", "Position" });
@@ -341,6 +413,12 @@ namespace ByteForge
         api.Register<&TransformSetRotation>("Transform.SetRotation", "Set Rotation", Impure, { "Entity", "Rotation" });
         api.Register<&TransformGetScale>("Transform.GetScale", "Get Scale", Pure, { "Entity" });
         api.Register<&TransformSetScale>("Transform.SetScale", "Set Scale", Impure, { "Entity", "Scale" });
+        api.Register<&TransformGetLocalPosition>("Transform.GetLocalPosition", "Get Local Position", Pure, { "Entity" });
+        api.Register<&TransformSetLocalPosition>("Transform.SetLocalPosition", "Set Local Position", Impure, { "Entity", "Position" });
+        api.Register<&TransformGetLocalRotation>("Transform.GetLocalRotation", "Get Local Rotation", Pure, { "Entity" });
+        api.Register<&TransformSetLocalRotation>("Transform.SetLocalRotation", "Set Local Rotation", Impure, { "Entity", "Rotation" });
+        api.Register<&TransformGetLocalScale>("Transform.GetLocalScale", "Get Local Scale", Pure, { "Entity" });
+        api.Register<&TransformSetLocalScale>("Transform.SetLocalScale", "Set Local Scale", Impure, { "Entity", "Scale" });
 
         api.Register<&SpriteRendererExists>("SpriteRenderer.Exists", "Has Sprite Renderer", Pure, { "Entity" });
         api.Register<&SpriteRendererGetSortingLayer>("SpriteRenderer.GetSortingLayer", "Get Sorting Layer", Pure, { "Entity" });

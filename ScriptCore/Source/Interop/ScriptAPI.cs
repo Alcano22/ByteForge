@@ -15,12 +15,22 @@ internal static unsafe class ScriptAPI
     private static uint s_EntityInstantiate;
     private static uint s_EntityFindByName;
     private static uint s_EntityDestroy;
+    private static uint s_EntityGetParent;
+    private static uint s_EntitySetParent;
+    private static uint s_EntityGetChildCount;
+    private static uint s_EntityGetChild;
     private static uint s_TransformGetPosition;
     private static uint s_TransformSetPosition;
     private static uint s_TransformGetRotation;
     private static uint s_TransformSetRotation;
     private static uint s_TransformGetScale;
     private static uint s_TransformSetScale;
+    private static uint s_TransformGetLocalPosition;
+    private static uint s_TransformSetLocalPosition;
+    private static uint s_TransformGetLocalRotation;
+    private static uint s_TransformSetLocalRotation;
+    private static uint s_TransformGetLocalScale;
+    private static uint s_TransformSetLocalScale;
     private static uint s_SpriteRendererExists;
     private static uint s_SpriteRendererGetSortingLayer;
     private static uint s_SpriteRendererSetSortingLayer;
@@ -53,45 +63,55 @@ internal static unsafe class ScriptAPI
     {
         bool complete = true;
 
-        s_EntityIsValid                 = Resolve("Entity.IsValid",                "(Entity)->Bool",                       ref complete);
-        s_EntityGetName                 = Resolve("Entity.GetName",                "(Entity)->String",                     ref complete);
-        s_EntityCreate                  = Resolve("Entity.Create",                 "(String)->Entity",                     ref complete);
-        s_EntityInstantiate             = Resolve("Entity.Instantiate",            "(Entity)->Entity",                     ref complete);
-        s_EntityFindByName              = Resolve("Entity.FindByName",             "(String)->Entity",                     ref complete);
-        s_EntityDestroy                 = Resolve("Entity.Destroy",                "(Entity)->Void",                       ref complete);
-        s_TransformGetPosition          = Resolve("Transform.GetPosition",         "(Entity)->Vector3",                    ref complete);
-        s_TransformSetPosition          = Resolve("Transform.SetPosition",         "(Entity,Vector3)->Void",               ref complete);
-        s_TransformGetRotation          = Resolve("Transform.GetRotation",         "(Entity)->Float",                      ref complete);
-        s_TransformSetRotation          = Resolve("Transform.SetRotation",         "(Entity,Float)->Void",                 ref complete);
-        s_TransformGetScale             = Resolve("Transform.GetScale",            "(Entity)->Vector2",                    ref complete);
-        s_TransformSetScale             = Resolve("Transform.SetScale",            "(Entity,Vector2)->Void",               ref complete);
-        s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                      ref complete);
-        s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                       ref complete);
-        s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                  ref complete);
-        s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",            "(Entity)->Bool",                       ref complete);
-        s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity", "(Entity)->Vector2",                    ref complete);
-        s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity", "(Entity,Vector2)->Void",               ref complete);
-        s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",        "(Entity,Vector2)->Void",               ref complete);
-        s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",      "(Entity,Vector2)->Void",               ref complete);
-        s_PhysicsRaycast                = Resolve("Physics.Raycast",               "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
-        s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",          "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
-        s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",         "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
-        s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",       "(Vector2,Vector2,Float,Int)->Float",   ref complete);
-        s_AudioSourceExists             = Resolve("AudioSource.Exists",            "(Entity)->Bool",                       ref complete);
-        s_AudioSourcePlay               = Resolve("AudioSource.Play",              "(Entity)->Void",                       ref complete);
-        s_AudioSourceStop               = Resolve("AudioSource.Stop",              "(Entity)->Void",                       ref complete);
-        s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",         "(Entity)->Bool",                       ref complete);
-        s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",             "(Asset:AudioClip)->Void",              ref complete);
-        s_InputIsKeyDown                = Resolve("Input.IsKeyDown",               "(Int)->Bool",                          ref complete);
-        s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",            "(Int)->Bool",                          ref complete);
-        s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",           "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonDown        = Resolve("Input.IsMouseButtonDown",       "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",    "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",   "(Int)->Bool",                          ref complete);
-        s_InputGetMousePosition         = Resolve("Input.GetMousePosition",        "()->Vector2",                          ref complete);
-        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",   "()->Vector2",                          ref complete);
-        s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",           "()->Vector2",                          ref complete);
-        s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",          "()->Vector2",                          ref complete);
+        s_EntityIsValid                 = Resolve("Entity.IsValid",                 "(Entity)->Bool",                       ref complete);
+        s_EntityGetName                 = Resolve("Entity.GetName",                 "(Entity)->String",                     ref complete);
+        s_EntityCreate                  = Resolve("Entity.Create",                  "(String)->Entity",                     ref complete);
+        s_EntityInstantiate             = Resolve("Entity.Instantiate",             "(Entity)->Entity",                     ref complete);
+        s_EntityFindByName              = Resolve("Entity.FindByName",              "(String)->Entity",                     ref complete);
+        s_EntityDestroy                 = Resolve("Entity.Destroy",                 "(Entity)->Void",                       ref complete);
+        s_EntityGetParent               = Resolve("Entity.GetParent",               "(Entity)->Entity",                     ref complete);
+        s_EntitySetParent               = Resolve("Entity.SetParent",               "(Entity,Entity,Bool)->Void",           ref complete);
+        s_EntityGetChildCount           = Resolve("Entity.GetChildCount",           "(Entity)->Int",                        ref complete);
+        s_EntityGetChild                = Resolve("Entity.GetChild",                "(Entity,Int)->Entity",                 ref complete);
+        s_TransformGetPosition          = Resolve("Transform.GetPosition",          "(Entity)->Vector3",                    ref complete);
+        s_TransformSetPosition          = Resolve("Transform.SetPosition",          "(Entity,Vector3)->Void",               ref complete);
+        s_TransformGetRotation          = Resolve("Transform.GetRotation",          "(Entity)->Float",                      ref complete);
+        s_TransformSetRotation          = Resolve("Transform.SetRotation",          "(Entity,Float)->Void",                 ref complete);
+        s_TransformGetScale             = Resolve("Transform.GetScale",             "(Entity)->Vector2",                    ref complete);
+        s_TransformSetScale             = Resolve("Transform.SetScale",             "(Entity,Vector2)->Void",               ref complete);
+        s_TransformGetLocalPosition     = Resolve("Transform.GetLocalPosition",     "(Entity)->Vector3",                    ref complete);
+        s_TransformSetLocalPosition     = Resolve("Transform.SetLocalPosition",     "(Entity,Vector3)->Void",               ref complete);
+        s_TransformGetLocalRotation     = Resolve("Transform.GetLocalRotation",     "(Entity)->Float",                      ref complete);
+        s_TransformSetLocalRotation     = Resolve("Transform.SetLocalRotation",     "(Entity,Float)->Void",                 ref complete);
+        s_TransformGetLocalScale        = Resolve("Transform.GetLocalScale",        "(Entity)->Vector2",                    ref complete);
+        s_TransformSetLocalScale        = Resolve("Transform.SetLocalScale",        "(Entity,Vector2)->Void",               ref complete);
+        s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                       ref complete);
+        s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                        ref complete);
+        s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                   ref complete);
+        s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",             "(Entity)->Bool",                       ref complete);
+        s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity",  "(Entity)->Vector2",                    ref complete);
+        s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity",  "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",         "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",       "(Entity,Vector2)->Void",               ref complete);
+        s_PhysicsRaycast                = Resolve("Physics.Raycast",                "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
+        s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",           "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",          "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",        "(Vector2,Vector2,Float,Int)->Float",   ref complete);
+        s_AudioSourceExists             = Resolve("AudioSource.Exists",             "(Entity)->Bool",                       ref complete);
+        s_AudioSourcePlay               = Resolve("AudioSource.Play",               "(Entity)->Void",                       ref complete);
+        s_AudioSourceStop               = Resolve("AudioSource.Stop",               "(Entity)->Void",                       ref complete);
+        s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",          "(Entity)->Bool",                       ref complete);
+        s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",              "(Asset:AudioClip)->Void",              ref complete);
+        s_InputIsKeyDown                = Resolve("Input.IsKeyDown",                "(Int)->Bool",                          ref complete);
+        s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",             "(Int)->Bool",                          ref complete);
+        s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",            "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonDown        = Resolve("Input.IsMouseButtonDown",        "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",     "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",    "(Int)->Bool",                          ref complete);
+        s_InputGetMousePosition         = Resolve("Input.GetMousePosition",         "()->Vector2",                          ref complete);
+        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",    "()->Vector2",                          ref complete);
+        s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",            "()->Vector2",                          ref complete);
+        s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",           "()->Vector2",                          ref complete);
 
         return complete;
     }
@@ -116,6 +136,19 @@ internal static unsafe class ScriptAPI
     public static void Entity_Destroy(ulong entity) =>
         Call(s_EntityDestroy, new APIValue { Handle = entity });
 
+    public static ulong Entity_GetParent(ulong entity) =>
+        Call(s_EntityGetParent, new APIValue { Handle = entity }).Handle;
+
+    public static void Entity_SetParent(ulong entity, ulong parent, bool keepWorldTransform) =>
+        Call(s_EntitySetParent, new APIValue { Handle = entity }, new APIValue { Handle = parent },
+             new APIValue { Bool = (byte)(keepWorldTransform ? 1 : 0) });
+
+    public static int Entity_GetChildCount(ulong entity) =>
+        Call(s_EntityGetChildCount, new APIValue { Handle = entity }).Int;
+
+    public static ulong Entity_GetChild(ulong entity, int index) =>
+        Call(s_EntityGetChild, new APIValue { Handle = entity }, new APIValue { Int = index }).Handle;
+
     // Transform
 
     public static Vector3 Transform_GetPosition(ulong entity) =>
@@ -135,6 +168,24 @@ internal static unsafe class ScriptAPI
 
     public static void Transform_SetScale(ulong entity, Vector2 scale) =>
         Call(s_TransformSetScale, new APIValue { Handle = entity }, new APIValue { Vector2 = scale });
+
+    public static Vector3 Transform_GetLocalPosition(ulong entity) =>
+        Call(s_TransformGetLocalPosition, new APIValue { Handle = entity }).Vector3;
+
+    public static void Transform_SetLocalPosition(ulong entity, Vector3 position) =>
+        Call(s_TransformSetLocalPosition, new APIValue { Handle = entity }, new APIValue { Vector3 = position });
+
+    public static float Transform_GetLocalRotation(ulong entity) =>
+        Call(s_TransformGetLocalRotation, new APIValue { Handle = entity }).Float;
+
+    public static void Transform_SetLocalRotation(ulong entity, float rotation) =>
+        Call(s_TransformSetLocalRotation, new APIValue { Handle = entity }, new APIValue { Float = rotation });
+
+    public static Vector2 Transform_GetLocalScale(ulong entity) =>
+        Call(s_TransformGetLocalScale, new APIValue { Handle = entity }).Vector2;
+
+    public static void Transform_SetLocalScale(ulong entity, Vector2 scale) =>
+        Call(s_TransformSetLocalScale, new APIValue { Handle = entity }, new APIValue { Vector2 = scale });
 
     // SpriteRenderer
 

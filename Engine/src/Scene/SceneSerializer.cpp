@@ -186,16 +186,16 @@ namespace
         if (!data.contains("parent")) return;
 
         const Entity parent = scene.FindEntityByUUID(UUID(data.at("parent").get<u64>()));
-        if (!parent.IsValid() || parent == entity || scene.IsDescendantOf(parent, entity)) return;
+        if (!parent.IsValid() || parent == entity || parent.IsDescendantOf(entity)) return;
 
-        scene.SetParent(entity, parent, false);
+        entity.SetParent(parent, false);
     }
 
     void SerializeHierarchy(const Entity entity, nlohmann::json& out)
     {
         out.push_back(SceneSerializer::SerializeEntity(entity));
 
-        for (const Entity child : entity.GetScene().GetChildren(entity))
+        for (const Entity child : entity.GetChildren())
             SerializeHierarchy(child, out);
     }
 }
@@ -265,7 +265,7 @@ namespace ByteForge
         entityJson["uuid"] = static_cast<u64>(entity.GetUUID());
         entityJson["tag"] = entity.GetTag();
 
-        if (const Entity parent = entity.GetScene().GetParent(entity); parent.IsValid())
+        if (const Entity parent = entity.GetParent(); parent.IsValid())
             entityJson["parent"] = static_cast<u64>(parent.GetUUID());
 
         const auto& transform = entity.GetComponent<TransformComponent>();

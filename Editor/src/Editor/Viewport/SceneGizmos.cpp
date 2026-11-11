@@ -62,7 +62,7 @@ namespace ByteForge::SceneGizmos
 
     void DrawSelection(LineRenderer& lines, const Entity entity)
     {
-        const TransformComponent transform = entity.GetScene().GetWorldTransform(entity);
+        const TransformComponent transform = entity.GetWorldTransform();
         lines.DrawRect(transform.Position, glm::abs(transform.Scale), transform.Rotation, SelectionColor);
     }
 }

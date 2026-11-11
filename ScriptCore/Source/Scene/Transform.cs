@@ -30,4 +30,22 @@ public sealed class Transform
         get => ScriptAPI.Transform_GetScale(_entity);
         set => ScriptAPI.Transform_SetScale(_entity, value);
     }
+
+    public Vector3 LocalPosition
+    {
+        get => ScriptAPI.Transform_GetLocalPosition(_entity);
+        set => ScriptAPI.Transform_SetLocalPosition(_entity, value);
+    }
+
+    public float LocalRotation
+    {
+        get => ScriptAPI.Transform_GetLocalRotation(_entity);
+        set => ScriptAPI.Transform_SetLocalRotation(_entity, value);
+    }
+
+    public Vector2 LocalScale
+    {
+        get => ScriptAPI.Transform_GetLocalScale(_entity);
+        set => ScriptAPI.Transform_SetLocalScale(_entity, value);
+    }
 }

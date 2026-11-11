@@ -104,7 +104,7 @@ namespace ByteForge
 
             const CameraComponent& settings = hasCamera ? cameraEntity.GetComponent<CameraComponent>()
                                                         : DefaultCamera;
-            const TransformComponent transform = hasCamera ? m_Scene.GetWorldTransform(cameraEntity)
+            const TransformComponent transform = hasCamera ? cameraEntity.GetWorldTransform()
                                                            : DefaultTransform;
 
             const GameView view = ComputeGameView(settings, width, height);

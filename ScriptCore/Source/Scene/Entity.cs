@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ByteForge.Interop;
 
 namespace ByteForge;
@@ -39,6 +40,32 @@ public sealed class Entity : IEquatable<Entity>
 
     public bool IsValid => ScriptAPI.Entity_IsValid(ID);
     public string Name => ScriptAPI.Entity_GetName(ID);
+
+    public Entity? Parent
+    {
+        get
+        {
+            ulong id = ScriptAPI.Entity_GetParent(ID);
+            return id != 0 ? new Entity(id) : null;
+        }
+        set => SetParent(value);
+    }
+
+    public int ChildCount => ScriptAPI.Entity_GetChildCount(ID);
+
+    public Entity GetChild(int index) => new(ScriptAPI.Entity_GetChild(ID, index));
+
+    public IReadOnlyList<Entity> Children
+    {
+        get
+        {
+            int count = ChildCount;
+            var children = new List<Entity>(count);
+            for (int i = 0; i < count; i++)
+                children.Add(GetChild(i));
+            return children;
+        }
+    }
 
     public Transform Transform => _transform ??= new Transform(ID);
     public SpriteRenderer? SpriteRenderer => ScriptAPI.SpriteRenderer_Exists(ID) ? (_spriteRenderer ??= new SpriteRenderer(ID)) : null;

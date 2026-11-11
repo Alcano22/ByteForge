@@ -86,7 +86,7 @@ namespace ByteForge
         Rigidbody2DComponent& rigidbody = entity.GetComponent<Rigidbody2DComponent>();
         if (rigidbody.m_RuntimeBodyId != 0) return;
 
-        const TransformComponent transform = entity.GetScene().GetWorldTransform(entity);
+        const TransformComponent transform = entity.GetWorldTransform();
 
         b2BodyDef bodyDef = b2DefaultBodyDef();
         bodyDef.type = ToBox2DBodyType(rigidbody.Type);
@@ -196,7 +196,7 @@ namespace ByteForge
                 const b2BodyId body = b2LoadBodyId(rigidbody.m_RuntimeBodyId);
                 const b2Vec2 position = b2Body_GetPosition(body);
 
-                TransformComponent world = scene.GetWorldTransform(entity);
+                TransformComponent world = entity.GetWorldTransform();
                 world.Position.x = position.x;
                 world.Position.y = position.y;
                 world.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));

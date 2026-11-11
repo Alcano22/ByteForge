@@ -108,7 +108,7 @@ namespace ByteForge
             return;
         }
 
-        const std::vector<Entity> children = scene.GetChildren(entity);
+        const std::vector<Entity> children = entity.GetChildren();
 
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
         if (children.empty())
@@ -146,13 +146,10 @@ namespace ByteForge
 
             if (ImGui::MenuItem("Create Empty Child"))
             {
-                context.CreateEntity("Entity", [entity](const Entity child)
-                {
-                    child.GetScene().SetParent(child, entity, false);
-                });
+                context.CreateEntity("Entity", [entity](const Entity child) { child.SetParent(entity, false); });
             }
 
-            if (ImGui::MenuItem("Unparent", nullptr, false, scene.GetParent(entity).IsValid()))
+            if (ImGui::MenuItem("Unparent", nullptr, false, entity.HasParent()))
                 context.ReparentEntity(entity, {});
 
             ImGui::Separator();

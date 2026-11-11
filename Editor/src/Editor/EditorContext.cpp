@@ -132,7 +132,7 @@ namespace ByteForge
             if (ActiveScene == nullptr || !entity.IsValid()) return;
 
             const Entity selected = SelectionContext.GetEntity();
-            if (selected.IsValid() && (selected == entity || ActiveScene->IsDescendantOf(selected, entity)))
+            if (selected.IsValid() && (selected == entity || selected.IsDescendantOf(entity)))
                 SelectionContext.Clear();
 
             if (!IsEditing())
@@ -152,7 +152,7 @@ namespace ByteForge
         {
             if (ActiveScene == nullptr || !entity.IsValid()) return;
 
-            if (newParent.IsValid() && (newParent == entity || ActiveScene->IsDescendantOf(newParent, entity))) return;
+            if (newParent.IsValid() && (newParent == entity || newParent.IsDescendantOf(entity))) return;
 
             const Entity oldParent = ActiveScene->GetParent(entity);
             if (oldParent == newParent) return;
@@ -160,7 +160,7 @@ namespace ByteForge
             i32 oldIndex = -1;
             if (oldParent.IsValid())
             {
-                const std::vector<Entity> siblings = ActiveScene->GetChildren(oldParent);
+                const std::vector<Entity> siblings = oldParent.GetChildren();
                 const auto it = std::ranges::find(siblings, entity);
                 oldIndex = static_cast<i32>(it - siblings.begin());
             }
@@ -169,7 +169,7 @@ namespace ByteForge
             const UUID oldParentId = oldParent.IsValid() ? oldParent.GetUUID() : UUID(0);
             const UUID newParentId = newParent.IsValid() ? newParent.GetUUID() : UUID(0);
 
-            ActiveScene->SetParent(entity, newParent, true);
+            entity.SetParent(newParent, true);
 
             const TransformComponent after = entity.GetComponent<TransformComponent>();
             const std::string label = newParent.IsValid()

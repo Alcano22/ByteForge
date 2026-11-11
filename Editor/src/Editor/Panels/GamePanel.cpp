@@ -49,7 +49,7 @@ namespace ByteForge
         const Entity cameraEntity = scene->GetPrimaryCamera();
         const CameraComponent& settings = cameraEntity.IsValid() ? cameraEntity.GetComponent<CameraComponent>()
                                                                  : DefaultCamera;
-        const TransformComponent transform = cameraEntity.IsValid() ? scene->GetWorldTransform(cameraEntity)
+        const TransformComponent transform = cameraEntity.IsValid() ? cameraEntity.GetWorldTransform()
                                                                     : DefaultTransform;
 
         m_Canvas.SetClearColor(settings.ClearColor);

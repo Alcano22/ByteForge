@@ -86,7 +86,7 @@ namespace ByteForge
         const Entity entity = FindOrThrow(m_Scene, m_EntityId);
         const Entity parent = static_cast<u64>(parentId) != 0 ? FindOrThrow(m_Scene, parentId) : Entity{};
 
-        m_Scene.SetParent(entity, parent, false, index);
+        entity.SetParent(parent, false, index);
         entity.GetComponent<TransformComponent>() = local;
     }
 }
