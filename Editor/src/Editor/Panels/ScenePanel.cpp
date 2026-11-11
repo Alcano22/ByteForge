@@ -182,7 +182,7 @@ namespace ByteForge
         const Entity selected = GetContext().SelectionContext.GetEntity();
         if (!selected.IsValid()) return;
 
-        const auto& transform = selected.GetComponent<TransformComponent>();
+        const TransformComponent transform = selected.GetScene().GetWorldTransform(selected);
         const glm::vec2 extent = glm::abs(transform.Scale);
         m_Camera.Focus(glm::vec2(transform.Position), std::max({ extent.x, extent.y, 1.0f }) * FocusPadding);
     }
@@ -225,12 +225,15 @@ namespace ByteForge
             return false;
         }
 
-        auto& transform = selected.GetComponent<TransformComponent>();
-        const TransformComponent before = transform;
+        Scene& scene = selected.GetScene();
+        const TransformComponent before = selected.GetComponent<TransformComponent>();
+        TransformComponent world = scene.GetWorldTransform(selected);
 
-        const GizmoInteraction interaction = TransformGizmo::Manipulate(transform, m_Tool, m_Space, m_Camera,
+        const GizmoInteraction interaction = TransformGizmo::Manipulate(world, m_Tool, m_Space, m_Camera,
                                                                         m_Canvas, ImGui::GetIO().KeyCtrl);
 
+        if (interaction.Changed)
+            scene.SetWorldTransform(selected, world);
         if (interaction.Active && !m_Drag)
             m_Drag = TransformDrag{ .EntityId = selected.GetUUID(), .Before = before };
         else if (!interaction.Active && m_Drag)

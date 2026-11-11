@@ -17,7 +17,8 @@ namespace ByteForge
         void OnImGuiRender() override;
 
     private:
-        void DrawEntity(Entity entity, TagComponent& tag);
+        void DrawEntityNode(Entity entity);
+        void DrawRootDropZone() const;
         void DrawCreateMenu() const;
         void HandleShortcuts();
 

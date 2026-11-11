@@ -49,8 +49,8 @@ namespace ByteForge
         const Entity cameraEntity = scene->GetPrimaryCamera();
         const CameraComponent& settings = cameraEntity.IsValid() ? cameraEntity.GetComponent<CameraComponent>()
                                                                  : DefaultCamera;
-        const TransformComponent& transform = cameraEntity.IsValid() ? cameraEntity.GetComponent<TransformComponent>()
-                                                                     : DefaultTransform;
+        const TransformComponent transform = cameraEntity.IsValid() ? scene->GetWorldTransform(cameraEntity)
+                                                                    : DefaultTransform;
 
         m_Canvas.SetClearColor(settings.ClearColor);
         m_Canvas.SetFixedAspect(settings.UseFixedAspect ? std::optional(settings.FixedAspect) : std::nullopt);

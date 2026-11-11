@@ -23,5 +23,8 @@ namespace ByteForge
         [[nodiscard]] static nlohmann::json SerializeEntity(Entity entity);
         static Entity DeserializeEntity(Scene& scene, const nlohmann::json& data);
         static void ApplyEntity(Entity entity, const nlohmann::json& data);
+
+        [[nodiscard]] static nlohmann::json SerializeSubtree(Entity root);
+        static Entity DeserializeSubtree(Scene& scene, const nlohmann::json& entities);
     };
 }

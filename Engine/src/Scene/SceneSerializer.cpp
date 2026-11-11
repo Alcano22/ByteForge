@@ -171,6 +171,33 @@ namespace
             }
         }
     }
+
+    Entity CreateFromJson(Scene& scene, const nlohmann::json& data)
+    {
+        const Entity entity = scene.CreateEntityWithUUID(UUID(data.at("uuid").get<u64>()),
+                                                         data.value("tag", std::string("Entity")));
+
+        ReadComponents(entity, data);
+        return entity;
+    }
+
+    void LinkToParent(Scene& scene, const Entity entity, const nlohmann::json& data)
+    {
+        if (!data.contains("parent")) return;
+
+        const Entity parent = scene.FindEntityByUUID(UUID(data.at("parent").get<u64>()));
+        if (!parent.IsValid() || parent == entity || scene.IsDescendantOf(parent, entity)) return;
+
+        scene.SetParent(entity, parent, false);
+    }
+
+    void SerializeHierarchy(const Entity entity, nlohmann::json& out)
+    {
+        out.push_back(SceneSerializer::SerializeEntity(entity));
+
+        for (const Entity child : entity.GetScene().GetChildren(entity))
+            SerializeHierarchy(child, out);
+    }
 }
 
 namespace ByteForge
@@ -181,10 +208,8 @@ namespace ByteForge
         data["version"] = 1;
         data["entities"] = nlohmann::json::array();
 
-        scene.Each<UUIDComponent>([&data](const Entity entity, const UUIDComponent&)
-        {
-            data["entities"].push_back(SerializeEntity(entity));
-        });
+        for (const Entity root : scene.GetRootEntities())
+            SerializeHierarchy(root, data["entities"]);
 
         return data;
     }
@@ -196,7 +221,13 @@ namespace ByteForge
         if (!data.contains("entities")) return;
 
         for (const auto& entityJson : data.at("entities"))
-            DeserializeEntity(scene, entityJson);
+            CreateFromJson(scene, entityJson);
+
+        for (const auto& entityJson : data.at("entities"))
+        {
+            const Entity entity = scene.FindEntityByUUID(UUID(entityJson.at("uuid").get<u64>()));
+            LinkToParent(scene, entity, entityJson);
+        }
     }
 
     void SceneSerializer::SerializeToFile(Scene& scene, const std::string& filepath)
@@ -233,6 +264,9 @@ namespace ByteForge
         nlohmann::json entityJson;
         entityJson["uuid"] = static_cast<u64>(entity.GetUUID());
         entityJson["tag"] = entity.GetTag();
+
+        if (const Entity parent = entity.GetScene().GetParent(entity); parent.IsValid())
+            entityJson["parent"] = static_cast<u64>(parent.GetUUID());
 
         const auto& transform = entity.GetComponent<TransformComponent>();
         entityJson["transform"] = {
@@ -347,10 +381,8 @@ namespace ByteForge
 
     Entity SceneSerializer::DeserializeEntity(Scene& scene, const nlohmann::json& data)
     {
-        const Entity entity = scene.CreateEntityWithUUID(UUID(data.at("uuid").get<u64>()),
-                                                         data.value("tag", std::string("Entity")));
-
-        ReadComponents(entity, data);
+        const Entity entity = CreateFromJson(scene, data);
+        LinkToParent(scene, entity, data);
         return entity;
     }
 
@@ -358,5 +390,26 @@ namespace ByteForge
     {
         RemoveSerializableComponents(entity);
         ReadComponents(entity, data);
+    }
+
+    nlohmann::json SceneSerializer::SerializeSubtree(const Entity root)
+    {
+        nlohmann::json entities = nlohmann::json::array();
+        SerializeHierarchy(root, entities);
+        return entities;
+    }
+
+    Entity SceneSerializer::DeserializeSubtree(Scene& scene, const nlohmann::json& entities)
+    {
+        Entity root;
+
+        for (const auto& entityJson : entities)
+        {
+            const Entity entity = DeserializeEntity(scene, entityJson);
+            if (!root.IsValid())
+                root = entity;
+        }
+
+        return root;
     }
 }

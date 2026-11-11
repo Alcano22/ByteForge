@@ -14,31 +14,34 @@ namespace ByteForge
 {
     namespace
     {
-        UUID UuidOf(const nlohmann::json& snapshot)
+        UUID UuidOf(const nlohmann::json& entityJson)
         {
-            return UUID(snapshot.at("uuid").get<u64>());
+            return UUID(entityJson.at("uuid").get<u64>());
         }
 
-        Entity FindOrThrow(Scene& scene, const nlohmann::json& snapshot)
+        UUID RootUuidOf(const nlohmann::json& subtree)
         {
-            const Entity entity = scene.FindEntityByUUID(UuidOf(snapshot));
+            return UuidOf(subtree.at(0));
+        }
+
+        Entity FindOrThrow(const Scene& scene, const UUID id)
+        {
+            const Entity entity = scene.FindEntityByUUID(id);
             if (!entity.IsValid())
-            {
-                throw std::runtime_error(std::format("Entity {} no longer exists",
-                                                     static_cast<u64>(UuidOf(snapshot))));
-            }
+                throw std::runtime_error(std::format("Entity {} no longer exists", static_cast<u64>(id)));
+
             return entity;
         }
 
-        void Restore(Scene& scene, const nlohmann::json& snapshot)
+        void RestoreSubtree(Scene& scene, const nlohmann::json& subtree)
         {
-            if (scene.FindEntityByUUID(UuidOf(snapshot)).IsValid())
+            if (scene.FindEntityByUUID(RootUuidOf(subtree)).IsValid())
             {
                 throw std::runtime_error(std::format("Entity {} already exists",
-                                                     static_cast<u64>(UuidOf(snapshot))));
+                                                     static_cast<u64>(RootUuidOf(subtree))));
             }
 
-            SceneSerializer::DeserializeEntity(scene, snapshot);
+            SceneSerializer::DeserializeSubtree(scene, subtree);
         }
     }
 
@@ -46,20 +49,20 @@ namespace ByteForge
                                              nlohmann::json before, nlohmann::json after)
         : m_Scene(scene), m_Name(std::move(name)), m_Before(std::move(before)), m_After(std::move(after)) {}
 
-    void ModifyEntityCommand::Execute() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, m_After), m_After); }
-    void ModifyEntityCommand::Undo() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, m_Before), m_Before); }
+    void ModifyEntityCommand::Execute() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, UuidOf(m_After)), m_After); }
+    void ModifyEntityCommand::Undo() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, UuidOf(m_Before)), m_Before); }
 
-    CreateEntityCommand::CreateEntityCommand(Scene& scene, std::string name, nlohmann::json snapshot)
-        : m_Scene(scene), m_Name(std::move(name)), m_Snapshot(std::move(snapshot)) {}
+    CreateEntityCommand::CreateEntityCommand(Scene& scene, std::string name, nlohmann::json subtree)
+        : m_Scene(scene), m_Name(std::move(name)), m_Subtree(std::move(subtree)) {}
 
-    void CreateEntityCommand::Execute() { Restore(m_Scene, m_Snapshot); }
-    void CreateEntityCommand::Undo() { m_Scene.DestroyEntity(FindOrThrow(m_Scene, m_Snapshot)); }
+    void CreateEntityCommand::Execute() { RestoreSubtree(m_Scene, m_Subtree); }
+    void CreateEntityCommand::Undo() { m_Scene.DestroyEntity(FindOrThrow(m_Scene, RootUuidOf(m_Subtree))); }
 
-    DestroyEntityCommand::DestroyEntityCommand(Scene& scene, std::string name, nlohmann::json snapshot)
-        : m_Scene(scene), m_Name(std::move(name)), m_Snapshot(std::move(snapshot)) {}
+    DestroyEntityCommand::DestroyEntityCommand(Scene& scene, std::string name, nlohmann::json subtree)
+        : m_Scene(scene), m_Name(std::move(name)), m_Subtree(std::move(subtree)) {}
 
-    void DestroyEntityCommand::Execute() { m_Scene.DestroyEntity(FindOrThrow(m_Scene, m_Snapshot)); }
-    void DestroyEntityCommand::Undo() { Restore(m_Scene, m_Snapshot); }
+    void DestroyEntityCommand::Execute() { m_Scene.DestroyEntity(FindOrThrow(m_Scene, RootUuidOf(m_Subtree))); }
+    void DestroyEntityCommand::Undo() { RestoreSubtree(m_Scene, m_Subtree); }
 
     ModifyTransformCommand::ModifyTransformCommand(Scene& scene, const UUID entityId, std::string name,
                                                    const TransformComponent& before, const TransformComponent& after)
@@ -67,10 +70,23 @@ namespace ByteForge
 
     void ModifyTransformCommand::Apply(const TransformComponent& transform) const
     {
-        const Entity entity = m_Scene.FindEntityByUUID(m_EntityId);
-        if (!entity.IsValid())
-            throw std::runtime_error(std::format("Entity {} no longer exists", static_cast<u64>(m_EntityId)));
-
+        const Entity entity = FindOrThrow(m_Scene, m_EntityId);
         entity.GetComponent<TransformComponent>() = transform;
+    }
+
+    SetParentCommand::SetParentCommand(Scene& scene, const UUID entityId, std::string name,
+                                       const UUID oldParent, const i32 oldIndex, const TransformComponent& before,
+                                       const UUID newParent, const TransformComponent& after)
+        : m_Scene(scene), m_EntityId(entityId), m_Name(std::move(name)),
+          m_OldParent(oldParent), m_OldIndex(oldIndex), m_Before(before),
+          m_NewParent(newParent), m_After(after) {}
+
+    void SetParentCommand::Apply(const UUID parentId, const i32 index, const TransformComponent& local) const
+    {
+        const Entity entity = FindOrThrow(m_Scene, m_EntityId);
+        const Entity parent = static_cast<u64>(parentId) != 0 ? FindOrThrow(m_Scene, parentId) : Entity{};
+
+        m_Scene.SetParent(entity, parent, false, index);
+        entity.GetComponent<TransformComponent>() = local;
     }
 }

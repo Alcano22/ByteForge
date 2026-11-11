@@ -18,12 +18,31 @@ namespace ByteForge
     namespace
     {
         constexpr const char* CreatePopupId = "##CreateEntity";
+        constexpr f32 MinDropZoneHeight = 24.0f;
 
         void AddBox(const Entity entity, const Rigidbody2DComponent::BodyType type)
         {
             entity.AddComponent<SpriteRendererComponent>();
             entity.AddComponent<Rigidbody2DComponent>().Type = type;
             entity.AddComponent<BoxCollider2DComponent>();
+        }
+
+        Entity AcceptEntityDrop(Scene& scene)
+        {
+            Entity dropped;
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType);
+                    payload != nullptr && payload->DataSize == sizeof(u64))
+                {
+                    dropped = scene.FindEntityByUUID(UUID(*static_cast<const u64*>(payload->Data)));
+                }
+
+                ImGui::EndDragDropTarget();
+            }
+
+            return dropped;
         }
     }
 
@@ -54,10 +73,10 @@ namespace ByteForge
 
         ImGui::Separator();
 
-        context.ActiveScene->Each<TagComponent>([this](const Entity entity, TagComponent& tag)
-        {
-            DrawEntity(entity, tag);
-        });
+        for (const Entity root : context.ActiveScene->GetRootEntities())
+            DrawEntityNode(root);
+
+        DrawRootDropZone();
 
         constexpr ImGuiPopupFlags contextFlags = ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems;
         if (ImGui::BeginPopupContextWindow("##HierarchyContext", contextFlags))
@@ -74,9 +93,10 @@ namespace ByteForge
         ImGui::End();
     }
 
-    void SceneHierarchyPanel::DrawEntity(const Entity entity, TagComponent& tag)
+    void SceneHierarchyPanel::DrawEntityNode(const Entity entity)
     {
         EditorContext& context = GetContext();
+        Scene& scene = *context.ActiveScene;
 
         const auto uuid = static_cast<u64>(entity.GetUUID());
         ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(uuid)));
@@ -88,16 +108,29 @@ namespace ByteForge
             return;
         }
 
-        const std::string label = std::format("{}###entity", tag.Tag);
-        if (ImGui::Selectable(label.c_str(), context.SelectionContext.IsEntity(entity)))
+        const std::vector<Entity> children = scene.GetChildren(entity);
+
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+        if (children.empty())
+            flags |= ImGuiTreeNodeFlags_Leaf;
+        if (context.SelectionContext.IsEntity(entity))
+            flags |= ImGuiTreeNodeFlags_Selected;
+
+        const std::string label = std::format("{}###entity", entity.GetTag());
+        const bool open = ImGui::TreeNodeEx(label.c_str(), flags);
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
             context.SelectionContext.Select(entity);
 
         if (ImGui::BeginDragDropSource())
         {
             ImGui::SetDragDropPayload(EditorUI::EntityPayloadType, &uuid, sizeof(uuid));
-            ImGui::TextUnformatted(tag.Tag.c_str());
+            ImGui::TextUnformatted(entity.GetTag().c_str());
             ImGui::EndDragDropSource();
         }
+
+        if (const Entity dropped = AcceptEntityDrop(scene); dropped.IsValid())
+            context.ReparentEntity(dropped, entity);
 
         if (ImGui::BeginPopupContextItem("##EntityContext"))
         {
@@ -111,13 +144,45 @@ namespace ByteForge
 
             ImGui::Separator();
 
+            if (ImGui::MenuItem("Create Empty Child"))
+            {
+                context.CreateEntity("Entity", [entity](const Entity child)
+                {
+                    child.GetScene().SetParent(child, entity, false);
+                });
+            }
+
+            if (ImGui::MenuItem("Unparent", nullptr, false, scene.GetParent(entity).IsValid()))
+                context.ReparentEntity(entity, {});
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Delete", "Del"))
                 context.DestroyEntity(entity);
 
             ImGui::EndPopup();
         }
 
+        if (open)
+        {
+            for (const Entity child : children)
+                DrawEntityNode(child);
+
+            ImGui::TreePop();
+        }
+
         ImGui::PopID();
+    }
+
+    void SceneHierarchyPanel::DrawRootDropZone() const
+    {
+        EditorContext& context = GetContext();
+
+        ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x,
+                            std::max(ImGui::GetContentRegionAvail().y, MinDropZoneHeight)));
+
+        if (const Entity dropped = AcceptEntityDrop(*context.ActiveScene); dropped.IsValid())
+            context.ReparentEntity(dropped, {});
     }
 
     void SceneHierarchyPanel::DrawCreateMenu() const

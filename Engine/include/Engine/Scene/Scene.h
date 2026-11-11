@@ -22,6 +22,7 @@ namespace ByteForge
     class Entity;
     class Physics2DWorld;
     struct RaycastHit2D;
+    struct TransformComponent;
     class ScriptRuntime;
     class ScriptInstance;
 
@@ -39,9 +40,18 @@ namespace ByteForge
 
         Entity DuplicateEntity(Entity source);
 
-        [[nodiscard]] Entity FindEntityByUUID(UUID uuid);
+        [[nodiscard]] Entity FindEntityByUUID(UUID uuid) const;
         [[nodiscard]] Entity FindEntityByPickingId(u32 pickingId);
         [[nodiscard]] Entity GetPrimaryCamera();
+
+        void SetParent(Entity child, Entity parent, bool keepWorldTransform = true, i32 index = -1);
+        [[nodiscard]] Entity GetParent(Entity entity) const;
+        [[nodiscard]] std::vector<Entity> GetChildren(Entity entity) const;
+        [[nodiscard]] std::vector<Entity> GetRootEntities();
+        [[nodiscard]] bool IsDescendantOf(Entity entity, Entity ancestor) const;
+
+        [[nodiscard]] TransformComponent GetWorldTransform(Entity entity) const;
+        void SetWorldTransform(Entity entity, const TransformComponent& world);
 
         void OnUpdateRuntime(Timestep ts);
         void OnStepRuntime();
@@ -74,6 +84,8 @@ namespace ByteForge
         void ResetPhysicsWorld();
 
         void FlushPendingDestroy();
+
+        [[nodiscard]] Entity DuplicateSubtree(Entity source);
 
         [[nodiscard]] static u32 ToPickingId(entt::entity handle);
 

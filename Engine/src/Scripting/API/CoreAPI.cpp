@@ -40,6 +40,16 @@ namespace ByteForge
             return *context.ActiveScene;
         }
 
+        TransformComponent GetWorld(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return RequireScene(context).GetWorldTransform(context.Resolve(entity));
+        }
+
+        void SetWorld(const ScriptCallContext& context, const EntityRef entity, const TransformComponent& world)
+        {
+            RequireScene(context).SetWorldTransform(context.Resolve(entity), world);
+        }
+
         bool EntityIsValid(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.ActiveScene != nullptr && entity.IsSet() &&
@@ -90,40 +100,46 @@ namespace ByteForge
             const auto* rigidbody = target.TryGetComponent<Rigidbody2DComponent>();
             if (rigidbody == nullptr) return;
 
-            const auto& transform = target.GetComponent<TransformComponent>();
-            rigidbody->Teleport({ transform.Position.x, transform.Position.y }, transform.Rotation);
+            const TransformComponent world = RequireScene(context).GetWorldTransform(target);
+            rigidbody->Teleport({ world.Position.x, world.Position.y }, world.Rotation);
         }
 
         glm::vec3 TransformGetPosition(const ScriptCallContext& context, const EntityRef entity)
         {
-            return context.Require<TransformComponent>(entity).Position;
+            return GetWorld(context, entity).Position;
         }
 
         void TransformSetPosition(const ScriptCallContext& context, const EntityRef entity, const glm::vec3& position)
         {
-            context.Require<TransformComponent>(entity).Position = position;
+            TransformComponent world = GetWorld(context, entity);
+            world.Position = position;
+            SetWorld(context, entity, world);
             TeleportBodyToTransform(context, entity);
         }
 
         f32 TransformGetRotation(const ScriptCallContext& context, const EntityRef entity)
         {
-            return context.Require<TransformComponent>(entity).Rotation;
+            return GetWorld(context, entity).Rotation;
         }
 
         void TransformSetRotation(const ScriptCallContext& context, const EntityRef entity, const f32 rotation)
         {
-            context.Require<TransformComponent>(entity).Rotation = rotation;
+            TransformComponent world = GetWorld(context, entity);
+            world.Rotation = rotation;
+            SetWorld(context, entity, world);
             TeleportBodyToTransform(context, entity);
         }
 
         glm::vec2 TransformGetScale(const ScriptCallContext& context, const EntityRef entity)
         {
-            return context.Require<TransformComponent>(entity).Scale;
+            return GetWorld(context, entity).Scale;
         }
 
         void TransformSetScale(const ScriptCallContext& context, const EntityRef entity, const glm::vec2& scale)
         {
-            context.Require<TransformComponent>(entity).Scale = scale;
+            TransformComponent world = GetWorld(context, entity);
+            world.Scale = scale;
+            SetWorld(context, entity, world);
         }
 
         bool SpriteRendererExists(const ScriptCallContext& context, const EntityRef entity)
@@ -282,8 +298,8 @@ namespace ByteForge
 
             const CameraComponent& settings = hasCamera ? cameraEntity.GetComponent<CameraComponent>()
                                                         : DefaultCamera;
-            const TransformComponent& transform = hasCamera ? cameraEntity.GetComponent<TransformComponent>()
-                                                            : DefaultTransform;
+            const TransformComponent transform = hasCamera ? RequireScene(context).GetWorldTransform(cameraEntity)
+                                                           : DefaultTransform;
 
             const glm::vec2 viewportSize = Input::GetViewportSize();
             if (viewportSize.x < 1.0f || viewportSize.y < 1.0f)

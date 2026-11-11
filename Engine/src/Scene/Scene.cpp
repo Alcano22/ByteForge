@@ -43,8 +43,53 @@ namespace ByteForge
         {
             entt::entity Handle;
             i32 Layer;
-            f32 Z;
+            TransformComponent World;
         };
+
+        constexpr f32 MinScaleMagnitude = 1e-6f;
+
+        f32 SafeDivide(const f32 value, const f32 divisor)
+        {
+            return std::abs(divisor) < MinScaleMagnitude ? value : value / divisor;
+        }
+
+        TransformComponent ComposeTransforms(const TransformComponent& parentWorld, const TransformComponent& local)
+        {
+            const f32 cosine = std::cos(parentWorld.Rotation);
+            const f32 sine = std::sin(parentWorld.Rotation);
+            const glm::vec2 scaled = glm::vec2(local.Position) * parentWorld.Scale;
+
+            TransformComponent world;
+            world.Position = {
+                parentWorld.Position.x + cosine * scaled.x - sine * scaled.y,
+                parentWorld.Position.y + sine * scaled.x + cosine * scaled.y,
+                parentWorld.Position.z + local.Position.z
+            };
+            world.Rotation = parentWorld.Rotation + local.Rotation;
+            world.Scale = parentWorld.Scale * local.Scale;
+            return world;
+        }
+
+        TransformComponent MakeLocalTransform(const TransformComponent& parentWorld, const TransformComponent& world)
+        {
+            const glm::vec2 offset = glm::vec2(world.Position) - glm::vec2(parentWorld.Position);
+            const f32 cosine = std::cos(-parentWorld.Rotation);
+            const f32 sine = std::sin(-parentWorld.Rotation);
+            const glm::vec2 unrotated{ cosine * offset.x - sine * offset.y, sine * offset.x + cosine * offset.y };
+
+            TransformComponent local;
+            local.Position = {
+                SafeDivide(unrotated.x, parentWorld.Scale.x),
+                SafeDivide(unrotated.y, parentWorld.Scale.y),
+                world.Position.z - parentWorld.Position.z
+            };
+            local.Rotation = world.Rotation - parentWorld.Rotation;
+            local.Scale = {
+                SafeDivide(world.Scale.x, parentWorld.Scale.x),
+                SafeDivide(world.Scale.y, parentWorld.Scale.y)
+            };
+            return local;
+        }
     }
 
     Scene::Scene() { ResetPhysicsWorld(); }
@@ -70,6 +115,7 @@ namespace ByteForge
         const Entity entity(m_Registry.create(), this);
         entity.AddComponent<UUIDComponent>(UUIDComponent{ uuid });
         entity.AddComponent<TransformComponent>();
+        entity.AddComponent<RelationshipComponent>();
         entity.AddComponent<TagComponent>(name.empty() ? std::string("Entity") : name);
 
         m_EntityByUUID.emplace(uuid, entity.m_Handle);
@@ -78,6 +124,12 @@ namespace ByteForge
 
     void Scene::DestroyEntity(const Entity entity)
     {
+        for (const Entity child : GetChildren(entity))
+            DestroyEntity(child);
+
+        if (const Entity parent = GetParent(entity); parent.IsValid())
+            std::erase(m_Registry.get<RelationshipComponent>(parent.m_Handle).Children, entity.GetUUID());
+
         if (const auto* id = m_Registry.try_get<UUIDComponent>(entity.m_Handle))
             m_EntityByUUID.erase(id->ID);
 
@@ -101,15 +153,28 @@ namespace ByteForge
         if (!source.IsValid() || source.m_Scene != this)
             throw std::runtime_error("Scene::DuplicateEntity: the entity does not belong to this scene");
 
-        const Entity copy = CreateEntity(source.GetTag());
-        CopyComponents(DuplicableComponents{}, m_Registry, source.m_Handle, copy.m_Handle);
+        const Entity copy = DuplicateSubtree(source);
+        if (const Entity parent = GetParent(source); parent.IsValid())
+            SetParent(copy, parent, false);
+
         return copy;
     }
 
-    Entity Scene::FindEntityByUUID(const UUID uuid)
+    Entity Scene::DuplicateSubtree(const Entity source)
+    {
+        const Entity copy = CreateEntity(source.GetTag());
+        CopyComponents(DuplicableComponents{}, m_Registry, source.m_Handle, copy.m_Handle);
+
+        for (const Entity child : GetChildren(source))
+            SetParent(DuplicateSubtree(child), copy, false);
+
+        return copy;
+    }
+
+    Entity Scene::FindEntityByUUID(const UUID uuid) const
     {
         const auto it = m_EntityByUUID.find(uuid);
-        return it != m_EntityByUUID.end() ? Entity(it->second, this) : Entity{};
+        return it != m_EntityByUUID.end() ? Entity(it->second, const_cast<Scene*>(this)) : Entity{};
     }
 
     Entity Scene::FindEntityByPickingId(const u32 pickingId)
@@ -130,6 +195,109 @@ namespace ByteForge
         }
 
         return {};
+    }
+
+    void Scene::SetParent(const Entity child, const Entity parent, const bool keepWorldTransform, const i32 index)
+    {
+        if (!child.IsValid() || child.m_Scene != this)
+            throw std::runtime_error("Scene::SetParent: the child does not belong to this scene");
+
+        if (parent.IsValid())
+        {
+            if (parent.m_Scene != this)
+                throw std::runtime_error("Scene::SetParent: the parent does not belong to this scene");
+
+            if (parent == child || IsDescendantOf(parent, child))
+                throw std::runtime_error("Scene::SetParent: the new parent is the entity itself or one of its descendants");
+        }
+
+        const TransformComponent world = GetWorldTransform(child);
+        const UUID childId = child.GetUUID();
+
+        if (const Entity oldParent = GetParent(child); oldParent.IsValid())
+            std::erase(m_Registry.get<RelationshipComponent>(oldParent.m_Handle).Children, childId);
+
+        m_Registry.get<RelationshipComponent>(child.m_Handle).Parent = parent.IsValid() ? parent.GetUUID() : UUID(0);
+
+        if (parent.IsValid())
+        {
+            auto& siblings = m_Registry.get<RelationshipComponent>(parent.m_Handle).Children;
+            const usize position = index < 0 ? siblings.size() : std::min(static_cast<usize>(index), siblings.size());
+            siblings.insert(siblings.begin() + static_cast<std::ptrdiff_t>(position), childId);
+        }
+
+        if (keepWorldTransform)
+            SetWorldTransform(child, world);
+    }
+
+    Entity Scene::GetParent(const Entity entity) const
+    {
+        const auto* relationship = m_Registry.try_get<RelationshipComponent>(entity.m_Handle);
+        if (relationship == nullptr || static_cast<u64>(relationship->Parent) == 0)
+            return {};
+
+        return FindEntityByUUID(relationship->Parent);
+    }
+
+    std::vector<Entity> Scene::GetChildren(const Entity entity) const
+    {
+        std::vector<Entity> children;
+
+        const auto* relationship = m_Registry.try_get<RelationshipComponent>(entity.m_Handle);
+        if (relationship == nullptr)
+            return children;
+
+        children.reserve(relationship->Children.size());
+        for (const UUID id : relationship->Children)
+        {
+            if (const Entity child = FindEntityByUUID(id); child.IsValid())
+                children.push_back(child);
+        }
+
+        return children;
+    }
+
+    std::vector<Entity> Scene::GetRootEntities()
+    {
+        std::vector<Entity> roots;
+
+        for (const auto handle : m_Registry.view<RelationshipComponent>())
+        {
+            if (static_cast<u64>(m_Registry.get<RelationshipComponent>(handle).Parent) == 0)
+                roots.emplace_back(handle, this);
+        }
+
+        return roots;
+    }
+
+    bool Scene::IsDescendantOf(const Entity entity, const Entity ancestor) const
+    {
+        for (Entity current = GetParent(entity); current.IsValid(); current = GetParent(current))
+        {
+            if (current == ancestor)
+                return true;
+        }
+
+        return false;
+    }
+
+    TransformComponent Scene::GetWorldTransform(const Entity entity) const
+    {
+        const auto& local = m_Registry.get<TransformComponent>(entity.m_Handle);
+
+        const Entity parent = GetParent(entity);
+        if (!parent.IsValid())
+            return local;
+
+        return ComposeTransforms(GetWorldTransform(parent), local);
+    }
+
+    void Scene::SetWorldTransform(const Entity entity, const TransformComponent& world)
+    {
+        auto& local = m_Registry.get<TransformComponent>(entity.m_Handle);
+
+        const Entity parent = GetParent(entity);
+        local = parent.IsValid() ? MakeLocalTransform(GetWorldTransform(parent), world) : world;
     }
 
     void Scene::ResetPhysicsWorld()
@@ -174,8 +342,8 @@ namespace ByteForge
         queue.reserve(view.size_hint());
         for (const auto handle : view)
         {
-            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(handle);
-            queue.push_back({ handle, spriteRenderer.SortingLayer, transform.Position.z });
+            const auto& spriteRenderer = view.get<SpriteRendererComponent>(handle);
+            queue.push_back({ handle, spriteRenderer.SortingLayer, GetWorldTransform(Entity(handle, this)) });
         }
 
         std::ranges::stable_sort(queue, [](const SpriteDrawItem& a, const SpriteDrawItem& b)
@@ -183,12 +351,13 @@ namespace ByteForge
             if (a.Layer != b.Layer)
                 return a.Layer < b.Layer;
 
-            return std::strong_order(a.Z, b.Z) < 0;
+            return std::strong_order(a.World.Position.z, b.World.Position.z) < 0;
         });
 
         for (const SpriteDrawItem& item : queue)
         {
-            const auto& [transform, spriteRenderer] = view.get<TransformComponent, SpriteRendererComponent>(item.Handle);
+            const TransformComponent& transform = item.World;
+            const auto& spriteRenderer = view.get<SpriteRendererComponent>(item.Handle);
             const u32 pickingId = ToPickingId(item.Handle);
 
             if (spriteRenderer.Sprite)

@@ -92,7 +92,7 @@ namespace ByteForge
                 setup(entity);
 
             RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene, std::format("Create '{}'", entity.GetTag()),
-                                                           SceneSerializer::SerializeEntity(entity)));
+                                                           SceneSerializer::SerializeSubtree(entity)));
             SelectionContext.Select(entity);
         });
     }
@@ -120,7 +120,7 @@ namespace ByteForge
             copy.GetComponent<TagComponent>().Tag = MakeUniqueName(entity.GetTag());
 
             RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene, std::format("Duplicate '{}'", entity.GetTag()),
-                                                           SceneSerializer::SerializeEntity(copy)));
+                                                           SceneSerializer::SerializeSubtree(copy)));
             SelectionContext.Select(copy);
         });
     }
@@ -131,7 +131,8 @@ namespace ByteForge
         {
             if (ActiveScene == nullptr || !entity.IsValid()) return;
 
-            if (SelectionContext.IsEntity(entity))
+            const Entity selected = SelectionContext.GetEntity();
+            if (selected.IsValid() && (selected == entity || ActiveScene->IsDescendantOf(selected, entity)))
                 SelectionContext.Clear();
 
             if (!IsEditing())
@@ -141,7 +142,42 @@ namespace ByteForge
             }
 
             History.Execute(MakeScope<DestroyEntityCommand>(*ActiveScene, std::format("Delete '{}'", entity.GetTag()),
-                                                            SceneSerializer::SerializeEntity(entity)));
+                                                            SceneSerializer::SerializeSubtree(entity)));
+        });
+    }
+
+    void EditorContext::ReparentEntity(const Entity entity, const Entity newParent)
+    {
+        Defer([this, entity, newParent]
+        {
+            if (ActiveScene == nullptr || !entity.IsValid()) return;
+
+            if (newParent.IsValid() && (newParent == entity || ActiveScene->IsDescendantOf(newParent, entity))) return;
+
+            const Entity oldParent = ActiveScene->GetParent(entity);
+            if (oldParent == newParent) return;
+
+            i32 oldIndex = -1;
+            if (oldParent.IsValid())
+            {
+                const std::vector<Entity> siblings = ActiveScene->GetChildren(oldParent);
+                const auto it = std::ranges::find(siblings, entity);
+                oldIndex = static_cast<i32>(it - siblings.begin());
+            }
+
+            const TransformComponent before = entity.GetComponent<TransformComponent>();
+            const UUID oldParentId = oldParent.IsValid() ? oldParent.GetUUID() : UUID(0);
+            const UUID newParentId = newParent.IsValid() ? newParent.GetUUID() : UUID(0);
+
+            ActiveScene->SetParent(entity, newParent, true);
+
+            const TransformComponent after = entity.GetComponent<TransformComponent>();
+            const std::string label = newParent.IsValid()
+                                    ? std::format("Move '{}' into '{}'", entity.GetTag(), newParent.GetTag())
+                                    : std::format("Unparent '{}'", entity.GetTag());
+
+            RecordIfEditing(MakeScope<SetParentCommand>(*ActiveScene, entity.GetUUID(), label,
+                                                        oldParentId, oldIndex, before, newParentId, after));
         });
     }
 

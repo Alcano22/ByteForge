@@ -86,7 +86,7 @@ namespace ByteForge
         Rigidbody2DComponent& rigidbody = entity.GetComponent<Rigidbody2DComponent>();
         if (rigidbody.m_RuntimeBodyId != 0) return;
 
-        const auto& transform = entity.GetComponent<TransformComponent>();
+        const TransformComponent transform = entity.GetScene().GetWorldTransform(entity);
 
         b2BodyDef bodyDef = b2DefaultBodyDef();
         bodyDef.type = ToBox2DBodyType(rigidbody.Type);
@@ -188,17 +188,19 @@ namespace ByteForge
 
     void Physics2DWorld::SyncTransforms(Scene& scene) const
     {
-        scene.Each<Rigidbody2DComponent, TransformComponent>(
-            [](const Entity, const Rigidbody2DComponent& rigidbody, TransformComponent& transform)
+        scene.Each<Rigidbody2DComponent>(
+            [&scene](const Entity entity, const Rigidbody2DComponent& rigidbody)
             {
                 if (rigidbody.m_RuntimeBodyId == 0) return;
 
                 const b2BodyId body = b2LoadBodyId(rigidbody.m_RuntimeBodyId);
                 const b2Vec2 position = b2Body_GetPosition(body);
 
-                transform.Position.x = position.x;
-                transform.Position.y = position.y;
-                transform.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));
+                TransformComponent world = scene.GetWorldTransform(entity);
+                world.Position.x = position.x;
+                world.Position.y = position.y;
+                world.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));
+                scene.SetWorldTransform(entity, world);
             });
     }
 

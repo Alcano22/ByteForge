@@ -13,6 +13,7 @@
 #include <string>
 #include <utility>
 #include <map>
+#include <vector>
 
 namespace ByteForge
 {
@@ -33,6 +34,12 @@ namespace ByteForge
         glm::vec2 Scale{ 1.0f };
 
         bool operator==(const TransformComponent&) const = default;
+    };
+
+    struct RelationshipComponent
+    {
+        UUID Parent{ 0 };
+        std::vector<UUID> Children;
     };
 
     struct SpriteRendererComponent

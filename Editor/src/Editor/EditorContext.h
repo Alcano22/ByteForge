@@ -115,6 +115,7 @@ namespace ByteForge
         void RenameEntity(Entity entity, std::string name);
         void DuplicateEntity(Entity entity);
         void DestroyEntity(Entity entity);
+        void ReparentEntity(Entity entity, Entity newParent);
 
         bool Undo();
         bool Redo();

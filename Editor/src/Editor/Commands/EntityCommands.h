@@ -32,7 +32,7 @@ namespace ByteForge
     class CreateEntityCommand final : public EditorCommand
     {
     public:
-        CreateEntityCommand(Scene& scene, std::string name, nlohmann::json snapshot);
+        CreateEntityCommand(Scene& scene, std::string name, nlohmann::json subtree);
 
         void Execute() override;
         void Undo() override;
@@ -41,13 +41,13 @@ namespace ByteForge
     private:
         Scene& m_Scene;
         std::string m_Name;
-        nlohmann::json m_Snapshot;
+        nlohmann::json m_Subtree;
     };
 
     class DestroyEntityCommand final : public EditorCommand
     {
     public:
-        DestroyEntityCommand(Scene& scene, std::string name, nlohmann::json snapshot);
+        DestroyEntityCommand(Scene& scene, std::string name, nlohmann::json subtree);
 
         void Execute() override;
         void Undo() override;
@@ -56,7 +56,7 @@ namespace ByteForge
     private:
         Scene& m_Scene;
         std::string m_Name;
-        nlohmann::json m_Snapshot;
+        nlohmann::json m_Subtree;
     };
 
     class ModifyTransformCommand final : public EditorCommand
@@ -77,6 +77,31 @@ namespace ByteForge
         UUID m_EntityId;
         std::string m_Name;
         TransformComponent m_Before;
+        TransformComponent m_After;
+    };
+
+    class SetParentCommand final : public EditorCommand
+    {
+    public:
+        SetParentCommand(Scene& scene, UUID entityId, std::string name,
+                         UUID oldParent, i32 oldIndex, const TransformComponent& before,
+                         UUID newParent, const TransformComponent& after);
+
+        void Execute() override { Apply(m_NewParent, -1, m_After); }
+        void Undo() override { Apply(m_OldParent, m_OldIndex, m_Before); }
+        [[nodiscard]] std::string GetName() const override { return m_Name; }
+
+    private:
+        void Apply(UUID parentId, i32 index, const TransformComponent& local) const;
+
+    private:
+        Scene& m_Scene;
+        UUID m_EntityId;
+        std::string m_Name;
+        UUID m_OldParent;
+        i32 m_OldIndex;
+        TransformComponent m_Before;
+        UUID m_NewParent;
         TransformComponent m_After;
     };
 }
