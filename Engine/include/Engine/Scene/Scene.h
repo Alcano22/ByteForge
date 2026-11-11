@@ -61,6 +61,8 @@ namespace ByteForge
         void OnRuntimeStart();
         void OnRuntimeStop();
 
+        void EnsureRuntimeBody(Entity entity);
+
         [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity) const;
 
         [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }

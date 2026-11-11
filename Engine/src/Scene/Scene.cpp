@@ -380,6 +380,8 @@ namespace ByteForge
     {
         if (m_ScriptRuntime) return;
 
+        m_PhysicsWorld->EnsureBodiesCreated(*this);
+
         AudioSystem::Update(*this);
 
         m_ScriptRuntime = MakeScope<ScriptRuntime>(*this);
@@ -394,6 +396,12 @@ namespace ByteForge
         m_ScriptRuntime.reset();
 
         AudioSystem::Stop(*this);
+    }
+
+    void Scene::EnsureRuntimeBody(const Entity entity)
+    {
+        if (m_PhysicsWorld)
+            m_PhysicsWorld->EnsureBodyCreated(entity);
     }
 
     ScriptInstance* Scene::FindScriptInstance(const Entity entity) const

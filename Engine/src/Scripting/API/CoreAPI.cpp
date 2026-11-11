@@ -262,26 +262,32 @@ namespace ByteForge
             return context.Resolve(entity).HasComponent<Rigidbody2DComponent>();
         }
 
+        Rigidbody2DComponent& RequireBody(const ScriptCallContext& context, const EntityRef entity)
+        {
+            RequireScene(context).EnsureRuntimeBody(context.Resolve(entity));
+            return context.Require<Rigidbody2DComponent>(entity);
+        }
+
         glm::vec2 Rigidbody2DGetLinearVelocity(const ScriptCallContext& context, const EntityRef entity)
         {
-            return context.Require<Rigidbody2DComponent>(entity).GetLinearVelocity();
+            return RequireBody(context, entity).GetLinearVelocity();
         }
 
         void Rigidbody2DSetLinearVelocity(const ScriptCallContext& context, const EntityRef entity,
                                           const glm::vec2& velocity)
         {
-            context.Require<Rigidbody2DComponent>(entity).SetLinearVelocity(velocity);
+            RequireBody(context, entity).SetLinearVelocity(velocity);
         }
 
         void Rigidbody2DApplyForce(const ScriptCallContext& context, const EntityRef entity, const glm::vec2& force)
         {
-            context.Require<Rigidbody2DComponent>(entity).ApplyForceToCenter(force);
+            RequireBody(context, entity).ApplyForceToCenter(force);
         }
 
         void Rigidbody2DApplyImpulse(const ScriptCallContext& context, const EntityRef entity,
                                      const glm::vec2& impulse)
         {
-            context.Require<Rigidbody2DComponent>(entity).ApplyLinearImpulseToCenter(impulse);
+            RequireBody(context, entity).ApplyLinearImpulseToCenter(impulse);
         }
 
         RaycastHit2D CastRay(const ScriptCallContext& context, const glm::vec2& origin, const glm::vec2& direction,

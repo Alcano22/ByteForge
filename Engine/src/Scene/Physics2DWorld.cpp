@@ -165,6 +165,12 @@ namespace ByteForge
         });
     }
 
+    void Physics2DWorld::EnsureBodyCreated(const Entity entity) const
+    {
+        if (entity.IsValid() && entity.HasComponent<Rigidbody2DComponent>())
+            CreateBody(entity);
+    }
+
     void Physics2DWorld::Step(const f32 ts, Scene& scene)
     {
         m_Accumulator += ts;
