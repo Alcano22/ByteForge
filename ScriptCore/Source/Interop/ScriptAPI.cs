@@ -58,6 +58,9 @@ internal static unsafe class ScriptAPI
     private static uint s_PrefabInstantiateAt;
     private static uint s_PrefabInstantiateAsChild;
 
+    private static uint s_SceneLoad;
+    private static uint s_SceneLoadByName;
+
     private static uint s_InputIsKeyDown;
     private static uint s_InputIsKeyPressed;
     private static uint s_InputIsKeyReleased;
@@ -121,6 +124,9 @@ internal static unsafe class ScriptAPI
         s_PrefabInstantiate             = Resolve("Prefab.Instantiate",             "(Asset:Prefab)->Entity",               ref complete);
         s_PrefabInstantiateAt           = Resolve("Prefab.InstantiateAt",           "(Asset:Prefab,Vector2)->Entity",       ref complete);
         s_PrefabInstantiateAsChild      = Resolve("Prefab.InstantiateAsChild",      "(Asset:Prefab,Entity)->Entity",        ref complete);
+
+        s_SceneLoad                     = Resolve("Scene.Load",                     "(Asset:Scene)->Void",                  ref complete);
+        s_SceneLoadByName               = Resolve("Scene.LoadByName",               "(String)->Void",                       ref complete);
 
         s_InputIsKeyDown                = Resolve("Input.IsKeyDown",                "(Int)->Bool",                          ref complete);
         s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",             "(Int)->Bool",                          ref complete);
@@ -283,6 +289,14 @@ internal static unsafe class ScriptAPI
 
     private static APIValue PrefabValue(Prefab prefab) =>
         new() { Handle = prefab.Handle, AssetType = (byte)AssetType.Prefab };
+
+    // Scene
+
+    public static void Scene_Load(SceneAsset scene) =>
+        Call(s_SceneLoad, new APIValue { Handle = scene.Handle, AssetType = (byte)AssetType.Scene });
+
+    public static void Scene_LoadByName(string name) =>
+        CallWithText(s_SceneLoadByName, name);
 
     // Input
 

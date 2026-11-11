@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -61,6 +62,8 @@ namespace ByteForge
         void OnRuntimeStart();
         void OnRuntimeStop();
 
+        void RequestSceneLoad(UUID sceneAsset);
+
         void EnsureRuntimeBody(Entity entity);
 
         [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity) const;
@@ -86,6 +89,7 @@ namespace ByteForge
         void ResetPhysicsWorld();
 
         void FlushPendingDestroy();
+        void ApplyPendingSceneLoad();
 
         [[nodiscard]] Entity DuplicateSubtree(Entity source);
 
@@ -102,6 +106,7 @@ namespace ByteForge
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_EntityByUUID;
         std::vector<UUID> m_PendingDestroy;
+        std::optional<UUID> m_PendingSceneLoad;
         Scope<Physics2DWorld> m_PhysicsWorld;
         Scope<ScriptRuntime> m_ScriptRuntime;
     };

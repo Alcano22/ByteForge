@@ -3,12 +3,18 @@
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Physics2DWorld.h"
 #include "Engine/Scene/RaycastHit2D.h"
+#include "Engine/Scene/SceneSerializer.h"
+#include "Engine/Core/Log.h"
+#include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Audio/AudioSystem.h"
 #include "Scripting/ScriptRuntime.h"
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <compare>
 #include <format>
+#include <fstream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -325,6 +331,7 @@ namespace ByteForge
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
 
         FlushPendingDestroy();
+        ApplyPendingSceneLoad();
     }
 
     void Scene::OnStepRuntime()
@@ -396,6 +403,46 @@ namespace ByteForge
         m_ScriptRuntime.reset();
 
         AudioSystem::Stop(*this);
+    }
+
+    void Scene::RequestSceneLoad(const UUID sceneAsset) { m_PendingSceneLoad = sceneAsset; }
+
+    void Scene::ApplyPendingSceneLoad()
+    {
+        if (!m_PendingSceneLoad) return;
+
+        const UUID handle = *m_PendingSceneLoad;
+        m_PendingSceneLoad.reset();
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Scene)
+        {
+            CORE_ERROR("Cannot load scene {}: it is not a scene asset", static_cast<u64>(handle));
+            return;
+        }
+
+        const std::string name = metadata.Path.generic_string();
+
+        std::ifstream file(AssetRegistry::Resolve(handle));
+        const nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
+        if (!data.is_object() || !data.contains("entities"))
+        {
+            CORE_ERROR("Cannot load scene '{}': the file is missing or invalid", name);
+            return;
+        }
+
+        OnRuntimeStop();
+
+        try
+        {
+            SceneSerializer::Deserialize(*this, data);
+        } catch (const std::exception& e)
+        {
+            CORE_ERROR("Scene '{}' could not be loaded completely: {}", name, e.what());
+        }
+
+        OnRuntimeStart();
+        CORE_INFO("Loaded scene '{}'", name);
     }
 
     void Scene::EnsureRuntimeBody(const Entity entity)

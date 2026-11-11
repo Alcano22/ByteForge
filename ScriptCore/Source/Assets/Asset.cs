@@ -31,8 +31,9 @@ public abstract class Asset
 
         return type switch
         {
+            AssetType.Scene     => new SceneAsset(handle),
             AssetType.AudioClip => new AudioClip(handle),
-            AssetType.Prefab => new Prefab(handle),
+            AssetType.Prefab    => new Prefab(handle),
             _ => null
         };
     }

@@ -160,6 +160,27 @@ namespace ByteForge
             return SpawnPrefab(context, prefab, context.Resolve(parent), std::nullopt);
         }
 
+        void SceneLoad(const ScriptCallContext& context, const SceneHandle scene)
+        {
+            if (!scene.IsSet())
+                throw ScriptError("Scene.Load needs a scene");
+
+            RequireScene(context).RequestSceneLoad(scene.Handle);
+        }
+
+        void SceneLoadByName(const ScriptCallContext& context, const std::string& name)
+        {
+            for (const AssetMetadata& metadata : AssetRegistry::GetAssetsOfType(AssetType::Scene))
+            {
+                if (metadata.Path.stem().string() != name && metadata.Path.generic_string() != name) continue;
+
+                RequireScene(context).RequestSceneLoad(metadata.Handle);
+                return;
+            }
+
+            throw ScriptError(std::format("There is no scene named '{}'", name));
+        }
+
         void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
         {
             const Entity target = context.Resolve(entity);
@@ -481,6 +502,9 @@ namespace ByteForge
         api.Register<&PrefabInstantiate>("Prefab.Instantiate", "Instantiate Prefab", Impure, { "Prefab" });
         api.Register<&PrefabInstantiateAt>("Prefab.InstantiateAt", "Instantiate Prefab At", Impure, { "Prefab", "Position" });
         api.Register<&PrefabInstantiateAsChild>("Prefab.InstantiateAsChild", "Instantiate Prefab As Child", Impure, { "Prefab", "Parent" });
+
+        api.Register<&SceneLoad>("Scene.Load", "Load Scene", Impure, { "Scene" });
+        api.Register<&SceneLoadByName>("Scene.LoadByName", "Load Scene By Name", Impure, { "Name" });
 
         api.Register<&AudioPlayOneShot>("Audio.PlayOneShot", "Play One Shot", Impure, { "Clip" });
 
