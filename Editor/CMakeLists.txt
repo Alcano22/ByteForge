@@ -41,6 +41,7 @@ add_executable(Editor
         src/Editor/Panels/GamePanel.cpp
         src/Editor/Panels/ScenePanel.cpp
         src/Editor/Panels/GraphEditorPanel.cpp
+        src/Editor/Panels/ProjectSettingsPanel.cpp
         src/Editor/Commands/CommandHistory.cpp
         src/Editor/Commands/EntityCommands.cpp
         src/Editor/Commands/EntityEditTracker.cpp

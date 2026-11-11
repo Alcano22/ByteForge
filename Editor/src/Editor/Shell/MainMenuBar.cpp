@@ -2,6 +2,7 @@
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
 #include "Editor/GameExporter.h"
+#include "Editor/Panels/ProjectSettingsPanel.h"
 
 #include <imgui.h>
 
@@ -73,6 +74,9 @@ namespace ByteForge
                 ActionMenuItem(context, EditorActions::TogglePlay);
                 ActionMenuItem(context, EditorActions::TogglePause);
                 ActionMenuItem(context, EditorActions::Step);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Project Settings..."))
+                    context.Open<ProjectSettingsPanel>().RequestFocus();
                 ImGui::EndMenu();
             }
 
