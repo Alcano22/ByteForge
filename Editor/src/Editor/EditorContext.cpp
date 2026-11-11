@@ -2,8 +2,10 @@
 #include "Editor/Commands/EntityCommands.h"
 #include "Editor/Panels/GamePanel.h"
 
+#include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Prefab.h>
 #include <Engine/Audio/AudioEngine.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
@@ -178,6 +180,34 @@ namespace ByteForge
 
             RecordIfEditing(MakeScope<SetParentCommand>(*ActiveScene, entity.GetUUID(), label,
                                                         oldParentId, oldIndex, before, newParentId, after));
+        });
+    }
+
+    void EditorContext::InstantiatePrefab(const UUID handle, const Entity parent,
+                                          const std::optional<glm::vec2> position)
+    {
+        Defer([this, handle, parent, position]
+        {
+            if (ActiveScene == nullptr) return;
+
+            const auto instance = Prefab::Instantiate(*ActiveScene, handle, parent, position);
+            if (!instance)
+            {
+                APP_ERROR("Cannot instantiate prefab: {}", instance.error());
+                return;
+            }
+
+            const Entity root = *instance;
+
+            TagComponent& tag = root.GetComponent<TagComponent>();
+            const std::string name = std::move(tag.Tag);
+            tag.Tag.clear();
+            tag.Tag = MakeUniqueName(name);
+
+            RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene,
+                                                           std::format("Instantiate '{}'", root.GetTag()),
+                                                           SceneSerializer::SerializeSubtree(root)));
+            SelectionContext.Select(root);
         });
     }
 

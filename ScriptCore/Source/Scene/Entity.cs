@@ -67,6 +67,9 @@ public sealed class Entity : IEquatable<Entity>
         }
     }
 
+    public void SetParent(Entity? parent, bool keepWorldTransform = true) =>
+        ScriptAPI.Entity_SetParent(ID, parent?.ID ?? 0, keepWorldTransform);
+
     public Transform Transform => _transform ??= new Transform(ID);
     public SpriteRenderer? SpriteRenderer => ScriptAPI.SpriteRenderer_Exists(ID) ? (_spriteRenderer ??= new SpriteRenderer(ID)) : null;
     public AudioSource? AudioSource => ScriptAPI.AudioSource_Exists(ID) ? (_audioSource ??= new AudioSource(ID)) : null;

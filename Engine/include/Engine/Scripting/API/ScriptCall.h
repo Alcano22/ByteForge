@@ -32,6 +32,7 @@ namespace ByteForge
     };
 
     using AudioClipHandle = AssetHandle<AssetType::AudioClip>;
+    using PrefabHandle    = AssetHandle<AssetType::Prefab>;
 
     struct BYTEFORGE_API ScriptCallContext
     {

@@ -1,5 +1,6 @@
 #include "Engine/Assets/AssetManager.h"
 #include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Assets/Prefab.h"
 #include "Engine/Core/JobSystem.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/ImageDecoder.h"
@@ -262,5 +263,6 @@ namespace ByteForge
         s_Assets.clear();
         s_PhysicsMaterials.clear();
         s_Fallback.reset();
+        Prefab::Clear();
     }
 }

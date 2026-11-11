@@ -19,6 +19,7 @@ internal static unsafe class ScriptAPI
     private static uint s_EntitySetParent;
     private static uint s_EntityGetChildCount;
     private static uint s_EntityGetChild;
+
     private static uint s_TransformGetPosition;
     private static uint s_TransformSetPosition;
     private static uint s_TransformGetRotation;
@@ -31,23 +32,32 @@ internal static unsafe class ScriptAPI
     private static uint s_TransformSetLocalRotation;
     private static uint s_TransformGetLocalScale;
     private static uint s_TransformSetLocalScale;
+
     private static uint s_SpriteRendererExists;
     private static uint s_SpriteRendererGetSortingLayer;
     private static uint s_SpriteRendererSetSortingLayer;
+
     private static uint s_Rigidbody2DExists;
     private static uint s_Rigidbody2DGetLinearVelocity;
     private static uint s_Rigidbody2DSetLinearVelocity;
     private static uint s_Rigidbody2DApplyForce;
     private static uint s_Rigidbody2DApplyImpulse;
+
     private static uint s_PhysicsRaycast;
     private static uint s_PhysicsRaycastPoint;
     private static uint s_PhysicsRaycastNormal;
     private static uint s_PhysicsRaycastDistance;
+
     private static uint s_AudioSourceExists;
     private static uint s_AudioSourcePlay;
     private static uint s_AudioSourceStop;
     private static uint s_AudioSourceIsPlaying;
     private static uint s_AudioPlayOneShot;
+
+    private static uint s_PrefabInstantiate;
+    private static uint s_PrefabInstantiateAt;
+    private static uint s_PrefabInstantiateAsChild;
+
     private static uint s_InputIsKeyDown;
     private static uint s_InputIsKeyPressed;
     private static uint s_InputIsKeyReleased;
@@ -73,6 +83,7 @@ internal static unsafe class ScriptAPI
         s_EntitySetParent               = Resolve("Entity.SetParent",               "(Entity,Entity,Bool)->Void",           ref complete);
         s_EntityGetChildCount           = Resolve("Entity.GetChildCount",           "(Entity)->Int",                        ref complete);
         s_EntityGetChild                = Resolve("Entity.GetChild",                "(Entity,Int)->Entity",                 ref complete);
+
         s_TransformGetPosition          = Resolve("Transform.GetPosition",          "(Entity)->Vector3",                    ref complete);
         s_TransformSetPosition          = Resolve("Transform.SetPosition",          "(Entity,Vector3)->Void",               ref complete);
         s_TransformGetRotation          = Resolve("Transform.GetRotation",          "(Entity)->Float",                      ref complete);
@@ -85,23 +96,32 @@ internal static unsafe class ScriptAPI
         s_TransformSetLocalRotation     = Resolve("Transform.SetLocalRotation",     "(Entity,Float)->Void",                 ref complete);
         s_TransformGetLocalScale        = Resolve("Transform.GetLocalScale",        "(Entity)->Vector2",                    ref complete);
         s_TransformSetLocalScale        = Resolve("Transform.SetLocalScale",        "(Entity,Vector2)->Void",               ref complete);
+
         s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                       ref complete);
         s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                        ref complete);
         s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                   ref complete);
+
         s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",             "(Entity)->Bool",                       ref complete);
         s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity",  "(Entity)->Vector2",                    ref complete);
         s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity",  "(Entity,Vector2)->Void",               ref complete);
         s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",         "(Entity,Vector2)->Void",               ref complete);
         s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",       "(Entity,Vector2)->Void",               ref complete);
+
         s_PhysicsRaycast                = Resolve("Physics.Raycast",                "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
         s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",           "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
         s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",          "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
         s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",        "(Vector2,Vector2,Float,Int)->Float",   ref complete);
+
         s_AudioSourceExists             = Resolve("AudioSource.Exists",             "(Entity)->Bool",                       ref complete);
         s_AudioSourcePlay               = Resolve("AudioSource.Play",               "(Entity)->Void",                       ref complete);
         s_AudioSourceStop               = Resolve("AudioSource.Stop",               "(Entity)->Void",                       ref complete);
         s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",          "(Entity)->Bool",                       ref complete);
         s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",              "(Asset:AudioClip)->Void",              ref complete);
+
+        s_PrefabInstantiate             = Resolve("Prefab.Instantiate",             "(Asset:Prefab)->Entity",               ref complete);
+        s_PrefabInstantiateAt           = Resolve("Prefab.InstantiateAt",           "(Asset:Prefab,Vector2)->Entity",       ref complete);
+        s_PrefabInstantiateAsChild      = Resolve("Prefab.InstantiateAsChild",      "(Asset:Prefab,Entity)->Entity",        ref complete);
+
         s_InputIsKeyDown                = Resolve("Input.IsKeyDown",                "(Int)->Bool",                          ref complete);
         s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",             "(Int)->Bool",                          ref complete);
         s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",            "(Int)->Bool",                          ref complete);
@@ -249,6 +269,20 @@ internal static unsafe class ScriptAPI
 
     public static void Audio_PlayOneShot(AudioClip? clip) =>
         Call(s_AudioPlayOneShot, new APIValue { Handle = clip?.Handle ?? 0, AssetType = (byte)AssetType.AudioClip });
+
+    // Prefab
+
+    public static ulong Prefab_Instantiate(Prefab prefab) =>
+        Call(s_PrefabInstantiate, PrefabValue(prefab)).Handle;
+
+    public static ulong Prefab_InstantiateAt(Prefab prefab, Vector2 position) =>
+        Call(s_PrefabInstantiateAt, PrefabValue(prefab), new APIValue { Vector2 = position }).Handle;
+
+    public static ulong Prefab_InstantiateAsChild(Prefab prefab, ulong parent) =>
+        Call(s_PrefabInstantiateAsChild, PrefabValue(prefab), new APIValue { Handle = parent }).Handle;
+
+    private static APIValue PrefabValue(Prefab prefab) =>
+        new() { Handle = prefab.Handle, AssetType = (byte)AssetType.Prefab };
 
     // Input
 

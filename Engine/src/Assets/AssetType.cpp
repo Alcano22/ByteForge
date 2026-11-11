@@ -1,4 +1,5 @@
 #include "Engine/Assets/AssetType.h"
+#include "Engine/Assets/Prefab.h"
 #include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
 
@@ -36,6 +37,8 @@ namespace ByteForge
             return AssetType::AudioClip;
         if (ext == ScriptGraphExtension)
             return AssetType::ScriptGraph;
+        if (ext == PrefabExtension)
+            return AssetType::Prefab;
 
         return AssetType::None;
     }

@@ -8,7 +8,8 @@ public enum AssetType : byte
     Scene,
     PhysicsMaterial2D,
     AudioClip,
-    ScriptGraph
+    ScriptGraph,
+    Prefab
 }
 
 public abstract class Asset
@@ -31,6 +32,7 @@ public abstract class Asset
         return type switch
         {
             AssetType.AudioClip => new AudioClip(handle),
+            AssetType.Prefab => new Prefab(handle),
             _ => null
         };
     }

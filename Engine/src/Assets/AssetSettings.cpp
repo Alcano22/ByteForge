@@ -40,6 +40,7 @@ namespace ByteForge
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};
             case AssetType::ScriptGraph:       return std::monostate{};
+            case AssetType::Prefab:            return std::monostate{};
             case AssetType::None:              break;
         }
         return std::monostate{};
@@ -96,6 +97,7 @@ namespace ByteForge
             case AssetType::Scene:             return std::monostate{};
             case AssetType::PhysicsMaterial2D: return std::monostate{};
             case AssetType::ScriptGraph:       return std::monostate{};
+            case AssetType::Prefab:            return std::monostate{};
             case AssetType::None:              break;
         }
 

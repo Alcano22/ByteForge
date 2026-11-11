@@ -163,6 +163,7 @@ namespace ByteForge
             { ".flac",      EditorIcon::FileAudio           },
 
             { ".bfscene",   EditorIcon::FileScene           },
+            { ".bfprefab",  EditorIcon::FileScene           },
 
             { ".bfphysmat", EditorIcon::FilePhysicsMaterial },
 

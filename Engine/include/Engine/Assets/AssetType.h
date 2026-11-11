@@ -15,7 +15,8 @@ namespace ByteForge
         Scene,
         PhysicsMaterial2D,
         AudioClip,
-        ScriptGraph
+        ScriptGraph,
+        Prefab
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

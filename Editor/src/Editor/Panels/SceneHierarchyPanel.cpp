@@ -1,6 +1,7 @@
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
+#include "Editor/AssetPayload.h"
 
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Scene.h>
@@ -11,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <optional>
 #include <string>
 
 namespace ByteForge
@@ -27,22 +29,31 @@ namespace ByteForge
             entity.AddComponent<BoxCollider2DComponent>();
         }
 
-        Entity AcceptEntityDrop(Scene& scene)
+        struct HierarchyDrop
         {
-            Entity dropped;
+            Entity Dragged;
+            std::optional<UUID> PrefabHandle;
+        };
 
-            if (ImGui::BeginDragDropTarget())
+        HierarchyDrop AcceptHierarchyDrop(Scene& scene)
+        {
+            HierarchyDrop drop;
+
+            if (!ImGui::BeginDragDropTarget())
+                return drop;
+
+            if (const ImGuiPayload* entityPayload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType);
+                entityPayload != nullptr && entityPayload->DataSize == sizeof(u64))
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType);
-                    payload != nullptr && payload->DataSize == sizeof(u64))
-                {
-                    dropped = scene.FindEntityByUUID(UUID(*static_cast<const u64*>(payload->Data)));
-                }
-
-                ImGui::EndDragDropTarget();
+                drop.Dragged = scene.FindEntityByUUID(UUID(*static_cast<const u64*>(entityPayload->Data)));
+            } else if (const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(AssetPayloadType))
+            {
+                if (const auto asset = ReadAssetPayload(assetPayload); asset && asset->Type == AssetType::Prefab)
+                    drop.PrefabHandle = UUID(asset->Handle);
             }
 
-            return dropped;
+            ImGui::EndDragDropTarget();
+            return drop;
         }
     }
 
@@ -129,8 +140,11 @@ namespace ByteForge
             ImGui::EndDragDropSource();
         }
 
-        if (const Entity dropped = AcceptEntityDrop(scene); dropped.IsValid())
-            context.ReparentEntity(dropped, entity);
+        const HierarchyDrop drop = AcceptHierarchyDrop(scene);
+        if (drop.Dragged.IsValid())
+            context.ReparentEntity(drop.Dragged, entity);
+        if (drop.PrefabHandle)
+            context.InstantiatePrefab(*drop.PrefabHandle, entity);
 
         if (ImGui::BeginPopupContextItem("##EntityContext"))
         {
@@ -178,8 +192,11 @@ namespace ByteForge
         ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x,
                             std::max(ImGui::GetContentRegionAvail().y, MinDropZoneHeight)));
 
-        if (const Entity dropped = AcceptEntityDrop(*context.ActiveScene); dropped.IsValid())
-            context.ReparentEntity(dropped, {});
+        const HierarchyDrop drop = AcceptHierarchyDrop(*context.ActiveScene);
+        if (drop.Dragged.IsValid())
+            context.ReparentEntity(drop.Dragged, {});
+        if (drop.PrefabHandle)
+            context.InstantiatePrefab(*drop.PrefabHandle);
     }
 
     void SceneHierarchyPanel::DrawCreateMenu() const

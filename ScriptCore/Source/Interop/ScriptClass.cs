@@ -42,7 +42,8 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
 
     private static readonly Dictionary<Type, AssetType> s_AssetTypes = new()
     {
-        [typeof(AudioClip)] = AssetType.AudioClip
+        [typeof(AudioClip)] = AssetType.AudioClip,
+        [typeof(Prefab)]    = AssetType.Prefab
     };
 
     public FieldInfo Info { get; } = info;

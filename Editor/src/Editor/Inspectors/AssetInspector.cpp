@@ -124,6 +124,11 @@ namespace ByteForge::EditorUI
             case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata); break;
             case AssetType::AudioClip:         DrawAudioClipInspector(metadata);       break;
             case AssetType::ScriptGraph:       DrawScriptGraphInspector(metadata);     break;
+            case AssetType::Prefab:
+                if (ImGui::Button("Instantiate"))
+                    context.InstantiatePrefab(handle);
+                ImGui::TextDisabled("or drag it into the Scene or the Hierarchy");
+                break;
             case AssetType::None:      break;
         }
     }

@@ -1,5 +1,6 @@
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/AssetPayload.h"
 #include "Editor/Panels/GraphEditorPanel.h"
 
@@ -7,6 +8,7 @@
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
+#include <Engine/Assets/Prefab.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
 
@@ -168,6 +170,19 @@ namespace ByteForge
             while (!text.empty() && text.front() == ' ') text.remove_prefix(1);
             while (!text.empty() && text.back()  == ' ') text.remove_suffix(1);
             return text;
+        }
+
+        std::string MakeFileStem(const std::string& name)
+        {
+            std::string stem = name;
+            for (char& c : stem)
+            {
+                if (std::string_view("/\\:*?\"<>|").find(c) != std::string_view::npos)
+                    c = '_';
+            }
+
+            const std::string trimmed(Trim(stem));
+            return trimmed.empty() || trimmed == "." || trimmed == ".." ? "New Prefab" : trimmed;
         }
     }
 
@@ -387,6 +402,8 @@ namespace ByteForge
             ImGui::EndTable();
         }
 
+        DrawEntityDropZone();
+
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
         {
             m_LocalSelection.reset();
@@ -582,6 +599,27 @@ namespace ByteForge
         ImGui::EndPopup();
     }
 
+    void AssetsPanel::DrawEntityDropZone()
+    {
+        ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, std::max(ImGui::GetContentRegionAvail().y, 24.0f)));
+
+        if (!ImGui::BeginDragDropTarget()) return;
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType);
+            payload != nullptr && payload->DataSize == sizeof(u64))
+        {
+            const Scene* scene = GetContext().ActiveScene;
+            const Entity entity = scene != nullptr
+                                ? scene->FindEntityByUUID(UUID(*static_cast<const u64*>(payload->Data)))
+                                : Entity{};
+
+            if (entity.IsValid())
+                CreatePrefab(entity);
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+
     void AssetsPanel::CreateFolder()
     {
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Folder", "");
@@ -614,6 +652,19 @@ namespace ByteForge
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Script Graph", ScriptGraphExtension);
 
         if (const auto created = AssetManager::CreateScriptGraph(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreatePrefab(const Entity entity)
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, MakeFileStem(entity.GetTag()), PrefabExtension);
+
+        if (const auto created = Prefab::Create(entity, path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
             return;

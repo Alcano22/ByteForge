@@ -20,6 +20,8 @@
 
 namespace ByteForge
 {
+    class Entity;
+
     class AssetsPanel : public EditorPanel
     {
     public:
@@ -54,6 +56,7 @@ namespace ByteForge
         void DrawTree(const DirectoryNode& node);
         void DrawContent();
         void DrawItem(Entry& entry);
+        void DrawEntityDropZone();
 
         void BeginRename(const Entry& entry);
         void CommitRename();
@@ -63,6 +66,7 @@ namespace ByteForge
         void CreateFolder();
         void CreatePhysicsMaterial();
         void CreateScriptGraph();
+        void CreatePrefab(Entity entity);
 
         void RenameAfterRefresh(std::filesystem::path path);
 

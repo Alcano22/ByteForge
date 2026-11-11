@@ -1,6 +1,7 @@
 #include "Scripting/API/CoreAPI.h"
 
 #include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Assets/Prefab.h"
 #include "Engine/Audio/AudioEngine.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Input/Input.h"
@@ -12,6 +13,7 @@
 #include <cstdint>
 #include <format>
 #include <limits>
+#include <optional>
 
 namespace ByteForge
 {
@@ -126,6 +128,36 @@ namespace ByteForge
             }
 
             return EntityRef{ children[static_cast<usize>(index)].GetUUID() };
+        }
+
+        EntityRef SpawnPrefab(const ScriptCallContext& context, const PrefabHandle prefab, const Entity parent,
+                              const std::optional<glm::vec2> position)
+        {
+            if (!prefab.IsSet())
+                throw ScriptError("Prefab.Instantiate needs a prefab");
+
+            const auto instance = Prefab::Instantiate(RequireScene(context), prefab.Handle, parent, position);
+            if (!instance)
+                throw ScriptError(instance.error());
+
+            return EntityRef{ instance->GetUUID() };
+        }
+
+        EntityRef PrefabInstantiate(const ScriptCallContext& context, const PrefabHandle prefab)
+        {
+            return SpawnPrefab(context, prefab, {}, std::nullopt);
+        }
+
+        EntityRef PrefabInstantiateAt(const ScriptCallContext& context, const PrefabHandle prefab,
+                                      const glm::vec2& position)
+        {
+            return SpawnPrefab(context, prefab, {}, position);
+        }
+
+        EntityRef PrefabInstantiateAsChild(const ScriptCallContext& context, const PrefabHandle prefab,
+                                           const EntityRef parent)
+        {
+            return SpawnPrefab(context, prefab, context.Resolve(parent), std::nullopt);
         }
 
         void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
@@ -439,6 +471,10 @@ namespace ByteForge
         api.Register<&AudioSourcePlay>("AudioSource.Play", "Play", Impure, { "Entity" });
         api.Register<&AudioSourceStop>("AudioSource.Stop", "Stop", Impure, { "Entity" });
         api.Register<&AudioSourceIsPlaying>("AudioSource.IsPlaying", "Is Playing", Pure, { "Entity" });
+
+        api.Register<&PrefabInstantiate>("Prefab.Instantiate", "Instantiate Prefab", Impure, { "Prefab" });
+        api.Register<&PrefabInstantiateAt>("Prefab.InstantiateAt", "Instantiate Prefab At", Impure, { "Prefab", "Position" });
+        api.Register<&PrefabInstantiateAsChild>("Prefab.InstantiateAsChild", "Instantiate Prefab As Child", Impure, { "Prefab", "Parent" });
 
         api.Register<&AudioPlayOneShot>("Audio.PlayOneShot", "Play One Shot", Impure, { "Clip" });
 

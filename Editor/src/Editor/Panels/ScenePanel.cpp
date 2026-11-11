@@ -1,6 +1,7 @@
 #include "Editor/Panels/ScenePanel.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
+#include "Editor/AssetPayload.h"
 #include "Editor/Commands/EntityCommands.h"
 #include "Editor/Viewport/SceneGizmos.h"
 
@@ -103,6 +104,7 @@ namespace ByteForge
         if (visible)
         {
             m_Canvas.Draw();
+            HandleAssetDrop();
 
             DrawToolOverlay();
             const bool gizmoOwnsPointer = DrawTransformGizmo();
@@ -177,6 +179,23 @@ namespace ByteForge
             selection.ClearEntity();
     }
 
+    void ScenePanel::HandleAssetDrop()
+    {
+        const glm::vec2 size = m_Canvas.GetSize();
+        if (size.x < 1.0f || size.y < 1.0f || !ImGui::BeginDragDropTarget()) return;
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayloadType))
+        {
+            if (const auto asset = ReadAssetPayload(payload); asset && asset->Type == AssetType::Prefab)
+            {
+                const glm::vec2 world = m_Camera.ViewportToWorld(m_Canvas.ToViewport(ImGui::GetIO().MousePos));
+                GetContext().InstantiatePrefab(UUID(asset->Handle), {}, world);
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+
     void ScenePanel::FocusSelection()
     {
         const Entity selected = GetContext().SelectionContext.GetEntity();
@@ -225,7 +244,6 @@ namespace ByteForge
             return false;
         }
 
-        Scene& scene = selected.GetScene();
         const TransformComponent before = selected.GetComponent<TransformComponent>();
         TransformComponent world = selected.GetWorldTransform();
 

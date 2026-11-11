@@ -17,6 +17,7 @@
 #include <Engine/Renderer/Texture2D.h>
 
 #include <nlohmann/json.hpp>
+#include <glm/glm.hpp>
 
 #include <type_traits>
 #include <typeindex>
@@ -116,6 +117,8 @@ namespace ByteForge
         void DuplicateEntity(Entity entity);
         void DestroyEntity(Entity entity);
         void ReparentEntity(Entity entity, Entity newParent);
+
+        void InstantiatePrefab(UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
 
         bool Undo();
         bool Redo();

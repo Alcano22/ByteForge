@@ -26,6 +26,7 @@ namespace ByteForge
         void HandleNavigation();
         void HandleToolShortcuts();
         void HandleSelection() const;
+        void HandleAssetDrop();
         void FocusSelection();
 
         void DrawToolOverlay();
