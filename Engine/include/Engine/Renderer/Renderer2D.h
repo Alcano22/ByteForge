@@ -34,6 +34,7 @@ namespace ByteForge
     {
         u32 DrawCalls = 0;
         u32 Quads = 0;
+        u32 DroppedQuads = 0;
     };
 
     // Colors and tints are in sRGB, exactly as a color picker shows them. When rendering into an
@@ -67,12 +68,16 @@ namespace ByteForge
                              const glm::vec4& tint = glm::vec4(1.0f), u32 entityId = 0);
 
         [[nodiscard]] const Renderer2DStats& GetStats() const { return m_Stats; }
+        [[nodiscard]] u32 GetCapacity() const { return m_Capacity; }
 
     private:
         void SubmitQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                         const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
                         const glm::vec4& color, u32 entityId);
         void Flush();
+
+        void CreateBuffers(u32 capacity);
+        [[nodiscard]] bool Grow();
 
         [[nodiscard]] Ref<Material> GetMaterial(const Ref<Texture2D>& texture);
         void EvictUnusedMaterials();
@@ -102,6 +107,9 @@ namespace ByteForge
 
         std::vector<Vertex> m_Vertices;
 
+        u32 m_Capacity = 0;
+        bool m_OverflowReported = false;
+
         u64 m_Frame = std::numeric_limits<u64>::max();
         u32 m_FrameQuads = 0;
         u32 m_BatchStart = 0;
@@ -113,5 +121,7 @@ namespace ByteForge
 
         static constexpr u32 VerticesPerQuad = 4;
         static constexpr u32 IndicesPerQuad = 6;
+        static constexpr u32 MaxSupportedQuads =
+            static_cast<u32>(std::numeric_limits<u32>::max() / (VerticesPerQuad * (9 * sizeof(f32) + sizeof(u32))));
     };
 }

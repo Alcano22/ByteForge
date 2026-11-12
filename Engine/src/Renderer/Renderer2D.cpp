@@ -16,6 +16,16 @@ namespace ByteForge
     {
         constexpr glm::vec2 WholeTextureUVMin{ 0.0f, 0.0f };
         constexpr glm::vec2 WholeTextureUVMax{ 1.0f, 1.0f };
+
+        BufferLayout MakeVertexLayout()
+        {
+            return {
+                { ShaderDataType::Float3, "Position" },
+                { ShaderDataType::Float2, "UV"       },
+                { ShaderDataType::Float4, "Color"    },
+                { ShaderDataType::UInt,   "EntityId" }
+            };
+        }
     }
 
     Renderer2D::Renderer2D(const Renderer2DSpec& spec)
@@ -24,40 +34,15 @@ namespace ByteForge
         static_assert(sizeof(Vertex) == 9 * sizeof(f32) + sizeof(u32),
                       "Vertex must be tightly packed to match the buffer layout");
 
-        const auto maxSupportedQuads = static_cast<u32>(
-            std::numeric_limits<u32>::max() / (VerticesPerQuad * sizeof(Vertex)));
-        if (spec.MaxQuads == 0 || spec.MaxQuads > maxSupportedQuads)
+        if (spec.MaxQuads == 0 || spec.MaxQuads > MaxSupportedQuads)
         {
             throw std::runtime_error(std::format("Renderer2DSpec::MaxQuads must be between 1 and {}",
-                                                 maxSupportedQuads));
+                                                 MaxSupportedQuads));
         }
 
         m_LinearizeColors = Renderer::IsSrgb(spec.ColorFormat);
 
-        const BufferLayout layout = {
-            { ShaderDataType::Float3, "Position" },
-            { ShaderDataType::Float2, "UV"       },
-            { ShaderDataType::Float4, "Color"    },
-            { ShaderDataType::UInt,   "EntityId" }
-        };
-
-        m_VertexBuffer = VertexBuffer::Create(
-            static_cast<u32>(spec.MaxQuads * VerticesPerQuad * sizeof(Vertex)));
-        m_VertexBuffer->SetLayout(layout);
-
-        constexpr std::array<u32, IndicesPerQuad> pattern{ 0, 1, 2, 2, 3, 0 };
-
-        std::vector<u32> indices(static_cast<usize>(spec.MaxQuads) * IndicesPerQuad);
-        for (u32 quad = 0; quad < spec.MaxQuads; ++quad)
-        {
-            const u32 firstVertex = quad * VerticesPerQuad;
-            const usize firstIndex = static_cast<usize>(quad) * IndicesPerQuad;
-
-            for (usize i = 0; i < IndicesPerQuad; ++i)
-                indices[firstIndex + i] = firstVertex + pattern[i];
-        }
-
-        m_Mesh = MakeRef<Mesh>(m_VertexBuffer, IndexBuffer::Create(indices));
+        CreateBuffers(spec.MaxQuads);
 
         const bool writesEntityIds = spec.EntityIdFormat != ImageFormat::None;
 
@@ -71,7 +56,7 @@ namespace ByteForge
 
         m_Pipeline = Pipeline::Create({
             .Shader           = Shader::Load(GetBuiltinShaderPath("Renderer2D.hlsl"), std::move(defines)),
-            .VertexLayout     = layout,
+            .VertexLayout     = MakeVertexLayout(),
             .ColorAttachments = std::move(attachments),
             .DepthFormat      = spec.DepthFormat,
             .DepthTest        = spec.DepthFormat != ImageFormat::None,
@@ -81,8 +66,6 @@ namespace ByteForge
         constexpr std::array<std::byte, 4> white{ std::byte{ 255 }, std::byte{ 255 },
                                                   std::byte{ 255 }, std::byte{ 255 } };
         m_WhiteTexture = Texture2D::Create(1, 1, white, { .Filter = TextureFilter::Nearest, .GenerateMips = false });
-
-        m_Vertices.resize(static_cast<usize>(spec.MaxQuads) * VerticesPerQuad);
     }
 
     void Renderer2D::BeginScene(const Camera& camera)
@@ -97,6 +80,7 @@ namespace ByteForge
             m_FrameQuads = 0;
             m_BatchStart = 0;
             m_Stats = {};
+            m_OverflowReported = false;
 
             EvictUnusedMaterials();
         }
@@ -189,10 +173,15 @@ namespace ByteForge
             m_CurrentTexture = texture;
         }
 
-        if (m_FrameQuads == m_Spec.MaxQuads)
+        if (m_FrameQuads == m_Capacity && !Grow())
         {
-            throw std::runtime_error(std::format("Renderer2D: the budget of {} quads per frame is used up; "
-                                                 "raise Renderer2DSpec::MaxQuads", m_Spec.MaxQuads));
+            ++m_Stats.DroppedQuads;
+            if (!m_OverflowReported)
+            {
+                CORE_WARN("Renderer2D: more than {} quads in one frame, the rest is not drawn", m_Capacity);
+                m_OverflowReported = true;
+            }
+            return;
         }
 
         static constexpr std::array<glm::vec2, VerticesPerQuad> corners{{
@@ -246,6 +235,41 @@ namespace ByteForge
 
         ++m_Stats.DrawCalls;
         m_BatchStart = m_FrameQuads;
+    }
+
+    void Renderer2D::CreateBuffers(const u32 capacity)
+    {
+        m_VertexBuffer = VertexBuffer::Create(static_cast<u32>(capacity * VerticesPerQuad * sizeof(Vertex)));
+        m_VertexBuffer->SetLayout(MakeVertexLayout());
+
+        constexpr std::array<u32, IndicesPerQuad> pattern{ 0, 1, 2, 2, 3, 0 };
+
+        std::vector<u32> indices(static_cast<usize>(capacity) * IndicesPerQuad);
+        for (u32 quad = 0; quad < capacity; ++quad)
+        {
+            const u32 firstVertex = quad * VerticesPerQuad;
+            const usize firstIndex = static_cast<usize>(quad) * IndicesPerQuad;
+
+            for (usize i = 0; i < IndicesPerQuad; ++i)
+                indices[firstIndex + i] = firstVertex + pattern[i];
+        }
+
+        m_Mesh = MakeRef<Mesh>(m_VertexBuffer, IndexBuffer::Create(indices));
+
+        m_Vertices.resize(static_cast<usize>(capacity) * VerticesPerQuad);
+        m_Capacity = capacity;
+    }
+
+    bool Renderer2D::Grow()
+    {
+        if (m_Capacity >= MaxSupportedQuads)
+            return false;
+
+        const u32 capacity = m_Capacity > MaxSupportedQuads / 2 ? MaxSupportedQuads : m_Capacity * 2;
+        CreateBuffers(capacity);
+
+        CORE_INFO("Renderer2D: quad budget raised to {}", capacity);
+        return true;
     }
 
     Ref<Material> Renderer2D::GetMaterial(const Ref<Texture2D>& texture)
