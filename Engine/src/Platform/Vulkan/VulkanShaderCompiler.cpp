@@ -10,10 +10,11 @@
 
 #include <directx-dxc/dxcapi.h>
 
-#include <stdexcept>
-#include <format>
-#include <string>
 #include <filesystem>
+#include <format>
+#include <mutex>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace ByteForge
@@ -65,6 +66,8 @@ namespace ByteForge
         ComScope<IDxcUtils> Utils;
         ComScope<IDxcCompiler3> Compiler;
         ComScope<IDxcIncludeHandler> IncludeHandler;
+
+        std::mutex Mutex;
     };
 
     VulkanShaderCompiler& VulkanShaderCompiler::Get()
@@ -105,6 +108,8 @@ namespace ByteForge
     std::vector<u32> VulkanShaderCompiler::Compile(const ShaderSource& source, const ShaderStage stage,
                                                         const std::string& entryPoint) const
     {
+        std::scoped_lock lock(m_Impl->Mutex);
+
         const bool fromFile = !source.Path.empty();
 
         const std::wstring wEntryPoint(entryPoint.begin(), entryPoint.end());

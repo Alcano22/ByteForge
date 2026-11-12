@@ -109,7 +109,8 @@ namespace ByteForge
                 if (ImGui::MenuItem("Set as Startup Scene", nullptr, false, context.Document.HasFile()))
                     context.Document.SetAsStartupScene();
                 ImGui::Separator();
-                if (ImGui::MenuItem("Export Game...", nullptr, false, context.IsEditing()))
+                if (ImGui::MenuItem("Export Game...", nullptr, false,
+                                    context.IsEditing() && !context.Export.IsRunning()))
                     ExportGameWithDialog(context);
                 ImGui::EndMenu();
             }

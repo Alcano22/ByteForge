@@ -9,6 +9,7 @@
 #include "Editor/ScriptProject.h"
 #include "Editor/SceneDocument.h"
 #include "Editor/SceneDialogs.h"
+#include "Editor/GameExporter.h"
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
@@ -69,6 +70,7 @@ namespace ByteForge
         void OnUpdate(const Timestep ts)
         {
             Layouts.Update();
+            Export.Update();
             Scripts.Update(IsEditing());
             Document.Update();
             FlushDeferred();
@@ -159,6 +161,7 @@ namespace ByteForge
         SceneDocument Document{ *this };
         SceneDialogs Dialogs{ *this };
         EditorLayouts Layouts;
+        ExportTask Export;
         Selection SelectionContext;
         CommandHistory History;
         SceneState State = SceneState::Edit;

@@ -4,13 +4,17 @@
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/Pak.h>
+#include <Engine/Core/JobSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/ShaderLibrary.h>
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <charconv>
+#include <chrono>
 #include <format>
 #include <optional>
 #include <sstream>
@@ -34,7 +38,11 @@ namespace ByteForge
         constexpr const char* BuildConfiguration = "Release";
 #endif
 
+        constexpr const char* PopupName = "Exporting Game";
+
         std::string PlayerFileName() { return std::string("Player") + ExecutableSuffix; }
+
+        std::unexpected<std::string> Cancelled() { return std::unexpected<std::string>("the export was cancelled"); }
 
         std::string MakeFileName(const std::string& name)
         {
@@ -106,36 +114,52 @@ namespace ByteForge
         }
 
         template<typename Filter>
-        Result<usize> CopyTree(const fs::path& from, const fs::path& to, Filter&& include)
+        Result<std::vector<fs::path>> ListFiles(const fs::path& directory, Filter&& include)
         {
-            std::error_code error;
-            fs::recursive_directory_iterator it(from, error);
-            if (error)
-                return std::unexpected(std::format("cannot read '{}': {}", from.generic_string(), error.message()));
+            std::vector<fs::path> files;
 
-            usize copied = 0;
-            for (const fs::recursive_directory_iterator end; it != end; it.increment(error))
+            std::error_code error;
+            fs::recursive_directory_iterator it(directory, error);
+            for (const fs::recursive_directory_iterator end; !error && it != end; it.increment(error))
             {
-                if (error) break;
                 if (!it->is_regular_file()) continue;
 
-                const fs::path relative = fs::relative(it->path(), from);
-                if (!include(relative)) continue;
-
-                if (const auto result = CopySingleFile(it->path(), to / relative); !result)
-                    return std::unexpected(result.error());
-
-                ++copied;
+                fs::path relative = it->path().lexically_relative(directory);
+                if (include(relative))
+                    files.push_back(std::move(relative));
             }
 
             if (error)
-                return std::unexpected(std::format("cannot read '{}': {}", from.generic_string(), error.message()));
+                return std::unexpected(std::format("cannot read '{}': {}", directory.generic_string(), error.message()));
 
-            return copied;
+            std::ranges::sort(files, {}, [](const fs::path& path) { return path.generic_string(); });
+            return files;
         }
 
-        Result<usize> CopyRuntime(const fs::path& from, const fs::path& to,
-                                                      const std::string& executableName)
+        template<typename Filter>
+        Result<usize> CopyTree(const fs::path& from, const fs::path& to, Filter&& include, ExportProgress& progress)
+        {
+            const Result<std::vector<fs::path>> files = ListFiles(from, std::forward<Filter>(include));
+            if (!files)
+                return std::unexpected(files.error());
+
+            progress.AddWork(files->size());
+
+            for (const fs::path& relative : *files)
+            {
+                if (progress.IsCancelled())
+                    return Cancelled();
+
+                if (const auto result = CopySingleFile(from / relative, to / relative); !result)
+                    return std::unexpected(result.error());
+
+                progress.Advance();
+            }
+
+            return files->size();
+        }
+
+        Result<usize> CopyRuntime(const fs::path& from, const fs::path& to, const std::string& executableName)
         {
             std::error_code error;
             fs::directory_iterator it(from, error);
@@ -181,58 +205,58 @@ namespace ByteForge
         }
 
         Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive,
-                                    const std::optional<fs::path>& gameScripts)
+                                    const std::optional<fs::path>& gameScripts, ExportProgress& progress)
         {
-            std::vector<fs::path> files;
+            const Result<std::vector<fs::path>> files = ListFiles(assetsDirectory,
+                [](const fs::path& relative) { return !IsScriptSource(relative); });
+            if (!files)
+                return std::unexpected(files.error());
 
-            std::error_code error;
-            fs::recursive_directory_iterator it(assetsDirectory, error);
-            for (const fs::recursive_directory_iterator end; !error && it != end; it.increment(error))
-            {
-                if (!it->is_regular_file()) continue;
-
-                fs::path relative = fs::relative(it->path(), assetsDirectory);
-                if (!IsScriptSource(relative))
-                    files.push_back(std::move(relative));
-            }
-
-            if (error)
-            {
-                return std::unexpected(std::format("cannot read '{}': {}",
-                                                   assetsDirectory.generic_string(), error.message()));
-            }
-
-            std::ranges::sort(files, {}, [](const fs::path& path) { return path.generic_string(); });
+            progress.AddWork(files->size() + (gameScripts ? 1 : 0));
 
             Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
             if (!writer)
                 return std::unexpected(writer.error());
 
-            for (const fs::path& relative : files)
+            for (const fs::path& relative : *files)
             {
+                if (progress.IsCancelled())
+                    return Cancelled();
+
                 if (const auto added = (*writer)->AddFile(relative.generic_string(), assetsDirectory / relative); !added)
                     return std::unexpected(added.error());
+
+                progress.Advance();
             }
 
             if (gameScripts)
             {
                 if (const auto added = (*writer)->AddFile(AssetRegistry::GameScriptsEntry, *gameScripts); !added)
                     return std::unexpected(added.error());
+
+                progress.Advance();
             }
 
             return (*writer)->Finish();
         }
 
-        Result<> VerifyArchive(const fs::path& archive)
+        Result<> VerifyArchive(const fs::path& archive, ExportProgress& progress)
         {
             const Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
             if (!opened)
                 return std::unexpected(opened.error());
 
+            progress.AddWork((*opened)->GetEntries().size());
+
             for (const PakEntry& entry : (*opened)->GetEntries())
             {
+                if (progress.IsCancelled())
+                    return Cancelled();
+
                 if (const auto data = (*opened)->Read(entry.Path); !data)
                     return std::unexpected(data.error());
+
+                progress.Advance();
             }
             return {};
         }
@@ -334,7 +358,8 @@ namespace ByteForge
             return *best;
         }
 
-        Result<usize> BundleDotNetRuntime(const DotNetRuntime& runtime, const fs::path& target)
+        Result<usize> BundleDotNetRuntime(const DotNetRuntime& runtime, const fs::path& target,
+                                          ExportProgress& progress)
         {
             const std::optional<std::string> fxr = FindNewestVersion(runtime.Root / "host" / "fxr", DotNetMajorVersion);
             if (!fxr)
@@ -351,7 +376,7 @@ namespace ByteForge
             for (const fs::path& relative : { framework, hostFxr })
             {
                 const auto result = CopyTree(runtime.Root / relative, target / relative,
-                    [](const fs::path&) { return true; });
+                    [](const fs::path&) { return true; }, progress);
                 if (!result)
                     return std::unexpected(result.error());
                 copied += *result;
@@ -369,16 +394,33 @@ namespace ByteForge
 
             return copied;
         }
+
+        void LogResult(const ExportResult& result)
+        {
+            const PakStats& archive = result.Archive;
+            const f64 ratio = archive.Size > 0
+                            ? 100.0 * static_cast<f64>(archive.StoredSize) / static_cast<f64>(archive.Size)
+                            : 100.0;
+            APP_INFO("Packed {} asset file(s): {:.1f} KiB -> {:.1f} KiB ({:.0f}%)", archive.FileCount,
+                     static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
+
+            APP_INFO("Bundled the .NET {} runtime", result.DotNetVersion);
+            APP_INFO("Precompiled {} shader stage(s)", result.ShaderStages);
+            APP_INFO("Exported {} file(s) as a {} build to '{}'",
+                     result.FileCount, BuildConfiguration, result.Directory.generic_string());
+        }
     }
 
-    Result<ExportResult> GameExporter::Export(const fs::path& projectRoot, const fs::path& outputRoot)
+    Result<ExportPlan> GameExporter::Prepare(const fs::path& projectRoot, const fs::path& outputRoot)
     {
-        const fs::path editorDirectory = Platform::GetExecutableDirectory();
-        const fs::path assetsDirectory = projectRoot / "assets";
-        const fs::path projectFile = projectRoot / ProjectSettings::FileName;
+        ExportPlan plan;
+        plan.EditorDirectory = Platform::GetExecutableDirectory();
+        plan.AssetsDirectory = projectRoot / "assets";
+        plan.ProjectFile = projectRoot / ProjectSettings::FileName;
+
         const fs::path gameScripts = projectRoot / ".byteforge" / "ScriptAssemblies" / "GameScripts.dll";
 
-        const auto settings = ProjectSettings::Load(projectFile);
+        const auto settings = ProjectSettings::Load(plan.ProjectFile);
         if (!settings)
             return std::unexpected(std::format("{} (use File > Set as Startup Scene first)", settings.error()));
 
@@ -390,13 +432,12 @@ namespace ByteForge
             return std::unexpected("the project has no valid startup scene (File > Set as Startup Scene)");
         }
 
-        const fs::path runtimeDirectory = editorDirectory / "player";
-        if (!fs::exists(runtimeDirectory / PlayerFileName()))
+        if (!fs::exists(plan.EditorDirectory / "player" / PlayerFileName()))
             return std::unexpected(std::format("'{}' is missing, build the 'Player' target", PlayerFileName()));
 
         for (const char* folder : { "engine", "ScriptCore" })
         {
-            if (!fs::exists(editorDirectory / folder))
+            if (!fs::exists(plan.EditorDirectory / folder))
                 return std::unexpected(std::format("'{}' is missing next to the editor", folder));
         }
 
@@ -404,26 +445,39 @@ namespace ByteForge
         const bool hasAssembly = fs::exists(gameScripts);
         if (hasScripts && !hasAssembly)
             return std::unexpected("the game scripts are not built yet (Scripts > Reload Scripts)");
+        if (hasAssembly)
+            plan.GameScripts = gameScripts;
 
         const std::string gameName = MakeFileName(settings->Name);
-        std::string executableName = gameName;
-        std::ranges::replace(executableName, ' ', '_');
+        plan.ExecutableName = gameName;
+        std::ranges::replace(plan.ExecutableName, ' ', '_');
 
-        const fs::path output = outputRoot / gameName;
+        plan.Output = outputRoot / gameName;
 
-        if (IsInsideOrSame(output, assetsDirectory) || IsInsideOrSame(projectRoot, output))
+        if (IsInsideOrSame(plan.Output, plan.AssetsDirectory) || IsInsideOrSame(projectRoot, plan.Output))
         {
             return std::unexpected(std::format("'{}' would overwrite the project, choose another folder",
-                                               output.generic_string()));
+                                               plan.Output.generic_string()));
         }
 
         std::error_code error;
-        if (fs::exists(output, error) && !fs::is_empty(output, error) && !fs::exists(output / ProjectSettings::FileName))
+        if (fs::exists(plan.Output, error) && !fs::is_empty(plan.Output, error) &&
+            !fs::exists(plan.Output / ProjectSettings::FileName))
         {
             return std::unexpected(std::format("'{}' already exists and is not an exported game",
-                                               output.generic_string()));
+                                               plan.Output.generic_string()));
         }
 
+        return plan;
+    }
+
+    Result<ExportResult> GameExporter::Run(const ExportPlan& plan, ExportProgress& progress)
+    {
+        const fs::path& output = plan.Output;
+
+        progress.BeginStep("Copying the player");
+
+        std::error_code error;
         for (const char* folder : { "assets", "engine", "ScriptCore", ".byteforge", "dotnet" })
             fs::remove_all(output / folder, error);
 
@@ -442,27 +496,37 @@ namespace ByteForge
 
         ExportResult result{ .Directory = output };
 
-        const auto runtime = CopyRuntime(runtimeDirectory, output, executableName);
+        const auto runtime = CopyRuntime(plan.EditorDirectory / "player", output, plan.ExecutableName);
         if (!runtime)
             return std::unexpected(runtime.error());
         result.FileCount += *runtime;
 
-        const auto scriptCore = CopyTree(editorDirectory / "ScriptCore", output / "ScriptCore",
-            [](const fs::path& relative) { return IsRuntimeFile(relative); });
+        const auto scriptCore = CopyTree(plan.EditorDirectory / "ScriptCore", output / "ScriptCore",
+            [](const fs::path& relative) { return IsRuntimeFile(relative); }, progress);
         if (!scriptCore)
             return std::unexpected(scriptCore.error());
         result.FileCount += *scriptCore;
+
+        progress.BeginStep("Bundling the .NET runtime");
 
         const Result<DotNetRuntime> dotnet = FindDotNetRuntime();
         if (!dotnet)
             return std::unexpected(std::format("cannot bundle the .NET runtime: {}", dotnet.error()));
 
-        const Result<usize> bundledRuntime = BundleDotNetRuntime(*dotnet, output / "dotnet");
+        const Result<usize> bundledRuntime = BundleDotNetRuntime(*dotnet, output / "dotnet", progress);
         if (!bundledRuntime)
-            return std::unexpected(std::format("cannot bundle the .NET runtime: {}", bundledRuntime.error()));
+        {
+            return std::unexpected(bundledRuntime.error() == Cancelled().error()
+                                   ? bundledRuntime.error()
+                                   : std::format("cannot bundle the .NET runtime: {}", bundledRuntime.error()));
+        }
 
         result.FileCount += *bundledRuntime;
         result.DotNetVersion = dotnet->Version;
+
+        progress.BeginStep("Compiling shaders");
+        if (progress.IsCancelled())
+            return Cancelled();
 
         const fs::path shaderArchive = output / ShaderLibrary::ArchiveName;
 
@@ -470,39 +534,114 @@ namespace ByteForge
         if (!shaders)
             return std::unexpected(std::format("cannot precompile the shaders: {}", shaders.error()));
 
-        if (const auto verified = VerifyArchive(shaderArchive); !verified)
-            return std::unexpected(std::format("the shader archive is broken: {}", verified.error()));
-
         result.ShaderStages = *shaders;
         ++result.FileCount;
 
+        progress.BeginStep("Packing assets");
+
         const fs::path archive = output / std::format("assets{}", PakExtension);
 
-        const Result<PakStats> packed = PackAssets(assetsDirectory, archive,
-                                                   hasAssembly ? std::optional(gameScripts) : std::nullopt);
+        const Result<PakStats> packed = PackAssets(plan.AssetsDirectory, archive, plan.GameScripts, progress);
         if (!packed)
-            return std::unexpected(std::format("cannot pack the assets: {}", packed.error()));
-
-        if (const auto verified = VerifyArchive(archive); !verified)
-            return std::unexpected(std::format("the asset archive is broken: {}", verified.error()));
+            return std::unexpected(packed.error());
 
         result.Archive = *packed;
         ++result.FileCount;
 
-        if (const auto copied = CopySingleFile(projectFile, output / ProjectSettings::FileName); !copied)
+        progress.BeginStep("Verifying the archives");
+
+        for (const fs::path& written : { shaderArchive, archive })
+        {
+            if (const auto verified = VerifyArchive(written, progress); !verified)
+                return std::unexpected(std::format("'{}' is broken: {}", written.filename().string(), verified.error()));
+        }
+
+        if (const auto copied = CopySingleFile(plan.ProjectFile, output / ProjectSettings::FileName); !copied)
             return std::unexpected(copied.error());
         ++result.FileCount;
 
         return result;
     }
 
-    void ExportGameWithDialog(const EditorContext& context)
+    ExportTask::~ExportTask()
+    {
+        if (m_Progress)
+            m_Progress->Cancel();
+    }
+
+    bool ExportTask::Start(ExportPlan plan)
+    {
+        if (IsRunning())
+            return false;
+
+        m_Progress = MakeRef<ExportProgress>();
+        m_Future = JobSystem::Submit([plan = std::move(plan), progress = m_Progress]
+        {
+            return GameExporter::Run(plan, *progress);
+        });
+
+        m_OpenPopup = true;
+        return true;
+    }
+
+    void ExportTask::Update()
+    {
+        if (!IsRunning() || m_Future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
+
+        const Result<ExportResult> result = m_Future.get();
+        const bool cancelled = m_Progress->IsCancelled();
+        m_Future = {};
+
+        if (result)
+            LogResult(*result);
+        else if (cancelled)
+            APP_WARN("Export cancelled, the output folder is incomplete; the next export cleans it up");
+        else
+            APP_ERROR("Export failed: {}", result.error());
+    }
+
+    void ExportTask::DrawPopup()
+    {
+        if (m_OpenPopup)
+        {
+            ImGui::OpenPopup(PopupName);
+            m_OpenPopup = false;
+        }
+
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+
+        if (!IsRunning())
+        {
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return;
+        }
+
+        const ExportProgress::State state = m_Progress->Get();
+        ImGui::TextUnformatted(state.Step.c_str());
+        ImGui::ProgressBar(state.Fraction, ImVec2(360.0f, 0.0f));
+
+        const bool cancelling = m_Progress->IsCancelled();
+        ImGui::BeginDisabled(cancelling);
+        if (ImGui::Button(cancelling ? "Cancelling..." : "Cancel"))
+            m_Progress->Cancel();
+        ImGui::EndDisabled();
+
+        ImGui::EndPopup();
+    }
+
+    void ExportGameWithDialog(EditorContext& context)
     {
         if (!context.IsEditing())
         {
             APP_ERROR("Stop the game before exporting");
             return;
         }
+
+        if (context.Export.IsRunning()) return;
 
         if (context.Document.IsDirty())
             APP_WARN("The scene has unsaved changes, the export uses the saved scene files");
@@ -515,25 +654,14 @@ namespace ByteForge
         const std::optional<fs::path> folder = FileDialogs::PickFolder(fs::current_path());
         if (!folder) return;
 
-        APP_INFO("Exporting the game to '{}'...", folder->generic_string());
-
-        const auto result = GameExporter::Export(fs::current_path(), *folder);
-        if (!result)
+        Result<ExportPlan> plan = GameExporter::Prepare(fs::current_path(), *folder);
+        if (!plan)
         {
-            APP_ERROR("Export failed: {}", result.error());
+            APP_ERROR("Export failed: {}", plan.error());
             return;
         }
 
-        const PakStats& archive = result->Archive;
-        const f64 ratio = archive.Size > 0
-                        ? 100.0 * static_cast<f64>(archive.StoredSize) / static_cast<f64>(archive.Size)
-                        : 100.0;
-        APP_INFO("Packed {} asset file(s): {:.1f} KiB -> {:.1f} KiB ({:.0f}%)", archive.FileCount,
-                 static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
-
-        APP_INFO("Bundled the .NET {} runtime", result->DotNetVersion);
-        APP_INFO("Precompiled {} shader stage(s)", result->ShaderStages);
-        APP_INFO("Exported {} file(s) as a {} build to '{}'",
-                 result->FileCount, BuildConfiguration, result->Directory.generic_string());
+        APP_INFO("Exporting the game to '{}'...", plan->Output.generic_string());
+        context.Export.Start(std::move(*plan));
     }
 }
