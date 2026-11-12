@@ -381,12 +381,29 @@ namespace ByteForge
 
         const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
 
+        std::unordered_map<entt::entity, TransformComponent> worlds;
+        worlds.reserve(view.size_hint());
+
+        Scene& scene = *this;
+        const auto worldOf = [&worlds, &scene](this const auto& self, const entt::entity handle) -> TransformComponent&
+        {
+            if (const auto it = worlds.find(handle); it != worlds.end())
+                return it->second;
+
+            const auto& local = scene.m_Registry.get<TransformComponent>(handle);
+            const Entity parent = scene.GetParent(Entity(handle, &scene));
+
+            const TransformComponent world = parent.IsValid() ? ComposeTransforms(self(parent.m_Handle), local)
+                                                              : local;
+            return worlds.emplace(handle, world).first->second;
+        };
+
         std::vector<SpriteDrawItem> queue;
         queue.reserve(view.size_hint());
         for (const auto handle : view)
         {
             const auto& spriteRenderer = view.get<SpriteRendererComponent>(handle);
-            queue.push_back({ handle, spriteRenderer.SortingLayer, GetWorldTransform(Entity(handle, this)) });
+            queue.push_back({ handle, spriteRenderer.SortingLayer, worldOf(handle) });
         }
 
         std::ranges::stable_sort(queue, [](const SpriteDrawItem& a, const SpriteDrawItem& b)
