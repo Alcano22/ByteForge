@@ -12,8 +12,10 @@ namespace ByteForge
     class InspectorPanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Inspector";
+
         explicit InspectorPanel(EditorContext& context)
-            : EditorPanel(context, "Inspector") {}
+            : EditorPanel(context, Name) {}
 
         void OnImGuiRender() override;
 

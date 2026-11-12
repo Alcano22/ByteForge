@@ -35,7 +35,7 @@ namespace ByteForge
             std::optional<UUID> PrefabHandle;
         };
 
-        HierarchyDrop AcceptHierarchyDrop(Scene& scene)
+        HierarchyDrop AcceptHierarchyDrop(const Scene& scene)
         {
             HierarchyDrop drop;
 

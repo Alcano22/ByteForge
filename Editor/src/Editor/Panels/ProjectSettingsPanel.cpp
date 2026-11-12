@@ -37,7 +37,7 @@ namespace ByteForge
     }
 
     ProjectSettingsPanel::ProjectSettingsPanel(EditorContext& context)
-        : EditorPanel(context, "Project Settings")
+        : EditorPanel(context, Name)
     {
         m_Open = false;
     }

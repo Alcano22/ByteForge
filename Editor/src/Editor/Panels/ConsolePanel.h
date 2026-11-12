@@ -15,6 +15,8 @@ namespace ByteForge
     class ConsolePanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Console";
+
         explicit ConsolePanel(EditorContext& context);
 
         void OnImGuiRender() override;

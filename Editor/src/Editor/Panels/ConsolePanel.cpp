@@ -48,7 +48,7 @@ namespace ByteForge
     }
 
     ConsolePanel::ConsolePanel(EditorContext& context)
-        : EditorPanel(context, "Console")
+        : EditorPanel(context, Name)
     {
         m_Subscription = Log::Subscribe([this](const LogEntry& entry)
         {

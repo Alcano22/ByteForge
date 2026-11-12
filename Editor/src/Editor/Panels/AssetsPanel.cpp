@@ -536,7 +536,7 @@ namespace ByteForge
         }
 
         const fs::path to = from->parent_path() / newFileName;
-        if (const std::expected<void, std::string> moved = AssetRegistry::Move(*from, to); !moved)
+        if (const Result<> moved = AssetRegistry::Move(*from, to); !moved)
         {
             APP_ERROR("Cannot rename '{}': {}", from->filename().string(), moved.error());
             return;

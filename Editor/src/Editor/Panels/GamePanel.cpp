@@ -38,7 +38,7 @@ namespace ByteForge
     }
 
     GamePanel::GamePanel(EditorContext& context)
-        : EditorPanel(context, "Game"),
+        : EditorPanel(context, Name),
           m_Canvas({ .ClearColor = DefaultCamera.ClearColor, .FixedAspect = DefaultCamera.FixedAspect }) {}
 
     void GamePanel::OnUpdate(Timestep)

@@ -11,8 +11,10 @@ namespace ByteForge
     class SceneHierarchyPanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Scene Hierarchy";
+
         explicit SceneHierarchyPanel(EditorContext& context)
-            : EditorPanel(context, "Scene Hierarchy") {}
+            : EditorPanel(context, Name) {}
 
         void OnImGuiRender() override;
 

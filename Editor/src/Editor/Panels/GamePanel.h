@@ -8,6 +8,8 @@ namespace ByteForge
     class GamePanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Game";
+
         explicit GamePanel(EditorContext& context);
 
         void OnUpdate(Timestep) override;

@@ -26,13 +26,61 @@ namespace ByteForge
                 ImGui::SetItemTooltip("%s", reason);
         }
 
-        void DrawViewMenu(const EditorContext& context)
+        void DrawLayoutMenu(EditorContext& context)
+        {
+            EditorLayouts& layouts = context.Layouts;
+
+            if (!ImGui::BeginMenu("Layout")) return;
+
+            for (const LayoutPresetInfo& preset : LayoutPresets)
+            {
+                if (ImGui::MenuItem(preset.Name))
+                    layouts.RequestPreset(preset.Preset);
+            }
+
+            const std::vector<std::string> saved = EditorLayouts::GetUserLayouts();
+            if (!saved.empty())
+            {
+                ImGui::SeparatorText("Saved");
+                for (usize i = 0; i < saved.size(); ++i)
+                {
+                    ImGui::PushID(static_cast<i32>(i));
+                    if (ImGui::MenuItem(saved[i].c_str()))
+                        layouts.RequestUserLayout(saved[i]);
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Save Layout As..."))
+                layouts.RequestSaveDialog();
+
+            if (!saved.empty() && ImGui::BeginMenu("Delete Layout"))
+            {
+                for (usize i = 0; i < saved.size(); ++i)
+                {
+                    ImGui::PushID(static_cast<i32>(i));
+                    if (ImGui::MenuItem(saved[i].c_str()))
+                        layouts.DeleteUserLayout(saved[i]);
+                    ImGui::PopID();
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        void DrawViewMenu(EditorContext& context)
         {
             context.ForEachPanel([](EditorPanel& panel)
             {
                 if (ImGui::MenuItem(panel.GetName().c_str(), nullptr, panel.IsOpen()))
                     panel.SetOpen(!panel.IsOpen());
             });
+
+            ImGui::Separator();
+            DrawLayoutMenu(context);
         }
 
         void DrawUnsavedIndicator(const EditorContext& context)

@@ -80,7 +80,7 @@ namespace ByteForge
     }
 
     GraphEditorPanel::GraphEditorPanel(EditorContext& context)
-        : EditorPanel(context, "Script Graph") {}
+        : EditorPanel(context, Name) {}
 
     GraphEditorPanel::~GraphEditorPanel()
     {
@@ -107,7 +107,7 @@ namespace ByteForge
 
     void GraphEditorPanel::Load(const UUID asset)
     {
-        std::expected<Scope<GraphDocument>, std::string> document = GraphDocument::Open(asset);
+        Result<Scope<GraphDocument>> document = GraphDocument::Open(asset);
         if (!document)
         {
             APP_ERROR("Cannot open script graph: {}", document.error());
@@ -143,8 +143,8 @@ namespace ByteForge
         if (!m_Open) return;
 
         const std::string title = m_Document
-            ? std::format("{}{}###ScriptGraph", m_Document->GetName(), m_Document->IsDirty() ? " *" : "")
-            : std::string("Script Graph###ScriptGraph");
+            ? std::format("{}{}{}", m_Document->GetName(), m_Document->IsDirty() ? " *" : "", WindowId)
+            : std::format("{}{}", Name, WindowId);
 
         if (m_FocusRequested)
         {
@@ -309,7 +309,7 @@ namespace ByteForge
                     if (start->Direction == PinDirection::Input)
                         std::swap(start, end);
 
-                    std::expected<PinType, std::string> type = std::unexpected(std::string("Connect an output to an input"));
+                    Result<PinType> type = std::unexpected(std::string("Connect an output to an input"));
                     if (start->Direction != end->Direction)
                         type = CanConnect(m_Document->GetGraph(), start->Ref, end->Ref);
 

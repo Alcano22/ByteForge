@@ -17,6 +17,8 @@ namespace ByteForge
     class ScenePanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Scene";
+
         explicit ScenePanel(EditorContext& context);
 
         void OnUpdate(Timestep) override;

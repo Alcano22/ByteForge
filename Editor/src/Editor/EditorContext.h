@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Editor/EditorPanel.h"
+#include "Editor/EditorLayouts.h"
 #include "Editor/SceneState.h"
 #include "Editor/Selection.h"
 #include "Editor/EditorIcons.h"
@@ -67,6 +68,7 @@ namespace ByteForge
 
         void OnUpdate(const Timestep ts)
         {
+            Layouts.Update();
             Scripts.Update(IsEditing());
             Document.Update();
             FlushDeferred();
@@ -81,10 +83,11 @@ namespace ByteForge
 
         void OnImGuiRender() const
         {
-            for (const auto& [type, panel] : m_Panels)
+            for (usize i = 0; i < m_Panels.size(); ++i)
             {
-                if (panel->IsOpen())
-                    panel->OnImGuiRender();
+                EditorPanel& panel = *m_Panels[i].second;
+                if (panel.IsOpen())
+                    panel.OnImGuiRender();
             }
         }
 
@@ -155,6 +158,7 @@ namespace ByteForge
         Scene* ActiveScene = nullptr;
         SceneDocument Document{ *this };
         SceneDialogs Dialogs{ *this };
+        EditorLayouts Layouts;
         Selection SelectionContext;
         CommandHistory History;
         SceneState State = SceneState::Edit;

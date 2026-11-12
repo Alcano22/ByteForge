@@ -60,7 +60,7 @@ namespace ByteForge
     }
 
     ScenePanel::ScenePanel(EditorContext& context)
-        : EditorPanel(context, "Scene"), m_Canvas({ .ClearColor = BackgroundColor, .EntityIds = true }) {}
+        : EditorPanel(context, Name), m_Canvas({ .ClearColor = BackgroundColor, .EntityIds = true }) {}
 
     void ScenePanel::OnUpdate(Timestep)
     {

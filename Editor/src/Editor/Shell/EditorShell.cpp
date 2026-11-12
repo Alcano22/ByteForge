@@ -37,9 +37,15 @@ namespace ByteForge
         DrawToolbar(context);
 
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
-            ImGui::DockSpace(ImGui::GetID("EditorDockSpace"));
+        {
+            const ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
+            context.Layouts.ApplyPendingPreset(context, dockSpaceId, viewport->WorkSize);
+
+            ImGui::DockSpace(dockSpaceId);
+        }
 
         context.Dialogs.Draw();
+        context.Layouts.DrawPopups();
 
         ImGui::End();
     }

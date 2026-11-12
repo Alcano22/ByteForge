@@ -25,8 +25,10 @@ namespace ByteForge
     class AssetsPanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Assets";
+
         explicit AssetsPanel(EditorContext& context)
-            : EditorPanel(context, "Assets") {}
+            : EditorPanel(context, Name) {}
 
         void OnImGuiRender() override;
 

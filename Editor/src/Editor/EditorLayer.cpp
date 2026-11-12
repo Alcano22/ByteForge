@@ -20,6 +20,8 @@ namespace ByteForge
 {
     void EditorLayer::OnAttach()
     {
+        m_Context.Layouts.Init();
+
         AssetRegistry::Init("assets");
 
         m_Context.Scripts.RequestReload();

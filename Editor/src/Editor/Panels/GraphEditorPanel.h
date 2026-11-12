@@ -19,6 +19,9 @@ namespace ByteForge
     class GraphEditorPanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name     = "Script Graph";
+        static constexpr const char* WindowId = "###ScriptGraph";
+
         explicit GraphEditorPanel(EditorContext& context);
         ~GraphEditorPanel() override;
 

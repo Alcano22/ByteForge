@@ -13,6 +13,8 @@ namespace ByteForge
     class ProjectSettingsPanel : public EditorPanel
     {
     public:
+        static constexpr const char* Name = "Project Settings";
+
         explicit ProjectSettingsPanel(EditorContext& context);
 
         void OnImGuiRender() override;
