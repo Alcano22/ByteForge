@@ -6,16 +6,28 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <cstdint>
-#include <expected>
 
 namespace ByteForge
 {
     class PakArchive;
+
+    class BYTEFORGE_API AssetSource
+    {
+    public:
+        [[nodiscard]] Result<std::vector<std::byte>> Read(const fs::path& relativePath) const;
+
+    private:
+        friend class AssetRegistry;
+
+        fs::path m_Root;
+        Ref<const PakArchive> m_Archive;
+    };
 
     class BYTEFORGE_API AssetRegistry
     {
@@ -41,8 +53,8 @@ namespace ByteForge
         [[nodiscard]] static Result<std::vector<std::byte>> Read(UUID handle);
         [[nodiscard]] static Result<std::vector<std::byte>> ReadFile(const fs::path& relativePath);
         [[nodiscard]] static Result<nlohmann::json> ReadJson(UUID handle);
-
         [[nodiscard]] static bool ContainsFile(const fs::path& relativePath);
+        [[nodiscard]] static AssetSource GetSource();
 
         [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
 
@@ -58,7 +70,7 @@ namespace ByteForge
         static fs::path s_AssetRoot;
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
-        static Scope<PakArchive> s_Archive;
+        static Ref<PakArchive> s_Archive;
 
         static u64 s_Revision;
     };

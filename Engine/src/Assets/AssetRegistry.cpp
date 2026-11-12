@@ -62,10 +62,22 @@ namespace ByteForge
         }
     }
 
+    // AssetSource
+
+    Result<std::vector<std::byte> > AssetSource::Read(const fs::path& relativePath) const
+    {
+        if (m_Archive)
+            return m_Archive->Read(relativePath.generic_string());
+
+        return ReadBinaryFile(m_Root / relativePath);
+    }
+
+    // AssetRegistry
+
     fs::path AssetRegistry::s_AssetRoot;
     std::unordered_map<UUID, AssetMetadata> AssetRegistry::s_Assets;
     std::unordered_map<std::string, UUID> AssetRegistry::s_PathToHandle;
-    Scope<PakArchive> AssetRegistry::s_Archive;
+    Ref<PakArchive> AssetRegistry::s_Archive;
 
     u64 AssetRegistry::s_Revision = 0;
 
@@ -265,10 +277,7 @@ namespace ByteForge
 
     Result<std::vector<std::byte>> AssetRegistry::ReadFile(const fs::path& relativePath)
     {
-        if (s_Archive)
-            return s_Archive->Read(relativePath.generic_string());
-
-        return ReadBinaryFile(s_AssetRoot / relativePath);
+        return GetSource().Read(relativePath);
     }
 
     Result<nlohmann::json> AssetRegistry::ReadJson(const UUID handle)
@@ -295,6 +304,14 @@ namespace ByteForge
 
         std::error_code error;
         return fs::is_regular_file(s_AssetRoot / relativePath, error);
+    }
+
+    AssetSource AssetRegistry::GetSource()
+    {
+        AssetSource source;
+        source.m_Root = s_AssetRoot;
+        source.m_Archive = s_Archive;
+        return source;
     }
 
     std::vector<AssetMetadata> AssetRegistry::GetAssetsOfType(const AssetType type)

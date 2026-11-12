@@ -53,12 +53,13 @@ namespace ByteForge
             const TextureSettings* stored = metadata.GetSettings<TextureSettings>();
             const TextureSettings settings = stored != nullptr ? *stored : TextureSettings{};
             const fs::path path = metadata.Path;
+            AssetSource source = AssetRegistry::GetSource();
 
-            s_Pending.insert_or_assign(handle, JobSystem::Submit([path, settings]
+            s_Pending.insert_or_assign(handle, JobSystem::Submit([path, settings, source = std::move(source)]
             {
                 DecodedTexture result{ .Settings = settings };
 
-                Result<std::vector<std::byte>> encoded = AssetRegistry::ReadFile(path);
+                Result<std::vector<std::byte>> encoded = source.Read(path);
                 if (!encoded)
                 {
                     result.Error = std::move(encoded.error());
