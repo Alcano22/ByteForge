@@ -1,6 +1,7 @@
 #include "Scripting/CSharp/DotNetHost.h"
 
 #include "Engine/Core/Log.h"
+#include "Engine/Core/Platform.h"
 
 #include <nethost.h>
 
@@ -37,13 +38,30 @@ namespace ByteForge
         {
             CORE_ERROR("[.NET Host] {}", FromHostString(message));
         }
+
+        fs::path FindBundledRuntime()
+        {
+            const fs::path root = Platform::GetExecutableDirectory() / "dotnet";
+
+            std::error_code error;
+            return fs::is_directory(root / "host" / "fxr", error) ? root : fs::path();
+        }
     }
 
     DotNetHost::DotNetHost(const fs::path& runtimeConfig)
     {
+        const fs::path dotnetRoot = FindBundledRuntime();
+        const bool bundled = !dotnetRoot.empty();
+
+        const get_hostfxr_parameters pathParameters{
+            .size          = sizeof(get_hostfxr_parameters),
+            .assembly_path = nullptr,
+            .dotnet_root   = dotnetRoot.c_str()
+        };
+
         std::array<char_t, 4096> hostFxrPath{};
         usize size = hostFxrPath.size();
-        const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, nullptr);
+        const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, bundled ? &pathParameters : nullptr);
         if (pathResult != 0)
         {
             throw std::runtime_error(std::format("DotNetHost: no .NET runtime found (0{:08X})",
@@ -60,7 +78,13 @@ namespace ByteForge
 
         setErrorWriter(&WriteHostError);
 
-        const i32 initResult = initialize(runtimeConfig.c_str(), nullptr, &m_Context);
+        const hostfxr_initialize_parameters initParameters{
+            .size        = sizeof(hostfxr_initialize_parameters),
+            .host_path   = nullptr,
+            .dotnet_root = dotnetRoot.c_str()
+        };
+
+        const i32 initResult = initialize(runtimeConfig.c_str(), bundled ? &initParameters : nullptr, &m_Context);
         if (initResult < 0 || m_Context == nullptr)
         {
             if (m_Context != nullptr)
@@ -81,7 +105,8 @@ namespace ByteForge
 
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
 
-        CORE_INFO(".NET runtime started ({})", runtimeConfig.filename().string());
+        CORE_INFO(".NET runtime started ({}, {})",
+                  runtimeConfig.filename().string(), bundled ? "bundled" : "installed");
     }
 
     DotNetHost::~DotNetHost()

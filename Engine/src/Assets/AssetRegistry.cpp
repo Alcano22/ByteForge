@@ -52,6 +52,11 @@ namespace ByteForge
                 return false;
             }
         }
+
+        bool IsEngineData(const fs::path& path)
+        {
+            return !path.empty() && path.begin()->string().starts_with('.');
+        }
     }
 
     fs::path AssetRegistry::s_AssetRoot;
@@ -96,7 +101,7 @@ namespace ByteForge
         for (const PakEntry& entry : (*opened)->GetEntries())
         {
             const fs::path path(entry.Path);
-            if (IsMetaFile(path)) continue;
+            if (IsMetaFile(path) || IsEngineData(path)) continue;
 
             const Result<std::vector<std::byte>> meta = (*opened)->Read(entry.Path + MetaExtension);
 
@@ -278,6 +283,15 @@ namespace ByteForge
             return std::unexpected(std::format("'{}' is not valid JSON", it->second.Path.generic_string()));
 
         return data;
+    }
+
+    bool AssetRegistry::ContainsFile(const fs::path& relativePath)
+    {
+        if (s_Archive)
+            return s_Archive->Contains(relativePath.generic_string());
+
+        std::error_code error;
+        return fs::is_regular_file(s_AssetRoot / relativePath, error);
     }
 
     std::vector<AssetMetadata> AssetRegistry::GetAssetsOfType(const AssetType type)

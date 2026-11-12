@@ -44,25 +44,44 @@ internal static unsafe class ScriptHost
         {
             string file = Marshal.PtrToStringUTF8((IntPtr)path) ?? string.Empty;
 
-            UnloadGameAssembly();
-
-            var context = new GameAssemblyContext();
-
             using FileStream assembly = File.OpenRead(file);
             string symbolsFile = Path.ChangeExtension(file, ".pdb");
             using FileStream? symbols = File.Exists(symbolsFile) ? File.OpenRead(symbolsFile) : null;
 
-            s_GameAssembly = context.LoadFromStream(assembly, symbols);
-            s_GameContext = context;
-
-            DiscoverClasses([typeof(ScriptBehaviour).Assembly, s_GameAssembly]);
-            Log.Info($"Loaded {s_GameAssembly.GetName().Name} ({ClassCount} script classes)");
+            LoadFromStreams(assembly, symbols);
             return 0;
         } catch (Exception e)
         {
             Native.ReportException(e);
             return 1;
         }
+    }
+
+    [UnmanagedCallersOnly]
+    public static int LoadGameAssemblyFromMemory(byte* data, long size)
+    {
+        try
+        {
+            using var assembly = new UnmanagedMemoryStream(data, size);
+            LoadFromStreams(assembly, null);
+            return 0;
+        } catch (Exception e)
+        {
+            Native.ReportException(e);
+            return 1;
+        }
+    }
+
+    private static void LoadFromStreams(Stream assembly, Stream? symbols)
+    {
+        UnloadGameAssembly();
+
+        var context = new GameAssemblyContext();
+        s_GameAssembly = context.LoadFromStream(assembly, symbols);
+        s_GameContext = context;
+
+        DiscoverClasses([typeof(ScriptBehaviour).Assembly, s_GameAssembly]);
+        Log.Info($"Loaded {s_GameAssembly.GetName().Name} ({ClassCount} script classes)");
     }
 
     private static void UnloadGameAssembly()

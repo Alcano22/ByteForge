@@ -27,6 +27,7 @@ namespace ByteForge
             void* (CORECLR_DELEGATE_CALLTYPE* CreateInstance)(const char* className, u64 entity) = nullptr;
             void (CORECLR_DELEGATE_CALLTYPE* DestroyInstance)(void* instance) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* LoadGameAssembly)(const char* path) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* LoadGameAssemblyFromMemory)(const void* data, i64 size) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* OnCreate)(void* instance) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* OnUpdate)(void* instance, f32 deltaTime) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* OnDestroy)(void* instance) = nullptr;
@@ -43,6 +44,7 @@ namespace ByteForge
         [[nodiscard]] Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) override;
 
         bool LoadModule(const fs::path& path) override;
+        bool LoadModuleFromMemory(std::span<const std::byte> data, std::string_view name) override;
 
         void OnRuntimeStart(Scene& scene) override;
         void OnRuntimeStop(Scene& scene) override;

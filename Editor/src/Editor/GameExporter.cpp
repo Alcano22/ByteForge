@@ -10,7 +10,10 @@
 #include <Engine/Renderer/ShaderLibrary.h>
 
 #include <algorithm>
+#include <charconv>
 #include <format>
+#include <optional>
+#include <sstream>
 #include <string_view>
 #include <system_error>
 #include <vector>
@@ -177,7 +180,8 @@ namespace ByteForge
             return copied;
         }
 
-        Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive)
+        Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive,
+                                    const std::optional<fs::path>& gameScripts)
         {
             std::vector<fs::path> files;
 
@@ -207,6 +211,12 @@ namespace ByteForge
             for (const fs::path& relative : files)
             {
                 if (const auto added = (*writer)->AddFile(relative.generic_string(), assetsDirectory / relative); !added)
+                    return std::unexpected(added.error());
+            }
+
+            if (gameScripts)
+            {
+                if (const auto added = (*writer)->AddFile(AssetRegistry::GameScriptsEntry, *gameScripts); !added)
                     return std::unexpected(added.error());
             }
 
@@ -241,6 +251,123 @@ namespace ByteForge
                 return std::unexpected(finished.error());
 
             return *stages;
+        }
+
+        constexpr i32 DotNetMajorVersion = 10;
+
+        struct DotNetRuntime
+        {
+            fs::path Root;
+            std::string Version;
+        };
+
+        std::vector<i32> ParseVersion(const std::string_view text)
+        {
+            std::vector<i32> parts;
+            usize start = 0;
+            while (start < text.size())
+            {
+                const usize end = std::min(text.find('.', start), text.size());
+                i32 value = 0;
+                std::from_chars(text.data() + start, text.data() + end, value);
+                parts.push_back(value);
+                start = end + 1;
+            }
+            return parts;
+        }
+
+        std::optional<std::string> FindNewestVersion(const fs::path& directory, const i32 major)
+        {
+            std::optional<std::string> best;
+
+            std::error_code error;
+            for (fs::directory_iterator it(directory, error), end; !error && it != end; it.increment(error))
+            {
+                if (!it->is_directory()) continue;
+
+                const std::string name = it->path().filename().string();
+                const std::vector<i32> version = ParseVersion(name);
+                if (version.empty() || version.front() != major) continue;
+
+                if (!best || ParseVersion(*best) < version)
+                    best = name;
+            }
+            return best;
+        }
+
+        Result<DotNetRuntime> FindDotNetRuntime()
+        {
+            const Platform::ProcessResult listed = Platform::RunProcess("dotnet --list-runtimes");
+            if (listed.ExitCode != 0)
+                return std::unexpected(std::format("'dotnet --list-runtimes' failed: {}", listed.Output));
+
+            constexpr std::string_view Framework = "Microsoft.NETCore.App ";
+
+            std::optional<DotNetRuntime> best;
+            std::istringstream lines(listed.Output);
+            for (std::string line; std::getline(lines, line);)
+            {
+                if (!line.starts_with(Framework)) continue;
+
+                const usize versionEnd = line.find(' ', Framework.size());
+                const usize pathStart = line.find('[', versionEnd);
+                const usize pathEnd = line.rfind(']');
+                if (versionEnd == std::string::npos || pathStart == std::string::npos ||
+                    pathEnd == std::string::npos || pathEnd < pathStart) continue;
+
+                std::string version = line.substr(Framework.size(), versionEnd - Framework.size());
+                const std::vector<i32> parsed = ParseVersion(version);
+                if (parsed.empty() || parsed.front() != DotNetMajorVersion) continue;
+
+                if (best && ParseVersion(best->Version) >= parsed) continue;
+
+                const fs::path frameworkDirectory = line.substr(pathStart + 1, pathEnd - pathStart - 1);
+                best = DotNetRuntime{
+                    .Root    = frameworkDirectory.parent_path().parent_path(),
+                    .Version = std::move(version)
+                };
+            }
+
+            if (!best)
+                return std::unexpected(std::format("no .NET {} runtime is installed", DotNetMajorVersion));
+
+            return *best;
+        }
+
+        Result<usize> BundleDotNetRuntime(const DotNetRuntime& runtime, const fs::path& target)
+        {
+            const std::optional<std::string> fxr = FindNewestVersion(runtime.Root / "host" / "fxr", DotNetMajorVersion);
+            if (!fxr)
+            {
+                return std::unexpected(std::format("'{}' contains no host/fxr for .NET {}",
+                                                   runtime.Root.generic_string(), DotNetMajorVersion));
+            }
+
+            usize copied = 0;
+
+            const fs::path framework = fs::path("shared") / "Microsoft.NETCore.App" / runtime.Version;
+            const fs::path hostFxr = fs::path("host") / "fxr" / *fxr;
+
+            for (const fs::path& relative : { framework, hostFxr })
+            {
+                const auto result = CopyTree(runtime.Root / relative, target / relative,
+                    [](const fs::path&) { return true; });
+                if (!result)
+                    return std::unexpected(result.error());
+                copied += *result;
+            }
+
+            for (const char* notice : { "LICENSE.txt", "ThirdPartyNotices.txt" })
+            {
+                std::error_code error;
+                if (!fs::exists(runtime.Root / notice, error)) continue;
+
+                if (const auto result = CopySingleFile(runtime.Root / notice, target / notice); !result)
+                    return std::unexpected(result.error());
+                ++copied;
+            }
+
+            return copied;
         }
     }
 
@@ -297,7 +424,7 @@ namespace ByteForge
                                                output.generic_string()));
         }
 
-        for (const char* folder : { "assets", "engine", "ScriptCore", ".byteforge" })
+        for (const char* folder : { "assets", "engine", "ScriptCore", ".byteforge", "dotnet" })
             fs::remove_all(output / folder, error);
 
         for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
@@ -326,6 +453,17 @@ namespace ByteForge
             return std::unexpected(scriptCore.error());
         result.FileCount += *scriptCore;
 
+        const Result<DotNetRuntime> dotnet = FindDotNetRuntime();
+        if (!dotnet)
+            return std::unexpected(std::format("cannot bundle the .NET runtime: {}", dotnet.error()));
+
+        const Result<usize> bundledRuntime = BundleDotNetRuntime(*dotnet, output / "dotnet");
+        if (!bundledRuntime)
+            return std::unexpected(std::format("cannot bundle the .NET runtime: {}", bundledRuntime.error()));
+
+        result.FileCount += *bundledRuntime;
+        result.DotNetVersion = dotnet->Version;
+
         const fs::path shaderArchive = output / ShaderLibrary::ArchiveName;
 
         const Result<usize> shaders = PackShaders(shaderArchive);
@@ -340,7 +478,8 @@ namespace ByteForge
 
         const fs::path archive = output / std::format("assets{}", PakExtension);
 
-        const Result<PakStats> packed = PackAssets(assetsDirectory, archive);
+        const Result<PakStats> packed = PackAssets(assetsDirectory, archive,
+                                                   hasAssembly ? std::optional(gameScripts) : std::nullopt);
         if (!packed)
             return std::unexpected(std::format("cannot pack the assets: {}", packed.error()));
 
@@ -349,17 +488,6 @@ namespace ByteForge
 
         result.Archive = *packed;
         ++result.FileCount;
-
-        if (hasAssembly)
-        {
-            if (const auto copied = CopySingleFile(gameScripts,
-                                                   output / ".byteforge" / "ScriptAssemblies" / "GameScripts.dll");
-                !copied)
-            {
-                return std::unexpected(copied.error());
-            }
-            ++result.FileCount;
-        }
 
         if (const auto copied = CopySingleFile(projectFile, output / ProjectSettings::FileName); !copied)
             return std::unexpected(copied.error());
@@ -403,6 +531,7 @@ namespace ByteForge
         APP_INFO("Packed {} asset file(s): {:.1f} KiB -> {:.1f} KiB ({:.0f}%)", archive.FileCount,
                  static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
 
+        APP_INFO("Bundled the .NET {} runtime", result->DotNetVersion);
         APP_INFO("Precompiled {} shader stage(s)", result->ShaderStages);
         APP_INFO("Exported {} file(s) as a {} build to '{}'",
                  result->FileCount, BuildConfiguration, result->Directory.generic_string());

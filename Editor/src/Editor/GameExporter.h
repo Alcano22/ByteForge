@@ -16,6 +16,7 @@ namespace ByteForge
         usize FileCount = 0;
         PakStats Archive;
         usize ShaderStages = 0;
+        std::string DotNetVersion;
     };
 
     class GameExporter

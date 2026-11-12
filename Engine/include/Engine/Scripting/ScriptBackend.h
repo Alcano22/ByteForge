@@ -5,6 +5,7 @@
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scripting/ScriptField.h"
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -49,6 +50,7 @@ namespace ByteForge
         [[nodiscard]] virtual Scope<ScriptInstance> CreateInstance(std::string_view className, Entity entity) = 0;
 
         virtual bool LoadModule(const fs::path&) { return false; }
+        virtual bool LoadModuleFromMemory(std::span<const std::byte>, std::string_view) { return false; }
 
         virtual void OnRuntimeStart(Scene&) {}
         virtual void OnRuntimeStop(Scene&) {}

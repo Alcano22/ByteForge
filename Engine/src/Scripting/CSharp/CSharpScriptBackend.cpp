@@ -142,6 +142,7 @@ namespace ByteForge
         resolve(m_Functions.CreateInstance, ScriptHostType, "CreateInstance");
         resolve(m_Functions.DestroyInstance, ScriptHostType, "DestroyInstance");
         resolve(m_Functions.LoadGameAssembly, ScriptHostType, "LoadGameAssembly");
+        resolve(m_Functions.LoadGameAssemblyFromMemory, ScriptHostType, "LoadGameAssemblyFromMemory");
         resolve(m_Functions.OnCreate, ScriptHostType, "OnCreate");
         resolve(m_Functions.OnUpdate, ScriptHostType, "OnUpdate");
         resolve(m_Functions.OnDestroy, ScriptHostType, "OnDestroy");
@@ -203,6 +204,18 @@ namespace ByteForge
         if (m_Functions.LoadGameAssembly(reinterpret_cast<const char*>(file.c_str())) != 0)
         {
             CORE_ERROR("Could not load C# assembly '{}': {}", path.string(), ScriptGlue::TakeManagedException());
+            return false;
+        }
+
+        RefreshClasses();
+        return true;
+    }
+
+    bool CSharpScriptBackend::LoadModuleFromMemory(const std::span<const std::byte> data, const std::string_view name)
+    {
+        if (m_Functions.LoadGameAssemblyFromMemory(data.data(), static_cast<i64>(data.size())) != 0)
+        {
+            CORE_ERROR("Could not load C# assembly '{}': {}", name, ScriptGlue::TakeManagedException());
             return false;
         }
 

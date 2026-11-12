@@ -20,6 +20,8 @@ namespace ByteForge
     class BYTEFORGE_API AssetRegistry
     {
     public:
+        static constexpr const char* GameScriptsEntry = ".scripts/GameScripts.dll";
+
         static void Init(const fs::path& assetRoot);
 
         [[nodiscard]] static Result<> Mount(const fs::path& archive);
@@ -29,8 +31,7 @@ namespace ByteForge
         [[nodiscard]] static bool IsPacked() { return s_Archive != nullptr; }
 
         static UUID Import(const fs::path& relativePath);
-        static Result<> Move(const fs::path& from,
-                                                     const fs::path& to);
+        static Result<> Move(const fs::path& from, const fs::path& to);
 
         [[nodiscard]] static bool TryGetMetadata(UUID handle, AssetMetadata& outMetadata);
         [[nodiscard]] static UUID GetHandle(const fs::path& relativePath);
@@ -40,6 +41,8 @@ namespace ByteForge
         [[nodiscard]] static Result<std::vector<std::byte>> Read(UUID handle);
         [[nodiscard]] static Result<std::vector<std::byte>> ReadFile(const fs::path& relativePath);
         [[nodiscard]] static Result<nlohmann::json> ReadJson(UUID handle);
+
+        [[nodiscard]] static bool ContainsFile(const fs::path& relativePath);
 
         [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
 

@@ -157,6 +157,30 @@ namespace ByteForge
 
         static void LoadGameScripts()
         {
+            ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#");
+
+            if (AssetRegistry::IsPacked())
+            {
+                if (!AssetRegistry::ContainsFile(AssetRegistry::GameScriptsEntry)) return;
+
+                if (backend == nullptr)
+                {
+                    APP_WARN("The game has C# scripts but the C# backend is unavailable");
+                    return;
+                }
+
+                const Result<std::vector<std::byte>> assembly = AssetRegistry::ReadFile(AssetRegistry::GameScriptsEntry);
+                if (!assembly)
+                {
+                    APP_ERROR("Could not read the game scripts: {}", assembly.error());
+                    return;
+                }
+
+                if (!backend->LoadModuleFromMemory(*assembly, "GameScripts.dll"))
+                    APP_ERROR("Could not load the game scripts from the archive");
+                return;
+            }
+
             const fs::path assembly = GetGameScriptsPath();
             if (!fs::exists(assembly))
             {
@@ -169,7 +193,6 @@ namespace ByteForge
                 return;
             }
 
-            ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#");
             if (backend == nullptr)
             {
                 APP_WARN("C# scripts were found but the C# backend is unavailable (is the .NET runtime installed?)");
