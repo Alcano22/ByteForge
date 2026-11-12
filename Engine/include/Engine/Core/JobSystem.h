@@ -30,9 +30,9 @@ namespace ByteForge
             std::future<ReturnType> result = task->get_future();
 
             {
-                std::unique_lock<std::mutex> lock(s_Mutex);
-                if (s_Stop)
-                    throw std::runtime_error("JobSystem: cannot submit on a stopped pool");
+                std::scoped_lock lock(s_Mutex);
+                if (s_Stop || s_Workers.empty())
+                    throw std::runtime_error("JobSystem: cannot submit, the pool is not running");
 
                 s_Tasks.emplace([task] { (*task)(); });
             }
@@ -42,10 +42,13 @@ namespace ByteForge
         }
 
     private:
+        static void WorkerLoop();
+
+    private:
         static std::vector<std::jthread> s_Workers;
         static std::queue<std::function<void()>> s_Tasks;
         static std::mutex s_Mutex;
-        static std::condition_variable_any s_Condition;
+        static std::condition_variable s_Condition;
         static bool s_Stop;
     };
 }
