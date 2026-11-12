@@ -54,7 +54,7 @@ namespace ByteForge
             ImGui::Separator();
 
             if (ImGui::MenuItem("Save Layout As..."))
-                layouts.RequestSaveDialog();
+                layouts.OpenSaveDialog(context.Popups);
 
             if (!saved.empty() && ImGui::BeginMenu("Delete Layout"))
             {

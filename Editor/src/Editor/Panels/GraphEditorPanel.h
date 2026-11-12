@@ -44,7 +44,7 @@ namespace ByteForge
         void HandleContextMenu();
         void OpenPalette(ImVec2 position, std::optional<PaletteContext> context);
 
-        void DrawUnsavedChangesPopup();
+        void OpenUnsavedChangesPopup(UUID next);
 
         void ApplyValueEdits();
 
@@ -58,7 +58,6 @@ namespace ByteForge
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();
         i32 m_FramesSinceLoad = 0;
 
-        std::optional<UUID> m_PendingOpen;
         bool m_FocusRequested = false;
         ImVec2 m_NewNodePosition{ 0.0f, 0.0f };
     };

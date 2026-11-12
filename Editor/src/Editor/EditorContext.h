@@ -10,6 +10,7 @@
 #include "Editor/SceneDocument.h"
 #include "Editor/SceneDialogs.h"
 #include "Editor/GameExporter.h"
+#include "Editor/PopupManager.h"
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
@@ -159,6 +160,7 @@ namespace ByteForge
     public:
         Scene* ActiveScene = nullptr;
         SceneDocument Document{ *this };
+        PopupManager Popups;
         SceneDialogs Dialogs{ *this };
         EditorLayouts Layouts;
         ExportTask Export;

@@ -17,8 +17,6 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr const char* UnsavedChangesId = "Unsaved Changes";
-
         constexpr std::array<FileFilter, 1> SceneFilters{ { { "ByteForge Scene", "bfscene" } } };
 
         std::optional<fs::path> ToAssetPath(const fs::path& absolutePath)
@@ -32,11 +30,6 @@ namespace ByteForge
             if (relative.empty() || relative.begin()->string() == "..")
                 return std::nullopt;
             return relative;
-        }
-
-        void CenterNextWindow()
-        {
-            ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
         }
     }
 
@@ -110,45 +103,6 @@ namespace ByteForge
         return true;
     }
 
-    void SceneDialogs::Draw()
-    {
-        if (std::exchange(m_PromptRequested, false))
-            ImGui::OpenPopup(UnsavedChangesId);
-
-        CenterNextWindow();
-        if (!ImGui::BeginPopupModal(UnsavedChangesId, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
-
-        ImGui::Text("Save changes to '%s'?", m_Context.Document.GetName().c_str());
-        ImGui::TextDisabled("Your changes are lost if you don't save them.");
-        ImGui::Spacing();
-
-        if (ImGui::Button("Save"))
-        {
-            ImGui::CloseCurrentPopup();
-
-            if (RequestSave())
-                RunContinuation();
-            else
-                m_Continuation = nullptr;
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Don't Save"))
-        {
-            ImGui::CloseCurrentPopup();
-            RunContinuation();
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
-        {
-            ImGui::CloseCurrentPopup();
-            m_Continuation = nullptr;
-        }
-
-        ImGui::EndPopup();
-    }
-
     void SceneDialogs::Guard(std::function<void()> action)
     {
         if (!m_Context.Document.IsDirty())
@@ -158,7 +112,37 @@ namespace ByteForge
         }
 
         m_Continuation = std::move(action);
-        m_PromptRequested = true;
+
+        m_Context.Popups.Open("Unsaved Changes", [this](Popup& popup)
+        {
+            ImGui::Text("Save changes to '%s'?", m_Context.Document.GetName().c_str());
+            ImGui::TextDisabled("Your changes are lost if you don't save them.");
+            ImGui::Spacing();
+
+            if (ImGui::Button("Save"))
+            {
+                popup.Close();
+
+                if (RequestSave())
+                    RunContinuation();
+                else
+                    m_Continuation = nullptr;
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Don't Save"))
+            {
+                popup.Close();
+                RunContinuation();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+            {
+                popup.Close();
+                m_Continuation = nullptr;
+            }
+        }, { .OnDismiss = [this] { m_Continuation = nullptr; } });
     }
 
     void SceneDialogs::RunContinuation()

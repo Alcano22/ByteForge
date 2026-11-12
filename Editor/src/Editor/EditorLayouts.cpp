@@ -190,45 +190,37 @@ namespace ByteForge
         APP_INFO("Applied layout '{}'", GetPresetName(preset));
     }
 
-    void EditorLayouts::DrawPopups()
+    void EditorLayouts::OpenSaveDialog(PopupManager& popups)
     {
-        if (m_OpenSaveDialog)
+        std::array<char, 64> nameBuffer{};
+        std::snprintf(nameBuffer.data(), nameBuffer.size(), "%s", "My Layout");
+
+        popups.Open("Save Layout", [this, nameBuffer](Popup& popup) mutable
         {
-            m_OpenSaveDialog = false;
-            std::snprintf(m_NameBuffer.data(), m_NameBuffer.size(), "%s", "My Layout");
-            ImGui::OpenPopup("Save Layout");
-        }
+            if (ImGui::IsWindowAppearing())
+                ImGui::SetKeyboardFocusHere();
 
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            const bool submitted = ImGui::InputTextWithHint("##name", "Layout name", nameBuffer.data(),
+                                                            nameBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 
-        if (!ImGui::BeginPopupModal("Save Layout", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+            const std::string name = MakeLayoutName(nameBuffer.data());
+            const bool valid = !name.empty();
 
-        if (ImGui::IsWindowAppearing())
-            ImGui::SetKeyboardFocusHere();
+            if (valid && fs::exists(GetLayoutPath(name)))
+                ImGui::TextDisabled("'%s' will be overwritten", name.c_str());
 
-        const bool submitted = ImGui::InputTextWithHint("##name", "Layout name", m_NameBuffer.data(),
-                                                        m_NameBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::BeginDisabled(!valid);
+            if (ImGui::Button("Save") || (submitted && valid))
+            {
+                SaveUserLayout(name);
+                popup.Close();
+            }
+            ImGui::EndDisabled();
 
-        const std::string name = MakeLayoutName(m_NameBuffer.data());
-        const bool valid = !name.empty();
-
-        if (valid && fs::exists(GetLayoutPath(name)))
-            ImGui::TextDisabled("'%s' will be overwritten", name.c_str());
-
-        ImGui::BeginDisabled(!valid);
-        if (ImGui::Button("Save") || (submitted && valid))
-        {
-            SaveUserLayout(name);
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel"))
-            ImGui::CloseCurrentPopup();
-
-        ImGui::EndPopup();
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+                popup.Close();
+        });
     }
 
     void EditorLayouts::RequestPreset(const LayoutPreset preset)

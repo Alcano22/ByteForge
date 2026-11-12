@@ -38,8 +38,6 @@ namespace ByteForge
         constexpr const char* BuildConfiguration = "Release";
 #endif
 
-        constexpr const char* PopupName = "Exporting Game";
-
         std::string PlayerFileName() { return std::string("Player") + ExecutableSuffix; }
 
         std::unexpected<std::string> Cancelled() { return std::unexpected<std::string>("the export was cancelled"); }
@@ -569,7 +567,7 @@ namespace ByteForge
             m_Progress->Cancel();
     }
 
-    bool ExportTask::Start(ExportPlan plan)
+    bool ExportTask::Start(ExportPlan plan, PopupManager& popups)
     {
         if (IsRunning())
             return false;
@@ -580,7 +578,25 @@ namespace ByteForge
             return GameExporter::Run(plan, *progress);
         });
 
-        m_OpenPopup = true;
+        popups.Open("Exporting Game", [this](Popup& popup)
+        {
+            if (!IsRunning())
+            {
+                popup.Close();
+                return;
+            }
+
+            const ExportProgress::State state = m_Progress->Get();
+            ImGui::TextUnformatted(state.Step.c_str());
+            ImGui::ProgressBar(state.Fraction, ImVec2(360.0f, 0.0f));
+
+            const bool cancelling = m_Progress->IsCancelled();
+            ImGui::BeginDisabled(cancelling);
+            if (ImGui::Button(cancelling ? "Cancelling..." : "Cancel"))
+                m_Progress->Cancel();
+            ImGui::EndDisabled();
+        }, { .Dismissable = false });
+
         return true;
     }
 
@@ -598,39 +614,6 @@ namespace ByteForge
             APP_WARN("Export cancelled, the output folder is incomplete; the next export cleans it up");
         else
             APP_ERROR("Export failed: {}", result.error());
-    }
-
-    void ExportTask::DrawPopup()
-    {
-        if (m_OpenPopup)
-        {
-            ImGui::OpenPopup(PopupName);
-            m_OpenPopup = false;
-        }
-
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-        if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
-
-        if (!IsRunning())
-        {
-            ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-            return;
-        }
-
-        const ExportProgress::State state = m_Progress->Get();
-        ImGui::TextUnformatted(state.Step.c_str());
-        ImGui::ProgressBar(state.Fraction, ImVec2(360.0f, 0.0f));
-
-        const bool cancelling = m_Progress->IsCancelled();
-        ImGui::BeginDisabled(cancelling);
-        if (ImGui::Button(cancelling ? "Cancelling..." : "Cancel"))
-            m_Progress->Cancel();
-        ImGui::EndDisabled();
-
-        ImGui::EndPopup();
     }
 
     void ExportGameWithDialog(EditorContext& context)
@@ -662,6 +645,6 @@ namespace ByteForge
         }
 
         APP_INFO("Exporting the game to '{}'...", plan->Output.generic_string());
-        context.Export.Start(std::move(*plan));
+        context.Export.Start(std::move(*plan), context.Popups);
     }
 }

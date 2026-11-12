@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/PopupManager.h"
+
 #include <Engine/Assets/Pak.h>
 
 #include <algorithm>
@@ -107,17 +109,15 @@ namespace ByteForge
         ExportTask(const ExportTask&) = delete;
         ExportTask& operator=(const ExportTask&) = delete;
 
-        bool Start(ExportPlan plan);
+        bool Start(ExportPlan plan, PopupManager& popups);
 
         void Update();
-        void DrawPopup();
 
         [[nodiscard]] bool IsRunning() const { return m_Future.valid(); }
 
     private:
         Ref<ExportProgress> m_Progress;
         std::future<Result<ExportResult>> m_Future;
-        bool m_OpenPopup = false;
     };
 
     void ExportGameWithDialog(EditorContext& context);

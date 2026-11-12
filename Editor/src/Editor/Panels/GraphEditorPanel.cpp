@@ -1,4 +1,5 @@
 #include "Editor/Panels/GraphEditorPanel.h"
+#include "Editor/EditorContext.h"
 #include "Editor/Graph/GraphIds.h"
 #include "Editor/Graph/GraphTheme.h"
 
@@ -98,7 +99,7 @@ namespace ByteForge
 
         if (m_Document && m_Document->IsDirty())
         {
-            m_PendingOpen = asset;
+            OpenUnsavedChangesPopup(asset);
             return;
         }
 
@@ -166,7 +167,6 @@ namespace ByteForge
             }
         }
 
-        DrawUnsavedChangesPopup();
         ImGui::End();
     }
 
@@ -433,40 +433,36 @@ namespace ByteForge
         NE::Resume();
     }
 
-    void GraphEditorPanel::DrawUnsavedChangesPopup()
+    void GraphEditorPanel::OpenUnsavedChangesPopup(const UUID next)
     {
-        if (m_PendingOpen && !ImGui::IsPopupOpen(UnsavedPopup))
-            ImGui::OpenPopup(UnsavedPopup);
-
-        if (!ImGui::BeginPopupModal(UnsavedPopup, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
-
-        ImGui::Text("'%s' has unsaved changes.", m_Document->GetName().c_str());
-        ImGui::Spacing();
-
-        std::optional<bool> save;
-        if (ImGui::Button("Save"))
-            save = true;
-        ImGui::SameLine();
-        if (ImGui::Button("Discard"))
-            save = false;
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel"))
+        GetContext().Popups.Open("Unsaved Changes", [this, next](Popup& popup)
         {
-            m_PendingOpen.reset();
-            ImGui::CloseCurrentPopup();
-        }
+            if (!m_Document)
+            {
+                popup.Close();
+                return;
+            }
 
-        if (save)
-        {
-            const UUID next = *m_PendingOpen;
-            m_PendingOpen.reset();
-            ImGui::CloseCurrentPopup();
+            ImGui::Text("'%s' has unsaved changes.", m_Document->GetName().c_str());
+            ImGui::Spacing();
 
-            if (!*save || Save())
-                Load(next);
-        }
+            std::optional<bool> save;
+            if (ImGui::Button("Save"))
+                save = true;
+            ImGui::SameLine();
+            if (ImGui::Button("Discard"))
+                save = false;
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+                popup.Close();
 
-        ImGui::EndPopup();
+            if (save)
+            {
+                popup.Close();
+                if (!*save || Save())
+                    Load(next);
+            }
+        });
     }
 
     void GraphEditorPanel::ApplyValueEdits()

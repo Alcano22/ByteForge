@@ -24,8 +24,6 @@ namespace ByteForge
 
         [[nodiscard]] bool RequestQuit();
 
-        void Draw();
-
     private:
         void Guard(std::function<void()> action);
         void RunContinuation();
@@ -36,7 +34,6 @@ namespace ByteForge
     private:
         EditorContext& m_Context;
 
-        bool m_PromptRequested = false;
         std::function<void()> m_Continuation;
     };
 }

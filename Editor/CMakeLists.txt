@@ -31,6 +31,7 @@ add_executable(Editor
         src/Editor/FileDialogs.cpp
         src/Editor/SvgIconFont.cpp
         src/Editor/GameExporter.cpp
+        src/Editor/PopupManager.cpp
         src/Editor/EditorLayouts.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp

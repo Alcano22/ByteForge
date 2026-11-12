@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/PopupManager.h"
+
 #include <imgui.h>
 
 #include <array>
@@ -39,11 +41,10 @@ namespace ByteForge
 
         void ApplyPendingPreset(EditorContext& context, ImGuiID dockSpaceId, ImVec2 size);
 
-        void DrawPopups();
+        void OpenSaveDialog(PopupManager& popups);
 
         void RequestPreset(LayoutPreset preset);
         bool RequestUserLayout(const std::string& name);
-        void RequestSaveDialog() { m_OpenSaveDialog = true; }
 
         bool SaveUserLayout(const std::string& name) const;
         bool DeleteUserLayout(const std::string& name) const;
@@ -55,8 +56,5 @@ namespace ByteForge
 
         std::optional<LayoutPreset> m_PendingPreset;
         std::string m_PendingIni;
-
-        bool m_OpenSaveDialog = false;
-        std::array<char, 64> m_NameBuffer{};
     };
 }

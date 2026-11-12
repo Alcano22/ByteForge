@@ -44,9 +44,7 @@ namespace ByteForge
             ImGui::DockSpace(dockSpaceId);
         }
 
-        context.Dialogs.Draw();
-        context.Layouts.DrawPopups();
-        context.Export.DrawPopup();
+        context.Popups.Draw();
 
         ImGui::End();
     }
