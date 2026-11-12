@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Renderer/ShaderLibrary.h"
+
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -11,5 +13,6 @@ namespace ByteForge
         fs::path Path;
         std::string Code;
         std::vector<std::string> Defines;
+        ShaderBinaries Precompiled;
     };
 }

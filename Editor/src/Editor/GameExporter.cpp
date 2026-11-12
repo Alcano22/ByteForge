@@ -7,6 +7,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Project/ProjectSettings.h>
+#include <Engine/Renderer/ShaderLibrary.h>
 
 #include <algorithm>
 #include <format>
@@ -211,6 +212,22 @@ namespace ByteForge
             }
             return {};
         }
+
+        Result<usize> PackShaders(const fs::path& archive)
+        {
+            Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
+            if (!writer)
+                return std::unexpected(writer.error());
+
+            const Result<usize> stages = ShaderLibrary::Precompile(**writer);
+            if (!stages)
+                return std::unexpected(stages.error());
+
+            if (const auto finished = (*writer)->Finish(); !finished)
+                return std::unexpected(finished.error());
+
+            return *stages;
+        }
     }
 
     Result<ExportResult> GameExporter::Export(const fs::path& projectRoot, const fs::path& outputRoot)
@@ -280,14 +297,23 @@ namespace ByteForge
             return std::unexpected(runtime.error());
         result.FileCount += *runtime;
 
-        for (const char* folder : { "engine", "ScriptCore" })
-        {
-            const auto copied = CopyTree(editorDirectory / folder, output / folder,
-                [](const fs::path& relative) { return IsRuntimeFile(relative); });
-            if (!copied)
-                return std::unexpected(copied.error());
-            result.FileCount += *copied;
-        }
+        const auto scriptCore = CopyTree(editorDirectory / "ScriptCore", output / "ScriptCore",
+            [](const fs::path& relative) { return IsRuntimeFile(relative); });
+        if (!scriptCore)
+            return std::unexpected(scriptCore.error());
+        result.FileCount += *scriptCore;
+
+        const fs::path shaderArchive = output / ShaderLibrary::ArchiveName;
+
+        const Result<usize> shaders = PackShaders(shaderArchive);
+        if (!shaders)
+            return std::unexpected(std::format("cannot precompile the shaders: {}", shaders.error()));
+
+        if (const auto verified = VerifyArchive(shaderArchive); !verified)
+            return std::unexpected(std::format("the shader archive is broken: {}", verified.error()));
+
+        result.ShaderStages = *shaders;
+        ++result.FileCount;
 
         const fs::path archive = output / std::format("assets{}", PakExtension);
 
@@ -349,6 +375,7 @@ namespace ByteForge
         APP_INFO("Packed {} asset file(s): {:.1f} KiB -> {:.1f} KiB ({:.0f}%)", archive.FileCount,
                  static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
 
+        APP_INFO("Precompiled {} shader stage(s)", result->ShaderStages);
         APP_INFO("Exported {} file(s) to '{}'", result->FileCount, result->Directory.generic_string());
     }
 }

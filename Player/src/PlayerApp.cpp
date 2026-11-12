@@ -9,6 +9,7 @@
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Renderer2D.h>
+#include <Engine/Renderer/ShaderLibrary.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneCamera.h>
@@ -207,6 +208,13 @@ namespace ByteForge
     {
         if (fs::exists(Platform::GetExecutableDirectory() / ProjectSettings::FileName))
             fs::current_path(Platform::GetExecutableDirectory());
+
+        if (const fs::path shaders = Platform::GetExecutableDirectory() / ShaderLibrary::ArchiveName;
+            fs::exists(shaders))
+        {
+            if (const auto mounted = ShaderLibrary::Mount(shaders); !mounted)
+                throw std::runtime_error(std::format("Player::CreateApplication: {}", mounted.error()));
+        }
 
         const fs::path projectFile = fs::current_path() / ProjectSettings::FileName;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Renderer/Shader.h"
+#include "Engine/Renderer/ShaderLibrary.h"
 #include "Platform/Vulkan/VulkanShader.h"
 #include "Platform/Vulkan/VulkanShaderReflection.h"
 
@@ -17,6 +18,8 @@ namespace ByteForge
     public:
         VulkanShaderProgram(const std::string& vertexSrc, const std::string& fragmentSrc);
         explicit VulkanShaderProgram(const ShaderSource& source);
+
+        [[nodiscard]] static ShaderBinaries Compile(const ShaderSource& source);
 
         [[nodiscard]] VkShaderModule GetVertexModule() const { return m_Vertex.GetHandle(); }
         [[nodiscard]] VkShaderModule GetFragmentModule() const { return m_Fragment.GetHandle(); }

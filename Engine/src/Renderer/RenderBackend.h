@@ -38,6 +38,8 @@ namespace ByteForge
                                                        const std::string& fragmentSource) = 0;
         [[nodiscard]] virtual Ref<Shader> CreateShader(const ShaderSource& source) = 0;
 
+        [[nodiscard]] virtual ShaderBinaries CompileShader(const ShaderSource& source) = 0;
+
         [[nodiscard]] virtual Ref<Pipeline> CreatePipeline(const PipelineSpec& spec) = 0;
 
         [[nodiscard]] virtual Ref<Material> CreateMaterial(const Ref<Pipeline>& pipeline) = 0;

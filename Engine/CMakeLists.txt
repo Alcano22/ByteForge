@@ -58,6 +58,7 @@ add_library(Engine SHARED
         src/Renderer/PerspectiveCamera.cpp
         src/Renderer/MeshPrimitives.cpp
         src/Renderer/MeshRenderer.cpp
+        src/Renderer/ShaderLibrary.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp

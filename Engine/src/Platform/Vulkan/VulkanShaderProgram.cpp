@@ -1,5 +1,6 @@
 #include "Platform/Vulkan/VulkanShaderProgram.h"
 #include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanShaderCompiler.h"
 #include "Renderer/ShaderSource.h"
 
 namespace ByteForge
@@ -22,4 +23,13 @@ namespace ByteForge
         : m_Vertex(VulkanContext::Get().GetDevice(), source, ShaderStage::Vertex, FileVertexEntry),
           m_Fragment(VulkanContext::Get().GetDevice(), source, ShaderStage::Fragment, FileFragmentEntry),
           m_Reflection(ShaderReflection::Merge(m_Vertex.GetReflection(), m_Fragment.GetReflection())) {}
+
+    ShaderBinaries VulkanShaderProgram::Compile(const ShaderSource& source)
+    {
+        const VulkanShaderCompiler& compiler = VulkanShaderCompiler::Get();
+        return {
+            .Vertex   = compiler.Compile(source, ShaderStage::Vertex, FileVertexEntry),
+            .Fragment = compiler.Compile(source, ShaderStage::Fragment, FileFragmentEntry)
+        };
+    }
 }

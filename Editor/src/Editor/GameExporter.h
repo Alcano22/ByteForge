@@ -15,6 +15,7 @@ namespace ByteForge
         fs::path Directory;
         usize FileCount = 0;
         PakStats Archive;
+        usize ShaderStages = 0;
     };
 
     class GameExporter

@@ -44,6 +44,8 @@ namespace ByteForge
                                                const std::string& fragmentSource) override;
         [[nodiscard]] Ref<Shader> CreateShader(const ShaderSource& source) override;
 
+        [[nodiscard]] ShaderBinaries CompileShader(const ShaderSource& source) override;
+
         [[nodiscard]] Ref<Pipeline> CreatePipeline(const PipelineSpec& spec) override;
 
         [[nodiscard]] Ref<Material> CreateMaterial(const Ref<Pipeline>& pipeline) override;
