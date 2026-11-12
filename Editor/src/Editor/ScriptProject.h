@@ -30,9 +30,12 @@ namespace ByteForge
     private:
         void StartBuild();
         void FinishBuild();
+        void LoadAssembly() const;
 
         [[nodiscard]] fs::path GetProjectFile() const { return m_Root / "GameScripts.csproj"; }
         [[nodiscard]] fs::path GetOutputDirectory() const { return m_Root / ".byteforge" / "ScriptAssemblies"; }
+        [[nodiscard]] fs::path GetAssemblyFile() const { return GetOutputDirectory() / "GameScripts.dll"; }
+        [[nodiscard]] fs::path GetStampFile() const { return GetOutputDirectory() / "build.stamp"; }
 
     private:
         fs::path m_Root;
@@ -40,5 +43,8 @@ namespace ByteForge
         std::future<Platform::ProcessResult> m_Build;
         std::chrono::steady_clock::time_point m_BuildStart;
         bool m_ReloadQueued = false;
+
+        std::string m_PendingFingerprint;
+        bool m_LoadPending = false;
     };
 }

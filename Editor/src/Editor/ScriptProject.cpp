@@ -6,13 +6,18 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <iterator>
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include <exception>
@@ -24,10 +29,84 @@ namespace ByteForge
     {
         constexpr const char* TargetFramework = "net10.0";
 
+#ifdef BYTEFORGE_DEBUG
+        constexpr const char* Configuration = "Debug";
+#else
+        constexpr const char* Configuration = "Release";
+#endif
+
         std::string ReadFile(const fs::path& path)
         {
             std::ifstream file(path, std::ios::binary);
             return { std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
+        }
+
+        void Mix(u64& hash, const void* data, const usize size)
+        {
+            const auto* bytes = static_cast<const unsigned char*>(data);
+            for (usize i = 0; i < size; ++i)
+            {
+                hash ^= bytes[i];
+                hash *= 1099511628211ull;
+            }
+        }
+
+        void Mix(u64& hash, const std::string_view text)
+        {
+            Mix(hash, text.data(), text.size());
+
+            constexpr unsigned char separator = 0;
+            Mix(hash, &separator, 1);
+        }
+
+        template<typename T> requires std::is_trivially_copyable_v<T>
+        void MixValue(u64& hash, const T& value)
+        {
+            Mix(hash, &value, sizeof(T));
+        }
+
+        void MixFile(u64& hash, const fs::path& path)
+        {
+            std::error_code error;
+
+            const auto size = fs::file_size(path, error);
+            MixValue(hash, error ? std::uintmax_t{ 0 } : size);
+
+            const auto time = fs::last_write_time(path, error);
+            MixValue(hash, error ? std::int64_t{ 0 } : static_cast<i64>(time.time_since_epoch().count()));
+        }
+
+        std::string ComputeFingerprint(const fs::path& root, const fs::path& scriptCore)
+        {
+            u64 hash = 14695981039346656037ull;
+
+            Mix(hash, TargetFramework);
+            Mix(hash, Configuration);
+
+            Mix(hash, scriptCore.string());
+            MixFile(hash, scriptCore);
+
+            const fs::path assets = root / "assets";
+
+            std::vector<fs::path> sources;
+            std::error_code error;
+            fs::recursive_directory_iterator it(assets, fs::directory_options::skip_permission_denied, error);
+            for (const fs::recursive_directory_iterator end; !error && it != end; it.increment(error))
+            {
+                std::error_code entryError;
+                if (it->is_regular_file(entryError) && it->path().extension() == ".cs")
+                    sources.push_back(it->path());
+            }
+
+            std::ranges::sort(sources);
+
+            for (const fs::path& source : sources)
+            {
+                Mix(hash, source.lexically_relative(assets).generic_string());
+                MixFile(hash, source);
+            }
+
+            return std::format("{:016x}", hash);
         }
 
         void ReportBuildOutput(const std::string& output)
@@ -109,6 +188,13 @@ namespace ByteForge
 
     void ScriptProject::Update(const bool canLoad)
     {
+        if (m_LoadPending && canLoad)
+        {
+            m_LoadPending = false;
+            LoadAssembly();
+            return;
+        }
+
         if (!IsBuilding() || !canLoad) return;
         if (m_Build.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
 
@@ -139,11 +225,18 @@ namespace ByteForge
 
         GenerateProjectFile();
 
-#ifdef BYTEFORGE_DEBUG
-        constexpr const char* Configuration = "Debug";
-#else
-        constexpr const char* Configuration = "Release";
-#endif
+        m_LoadPending = false;
+
+        const fs::path scriptCore = Platform::GetExecutableDirectory() / "ScriptCore" / "ScriptCore.dll";
+        m_PendingFingerprint = ComputeFingerprint(m_Root, scriptCore);
+
+        std::error_code error;
+        if (fs::exists(GetAssemblyFile(), error) && ReadFile(GetStampFile()) == m_PendingFingerprint)
+        {
+            APP_INFO("C# scripts are up to date, build skipped");
+            m_LoadPending = true;
+            return;
+        }
 
         std::vector<std::string> command{
             "dotnet", "build", GetProjectFile().string(),
@@ -180,8 +273,15 @@ namespace ByteForge
 
         APP_INFO("C# scripts built in {} ms", elapsed.count());
 
+        std::ofstream(GetStampFile(), std::ios::binary | std::ios::trunc) << m_PendingFingerprint;
+
+        LoadAssembly();
+    }
+
+    void ScriptProject::LoadAssembly() const
+    {
         if (ScriptBackend* backend = ScriptEngine::Get().FindBackendByName("C#"))
-            backend->LoadModule(GetOutputDirectory() / "GameScripts.dll");
+            backend->LoadModule(GetAssemblyFile());
     }
 
     Result<std::string> ScriptProject::FindClassForAsset(const UUID scriptAsset)
@@ -204,8 +304,10 @@ namespace ByteForge
         }
 
         if (matches.empty())
+        {
             return std::unexpected(std::format("No script class named '{}' in {} (class and file name must match, "
                                                "or the scripts need a reload)", expected, fileName));
+        }
 
         if (matches.size() > 1)
         {
