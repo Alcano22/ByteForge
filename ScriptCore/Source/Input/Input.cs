@@ -1,4 +1,3 @@
-using System.Numerics;
 using ByteForge.Interop;
 
 namespace ByteForge;

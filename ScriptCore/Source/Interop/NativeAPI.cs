@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace ByteForge.Interop;
 
 #pragma warning disable CS0649
