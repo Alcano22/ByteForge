@@ -5,19 +5,32 @@
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
+#include "Engine/Scripting/ScriptField.h"
 
 #include <cstdint>
+#include <variant>
 
 namespace ByteForge
 {
-    void AudioSystem::Update(Scene& scene)
+    void AudioSystem::Start(Scene& scene)
     {
-        scene.Each<AudioSourceComponent>([](const Entity, AudioSourceComponent& source)
-        {
-            if (static_cast<u64>(source.m_LoadedClip) != static_cast<u64>(source.Clip))
-                Reload(source);
+        AudioEngine& engine = AudioEngine::Get();
 
-            Apply(source);
+        scene.Each<ScriptComponent>([&engine](const Entity, const ScriptComponent& script)
+        {
+            for (const auto& [name, value] : script.Fields)
+            {
+                const auto* asset = std::get_if<AssetRef>(&value);
+                if (asset == nullptr || asset->Type != AssetType::AudioClip || !asset->IsSet()) continue;
+
+                AssetMetadata metadata;
+                if (!AssetRegistry::TryGetMetadata(asset->Handle, metadata)) continue;
+
+                const auto* settings = metadata.GetSettings<AudioClipSettings>();
+                if (settings != nullptr && settings->Stream) continue;
+
+                engine.Preload(AssetRegistry::Resolve(asset->Handle));
+            }
         });
     }
 
@@ -30,6 +43,18 @@ namespace ByteForge
         });
 
         AudioEngine::Get().StopAll(AudioBus::Game);
+        AudioEngine::Get().ClearCache();
+    }
+
+    void AudioSystem::Update(Scene& scene)
+    {
+        scene.Each<AudioSourceComponent>([](const Entity, AudioSourceComponent& source)
+        {
+            if (static_cast<u64>(source.m_LoadedClip) != static_cast<u64>(source.Clip))
+                Reload(source);
+
+            Apply(source);
+        });
     }
 
     void AudioSystem::Reload(AudioSourceComponent& source)

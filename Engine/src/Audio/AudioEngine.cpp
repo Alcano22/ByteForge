@@ -5,13 +5,14 @@
 
 #include <miniaudio.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstring>
-#include <vector>
-#include <algorithm>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace ByteForge
 {
@@ -193,6 +194,7 @@ namespace ByteForge
         ma_engine Engine{};
         std::array<ma_sound_group, AudioBusCount> Buses{};
         std::vector<Scope<OneShot>> OneShots;
+        std::set<fs::path> CachedFiles;
 
         template<typename Predicate>
         void ReleaseOneShots(Predicate shouldRelease)
@@ -205,6 +207,43 @@ namespace ByteForge
                 ma_sound_uninit(&oneShot->Sound);
                 return true;
             });
+        }
+
+        bool Cache(const fs::path& file)
+        {
+            if (CachedFiles.contains(file))
+                return true;
+
+            ma_resource_manager* manager = ma_engine_get_resource_manager(&Engine);
+#ifdef _WIN32
+            const ma_result result = ma_resource_manager_register_file_w(
+                manager, file.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
+#else
+            const ma_result result = ma_resource_manager_register_file(
+                manager, file.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
+#endif
+            if (result != MA_SUCCESS)
+            {
+                CORE_ERROR("AudioEngine: cannot load '{}': {}", file.string(), ma_result_description(result));
+                return false;
+            }
+
+            CachedFiles.insert(file);
+            return true;
+        }
+
+        void ClearCache()
+        {
+            ma_resource_manager* manager = ma_engine_get_resource_manager(&Engine);
+            for (const fs::path& file : CachedFiles)
+            {
+#ifdef _WIN32
+                ma_resource_manager_unregister_file_w(manager, file.c_str());
+#else
+                ma_resource_manager_unregister_file(manager, file.c_str());
+#endif
+            }
+            CachedFiles.clear();
         }
     };
 
@@ -220,7 +259,7 @@ namespace ByteForge
         ma_engine_config config = ma_engine_config_init();
         config.pResourceManagerVFS = &s_AssetVfs;
 
-        if (const ma_result result = ma_engine_init(nullptr, &impl->Engine); result != MA_SUCCESS)
+        if (const ma_result result = ma_engine_init(&config, &impl->Engine); result != MA_SUCCESS)
         {
             CORE_ERROR("Audio unavailable: {}", ma_result_description(result));
         } else
@@ -257,6 +296,7 @@ namespace ByteForge
         if (m_Impl)
         {
             m_Impl->ReleaseOneShots([](const OneShot&) { return true; });
+            m_Impl->ClearCache();
             for (ma_sound_group& bus : m_Impl->Buses)
                 ma_sound_group_uninit(&bus);
             ma_engine_uninit(&m_Impl->Engine);
@@ -290,6 +330,8 @@ namespace ByteForge
 
         m_Impl->ReleaseOneShots([](const OneShot& oneShot) { return ma_sound_at_end(&oneShot.Sound) == MA_TRUE; });
 
+        if (!m_Impl->Cache(file)) return;
+
         auto oneShot = MakeScope<OneShot>();
         oneShot->Bus = bus;
 
@@ -303,6 +345,18 @@ namespace ByteForge
 
         ma_sound_start(&oneShot->Sound);
         m_Impl->OneShots.push_back(std::move(oneShot));
+    }
+
+    void AudioEngine::Preload(const fs::path& file) const
+    {
+        if (m_Impl)
+            m_Impl->Cache(file);
+    }
+
+    void AudioEngine::ClearCache() const
+    {
+        if (m_Impl)
+            m_Impl->ClearCache();
     }
 
     void AudioEngine::StopAll(const AudioBus bus)

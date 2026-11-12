@@ -51,6 +51,9 @@ namespace ByteForge
 
         void PlayOneShot(const fs::path& file, AudioBus bus);
 
+        void Preload(const fs::path& file) const;
+        void ClearCache() const;
+
         void StopAll(AudioBus bus);
         void SetPaused(AudioBus bus, bool paused) const;
 

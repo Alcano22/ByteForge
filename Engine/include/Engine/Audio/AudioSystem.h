@@ -8,9 +8,10 @@ namespace ByteForge
     class AudioSystem
     {
     public:
-        static void Update(Scene& scene);
-
+        static void Start(Scene& scene);
         static void Stop(Scene& scene);
+
+        static void Update(Scene& scene);
 
     private:
         static void Reload(AudioSourceComponent& source);

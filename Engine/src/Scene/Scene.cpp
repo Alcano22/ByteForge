@@ -389,6 +389,7 @@ namespace ByteForge
 
         m_PhysicsWorld->EnsureBodiesCreated(*this);
 
+        AudioSystem::Start(*this);
         AudioSystem::Update(*this);
 
         m_ScriptRuntime = MakeScope<ScriptRuntime>(*this);
