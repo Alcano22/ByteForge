@@ -1,4 +1,7 @@
 #include "Platform/Vulkan/VulkanDeletionQueue.h"
+#include "Engine/Core/Log.h"
+
+#include <exception>
 
 namespace ByteForge
 {
@@ -23,6 +26,13 @@ namespace ByteForge
     {
         const auto destroy = std::move(m_Pending.front().Destroy);
         m_Pending.pop_front();
-        destroy();
+
+        try
+        {
+            destroy();
+        } catch (const std::exception& e)
+        {
+            CORE_ERROR("VulkanDeletionQueue: a deferred cleanup failed: {}", e.what());
+        }
     }
 }

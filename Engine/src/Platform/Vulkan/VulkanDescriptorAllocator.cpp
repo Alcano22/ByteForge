@@ -56,15 +56,23 @@ namespace ByteForge
         return sets;
     }
 
-    void VulkanDescriptorAllocator::Free(const std::span<const VkDescriptorSet> sets)
+    void VulkanDescriptorAllocator::Free(const std::span<const VkDescriptorSet> sets) noexcept
     {
         for (const VkDescriptorSet set : sets)
         {
             const auto it = m_PoolOfSet.find(set);
             if (it == m_PoolOfSet.end())
-                throw std::runtime_error("Tried to free a descriptor set that was not allocated here");
+            {
+                CORE_ERROR("VulkanDescriptorAllocator: tried to free a descriptor set that was not allocated here");
+                continue;
+            }
 
-            VK_CHECK(vkFreeDescriptorSets(m_Device.GetHandle(), it->second, 1, &set));
+            if (const VkResult result = vkFreeDescriptorSets(m_Device.GetHandle(), it->second, 1, &set);
+                result != VK_SUCCESS)
+            {
+                CORE_ERROR("VulkanDescriptorAllocator: vkFreeDescriptorSets failed ({})", VkResultToString(result));
+            }
+
             m_PoolOfSet.erase(it);
         }
     }

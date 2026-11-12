@@ -20,7 +20,7 @@ namespace ByteForge
 
         [[nodiscard]] std::vector<VkDescriptorSet> Allocate(VkDescriptorSetLayout layout, u32 count);
 
-        void Free(std::span<const VkDescriptorSet> sets);
+        void Free(std::span<const VkDescriptorSet> sets) noexcept;
 
     private:
         VkDescriptorPool CreatePool() const;
