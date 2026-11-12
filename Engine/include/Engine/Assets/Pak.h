@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Core/FileSystem.h"
 
 #include <cstddef>
 #include <fstream>
@@ -96,6 +97,4 @@ namespace ByteForge
         std::vector<PakEntry> m_Entries;
         std::map<std::string, usize, std::less<>> m_Index;
     };
-
-    [[nodiscard]] BYTEFORGE_API Result<std::vector<std::byte>> ReadBinaryFile(const fs::path& file);
 }

@@ -1,5 +1,6 @@
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 #include "Scripting/ScriptValueJson.h"
+#include "Engine/Core/FileSystem.h"
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -220,14 +221,6 @@ namespace ByteForge
 
     Result<> SaveScriptGraph(const ScriptGraph& graph, const fs::path& path)
     {
-        std::ofstream file(path);
-        if (!file.is_open())
-            return std::unexpected("the file cannot be written");
-
-        file << SerializeScriptGraph(graph).dump(4);
-        if (!file)
-            return std::unexpected("writing the file failed");
-
-        return {};
+        return WriteJsonFile(path, SerializeScriptGraph(graph));
     }
 }

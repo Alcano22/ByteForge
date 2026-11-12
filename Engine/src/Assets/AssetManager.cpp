@@ -3,6 +3,7 @@
 #include "Engine/Assets/Prefab.h"
 #include "Engine/Core/JobSystem.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Core/FileSystem.h"
 #include "Engine/Renderer/ImageDecoder.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
@@ -95,16 +96,12 @@ namespace ByteForge
 
         Result<> WritePhysicsMaterial(const fs::path& path, const PhysicsMaterial2D material)
         {
-            std::ofstream file(path);
-            if (!file.is_open())
-                return std::unexpected("the file cannot be opened for writing");
-
             const nlohmann::json data{
                 { "friction",   material.Friction   },
                 { "bounciness", material.Bounciness }
             };
-            file << data.dump(4);
-            return {};
+
+            return WriteJsonFile(path, data);
         }
     }
 

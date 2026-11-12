@@ -416,22 +416,4 @@ namespace ByteForge
 
         return data;
     }
-
-    Result<std::vector<std::byte>> ReadBinaryFile(const fs::path& file)
-    {
-        std::ifstream stream(file, std::ios::binary | std::ios::ate);
-        if (!stream.is_open())
-            return std::unexpected(std::format("cannot open '{}'", file.generic_string()));
-
-        const std::streamoff size = stream.tellg();
-        if (size < 0)
-            return std::unexpected(std::format("cannot read '{}'", file.generic_string()));
-
-        std::vector<std::byte> data(static_cast<usize>(size));
-        stream.seekg(0);
-        if (!ReadBytes(stream, data.data(), data.size()))
-            return std::unexpected(std::format("cannot read '{}'", file.generic_string()));
-
-        return data;
-    }
 }

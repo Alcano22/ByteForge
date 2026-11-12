@@ -1,4 +1,5 @@
 #include "Engine/Project/ProjectSettings.h"
+#include "Engine/Core/FileSystem.h"
 
 #include <nlohmann/json.hpp>
 
@@ -63,11 +64,6 @@ namespace ByteForge
             } }
         };
 
-        std::ofstream stream(file);
-        if (!stream.is_open())
-            return std::unexpected(std::format("cannot open '{}' for writing", file.string()));
-
-        stream << json.dump(4);
-        return {};
+        return WriteJsonFile(file, json);
     }
 }

@@ -1,6 +1,7 @@
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Assets/Pak.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Core/FileSystem.h"
 
 #include <nlohmann/json.hpp>
 
@@ -16,6 +17,8 @@ namespace ByteForge
         constexpr const char* MetaExtension = ".meta";
 
         bool IsMetaFile(const fs::path& path) { return path.extension() == MetaExtension; }
+
+        bool IsTemporaryFile(const fs::path& path) { return path.extension() == TemporaryFileExtension; }
 
         bool IsInside(const fs::path& path, const fs::path& directory)
         {
@@ -79,7 +82,7 @@ namespace ByteForge
 
         for (const auto& entry : fs::recursive_directory_iterator(s_AssetRoot))
         {
-            if (!entry.is_regular_file() || IsMetaFile(entry.path())) continue;
+            if (!entry.is_regular_file() || IsMetaFile(entry.path()) || IsTemporaryFile(entry.path())) continue;
 
             Import(fs::relative(entry.path(), s_AssetRoot));
         }
@@ -342,14 +345,8 @@ namespace ByteForge
         data["type"] = AssetTypeToString(metadata.Type);
         data["settings"] = SerializeAssetSettings(metadata.Settings);
 
-        std::ofstream file(absolutePath.string() + MetaExtension);
-        if (!file.is_open())
-        {
-            CORE_ERROR("AssetRegistry: could not write '{}.meta'", absolutePath.string());
-            return;
-        }
-
-        file << data.dump(4);
+        if (const auto written = WriteJsonFile(absolutePath.string() + MetaExtension, data); !written)
+            CORE_ERROR("AssetRegistry: {}", written.error());
     }
 
     bool AssetRegistry::ReadMeta(const fs::path& metaPath, AssetMetadata& outMetadata)

@@ -2,6 +2,7 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Components.h"
+#include "Engine/Core/FileSystem.h"
 #include "Engine/Assets/AssetManager.h"
 #include "Scripting/ScriptValueJson.h"
 
@@ -232,12 +233,8 @@ namespace ByteForge
 
     void SceneSerializer::SerializeToFile(Scene& scene, const std::string& filepath)
     {
-        std::ofstream file(filepath);
-        if (!file.is_open())
-            throw std::runtime_error(std::format("SceneSerializer::SerializeToFile: Could not open '{}' for writing",
-                                                 filepath));
-
-        file << Serialize(scene).dump(4);
+        if (const auto written = WriteJsonFile(filepath, Serialize(scene)); !written)
+            throw std::runtime_error(std::format("SceneSerializer::SerializeToFile: {}", written.error()));
     }
 
     bool SceneSerializer::DeserializeFromFile(Scene& scene, const std::string& filepath)

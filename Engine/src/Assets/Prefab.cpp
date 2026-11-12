@@ -1,5 +1,6 @@
 #include "Engine/Assets/Prefab.h"
 #include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Core/FileSystem.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/SceneSerializer.h"
@@ -81,14 +82,9 @@ namespace ByteForge
             { "scale",    ToJson(world.Scale)    }
         };
 
-        {
-            std::ofstream file(path);
-            if (!file.is_open())
-                return std::unexpected(std::format("cannot open '{}' for writing", relativePath.generic_string()));
-
-            const nlohmann::json data{ { "version", FormatVersion }, { "entities", std::move(entities) } };
-            file << data.dump(4);
-        }
+        const nlohmann::json data{ { "version", FormatVersion }, { "entities", std::move(entities) } };
+        if (const auto written = WriteJsonFile(path, data); !written)
+            return std::unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
     }

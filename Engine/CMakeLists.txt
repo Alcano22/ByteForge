@@ -22,6 +22,7 @@ add_library(Engine SHARED
         src/Core/LayerStack.cpp
         src/Core/JobSystem.cpp
         src/Core/Platform.cpp
+        src/Core/FileSystem.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
