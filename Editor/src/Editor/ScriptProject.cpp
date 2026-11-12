@@ -24,11 +24,6 @@ namespace ByteForge
     {
         constexpr const char* TargetFramework = "net10.0";
 
-        std::string Quote(const fs::path& path)
-        {
-            return std::format("\"{}\"", path.string());
-        }
-
         std::string ReadFile(const fs::path& path)
         {
             std::ifstream file(path, std::ios::binary);
@@ -150,8 +145,12 @@ namespace ByteForge
         constexpr const char* Configuration = "Release";
 #endif
 
-        std::string command = std::format("dotnet build {} -c {} -o {} --nologo -v quiet",
-                                          Quote(GetProjectFile()), Configuration, Quote(GetOutputDirectory()));
+        std::vector<std::string> command{
+            "dotnet", "build", GetProjectFile().string(),
+            "-c", Configuration,
+            "-o", GetOutputDirectory().string(),
+            "--nologo", "-v", "quiet"
+        };
 
         m_BuildStart = std::chrono::steady_clock::now();
 

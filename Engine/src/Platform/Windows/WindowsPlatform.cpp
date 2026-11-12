@@ -18,6 +18,45 @@
 
 namespace ByteForge
 {
+    namespace
+    {
+        std::wstring QuoteArgument(const std::wstring& argument)
+        {
+            if (!argument.empty() && argument.find_first_of(L" \t\n\v\"") == std::wstring::npos)
+                return argument;
+
+            std::wstring quoted = L"\"";
+            for (auto it = argument.begin();; ++it)
+            {
+                usize backslashes = 0;
+                while (it != argument.end() && *it == L'\\')
+                {
+                    ++it;
+                    ++backslashes;
+                }
+
+                if (it == argument.end())
+                {
+                    quoted.append(backslashes * 2, L'\\');
+                    break;
+                }
+
+                if (*it == L'"')
+                {
+                    quoted.append(backslashes * 2 + 1, L'\\');
+                    quoted.push_back(L'"');
+                } else
+                {
+                    quoted.append(backslashes, L'\\');
+                    quoted.push_back(*it);
+                }
+            }
+
+            quoted.push_back(L'"');
+            return quoted;
+        }
+    }
+
     SharedLibrary::SharedLibrary(const fs::path& path)
         : m_Handle(LoadLibraryW(path.c_str()))
     {
@@ -39,20 +78,69 @@ namespace ByteForge
         return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(m_Handle), name));
     }
 
-    Platform::ProcessResult Platform::RunProcess(const std::string& command)
+    Platform::ProcessResult Platform::RunProcess(const std::vector<std::string>& arguments)
     {
-        const std::string merged = command + " 2>&1";
+        if (arguments.empty())
+            return { .ExitCode = 127, .Output = "no program given" };
 
-        FILE* pipe = _popen(merged.c_str(), "r");
-        if (pipe == nullptr)
-            throw std::runtime_error(std::format("Platform: cannot run '{}'", command));
+        std::wstring commandLine;
+        for (const std::string& argument : arguments)
+        {
+            if (!commandLine.empty())
+                commandLine.push_back(L' ');
+            commandLine += QuoteArgument(fs::path(argument).wstring());
+        }
+
+        SECURITY_ATTRIBUTES security{
+            .nLength              = sizeof(SECURITY_ATTRIBUTES),
+            .lpSecurityDescriptor = nullptr,
+            .bInheritHandle       = TRUE
+        };
+
+        HANDLE readEnd = nullptr;
+        HANDLE writeEnd = nullptr;
+        if (!CreatePipe(&readEnd, &writeEnd, &security, 0))
+            throw std::runtime_error(std::format("Platform: cannot create a pipe (error {})", GetLastError()));
+
+        SetHandleInformation(readEnd, HANDLE_FLAG_INHERIT, 0);
+
+        STARTUPINFOW startup{};
+        startup.cb         = sizeof(startup);
+        startup.dwFlags    = STARTF_USESTDHANDLES;
+        startup.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+        startup.hStdOutput = writeEnd;
+        startup.hStdError  = writeEnd;
+
+        PROCESS_INFORMATION process{};
+        const BOOL created = CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, TRUE,
+                                            CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process);
+        CloseHandle(writeEnd);
+
+        if (!created)
+        {
+            const DWORD error = GetLastError();
+            CloseHandle(readEnd);
+            return {
+                .ExitCode = 127,
+                .Output   = std::format("cannot start '{}' (error {})", arguments.front(), error)
+            };
+        }
 
         ProcessResult result;
         std::array<char, 4096> buffer{};
-        while (fgets(buffer.data(), static_cast<i32>(buffer.size()), pipe) != nullptr)
-            result.Output += buffer.data();
+        DWORD count = 0;
+        while (ReadFile(readEnd, buffer.data(), static_cast<DWORD>(buffer.size()), &count, nullptr) && count > 0)
+            result.Output.append(buffer.data(), count);
+        CloseHandle(readEnd);
 
-        result.ExitCode = _pclose(pipe);
+        WaitForSingleObject(process.hProcess, INFINITE);
+
+        DWORD exitCode = 0;
+        GetExitCodeProcess(process.hProcess, &exitCode);
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
+
+        result.ExitCode = static_cast<i32>(exitCode);
         return result;
     }
 }

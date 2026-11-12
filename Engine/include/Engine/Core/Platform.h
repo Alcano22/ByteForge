@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace ByteForge::Platform
 {
@@ -17,5 +18,5 @@ namespace ByteForge::Platform
         std::string Output;
     };
 
-    [[nodiscard]] BYTEFORGE_API ProcessResult RunProcess(const std::string& command);
+    [[nodiscard]] BYTEFORGE_API ProcessResult RunProcess(const std::vector<std::string>& arguments);
 }

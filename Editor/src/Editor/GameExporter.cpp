@@ -297,7 +297,7 @@ namespace ByteForge
 
         Result<DotNetRuntime> FindDotNetRuntime()
         {
-            const Platform::ProcessResult listed = Platform::RunProcess("dotnet --list-runtimes");
+            const Platform::ProcessResult listed = Platform::RunProcess({ "dotnet", "--list-runtimes" });
             if (listed.ExitCode != 0)
                 return std::unexpected(std::format("'dotnet --list-runtimes' failed: {}", listed.Output));
 
