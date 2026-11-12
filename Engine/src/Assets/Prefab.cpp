@@ -34,11 +34,11 @@ namespace ByteForge
 
             const std::string name = metadata.Path.generic_string();
 
-            std::ifstream file(AssetRegistry::GetAssetRoot() / metadata.Path);
-            if (!file.is_open())
-                return std::unexpected(std::format("cannot open '{}'", name));
+            Result<nlohmann::json> loaded = AssetRegistry::ReadJson(handle);
+            if (!loaded)
+                return std::unexpected(loaded.error());
 
-            nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
+            nlohmann::json data = std::move(*loaded);
             if (!data.is_object() || !data.contains("entities") || !data.at("entities").is_array() ||
                 data.at("entities").empty())
             {

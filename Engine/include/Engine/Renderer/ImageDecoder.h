@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ByteForge
@@ -16,4 +18,6 @@ namespace ByteForge
     };
 
     [[nodiscard]] Result<DecodedImage> DecodeImage(const fs::path& path);
+
+    [[nodiscard]] Result<DecodedImage> DecodeImage(std::span<const std::byte> encoded, std::string_view name);
 }

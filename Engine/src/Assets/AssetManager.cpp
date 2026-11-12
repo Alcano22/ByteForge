@@ -51,12 +51,20 @@ namespace ByteForge
         {
             const TextureSettings* stored = metadata.GetSettings<TextureSettings>();
             const TextureSettings settings = stored != nullptr ? *stored : TextureSettings{};
-            const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
+            const fs::path path = metadata.Path;
 
             s_Pending.insert_or_assign(handle, JobSystem::Submit([path, settings]
             {
                 DecodedTexture result{ .Settings = settings };
-                if (auto image = DecodeImage(path))
+
+                Result<std::vector<std::byte>> encoded = AssetRegistry::ReadFile(path);
+                if (!encoded)
+                {
+                    result.Error = std::move(encoded.error());
+                    return result;
+                }
+
+                if (auto image = DecodeImage(*encoded, path.generic_string()))
                     result.Image = std::move(*image);
                 else
                     result.Error = std::move(image.error());
@@ -64,23 +72,20 @@ namespace ByteForge
             }));
         }
 
-        Result<PhysicsMaterial2D> ReadPhysicsMaterial(const fs::path& path)
+        Result<PhysicsMaterial2D> ReadPhysicsMaterial(const UUID handle)
         {
-            std::ifstream file(path);
-            if (!file.is_open())
-                return std::unexpected("the file cannot be opened");
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return std::unexpected(data.error());
+
+            if (!data->is_object())
+                return std::unexpected("expected a JSON object");
 
             try
             {
-                nlohmann::json data;
-                file >> data;
-
-                if (!data.is_object())
-                    return std::unexpected("expected a JSON object");
-
                 PhysicsMaterial2D material;
-                material.Friction = data.value("friction", material.Friction);
-                material.Bounciness = data.value("bounciness", material.Bounciness);
+                material.Friction = data->value("friction", material.Friction);
+                material.Bounciness = data->value("bounciness", material.Bounciness);
                 return material;
             } catch (const nlohmann::json::exception& e)
             {
@@ -143,7 +148,7 @@ namespace ByteForge
             return asset;
         }
 
-        if (auto material = ReadPhysicsMaterial(AssetRegistry::GetAssetRoot() / metadata.Path))
+        if (auto material = ReadPhysicsMaterial(handle))
             asset->m_Material = *material;
         else
             CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), material.error());
@@ -215,7 +220,7 @@ namespace ByteForge
 
         if (const auto it = s_PhysicsMaterials.find(handle); it != s_PhysicsMaterials.end())
         {
-            if (auto material = ReadPhysicsMaterial(AssetRegistry::GetAssetRoot() / metadata.Path))
+            if (auto material = ReadPhysicsMaterial(handle))
                 it->second->m_Material = *material;
             else
                 CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), material.error());

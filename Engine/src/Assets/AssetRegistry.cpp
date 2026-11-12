@@ -1,4 +1,5 @@
 #include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Assets/Pak.h"
 #include "Engine/Core/Log.h"
 
 #include <nlohmann/json.hpp>
@@ -6,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <format>
+#include <span>
 
 namespace ByteForge
 {
@@ -26,11 +28,36 @@ namespace ByteForge
         {
             return absolutePath.string() + MetaExtension;
         }
+
+        nlohmann::json ParseJson(const std::span<const std::byte> bytes)
+        {
+            const auto* begin = reinterpret_cast<const char*>(bytes.data());
+            return nlohmann::json::parse(begin, begin + bytes.size(), nullptr, false);
+        }
+
+        bool ParseMeta(const nlohmann::json& data, AssetMetadata& outMetadata)
+        {
+            if (!data.is_object() || !data.contains("uuid") || !data.contains("type"))
+                return false;
+
+            try
+            {
+                outMetadata.Handle = UUID(data.at("uuid").get<u64>());
+                outMetadata.Type = AssetTypeFromString(data.at("type").get<std::string>());
+                outMetadata.Settings = DeserializeAssetSettings(outMetadata.Type,
+                                                                data.value("settings", nlohmann::json::object()));
+                return true;
+            } catch (const nlohmann::json::exception&)
+            {
+                return false;
+            }
+        }
     }
 
     fs::path AssetRegistry::s_AssetRoot;
     std::unordered_map<UUID, AssetMetadata> AssetRegistry::s_Assets;
     std::unordered_map<std::string, UUID> AssetRegistry::s_PathToHandle;
+    Scope<PakArchive> AssetRegistry::s_Archive;
 
     u64 AssetRegistry::s_Revision = 0;
 
@@ -55,12 +82,57 @@ namespace ByteForge
         CORE_INFO("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), s_AssetRoot.string());
     }
 
+    Result<> AssetRegistry::Mount(const fs::path& archive)
+    {
+        Clear();
+
+        Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
+        if (!opened)
+            return std::unexpected(opened.error());
+
+        s_AssetRoot = "assets";
+
+        usize skipped = 0;
+        for (const PakEntry& entry : (*opened)->GetEntries())
+        {
+            const fs::path path(entry.Path);
+            if (IsMetaFile(path)) continue;
+
+            const Result<std::vector<std::byte>> meta = (*opened)->Read(entry.Path + MetaExtension);
+
+            AssetMetadata metadata;
+            if (!meta || !ParseMeta(ParseJson(*meta), metadata))
+            {
+                CORE_WARN("AssetRegistry: '{}' has no valid metadata in the archive and is skipped", entry.Path);
+                ++skipped;
+                continue;
+            }
+
+            metadata.Path = path;
+            s_PathToHandle[entry.Path] = metadata.Handle;
+            s_Assets[metadata.Handle] = std::move(metadata);
+        }
+
+        s_Archive = std::move(*opened);
+        ++s_Revision;
+
+        CORE_INFO("AssetRegistry: mounted {} asset(s) from '{}'{}", s_Assets.size(), archive.generic_string(),
+                  skipped > 0 ? std::format(" ({} skipped)", skipped) : std::string());
+        return {};
+    }
+
     UUID AssetRegistry::Import(const fs::path& relativePath)
     {
         const std::string key = relativePath.generic_string();
 
         if (const auto it = s_PathToHandle.find(key); it != s_PathToHandle.end())
             return it->second;
+
+        if (IsPacked())
+        {
+            CORE_ERROR("AssetRegistry: '{}' is not in the archive", key);
+            return UUID(0);
+        }
 
         const fs::path absolutePath = s_AssetRoot / relativePath;
         const fs::path metaPath = absolutePath.string() + MetaExtension;
@@ -97,6 +169,9 @@ namespace ByteForge
 
     Result<> AssetRegistry::Move(const fs::path& from, const fs::path& to)
     {
+        if (IsPacked())
+            return std::unexpected("the assets are packed and read-only");
+
         const fs::path fromNormal = from.lexically_normal();
         const fs::path toNormal = to.lexically_normal();
 
@@ -171,6 +246,40 @@ namespace ByteForge
         return s_AssetRoot / metadata.Path;
     }
 
+    Result<std::vector<std::byte>> AssetRegistry::Read(const UUID handle)
+    {
+        const auto it = s_Assets.find(handle);
+        if (it == s_Assets.end())
+            return std::unexpected(std::format("{} is not a known asset", static_cast<u64>(handle)));
+
+        return ReadFile(it->second.Path);
+    }
+
+    Result<std::vector<std::byte>> AssetRegistry::ReadFile(const fs::path& relativePath)
+    {
+        if (s_Archive)
+            return s_Archive->Read(relativePath.generic_string());
+
+        return ReadBinaryFile(s_AssetRoot / relativePath);
+    }
+
+    Result<nlohmann::json> AssetRegistry::ReadJson(const UUID handle)
+    {
+        const auto it = s_Assets.find(handle);
+        if (it == s_Assets.end())
+            return std::unexpected(std::format("{} is not a known asset", static_cast<u64>(handle)));
+
+        const Result<std::vector<std::byte>> bytes = ReadFile(it->second.Path);
+        if (!bytes)
+            return std::unexpected(bytes.error());
+
+        nlohmann::json data = ParseJson(*bytes);
+        if (data.is_discarded())
+            return std::unexpected(std::format("'{}' is not valid JSON", it->second.Path.generic_string()));
+
+        return data;
+    }
+
     std::vector<AssetMetadata> AssetRegistry::GetAssetsOfType(const AssetType type)
     {
         std::vector<AssetMetadata> result;
@@ -206,11 +315,14 @@ namespace ByteForge
         s_AssetRoot.clear();
         s_Assets.clear();
         s_PathToHandle.clear();
+        s_Archive.reset();
         ++s_Revision;
     }
 
     void AssetRegistry::WriteMeta(const fs::path& absolutePath, const AssetMetadata& metadata)
     {
+        if (IsPacked()) return;
+
         nlohmann::json data;
         data["uuid"] = static_cast<u64>(metadata.Handle);
         data["type"] = AssetTypeToString(metadata.Type);
@@ -232,23 +344,13 @@ namespace ByteForge
         if (!file.is_open())
             return false;
 
-        nlohmann::json data;
-        try
-        {
-            file >> data;
-        } catch (const nlohmann::json::parse_error&)
+        const nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
+        if (data.is_discarded())
         {
             CORE_ERROR("AssetRegistry: '{}' is not valid JSON", metaPath.string());
             return false;
         }
 
-        if (!data.contains("uuid") || !data.contains("type"))
-            return false;
-
-        outMetadata.Handle = UUID(data.at("uuid").get<u64>());
-        outMetadata.Type = AssetTypeFromString(data.at("type").get<std::string>());
-        outMetadata.Settings = DeserializeAssetSettings(outMetadata.Type,
-                                                        data.value("settings", nlohmann::json::object()));
-        return true;
+        return ParseMeta(data, outMetadata);
     }
 }

@@ -3,6 +3,9 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/AssetMetadata.h"
 
+#include <nlohmann/json_fwd.hpp>
+
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <unordered_map>
@@ -12,13 +15,18 @@
 
 namespace ByteForge
 {
+    class PakArchive;
+
     class BYTEFORGE_API AssetRegistry
     {
     public:
         static void Init(const fs::path& assetRoot);
 
+        [[nodiscard]] static Result<> Mount(const fs::path& archive);
+
         [[nodiscard]] static const fs::path& GetAssetRoot() { return s_AssetRoot; }
         [[nodiscard]] static u64 GetRevision() { return s_Revision; }
+        [[nodiscard]] static bool IsPacked() { return s_Archive != nullptr; }
 
         static UUID Import(const fs::path& relativePath);
         static Result<> Move(const fs::path& from,
@@ -28,6 +36,10 @@ namespace ByteForge
         [[nodiscard]] static UUID GetHandle(const fs::path& relativePath);
 
         [[nodiscard]] static fs::path Resolve(UUID handle);
+
+        [[nodiscard]] static Result<std::vector<std::byte>> Read(UUID handle);
+        [[nodiscard]] static Result<std::vector<std::byte>> ReadFile(const fs::path& relativePath);
+        [[nodiscard]] static Result<nlohmann::json> ReadJson(UUID handle);
 
         [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
 
@@ -43,6 +55,7 @@ namespace ByteForge
         static fs::path s_AssetRoot;
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
+        static Scope<PakArchive> s_Archive;
 
         static u64 s_Revision;
     };

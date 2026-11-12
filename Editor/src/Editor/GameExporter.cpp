@@ -3,6 +3,7 @@
 #include "Editor/FileDialogs.h"
 
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Pak.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Project/ProjectSettings.h>
@@ -11,6 +12,7 @@
 #include <format>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 namespace ByteForge
 {
@@ -153,10 +155,59 @@ namespace ByteForge
             const std::string name = relative.filename().string();
             return name.ends_with(".cs") || name.ends_with(".cs.meta");
         }
+
+        Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive)
+        {
+            std::vector<fs::path> files;
+
+            std::error_code error;
+            fs::recursive_directory_iterator it(assetsDirectory, error);
+            for (const fs::recursive_directory_iterator end; !error && it != end; it.increment(error))
+            {
+                if (!it->is_regular_file()) continue;
+
+                fs::path relative = fs::relative(it->path(), assetsDirectory);
+                if (!IsScriptSource(relative))
+                    files.push_back(std::move(relative));
+            }
+
+            if (error)
+            {
+                return std::unexpected(std::format("cannot read '{}': {}",
+                                                   assetsDirectory.generic_string(), error.message()));
+            }
+
+            std::ranges::sort(files, {}, [](const fs::path& path) { return path.generic_string(); });
+
+            Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
+            if (!writer)
+                return std::unexpected(writer.error());
+
+            for (const fs::path& relative : files)
+            {
+                if (const auto added = (*writer)->AddFile(relative.generic_string(), assetsDirectory / relative); !added)
+                    return std::unexpected(added.error());
+            }
+
+            return (*writer)->Finish();
+        }
+
+        Result<> VerifyArchive(const fs::path& archive)
+        {
+            const Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
+            if (!opened)
+                return std::unexpected(opened.error());
+
+            for (const PakEntry& entry : (*opened)->GetEntries())
+            {
+                if (const auto data = (*opened)->Read(entry.Path); !data)
+                    return std::unexpected(data.error());
+            }
+            return {};
+        }
     }
 
-    Result<ExportResult> GameExporter::Export(const fs::path& projectRoot,
-                                                                  const fs::path& outputRoot)
+    Result<ExportResult> GameExporter::Export(const fs::path& projectRoot, const fs::path& outputRoot)
     {
         const fs::path editorDirectory = Platform::GetExecutableDirectory();
         const fs::path assetsDirectory = projectRoot / "assets";
@@ -238,6 +289,18 @@ namespace ByteForge
             return std::unexpected(assets.error());
         result.FileCount += *assets;
 
+        const fs::path archive = output / std::format("assets{}", PakExtension);
+
+        const Result<PakStats> packed = PackAssets(assetsDirectory, archive);
+        if (!packed)
+            return std::unexpected(std::format("cannot pack the assets: {}", packed.error()));
+
+        if (const auto verified = VerifyArchive(archive); !verified)
+            return std::unexpected(std::format("the asset archive is broken: {}", verified.error()));
+
+        result.Archive = *packed;
+        ++result.FileCount;
+
         if (hasAssembly)
         {
             if (const auto copied = CopySingleFile(gameScripts,
@@ -256,7 +319,7 @@ namespace ByteForge
         return result;
     }
 
-    void ExportGameWithDialog(EditorContext& context)
+    void ExportGameWithDialog(const EditorContext& context)
     {
         if (!context.IsEditing())
         {
@@ -278,6 +341,13 @@ namespace ByteForge
             APP_ERROR("Export failed: {}", result.error());
             return;
         }
+
+        const PakStats& archive = result->Archive;
+        const f64 ratio = archive.Size > 0
+                        ? 100.0 * static_cast<f64>(archive.StoredSize) / static_cast<f64>(archive.Size)
+                        : 100.0;
+        APP_INFO("Packed {} asset file(s): {:.1f} KiB -> {:.1f} KiB ({:.0f}%)", archive.FileCount,
+                 static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
 
         APP_INFO("Exported {} file(s) to '{}'", result->FileCount, result->Directory.generic_string());
     }

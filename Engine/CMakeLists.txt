@@ -12,6 +12,7 @@ find_package(box2d CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-nethost CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h" REQUIRED)
 
 add_library(Engine SHARED
@@ -33,6 +34,7 @@ add_library(Engine SHARED
         src/Assets/AssetRegistry.cpp
         src/Assets/AssetSettings.cpp
         src/Assets/Prefab.cpp
+        src/Assets/Pak.cpp
         src/Audio/AudioEngine.cpp
         src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp
@@ -155,6 +157,7 @@ target_link_libraries(Engine PRIVATE
         unofficial::spirv-reflect
         box2d::box2d
         unofficial::nethost::nethost
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
         ${CMAKE_DL_LIBS}
 )
 

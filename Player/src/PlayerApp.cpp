@@ -1,4 +1,5 @@
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Pak.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
 #include <Engine/Core/Layer.h>
@@ -13,6 +14,8 @@
 #include <Engine/Scene/SceneCamera.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Scripting/ScriptEngine.h>
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -73,7 +76,7 @@ namespace ByteForge
 
         void OnAttach() override
         {
-            AssetRegistry::Init("assets");
+            MountAssets();
 
             LoadGameScripts();
             LoadStartScene();
@@ -135,6 +138,22 @@ namespace ByteForge
             });
         }
 
+        static void MountAssets()
+        {
+            const fs::path archive = std::format("assets{}", PakExtension);
+            if (!fs::exists(archive))
+            {
+                AssetRegistry::Init("assets");
+                return;
+            }
+
+            if (const auto mounted = AssetRegistry::Mount(archive); !mounted)
+            {
+                throw std::runtime_error(std::format("PlayerLayer: cannot mount '{}': {}",
+                                                     archive.generic_string(), mounted.error()));
+            }
+        }
+
         static void LoadGameScripts()
         {
             const fs::path assembly = GetGameScriptsPath();
@@ -168,8 +187,12 @@ namespace ByteForge
 
             const std::string name = metadata.Path.generic_string();
 
-            if (!SceneSerializer::DeserializeFromFile(m_Scene, AssetRegistry::Resolve(m_Settings.StartScene).string()))
-                throw std::runtime_error(std::format("PlayerLayer::LoadStartScene: could not read scene '{}'", name));
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(m_Settings.StartScene);
+            if (!data)
+                throw std::runtime_error(std::format("PlayerLayer::LoadStartScene: could not read scene '{}': {}",
+                                                     name, data.error()));
+
+            SceneSerializer::Deserialize(m_Scene, *data);
 
             APP_INFO("Loaded start scene '{}'", name);
         }

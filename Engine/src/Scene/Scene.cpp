@@ -423,11 +423,15 @@ namespace ByteForge
 
         const std::string name = metadata.Path.generic_string();
 
-        std::ifstream file(AssetRegistry::Resolve(handle));
-        const nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
-        if (!data.is_object() || !data.contains("entities"))
+        const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+        if (!data)
         {
-            CORE_ERROR("Cannot load scene '{}': the file is missing or invalid", name);
+            CORE_ERROR("Cannot load scene '{}': {}", name, data.error());
+            return;
+        }
+        if (!data->is_object() || !data->contains("entities"))
+        {
+            CORE_ERROR("Cannot load scene '{}': the file is not a valid scene", name);
             return;
         }
 
@@ -435,7 +439,7 @@ namespace ByteForge
 
         try
         {
-            SceneSerializer::Deserialize(*this, data);
+            SceneSerializer::Deserialize(*this, *data);
         } catch (const std::exception& e)
         {
             CORE_ERROR("Scene '{}' could not be loaded completely: {}", name, e.what());

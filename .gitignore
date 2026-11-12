@@ -39,3 +39,4 @@ context.txt
 # OS
 .DS_Store
 Thumbs.dbbuild-*/
+build-*/

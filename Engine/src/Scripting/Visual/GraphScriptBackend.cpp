@@ -71,7 +71,9 @@ namespace ByteForge
                 .DisplayName = fs::path(metadata.Path).replace_extension().generic_string()
             };
 
-            if (auto graph = LoadScriptGraph(AssetRegistry::GetAssetRoot() / metadata.Path); !graph)
+            if (auto data = AssetRegistry::ReadJson(metadata.Handle); !data)
+                graphClass.Error = std::format("cannot load: {}", data.error());
+            else if (auto graph = LoadScriptGraph(AssetRegistry::GetAssetRoot() / metadata.Path); !graph)
                 graphClass.Error = std::format("cannot load: {}", graph.error());
             else if (auto program = CompileScriptGraph(*graph); !program)
                 graphClass.Error = program.error();
