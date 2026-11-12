@@ -18,10 +18,10 @@ namespace ByteForge
     class BYTEFORGE_API Prefab
     {
     public:
-        [[nodiscard]] static std::expected<UUID, std::string> Create(Entity root,
+        [[nodiscard]] static Result<UUID> Create(Entity root,
                                                                      const fs::path& relativePath);
 
-        [[nodiscard]] static std::expected<Entity, std::string> Instantiate(
+        [[nodiscard]] static Result<Entity> Instantiate(
             Scene& scene, UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
 
         static void Invalidate(UUID handle);

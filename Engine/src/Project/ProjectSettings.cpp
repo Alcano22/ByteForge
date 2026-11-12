@@ -12,7 +12,7 @@ namespace ByteForge
         constexpr i32 FormatVersion = 1;
     }
 
-    std::expected<ProjectSettings, std::string> ProjectSettings::Load(const fs::path& file)
+    Result<ProjectSettings> ProjectSettings::Load(const fs::path& file)
     {
         std::ifstream stream(file);
         if (!stream.is_open())
@@ -50,7 +50,7 @@ namespace ByteForge
         return settings;
     }
 
-    std::expected<void, std::string> ProjectSettings::Save(const fs::path& file) const
+    Result<> ProjectSettings::Save(const fs::path& file) const
     {
         const nlohmann::json json{
             { "version",    FormatVersion },

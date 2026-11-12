@@ -95,7 +95,7 @@ namespace ByteForge
         return metadata.Handle;
     }
 
-    std::expected<void, std::string> AssetRegistry::Move(const fs::path& from, const fs::path& to)
+    Result<> AssetRegistry::Move(const fs::path& from, const fs::path& to)
     {
         const fs::path fromNormal = from.lexically_normal();
         const fs::path toNormal = to.lexically_normal();

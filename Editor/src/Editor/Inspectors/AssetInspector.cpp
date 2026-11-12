@@ -62,7 +62,7 @@ namespace ByteForge::EditorUI
         void DrawScriptGraphInspector(const AssetMetadata& metadata)
         {
             static u64 s_Handle = 0;
-            static std::expected<ScriptGraph, std::string> s_Graph = std::unexpected(std::string());
+            static Result<ScriptGraph> s_Graph = std::unexpected(std::string());
             static std::vector<GraphDiagnostic> s_Diagnostics;
 
             const bool reload = ImGui::Button("Reload");

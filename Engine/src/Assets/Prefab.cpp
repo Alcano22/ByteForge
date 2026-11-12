@@ -23,7 +23,7 @@ namespace ByteForge
 
         std::unordered_map<UUID, nlohmann::json> s_Cache;
 
-        std::expected<const nlohmann::json*, std::string> LoadEntities(const UUID handle)
+        Result<const nlohmann::json*> LoadEntities(const UUID handle)
         {
             if (const auto it = s_Cache.find(handle); it != s_Cache.end())
                 return &it->second;
@@ -58,7 +58,7 @@ namespace ByteForge
         }
     }
 
-    std::expected<UUID, std::string> Prefab::Create(const Entity root, const fs::path& relativePath)
+    Result<UUID> Prefab::Create(const Entity root, const fs::path& relativePath)
     {
         if (!root.IsValid())
             return std::unexpected("the entity is not valid");
@@ -93,7 +93,7 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
-    std::expected<Entity, std::string> Prefab::Instantiate(Scene& scene, const UUID handle, const Entity parent,
+    Result<Entity> Prefab::Instantiate(Scene& scene, const UUID handle, const Entity parent,
                                                            const std::optional<glm::vec2> position)
     {
         const auto loaded = LoadEntities(handle);

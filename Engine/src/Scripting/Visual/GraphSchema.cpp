@@ -277,7 +277,7 @@ namespace ByteForge
         return from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Float;
     }
 
-    std::expected<PinType, std::string> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
+    Result<PinType> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
     {
         if (static_cast<u64>(from.Node) == static_cast<u64>(to.Node))
             return std::unexpected("A node cannot connect to itself");

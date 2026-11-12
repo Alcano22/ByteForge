@@ -29,20 +29,20 @@ namespace ByteForge
     GraphDocument::GraphDocument(const UUID asset, std::string name, ScriptGraph graph)
         : m_Asset(asset), m_Name(std::move(name)), m_Graph(std::move(graph)), m_Diagnostics(ValidateGraph(m_Graph)) {}
 
-    std::expected<Scope<GraphDocument>, std::string> GraphDocument::Open(const UUID asset)
+    Result<Scope<GraphDocument>> GraphDocument::Open(const UUID asset)
     {
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(asset, metadata) || metadata.Type != AssetType::ScriptGraph)
             return std::unexpected("The asset is not a script graph");
 
-        std::expected<ScriptGraph, std::string> graph = LoadScriptGraph(AssetRegistry::Resolve(asset));
+        Result<ScriptGraph> graph = LoadScriptGraph(AssetRegistry::Resolve(asset));
         if (!graph)
             return std::unexpected(graph.error());
 
         return MakeScope<GraphDocument>(asset, metadata.Path.stem().string(), std::move(*graph));
     }
 
-    std::expected<void, std::string> GraphDocument::Save()
+    Result<> GraphDocument::Save()
     {
         if (auto saved = SaveScriptGraph(m_Graph, AssetRegistry::Resolve(m_Asset)); !saved)
             return saved;
@@ -60,7 +60,7 @@ namespace ByteForge
 
     void GraphDocument::Restore(const nlohmann::json& snapshot)
     {
-        std::expected<ScriptGraph, std::string> graph = DeserializeScriptGraph(snapshot);
+        Result<ScriptGraph> graph = DeserializeScriptGraph(snapshot);
         if (!graph)
             throw std::runtime_error(std::format("Cannot restore the graph: {}", graph.error()));
 

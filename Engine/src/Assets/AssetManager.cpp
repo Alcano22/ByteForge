@@ -64,7 +64,7 @@ namespace ByteForge
             }));
         }
 
-        std::expected<PhysicsMaterial2D, std::string> ReadPhysicsMaterial(const fs::path& path)
+        Result<PhysicsMaterial2D> ReadPhysicsMaterial(const fs::path& path)
         {
             std::ifstream file(path);
             if (!file.is_open())
@@ -88,7 +88,7 @@ namespace ByteForge
             }
         }
 
-        std::expected<void, std::string> WritePhysicsMaterial(const fs::path& path, const PhysicsMaterial2D material)
+        Result<> WritePhysicsMaterial(const fs::path& path, const PhysicsMaterial2D material)
         {
             std::ofstream file(path);
             if (!file.is_open())
@@ -173,7 +173,7 @@ namespace ByteForge
         return true;
     }
 
-    std::expected<UUID, std::string> AssetManager::CreatePhysicsMaterial(const fs::path& relativePath)
+    Result<UUID> AssetManager::CreatePhysicsMaterial(const fs::path& relativePath)
     {
         const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
 
@@ -187,7 +187,7 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
-    std::expected<UUID, std::string> AssetManager::CreateScriptGraph(const fs::path& relativePath)
+    Result<UUID> AssetManager::CreateScriptGraph(const fs::path& relativePath)
     {
         const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
 

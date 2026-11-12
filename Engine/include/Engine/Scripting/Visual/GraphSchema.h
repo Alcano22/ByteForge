@@ -41,7 +41,7 @@ namespace ByteForge
 
     [[nodiscard]] BYTEFORGE_API bool IsAssignable(const PinType& from, const PinType& to);
 
-    [[nodiscard]] BYTEFORGE_API std::expected<PinType, std::string> CanConnect(const ScriptGraph& graph,
+    [[nodiscard]] BYTEFORGE_API Result<PinType> CanConnect(const ScriptGraph& graph,
                                                                                const PinRef& from, const PinRef& to);
 
     enum class GraphSeverity : u8 { Warning, Error };

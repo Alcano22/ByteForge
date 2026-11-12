@@ -17,7 +17,7 @@ namespace ByteForge
     class GameExporter
     {
     public:
-        [[nodiscard]] static std::expected<ExportResult, std::string> Export(
+        [[nodiscard]] static Result<ExportResult> Export(
             const fs::path& projectRoot, const fs::path& outputRoot);
     };
 

@@ -7,5 +7,5 @@
 
 namespace ByteForge
 {
-    [[nodiscard]] std::expected<GraphProgram, std::string> CompileScriptGraph(const ScriptGraph& graph);
+    [[nodiscard]] Result<GraphProgram> CompileScriptGraph(const ScriptGraph& graph);
 }

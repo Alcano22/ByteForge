@@ -76,9 +76,9 @@ namespace ByteForge
         std::erase_if(m_Nodes, [key](const GraphNode& node) { return static_cast<u64>(node.Id) == key; });
     }
 
-    std::expected<void, std::string> ScriptGraph::Connect(const PinRef& from, const PinRef& to)
+    Result<> ScriptGraph::Connect(const PinRef& from, const PinRef& to)
     {
-        const std::expected<PinType, std::string> type = CanConnect(*this, from, to);
+        const Result<PinType> type = CanConnect(*this, from, to);
         if (!type)
             return std::unexpected(type.error());
 
@@ -107,7 +107,7 @@ namespace ByteForge
         });
     }
 
-    std::expected<UUID, std::string> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
+    Result<UUID> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
     {
         if (auto valid = CheckVariableName(name, UUID(0)); !valid)
             return std::unexpected(valid.error());
@@ -119,7 +119,7 @@ namespace ByteForge
         }).Id;
     }
 
-    std::expected<void, std::string> ScriptGraph::RenameVariable(const UUID id, std::string name)
+    Result<> ScriptGraph::RenameVariable(const UUID id, std::string name)
     {
         const auto it = std::ranges::find(m_Variables, static_cast<u64>(id),
                                           [](const GraphVariable& variable)
@@ -154,7 +154,7 @@ namespace ByteForge
         });
     }
 
-    std::expected<void, std::string> ScriptGraph::CheckVariableName(const std::string_view name,
+    Result<> ScriptGraph::CheckVariableName(const std::string_view name,
                                                                     const UUID ignore) const
     {
         if (name.empty())

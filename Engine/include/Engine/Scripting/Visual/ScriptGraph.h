@@ -123,17 +123,17 @@ namespace ByteForge
         UUID AddNode(NodeData data, glm::vec2 position);
         void RemoveNode(UUID id);
 
-        std::expected<void, std::string> Connect(const PinRef& from, const PinRef& to);
+        Result<> Connect(const PinRef& from, const PinRef& to);
         void Disconnect(const PinRef& pin, PinDirection direction);
 
         void RemoveLink(const GraphLink& link);
 
-        std::expected<UUID, std::string> AddVariable(std::string name, ScriptValue defaultValue);
-        std::expected<void, std::string> RenameVariable(UUID id, std::string name);
+        Result<UUID> AddVariable(std::string name, ScriptValue defaultValue);
+        Result<> RenameVariable(UUID id, std::string name);
         void RemoveVariable(UUID id);
 
     private:
-        [[nodiscard]] std::expected<void, std::string> CheckVariableName(std::string_view name, UUID ignore) const;
+        [[nodiscard]] Result<> CheckVariableName(std::string_view name, UUID ignore) const;
 
     public:
         static constexpr i32 FormatVersion = 1;

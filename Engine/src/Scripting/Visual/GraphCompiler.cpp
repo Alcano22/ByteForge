@@ -24,7 +24,7 @@ namespace ByteForge
             explicit Compiler(const ScriptGraph& graph)
                 : m_Graph(graph) {}
 
-            std::expected<GraphProgram, std::string> Run()
+            Result<GraphProgram> Run()
             {
                 if (std::optional<std::string> error = FirstError())
                     return std::unexpected(std::move(*error));
@@ -303,7 +303,7 @@ namespace ByteForge
         };
     }
 
-    std::expected<GraphProgram, std::string> CompileScriptGraph(const ScriptGraph& graph)
+    Result<GraphProgram> CompileScriptGraph(const ScriptGraph& graph)
     {
         return Compiler(graph).Run();
     }

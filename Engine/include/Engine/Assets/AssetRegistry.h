@@ -21,7 +21,7 @@ namespace ByteForge
         [[nodiscard]] static u64 GetRevision() { return s_Revision; }
 
         static UUID Import(const fs::path& relativePath);
-        static std::expected<void, std::string> Move(const fs::path& from,
+        static Result<> Move(const fs::path& from,
                                                      const fs::path& to);
 
         [[nodiscard]] static bool TryGetMetadata(UUID handle, AssetMetadata& outMetadata);

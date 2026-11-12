@@ -25,10 +25,10 @@ namespace ByteForge
         static void SetPhysicsMaterial(UUID handle, const PhysicsMaterial2D& material);
         static bool SavePhysicsMaterial(UUID handle);
 
-        [[nodiscard]] static std::expected<UUID, std::string> CreatePhysicsMaterial(
+        [[nodiscard]] static Result<UUID> CreatePhysicsMaterial(
             const fs::path& relativePath);
 
-        [[nodiscard]] static std::expected<UUID, std::string> CreateScriptGraph(
+        [[nodiscard]] static Result<UUID> CreateScriptGraph(
             const fs::path& relativePath);
 
         static void Reload(UUID handle);

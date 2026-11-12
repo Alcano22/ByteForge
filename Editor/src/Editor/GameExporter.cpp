@@ -55,7 +55,7 @@ namespace ByteForge
             return !relative.empty() && *relative.begin() != "..";
         }
 
-        std::expected<void, std::string> CopySingleFile(const fs::path& from, const fs::path& to)
+        Result<> CopySingleFile(const fs::path& from, const fs::path& to)
         {
             std::error_code error;
             fs::create_directories(to.parent_path(), error);
@@ -76,7 +76,7 @@ namespace ByteForge
         }
 
         template<typename Filter>
-        std::expected<usize, std::string> CopyTree(const fs::path& from, const fs::path& to, Filter&& include)
+        Result<usize> CopyTree(const fs::path& from, const fs::path& to, Filter&& include)
         {
             std::error_code error;
             fs::recursive_directory_iterator it(from, error);
@@ -104,7 +104,7 @@ namespace ByteForge
             return copied;
         }
 
-        std::expected<usize, std::string> CopyRuntime(const fs::path& from, const fs::path& to,
+        Result<usize> CopyRuntime(const fs::path& from, const fs::path& to,
                                                       const std::string& executableName)
         {
             std::error_code error;
@@ -155,7 +155,7 @@ namespace ByteForge
         }
     }
 
-    std::expected<ExportResult, std::string> GameExporter::Export(const fs::path& projectRoot,
+    Result<ExportResult> GameExporter::Export(const fs::path& projectRoot,
                                                                   const fs::path& outputRoot)
     {
         const fs::path editorDirectory = Platform::GetExecutableDirectory();

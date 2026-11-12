@@ -179,7 +179,7 @@ namespace ByteForge
             backend->LoadModule(GetOutputDirectory() / "GameScripts.dll");
     }
 
-    std::expected<std::string, std::string> ScriptProject::FindClassForAsset(const UUID scriptAsset)
+    Result<std::string> ScriptProject::FindClassForAsset(const UUID scriptAsset)
     {
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(scriptAsset, metadata) || metadata.Type != AssetType::Script)

@@ -59,8 +59,8 @@ namespace ByteForge::EditorUI
 
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayloadType, flags))
             {
-                const std::expected<std::string, std::string> className = dragged->Type == AssetType::ScriptGraph
-                    ? std::expected<std::string, std::string>(ScriptGraphClassName(UUID(dragged->Handle)))
+                const Result<std::string> className = dragged->Type == AssetType::ScriptGraph
+                    ? Result<std::string>(ScriptGraphClassName(UUID(dragged->Handle)))
                     : ScriptProject::FindClassForAsset(UUID(dragged->Handle));
 
                 const ImU32 color = className ? ImGui::GetColorU32(ImGuiCol_DragDropTarget) : ImGui::GetColorU32(ErrorColor);
@@ -222,7 +222,7 @@ namespace ByteForge::EditorUI
 
     void DrawScriptAssetInspector(const UUID handle)
     {
-        const std::expected<std::string, std::string> className = ScriptProject::FindClassForAsset(handle);
+        const Result<std::string> className = ScriptProject::FindClassForAsset(handle);
         if (className)
             ImGui::Text("Class: %s", className->c_str());
         else

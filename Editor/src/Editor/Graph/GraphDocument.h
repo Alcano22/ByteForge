@@ -22,7 +22,7 @@ namespace ByteForge
     public:
         GraphDocument(UUID asset, std::string name, ScriptGraph graph);
 
-        [[nodiscard]] static std::expected<Scope<GraphDocument>, std::string> Open(UUID asset);
+        [[nodiscard]] static Result<Scope<GraphDocument>> Open(UUID asset);
 
         [[nodiscard]] UUID GetAsset() const { return m_Asset; }
         [[nodiscard]] const std::string& GetName() const { return m_Name; }
@@ -48,7 +48,7 @@ namespace ByteForge
         [[nodiscard]] bool CanUndo() const { return m_History.CanUndo(); }
         [[nodiscard]] bool CanRedo() const { return m_History.CanRedo(); }
 
-        std::expected<void, std::string> Save();
+        Result<> Save();
 
     private:
         void Commit(std::string name, nlohmann::json before);

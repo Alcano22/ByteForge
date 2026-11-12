@@ -25,7 +25,7 @@ namespace ByteForge
         [[nodiscard]] bool IsBuilding() const { return m_Build.valid(); }
         [[nodiscard]] f32 GetBuildSeconds() const;
 
-        [[nodiscard]] static std::expected<std::string, std::string> FindClassForAsset(UUID scriptAsset);
+        [[nodiscard]] static Result<std::string> FindClassForAsset(UUID scriptAsset);
 
     private:
         void StartBuild();

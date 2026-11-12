@@ -21,7 +21,7 @@ namespace ByteForge
         u32 WindowWidth = 1280;
         u32 WindowHeight = 720;
 
-        [[nodiscard]] static std::expected<ProjectSettings, std::string> Load(const fs::path& file);
-        [[nodiscard]] std::expected<void, std::string> Save(const fs::path& file) const;
+        [[nodiscard]] static Result<ProjectSettings> Load(const fs::path& file);
+        [[nodiscard]] Result<> Save(const fs::path& file) const;
     };
 }

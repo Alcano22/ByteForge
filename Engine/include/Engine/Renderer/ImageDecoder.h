@@ -15,5 +15,5 @@ namespace ByteForge
         std::vector<std::byte> Pixels;
     };
 
-    [[nodiscard]] std::expected<DecodedImage, std::string> DecodeImage(const fs::path& path);
+    [[nodiscard]] Result<DecodedImage> DecodeImage(const fs::path& path);
 }
