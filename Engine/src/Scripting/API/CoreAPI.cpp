@@ -183,13 +183,7 @@ namespace ByteForge
 
         void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
         {
-            const Entity target = context.Resolve(entity);
-
-            const auto* rigidbody = target.TryGetComponent<Rigidbody2DComponent>();
-            if (rigidbody == nullptr) return;
-
-            const TransformComponent world = target.GetWorldTransform();
-            rigidbody->Teleport({ world.Position.x, world.Position.y }, world.Rotation);
+            RequireScene(context).SyncRuntimeBodies(context.Resolve(entity));
         }
 
         glm::vec3 TransformGetPosition(const ScriptCallContext& context, const EntityRef entity)

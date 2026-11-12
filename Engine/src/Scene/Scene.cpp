@@ -455,6 +455,25 @@ namespace ByteForge
             m_PhysicsWorld->EnsureBodyCreated(entity);
     }
 
+    void Scene::SyncRuntimeBodies(const Entity root)
+    {
+        if (const auto* rigidbody = root.TryGetComponent<Rigidbody2DComponent>();
+            rigidbody != nullptr && rigidbody->HasRuntimeBody())
+        {
+            const TransformComponent world = root.GetWorldTransform();
+            rigidbody->Teleport({ world.Position.x, world.Position.y }, world.Rotation);
+        }
+
+        for (const Entity child : GetChildren(root))
+            SyncRuntimeBodies(child);
+    }
+
+    void Scene::RebuildRuntimeBody(const Entity entity)
+    {
+        if (m_PhysicsWorld)
+            m_PhysicsWorld->RebuildBody(entity);
+    }
+
     ScriptInstance* Scene::FindScriptInstance(const Entity entity) const
     {
         return m_ScriptRuntime ? m_ScriptRuntime->FindInstance(entity.m_Handle) : nullptr;

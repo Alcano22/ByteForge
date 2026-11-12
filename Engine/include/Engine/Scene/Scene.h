@@ -65,6 +65,8 @@ namespace ByteForge
         void RequestSceneLoad(UUID sceneAsset);
 
         void EnsureRuntimeBody(Entity entity);
+        void SyncRuntimeBodies(Entity root);
+        void RebuildRuntimeBody(Entity entity);
 
         [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity) const;
 

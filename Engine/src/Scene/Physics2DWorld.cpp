@@ -6,7 +6,10 @@
 
 #include <entt/entt.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -171,6 +174,25 @@ namespace ByteForge
             CreateBody(entity);
     }
 
+    void Physics2DWorld::RebuildBody(const Entity entity) const
+    {
+        auto* rigidbody = entity.TryGetComponent<Rigidbody2DComponent>();
+        if (rigidbody == nullptr || rigidbody->m_RuntimeBodyId == 0) return;
+
+        const b2BodyId old = b2LoadBodyId(rigidbody->m_RuntimeBodyId);
+        const b2Vec2 linearVelocity = b2Body_GetLinearVelocity(old);
+        const f32 angularVelocity = b2Body_GetAngularVelocity(old);
+
+        b2DestroyBody(old);
+        rigidbody->m_RuntimeBodyId = 0;
+
+        CreateBody(entity);
+
+        const b2BodyId body = b2LoadBodyId(rigidbody->m_RuntimeBodyId);
+        b2Body_SetLinearVelocity(body, linearVelocity);
+        b2Body_SetAngularVelocity(body, angularVelocity);
+    }
+
     void Physics2DWorld::Step(const f32 ts, Scene& scene)
     {
         m_Accumulator += ts;
@@ -194,20 +216,36 @@ namespace ByteForge
 
     void Physics2DWorld::SyncTransforms(Scene& scene) const
     {
-        scene.Each<Rigidbody2DComponent>(
-            [&scene](const Entity entity, const Rigidbody2DComponent& rigidbody)
-            {
-                if (rigidbody.m_RuntimeBodyId == 0) return;
+        std::vector<std::pair<u32, Entity>> moved;
 
-                const b2BodyId body = b2LoadBodyId(rigidbody.m_RuntimeBodyId);
-                const b2Vec2 position = b2Body_GetPosition(body);
+        scene.Each<Rigidbody2DComponent>([&moved](const Entity entity, const Rigidbody2DComponent& rigidbody)
+        {
+            if (rigidbody.m_RuntimeBodyId == 0) return;
 
-                TransformComponent world = entity.GetWorldTransform();
-                world.Position.x = position.x;
-                world.Position.y = position.y;
-                world.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));
-                scene.SetWorldTransform(entity, world);
-            });
+            const b2BodyId body = b2LoadBodyId(rigidbody.m_RuntimeBodyId);
+            if (b2Body_GetType(body) == b2_staticBody || !b2Body_IsAwake(body)) return;
+
+            u32 depth = 0;
+            for (Entity parent = entity.GetParent(); parent.IsValid(); parent = parent.GetParent())
+                ++depth;
+
+            moved.emplace_back(depth, entity);
+        });
+
+        std::ranges::sort(moved, {}, &std::pair<u32, Entity>::first);
+
+        for (const auto& item : moved)
+        {
+            const Entity entity = item.second;
+            const b2BodyId body = b2LoadBodyId(entity.GetComponent<Rigidbody2DComponent>().m_RuntimeBodyId);
+            const b2Vec2 position = b2Body_GetPosition(body);
+
+            TransformComponent world = entity.GetWorldTransform();
+            world.Position.x = position.x;
+            world.Position.y = position.y;
+            world.Rotation = b2Rot_GetAngle(b2Body_GetRotation(body));
+            scene.SetWorldTransform(entity, world);
+        }
     }
 
     void Physics2DWorld::DispatchSensorEvents(const Scene& scene) const

@@ -24,15 +24,21 @@ namespace ByteForge
 
         void ResetComponent(ScriptComponent& script) { script.Fields.clear(); }
 
-        void DrawTransform(TransformComponent& transform, Entity, EditorContext&)
+        void DrawTransform(TransformComponent& transform, const Entity entity, EditorContext&)
         {
-            ImGui::DragFloat3("Position", glm::value_ptr(transform.Position), 0.1f);
+            bool changed = ImGui::DragFloat3("Position", glm::value_ptr(transform.Position), 0.1f);
 
             f32 rotationDeg = glm::degrees(transform.Rotation);
             if (ImGui::DragFloat("Rotation", &rotationDeg, 0.5f))
+            {
                 transform.Rotation = glm::radians(rotationDeg);
+                changed = true;
+            }
 
-            ImGui::DragFloat2("Scale", glm::value_ptr(transform.Scale), 0.1f);
+            changed |= ImGui::DragFloat2("Scale", glm::value_ptr(transform.Scale), 0.1f);
+
+            if (changed && entity.GetScene().IsRunning())
+                entity.GetScene().SyncRuntimeBodies(entity);
         }
 
         void DrawSpriteRenderer(SpriteRendererComponent& spriteRenderer, Entity, EditorContext& context)
@@ -73,21 +79,24 @@ namespace ByteForge
             return true;
         }
 
-        void DrawColliderSettings(f32& density, bool& isSensor, Ref<PhysicsMaterialAsset>& material,
+        bool DrawColliderSettings(f32& density, bool& isSensor, Ref<PhysicsMaterialAsset>& material,
                                   Selection& selection)
         {
-            ImGui::DragFloat("Density", &density, 0.05f, 0.0f, MaxFloat);
-            EditPhysicsMaterial("Material", material, selection, "None (from Rigidbody)");
-            ImGui::Checkbox("Is Sensor", &isSensor);
+            bool changed = ImGui::DragFloat("Density", &density, 0.05f, 0.0f, MaxFloat);
+            changed |= EditPhysicsMaterial("Material", material, selection, "None (from Rigidbody)");
+            changed |= ImGui::Checkbox("Is Sensor", &isSensor);
+            return changed;
         }
 
-        void DrawCollisionMask(const char* label, u32& mask)
+        bool DrawCollisionMask(const char* label, u32& mask)
         {
             const char* preview = mask == PhysicsLayers::AllLayers ? "Everything"
                                 : mask == 0                        ? "Nothing"
                                                                    : "Mixed";
 
-            if (!ImGui::BeginCombo(label, preview)) return;
+            if (!ImGui::BeginCombo(label, preview)) return false;
+
+            const u32 before = mask;
 
             if (ImGui::Button("All"))
                 mask = PhysicsLayers::AllLayers;
@@ -107,38 +116,50 @@ namespace ByteForge
             }
 
             ImGui::EndCombo();
+            return mask != before;
         }
 
-        void DrawRigidbody2D(Rigidbody2DComponent& rigidbody, Entity, EditorContext& context)
+        void DrawRigidbody2D(Rigidbody2DComponent& rigidbody, const Entity entity, EditorContext& context)
         {
-            EditorUI::EnumCombo<Rigidbody2DComponent::BodyType>(
+            bool changed = EditorUI::EnumCombo<Rigidbody2DComponent::BodyType>(
                 "Body Type", rigidbody.Type, magic_enum::enum_values<Rigidbody2DComponent::BodyType>());
-            ImGui::Checkbox("Fixed Rotation", &rigidbody.FixedRotation);
-            ImGui::DragFloat("Gravity Scale", &rigidbody.GravityScale, 0.05f);
+            changed |= ImGui::Checkbox("Fixed Rotation", &rigidbody.FixedRotation);
+            changed |= ImGui::DragFloat("Gravity Scale", &rigidbody.GravityScale, 0.05f);
 
             i32 layer = static_cast<i32>(rigidbody.Layer);
             if (ImGui::SliderInt("Layer", &layer, 0, static_cast<i32>(PhysicsLayers::Count) - 1))
+            {
                 rigidbody.Layer = static_cast<u32>(layer);
-            DrawCollisionMask("Collides with", rigidbody.CollisionMask);
+                changed = true;
+            }
+            changed |= DrawCollisionMask("Collides with", rigidbody.CollisionMask);
 
-            EditPhysicsMaterial("Material", rigidbody.Material, context.SelectionContext, "None (default)");
+            changed |= EditPhysicsMaterial("Material", rigidbody.Material, context.SelectionContext, "None (default)");
 
-            if (rigidbody.HasRuntimeBody())
-                ImGui::TextDisabled("(runtime body active - changes above apply on next play)");
+            if (changed && rigidbody.HasRuntimeBody())
+                entity.GetScene().RebuildRuntimeBody(entity);
         }
 
-        void DrawBoxCollider2D(BoxCollider2DComponent& collider, Entity, EditorContext& context)
+        void DrawBoxCollider2D(BoxCollider2DComponent& collider, const Entity entity, EditorContext& context)
         {
-            ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
-            ImGui::DragFloat2("Size", glm::value_ptr(collider.Size), 0.02f, 0.01f, MaxFloat);
-            DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material, context.SelectionContext);
+            bool changed = ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
+            changed |= ImGui::DragFloat2("Size", glm::value_ptr(collider.Size), 0.02f, 0.01f, MaxFloat);
+            changed |= DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material,
+                                            context.SelectionContext);
+
+            if (changed && entity.GetScene().IsRunning())
+                entity.GetScene().RebuildRuntimeBody(entity);
         }
 
-        void DrawCircleCollider2D(CircleCollider2DComponent& collider, Entity, EditorContext& context)
+        void DrawCircleCollider2D(CircleCollider2DComponent& collider, const Entity entity, EditorContext& context)
         {
-            ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
-            ImGui::DragFloat("Radius", &collider.Radius, 0.02f, 0.01f, MaxFloat);
-            DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material, context.SelectionContext);
+            bool changed = ImGui::DragFloat2("Offset", glm::value_ptr(collider.Offset), 0.02f);
+            changed |= ImGui::DragFloat("Radius", &collider.Radius, 0.02f, 0.01f, MaxFloat);
+            changed |= DrawColliderSettings(collider.Density, collider.IsSensor, collider.Material,
+                                            context.SelectionContext);
+
+            if (changed && entity.GetScene().IsRunning())
+                entity.GetScene().RebuildRuntimeBody(entity);
         }
 
         void DrawAudioSource(AudioSourceComponent& source, const Entity entity, EditorContext& context)

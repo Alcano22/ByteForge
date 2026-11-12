@@ -26,6 +26,7 @@ namespace ByteForge
 
         void EnsureBodiesCreated(Scene& scene) const;
         void EnsureBodyCreated(Entity entity) const;
+        void RebuildBody(Entity entity) const;
         void Step(f32 ts, Scene& scene);
 
         void OnRigidbodyDestroyed(entt::registry& registry, entt::entity handle) const;
