@@ -40,6 +40,7 @@ namespace ByteForge
         void QueueDestroyEntity(UUID uuid);
 
         Entity DuplicateEntity(Entity source);
+        Entity CopySubtree(Entity source);
 
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid) const;
         [[nodiscard]] Entity FindEntityByPickingId(u32 pickingId);
@@ -93,7 +94,7 @@ namespace ByteForge
         void FlushPendingDestroy();
         void ApplyPendingSceneLoad();
 
-        [[nodiscard]] Entity DuplicateSubtree(Entity source);
+        [[nodiscard]] Entity CopyEntityTree(Entity source, std::unordered_map<UUID, UUID>& remap);
 
         [[nodiscard]] static u32 ToPickingId(entt::entity handle);
 

@@ -8,6 +8,7 @@
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Audio/AudioSystem.h"
 #include "Scripting/ScriptRuntime.h"
+#include "Engine/Scripting/ScriptField.h"
 
 #include <nlohmann/json.hpp>
 
@@ -17,6 +18,8 @@
 #include <fstream>
 #include <stdexcept>
 #include <utility>
+#include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace ByteForge
@@ -32,17 +35,35 @@ namespace ByteForge
                                                    ScriptComponent>;
 
         template<typename... Components>
-        void CopyComponents(ComponentList<Components...>, entt::registry& registry,
-                            const entt::entity source, const entt::entity target)
+        void CopyComponents(ComponentList<Components...>, const entt::registry& from, const entt::entity source,
+                            entt::registry& to, const entt::entity target)
         {
             ([&]
             {
-                if (const auto* component = registry.try_get<Components>(source))
+                if (const auto* component = from.try_get<Components>(source))
                 {
                     const Components copy = *component;
-                    registry.emplace_or_replace<Components>(target, copy);
+                    to.emplace_or_replace<Components>(target, copy);
                 }
             }(), ...);
+        }
+
+        void RemapEntityReferences(const Scene& scene, const Entity root, const std::unordered_map<UUID, UUID>& remap)
+        {
+            if (auto* script = root.TryGetComponent<ScriptComponent>())
+            {
+                for (auto& [name, value] : script->Fields)
+                {
+                    auto* reference = std::get_if<EntityRef>(&value);
+                    if (reference == nullptr) continue;
+
+                    if (const auto it = remap.find(reference->Id); it != remap.end())
+                        reference->Id = it->second;
+                }
+            }
+
+            for (const Entity child : scene.GetChildren(root))
+                RemapEntityReferences(scene, child, remap);
         }
 
         struct SpriteDrawItem
@@ -159,20 +180,35 @@ namespace ByteForge
         if (!source.IsValid() || source.m_Scene != this)
             throw std::runtime_error("Scene::DuplicateEntity: the entity does not belong to this scene");
 
-        const Entity copy = DuplicateSubtree(source);
+        const Entity copy = CopySubtree(source);
         if (const Entity parent = GetParent(source); parent.IsValid())
             SetParent(copy, parent, false);
 
         return copy;
     }
 
-    Entity Scene::DuplicateSubtree(const Entity source)
+    Entity Scene::CopySubtree(const Entity source)
     {
-        const Entity copy = CreateEntity(source.GetTag());
-        CopyComponents(DuplicableComponents{}, m_Registry, source.m_Handle, copy.m_Handle);
+        if (!source.IsValid())
+            throw std::runtime_error("Scene::CopySubtree: the source entity is not valid");
 
-        for (const Entity child : GetChildren(source))
-            SetParent(DuplicateSubtree(child), copy, false);
+        std::unordered_map<UUID, UUID> remap;
+        const Entity copy = CopyEntityTree(source, remap);
+
+        RemapEntityReferences(*this, copy, remap);
+        return copy;
+    }
+
+    Entity Scene::CopyEntityTree(const Entity source, std::unordered_map<UUID, UUID>& remap)
+    {
+        const Scene& sourceScene = *source.m_Scene;
+
+        const Entity copy = CreateEntity(source.GetTag());
+        CopyComponents(DuplicableComponents{}, sourceScene.m_Registry, source.m_Handle, m_Registry, copy.m_Handle);
+        remap.emplace(source.GetUUID(), copy.GetUUID());
+
+        for (const Entity child : sourceScene.GetChildren(source))
+            SetParent(CopyEntityTree(child, remap), copy, false);
 
         return copy;
     }

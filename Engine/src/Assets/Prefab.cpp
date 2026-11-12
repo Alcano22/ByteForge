@@ -22,9 +22,15 @@ namespace ByteForge
     {
         constexpr i32 FormatVersion = 1;
 
-        std::unordered_map<UUID, nlohmann::json> s_Cache;
+        struct Prototype
+        {
+            Scope<Scene> Entities;
+            Entity Root;
+        };
 
-        Result<const nlohmann::json*> LoadEntities(const UUID handle)
+        std::unordered_map<UUID, Prototype> s_Cache;
+
+        Result<const Prototype*> LoadPrototype(const UUID handle)
         {
             if (const auto it = s_Cache.find(handle); it != s_Cache.end())
                 return &it->second;
@@ -35,27 +41,26 @@ namespace ByteForge
 
             const std::string name = metadata.Path.generic_string();
 
-            Result<nlohmann::json> loaded = AssetRegistry::ReadJson(handle);
-            if (!loaded)
-                return std::unexpected(loaded.error());
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return std::unexpected(data.error());
 
-            nlohmann::json data = std::move(*loaded);
-            if (!data.is_object() || !data.contains("entities") || !data.at("entities").is_array() ||
-                data.at("entities").empty())
+            if (!data->is_object() || !data->contains("entities") || !data->at("entities").is_array() ||
+                data->at("entities").empty())
             {
                 return std::unexpected(std::format("'{}' is not a valid prefab", name));
             }
 
+            Prototype prototype{ .Entities = MakeScope<Scene>() };
             try
             {
-                for (const auto& entityJson : data.at("entities"))
-                    static_cast<void>(entityJson.at("uuid").get<u64>());
-            } catch (const nlohmann::json::exception& e)
+                prototype.Root = SceneSerializer::DeserializeSubtree(*prototype.Entities, data->at("entities"));
+            } catch (const std::exception& e)
             {
-                return std::unexpected(std::format("'{}' has invalid entities: {}", name, e.what()));
+                return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
             }
 
-            return &s_Cache.insert_or_assign(handle, std::move(data.at("entities"))).first->second;
+            return &s_Cache.insert_or_assign(handle, std::move(prototype)).first->second;
         }
     }
 
@@ -90,60 +95,13 @@ namespace ByteForge
     }
 
     Result<Entity> Prefab::Instantiate(Scene& scene, const UUID handle, const Entity parent,
-                                                           const std::optional<glm::vec2> position)
+                                       const std::optional<glm::vec2> position)
     {
-        const auto loaded = LoadEntities(handle);
-        if (!loaded)
-            return std::unexpected(loaded.error());
+        const Result<const Prototype*> prototype = LoadPrototype(handle);
+        if (!prototype)
+            return std::unexpected(prototype.error());
 
-        nlohmann::json entities = **loaded;
-
-        std::unordered_map<UUID, UUID> remap;
-        for (const auto& entityJson : entities)
-            remap.emplace(UUID(entityJson.at("uuid").get<u64>()), UUID());
-
-        for (auto& entityJson : entities)
-        {
-            entityJson["uuid"] = static_cast<u64>(remap.at(UUID(entityJson.at("uuid").get<u64>())));
-
-            if (!entityJson.contains("parent")) continue;
-
-            if (const auto it = remap.find(UUID(entityJson.at("parent").get<u64>())); it != remap.end())
-                entityJson["parent"] = static_cast<u64>(it->second);
-            else
-                entityJson.erase("parent");
-        }
-
-        Entity root;
-        try
-        {
-            root = SceneSerializer::DeserializeSubtree(scene, entities);
-        } catch (const std::exception& e)
-        {
-            for (const auto& entry : remap)
-            {
-                if (const Entity created = scene.FindEntityByUUID(entry.second); created.IsValid())
-                    scene.DestroyEntity(created);
-            }
-
-            return std::unexpected(std::format("cannot instantiate the prefab: {}", e.what()));
-        }
-
-        for (const auto& entry : remap)
-        {
-            const Entity created = scene.FindEntityByUUID(entry.second);
-            auto* script = created.TryGetComponent<ScriptComponent>();
-            if (script == nullptr) continue;
-
-            for (auto& [name, value] : script->Fields)
-            {
-                auto* reference = std::get_if<EntityRef>(&value);
-                if (reference == nullptr) continue;
-
-                if (const auto it = remap.find(reference->Id); it != remap.end())
-                    reference->Id = it->second;
-            }
-        }
+        const Entity root = scene.CopySubtree((*prototype)->Root);
 
         if (position)
         {
