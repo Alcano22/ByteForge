@@ -156,6 +156,12 @@ namespace ByteForge
             return name.ends_with(".cs") || name.ends_with(".cs.meta");
         }
 
+        bool IsRuntimeFile(const fs::path& relative)
+        {
+            const std::string name = relative.filename().string();
+            return !name.ends_with(".pdb") && name != "cmake_install.cmake";
+        }
+
         Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive)
         {
             std::vector<fs::path> files;
@@ -277,17 +283,11 @@ namespace ByteForge
         for (const char* folder : { "engine", "ScriptCore" })
         {
             const auto copied = CopyTree(editorDirectory / folder, output / folder,
-                [](const fs::path&) { return true; });
+                [](const fs::path& relative) { return IsRuntimeFile(relative); });
             if (!copied)
                 return std::unexpected(copied.error());
             result.FileCount += *copied;
         }
-
-        const auto assets = CopyTree(assetsDirectory, output / "assets",
-            [](const fs::path& relative) { return !IsScriptSource(relative); });
-        if (!assets)
-            return std::unexpected(assets.error());
-        result.FileCount += *assets;
 
         const fs::path archive = output / std::format("assets{}", PakExtension);
 

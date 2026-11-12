@@ -1,10 +1,13 @@
 #include "Engine/Audio/AudioEngine.h"
+#include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Assets/Pak.h"
 #include "Engine/Core/Log.h"
 
 #include <miniaudio.h>
 
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
@@ -33,6 +36,132 @@ namespace ByteForge
             return ma_sound_init_from_file(&engine, file.c_str(), flags, &group, nullptr, &sound);
 #endif
         }
+
+        struct MemoryFile
+        {
+            std::vector<std::byte> Data;
+            usize Position = 0;
+        };
+
+        Result<std::vector<std::byte>> ReadSoundFile(const fs::path& path)
+        {
+            if (AssetRegistry::IsPacked())
+            {
+                const fs::path relative = path.lexically_normal().lexically_relative(AssetRegistry::GetAssetRoot());
+                if (!relative.empty() && *relative.begin() != "..")
+                    return AssetRegistry::ReadFile(relative);
+            }
+
+            return ReadBinaryFile(path);
+        }
+
+        ma_result OpenMemoryFile(const fs::path& path, const ma_uint32 openMode, ma_vfs_file* outFile)
+        {
+            if (outFile == nullptr)
+                return MA_INVALID_ARGS;
+
+            *outFile = nullptr;
+            if ((openMode & MA_OPEN_MODE_WRITE) != 0)
+                return MA_ACCESS_DENIED;
+
+            Result<std::vector<std::byte>> data = ReadSoundFile(path);
+            if (!data)
+            {
+                CORE_ERROR("AudioEngine: {}", data.error());
+                return MA_DOES_NOT_EXIST;
+            }
+
+            *outFile = new MemoryFile{ .Data = std::move(*data) };
+            return MA_SUCCESS;
+        }
+
+        MemoryFile& AsMemoryFile(const ma_vfs_file file) { return *static_cast<MemoryFile*>(file); }
+
+        ma_result VfsOpen(ma_vfs*, const char* path, const ma_uint32 openMode, ma_vfs_file* outFile)
+        {
+            return path != nullptr ? OpenMemoryFile(fs::path(path), openMode, outFile) : MA_INVALID_ARGS;
+        }
+
+        ma_result VfsOpenW(ma_vfs*, const wchar_t* path, const ma_uint32 openMode, ma_vfs_file* outFile)
+        {
+            return path != nullptr ? OpenMemoryFile(fs::path(path), openMode, outFile) : MA_INVALID_ARGS;
+        }
+
+        ma_result VfsClose(ma_vfs*, const ma_vfs_file file)
+        {
+            delete static_cast<MemoryFile*>(file);
+            return MA_SUCCESS;
+        }
+
+        ma_result VfsRead(ma_vfs*, const ma_vfs_file file, void* destination, const size_t size, size_t* bytesRead)
+        {
+            MemoryFile& memory = AsMemoryFile(file);
+
+            const usize count = std::min(size, memory.Data.size() - memory.Position);
+            if (count > 0)
+                std::memcpy(destination, memory.Data.data() + memory.Position, count);
+
+            memory.Position += count;
+            if (bytesRead != nullptr)
+                *bytesRead = count;
+
+            return count == 0 && size > 0 ? MA_AT_END : MA_SUCCESS;
+        }
+
+        ma_result VfsWrite(ma_vfs*, ma_vfs_file, const void*, size_t, size_t* bytesWritten)
+        {
+            if (bytesWritten != nullptr)
+                *bytesWritten = 0;
+            return MA_ACCESS_DENIED;
+        }
+
+        ma_result VfsSeek(ma_vfs*, const ma_vfs_file file, const ma_int64 offset, const ma_seek_origin origin)
+        {
+            MemoryFile& memory = AsMemoryFile(file);
+            const auto size = static_cast<ma_int64>(memory.Data.size());
+
+            ma_int64 base = 0;
+            if (origin == ma_seek_origin_current)
+                base = static_cast<ma_int64>(memory.Position);
+            else if (origin == ma_seek_origin_end)
+                base = size;
+
+            const ma_int64 target = base + offset;
+            if (target < 0 || target > size)
+                return MA_BAD_SEEK;
+
+            memory.Position = static_cast<usize>(target);
+            return MA_SUCCESS;
+        }
+
+        ma_result VfsTell(ma_vfs*, const ma_vfs_file file, ma_int64* cursor)
+        {
+            if (cursor == nullptr)
+                return MA_INVALID_ARGS;
+
+            *cursor = static_cast<ma_int64>(AsMemoryFile(file).Position);
+            return MA_SUCCESS;
+        }
+
+        ma_result VfsInfo(ma_vfs*, const ma_vfs_file file, ma_file_info* info)
+        {
+            if (info == nullptr)
+                return MA_INVALID_ARGS;
+
+            info->sizeInBytes = AsMemoryFile(file).Data.size();
+            return MA_SUCCESS;
+        }
+
+        ma_vfs_callbacks s_AssetVfs{
+            .onOpen  = VfsOpen,
+            .onOpenW = VfsOpenW,
+            .onClose = VfsClose,
+            .onRead  = VfsRead,
+            .onWrite = VfsWrite,
+            .onSeek  = VfsSeek,
+            .onTell  = VfsTell,
+            .onInfo  = VfsInfo
+        };
     }
 
     struct Sound::Impl
@@ -87,6 +216,10 @@ namespace ByteForge
             throw std::runtime_error("AudioEngine: only one instance may exist");
 
         auto impl = MakeScope<Impl>();
+
+        ma_engine_config config = ma_engine_config_init();
+        config.pResourceManagerVFS = &s_AssetVfs;
+
         if (const ma_result result = ma_engine_init(nullptr, &impl->Engine); result != MA_SUCCESS)
         {
             CORE_ERROR("Audio unavailable: {}", ma_result_description(result));
