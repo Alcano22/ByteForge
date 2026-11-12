@@ -25,6 +25,12 @@ namespace ByteForge
         constexpr const char* ExecutableSuffix = "";
 #endif
 
+#ifdef BYTEFORGE_DEBUG
+        constexpr const char* BuildConfiguration = "Debug";
+#else
+        constexpr const char* BuildConfiguration = "Release";
+#endif
+
         std::string PlayerFileName() { return std::string("Player") + ExecutableSuffix; }
 
         std::string MakeFileName(const std::string& name)
@@ -373,6 +379,11 @@ namespace ByteForge
         if (context.Document.IsDirty())
             APP_WARN("The scene has unsaved changes, the export uses the saved scene files");
 
+#ifdef BYTEFORGE_DEBUG
+        APP_WARN("This is a Debug editor, so the game is exported as a slow Debug build; "
+                 "export from the Release editor to ship the game");
+#endif
+
         const std::optional<fs::path> folder = FileDialogs::PickFolder(fs::current_path());
         if (!folder) return;
 
@@ -393,6 +404,7 @@ namespace ByteForge
                  static_cast<f64>(archive.Size) / 1024.0, static_cast<f64>(archive.StoredSize) / 1024.0, ratio);
 
         APP_INFO("Precompiled {} shader stage(s)", result->ShaderStages);
-        APP_INFO("Exported {} file(s) to '{}'", result->FileCount, result->Directory.generic_string());
+        APP_INFO("Exported {} file(s) as a {} build to '{}'",
+                 result->FileCount, BuildConfiguration, result->Directory.generic_string());
     }
 }

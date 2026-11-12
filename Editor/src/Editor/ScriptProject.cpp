@@ -144,8 +144,14 @@ namespace ByteForge
 
         GenerateProjectFile();
 
-        std::string command = std::format("dotnet build {} -c Debug -o {} --nologo -v quiet",
-                                          Quote(GetProjectFile()), Quote(GetOutputDirectory()));
+#ifdef BYTEFORGE_DEBUG
+        constexpr const char* Configuration = "Debug";
+#else
+        constexpr const char* Configuration = "Release";
+#endif
+
+        std::string command = std::format("dotnet build {} -c {} -o {} --nologo -v quiet",
+                                          Quote(GetProjectFile()), Configuration, Quote(GetOutputDirectory()));
 
         m_BuildStart = std::chrono::steady_clock::now();
 
