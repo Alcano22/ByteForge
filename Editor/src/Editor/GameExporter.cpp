@@ -58,6 +58,24 @@ namespace ByteForge
             return !relative.empty() && *relative.begin() != "..";
         }
 
+        bool IsScriptSource(const fs::path& relative)
+        {
+            const std::string name = relative.filename().string();
+            return name.ends_with(".cs") || name.ends_with(".cs.meta");
+        }
+
+        bool IsRuntimeFile(const fs::path& relative)
+        {
+            const std::string name = relative.filename().string();
+            return !name.ends_with(".pdb") && name != "cmake_install.cmake";
+        }
+
+        bool IsShaderCompilerLibrary(const std::string& fileName)
+        {
+            return fileName.starts_with("libdxcompiler") || fileName.starts_with("libdxil") ||
+                   fileName.starts_with("dxcompiler") || fileName.starts_with("dxil");
+        }
+
         Result<> CopySingleFile(const fs::path& from, const fs::path& to)
         {
             std::error_code error;
@@ -121,6 +139,8 @@ namespace ByteForge
                 if (error) break;
 
                 const std::string fileName = it->path().filename().string();
+                if (IsShaderCompilerLibrary(fileName)) continue;
+
                 const fs::path target = to / (fileName == PlayerFileName() ? executableName + ExecutableSuffix
                                                                            : fileName);
 
@@ -149,18 +169,6 @@ namespace ByteForge
                 return std::unexpected(std::format("cannot read '{}': {}", from.generic_string(), error.message()));
 
             return copied;
-        }
-
-        bool IsScriptSource(const fs::path& relative)
-        {
-            const std::string name = relative.filename().string();
-            return name.ends_with(".cs") || name.ends_with(".cs.meta");
-        }
-
-        bool IsRuntimeFile(const fs::path& relative)
-        {
-            const std::string name = relative.filename().string();
-            return !name.ends_with(".pdb") && name != "cmake_install.cmake";
         }
 
         Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive)
@@ -285,6 +293,15 @@ namespace ByteForge
 
         for (const char* folder : { "assets", "engine", "ScriptCore", ".byteforge" })
             fs::remove_all(output / folder, error);
+
+        for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
+        {
+            if (!IsShaderCompilerLibrary(it->path().filename().string())) continue;
+
+            std::error_code removeError;
+            fs::remove(it->path(), removeError);
+        }
+        error.clear();
 
         fs::create_directories(output, error);
         if (error)

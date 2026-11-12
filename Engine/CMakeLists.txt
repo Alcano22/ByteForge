@@ -154,12 +154,15 @@ target_link_libraries(Engine PRIVATE
         ByteForgeWarnings
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
-        Microsoft::DirectXShaderCompiler
         unofficial::spirv-reflect
         box2d::box2d
         unofficial::nethost::nethost
         $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
         ${CMAKE_DL_LIBS}
+)
+
+target_include_directories(Engine SYSTEM PRIVATE
+        $<TARGET_PROPERTY:Microsoft::DirectXShaderCompiler,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 if (UNIX AND NOT APPLE)

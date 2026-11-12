@@ -4,6 +4,7 @@
 
 #include "Platform/Vulkan/VulkanShaderCompiler.h"
 #include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/SharedLibrary.h"
 #include "Engine/Core/Log.h"
 #include "Renderer/ShaderSource.h"
 
@@ -28,11 +29,19 @@ namespace ByteForge
         template<typename T>
         using ComScope = Scope<T, ComDeleter<T>>;
 
+#if defined(_WIN32)
+        constexpr const char* DxcLibraryName = "dxcompiler.dll";
+#elif defined(__APPLE__)
+        constexpr const char* DxcLibraryName = "libdxcompiler.dylib";
+#else
+        constexpr const char* DxcLibraryName = "libdxcompiler.so";
+#endif
+
         template<typename T>
-        ComScope<T> CreateDxcInstance(REFCLSID clsid)
+        ComScope<T> CreateDxcInstance(const DxcCreateInstanceProc createInstance, REFCLSID clsid)
         {
             T* raw = nullptr;
-            if (FAILED(DxcCreateInstance(clsid, __uuidof(T), reinterpret_cast<void**>(&raw))))
+            if (FAILED(createInstance(clsid, __uuidof(T), reinterpret_cast<void**>(&raw))))
                 throw std::runtime_error("Failed to create DXC instance");
 
             return ComScope<T>(raw, ComDeleter<T>{});
@@ -51,6 +60,8 @@ namespace ByteForge
 
     struct VulkanShaderCompiler::Impl
     {
+        Scope<SharedLibrary> Library;
+
         ComScope<IDxcUtils> Utils;
         ComScope<IDxcCompiler3> Compiler;
         ComScope<IDxcIncludeHandler> IncludeHandler;
@@ -65,8 +76,21 @@ namespace ByteForge
     VulkanShaderCompiler::VulkanShaderCompiler()
         : m_Impl(MakeScope<Impl>())
     {
-        m_Impl->Utils = CreateDxcInstance<IDxcUtils>(CLSID_DxcUtils);
-        m_Impl->Compiler = CreateDxcInstance<IDxcCompiler3>(CLSID_DxcCompiler);
+        try
+        {
+            m_Impl->Library = MakeScope<SharedLibrary>(fs::path(DxcLibraryName));
+        } catch (const std::exception& e)
+        {
+            throw std::runtime_error(std::format("The shader compiler is not available: {}", e.what()));
+        }
+
+        const auto createInstance = reinterpret_cast<DxcCreateInstanceProc>(
+            m_Impl->Library->GetSymbol("DxcCreateInstance"));
+        if (createInstance == nullptr)
+            throw std::runtime_error(std::format("'{}' has no export 'DxcCreateInstance'", DxcLibraryName));
+
+        m_Impl->Utils = CreateDxcInstance<IDxcUtils>(createInstance, CLSID_DxcUtils);
+        m_Impl->Compiler = CreateDxcInstance<IDxcCompiler3>(createInstance, CLSID_DxcCompiler);
 
         IDxcIncludeHandler* rawHandler = nullptr;
         if (FAILED(m_Impl->Utils->CreateDefaultIncludeHandler(&rawHandler)))
