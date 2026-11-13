@@ -19,6 +19,7 @@
 #include <string>
 #include <system_error>
 #include <unordered_map>
+#include <utility>
 
 namespace ByteForge
 {
@@ -34,6 +35,7 @@ namespace ByteForge
         std::unordered_map<UUID, Ref<TextureAsset>> s_Assets;
         std::unordered_map<UUID, std::future<DecodedTexture>> s_Pending;
         std::unordered_map<UUID, Ref<PhysicsMaterialAsset>> s_PhysicsMaterials;
+        std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
         Ref<Texture2D> s_Fallback;
 
         const Ref<Texture2D>& Fallback()
@@ -103,6 +105,15 @@ namespace ByteForge
             };
 
             return WriteJsonFile(path, data);
+        }
+
+        Result<AnimationClipData> ReadAnimationClip(const UUID handle)
+        {
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return std::unexpected(data.error());
+
+            return ParseAnimationClip(*data);
         }
     }
 
@@ -208,6 +219,62 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
+    Ref<AnimationClipAsset> AssetManager::LoadAnimationClip(const UUID handle)
+    {
+        if (const auto it = s_AnimationClips.find(handle); it != s_AnimationClips.end())
+            return it->second;
+
+        AnimationClipData data;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::AnimationClip)
+            CORE_ERROR("AssetManager: {} is not a known animation clip", static_cast<u64>(handle));
+        else if (auto parsed = ReadAnimationClip(handle))
+            data = std::move(*parsed);
+        else
+            CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), parsed.error());
+
+        auto asset = MakeRef<AnimationClipAsset>(handle, std::move(data));
+        s_AnimationClips.emplace(handle, asset);
+        return asset;
+    }
+
+    void AssetManager::SetAnimationClip(const UUID handle, AnimationClipData clip)
+    {
+        LoadAnimationClip(handle)->SetData(std::move(clip));
+    }
+
+    bool AssetManager::SaveAnimationClip(const UUID handle)
+    {
+        const auto it = s_AnimationClips.find(handle);
+        AssetMetadata metadata;
+        if (it == s_AnimationClips.end() || !AssetRegistry::TryGetMetadata(handle, metadata))
+            return false;
+
+        const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
+        if (const auto written = WriteJsonFile(path, SerializeAnimationClip(it->second->GetData())); !written)
+        {
+            CORE_ERROR("AssetManager: cannot save '{}': {}", metadata.Path.generic_string(), written.error());
+            return false;
+        }
+
+        return true;
+    }
+
+    Result<UUID> AssetManager::CreateAnimationClip(const fs::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+
+        if (const auto written = WriteJsonFile(path, SerializeAnimationClip(AnimationClipData{})); !written)
+            return std::unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
     void AssetManager::Reload(const UUID handle)
     {
         AssetMetadata metadata;
@@ -222,6 +289,14 @@ namespace ByteForge
                 it->second->m_Material = *material;
             else
                 CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), material.error());
+        }
+
+        if (const auto it = s_AnimationClips.find(handle); it != s_AnimationClips.end())
+        {
+            if (auto clip = ReadAnimationClip(handle))
+                it->second->SetData(std::move(*clip));
+            else
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), clip.error());
         }
     }
 
@@ -263,6 +338,7 @@ namespace ByteForge
         s_Pending.clear();
         s_Assets.clear();
         s_PhysicsMaterials.clear();
+        s_AnimationClips.clear();
         s_Fallback.reset();
         Prefab::Clear();
     }

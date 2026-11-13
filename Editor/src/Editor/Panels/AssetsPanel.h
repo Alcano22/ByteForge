@@ -67,6 +67,7 @@ namespace ByteForge
         void DrawContextMenu();
         void CreateFolder();
         void CreatePhysicsMaterial();
+        void CreateAnimationClip();
         void CreateScriptGraph();
         void CreatePrefab(Entity entity);
 

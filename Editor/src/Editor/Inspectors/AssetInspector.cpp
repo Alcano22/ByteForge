@@ -15,6 +15,7 @@
 #include <imgui.h>
 
 #include <cfloat>
+#include <utility>
 
 namespace ByteForge::EditorUI
 {
@@ -97,6 +98,31 @@ namespace ByteForge::EditorUI
                 ImGui::TextColored(color, "%s: %s", where.c_str(), diagnostic.Message.c_str());
             }
         }
+
+        void DrawAnimationClipInspector(const AssetMetadata& metadata)
+        {
+            const Ref<AnimationClipAsset> clip = AssetManager::LoadAnimationClip(metadata.Handle);
+            AnimationClipData data = clip->GetData();
+
+            bool changed = ImGui::DragFloat("FPS", &data.FramesPerSecond, 0.1f, 0.1f, 120.0f, "%.1f");
+            bool committed = ImGui::IsItemDeactivatedAfterEdit();
+
+            i32 loopMode = static_cast<i32>(data.LoopMode);
+            if (ImGui::Combo("Loop Mode", &loopMode, "Loop\0Once\0Ping Pong\0"))
+            {
+                data.LoopMode = static_cast<AnimationLoopMode>(loopMode);
+                changed = true;
+                committed = true;
+            }
+
+            if (changed)
+                AssetManager::SetAnimationClip(metadata.Handle, std::move(data));
+            if (committed)
+                AssetManager::SaveAnimationClip(metadata.Handle);
+
+            ImGui::Spacing();
+            ImGui::TextDisabled("%u frames, %.2f s", clip->GetFrameCount(), clip->GetDuration());
+        }
     }
 
     void DrawAssetInspector(const UUID handle, EditorContext& context)
@@ -122,6 +148,7 @@ namespace ByteForge::EditorUI
                 ImGui::TextDisabled("or double-click it in the Assets panel");
                 break;
             case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata); break;
+            case AssetType::AnimationClip:     DrawAnimationClipInspector(metadata);   break;
             case AssetType::AudioClip:         DrawAudioClipInspector(metadata);       break;
             case AssetType::ScriptGraph:       DrawScriptGraphInspector(metadata);     break;
             case AssetType::Prefab:

@@ -9,7 +9,8 @@ public enum AssetType : byte
     PhysicsMaterial2D,
     AudioClip,
     ScriptGraph,
-    Prefab
+    Prefab,
+    AnimationClip
 }
 
 public abstract class Asset

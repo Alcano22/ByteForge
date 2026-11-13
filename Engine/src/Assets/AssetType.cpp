@@ -1,6 +1,7 @@
 #include "Engine/Assets/AssetType.h"
 #include "Engine/Assets/Prefab.h"
 #include "Engine/Assets/PhysicsMaterial.h"
+#include "Engine/Assets/AnimationClip.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
 
 #include <magic_enum/magic_enum.hpp>
@@ -39,6 +40,8 @@ namespace ByteForge
             return AssetType::ScriptGraph;
         if (ext == PrefabExtension)
             return AssetType::Prefab;
+        if (ext == AnimationClipExtension)
+            return AssetType::AnimationClip;
 
         return AssetType::None;
     }

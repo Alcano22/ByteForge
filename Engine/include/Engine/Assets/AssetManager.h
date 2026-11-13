@@ -3,6 +3,7 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Assets/TextureAsset.h"
+#include "Engine/Assets/AnimationClip.h"
 #include "Engine/Scene/UUID.h"
 
 #include <expected>
@@ -25,11 +26,16 @@ namespace ByteForge
         static void SetPhysicsMaterial(UUID handle, const PhysicsMaterial2D& material);
         static bool SavePhysicsMaterial(UUID handle);
 
-        [[nodiscard]] static Result<UUID> CreatePhysicsMaterial(
-            const fs::path& relativePath);
+        [[nodiscard]] static Result<UUID> CreatePhysicsMaterial(const fs::path& relativePath);
 
-        [[nodiscard]] static Result<UUID> CreateScriptGraph(
-            const fs::path& relativePath);
+        [[nodiscard]] static Result<UUID> CreateScriptGraph(const fs::path& relativePath);
+
+        [[nodiscard]] static Ref<AnimationClipAsset> LoadAnimationClip(UUID handle);
+
+        static void SetAnimationClip(UUID handle, AnimationClipData clip);
+        static bool SaveAnimationClip(UUID handle);
+
+        [[nodiscard]] static Result<UUID> CreateAnimationClip(const fs::path& relativePath);
 
         static void Reload(UUID handle);
     };
