@@ -99,6 +99,7 @@ namespace ByteForge
             case AssetType::PhysicsMaterial2D: return std::monostate{};
             case AssetType::ScriptGraph:       return std::monostate{};
             case AssetType::Prefab:            return std::monostate{};
+            case AssetType::AnimationClip:     return std::monostate{};
             case AssetType::None:              break;
         }
 

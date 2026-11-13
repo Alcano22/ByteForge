@@ -17,5 +17,6 @@ namespace ByteForge::UI
                                    const ImVec4& background = ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 
     BYTEFORGE_API void DrawImage(ImDrawList& drawList, const Ref<Texture2D>& texture,
-                                 const ImVec2& min, const ImVec2& max, ImU32 tint = IM_COL32_WHITE);
+                                 const ImVec2& min, const ImVec2& max, ImU32 tint = IM_COL32_WHITE,
+                                 const ImVec2& uvMin = ImVec2(0.0f, 0.0f), const ImVec2& uvMax = ImVec2(1.0f, 1.0f));
 }

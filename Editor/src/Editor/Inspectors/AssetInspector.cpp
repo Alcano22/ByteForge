@@ -3,6 +3,7 @@
 #include "Editor/Inspectors/TextureSettingsEditor.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
+#include "Editor/Panels/AnimationClipPanel.h"
 
 #include <Engine/Assets/AssetMetadata.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -99,29 +100,18 @@ namespace ByteForge::EditorUI
             }
         }
 
-        void DrawAnimationClipInspector(const AssetMetadata& metadata)
+        void DrawAnimationClipInspector(const AssetMetadata& metadata, EditorContext& context)
         {
             const Ref<AnimationClipAsset> clip = AssetManager::LoadAnimationClip(metadata.Handle);
-            AnimationClipData data = clip->GetData();
+            const AnimationClipData& data = clip->GetData();
 
-            bool changed = ImGui::DragFloat("FPS", &data.FramesPerSecond, 0.1f, 0.1f, 120.0f, "%.1f");
-            bool committed = ImGui::IsItemDeactivatedAfterEdit();
-
-            i32 loopMode = static_cast<i32>(data.LoopMode);
-            if (ImGui::Combo("Loop Mode", &loopMode, "Loop\0Once\0Ping Pong\0"))
-            {
-                data.LoopMode = static_cast<AnimationLoopMode>(loopMode);
-                changed = true;
-                committed = true;
-            }
-
-            if (changed)
-                AssetManager::SetAnimationClip(metadata.Handle, std::move(data));
-            if (committed)
-                AssetManager::SaveAnimationClip(metadata.Handle);
+            ImGui::Text("%u frames at %.1f FPS (%.2f s)", clip->GetFrameCount(), data.FramesPerSecond, clip->GetDuration());
+            ImGui::Text("Loop mode: %s", std::string(magic_enum::enum_name(data.LoopMode)).c_str());
 
             ImGui::Spacing();
-            ImGui::TextDisabled("%u frames, %.2f s", clip->GetFrameCount(), clip->GetDuration());
+            if (ImGui::Button("Edit"))
+                context.Open<AnimationClipPanel>().OpenClip(metadata.Handle);
+            ImGui::TextDisabled("or double-click it in the Assets panel");
         }
     }
 
@@ -147,10 +137,10 @@ namespace ByteForge::EditorUI
                     context.Dialogs.RequestOpen(handle);
                 ImGui::TextDisabled("or double-click it in the Assets panel");
                 break;
-            case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata); break;
-            case AssetType::AnimationClip:     DrawAnimationClipInspector(metadata);   break;
-            case AssetType::AudioClip:         DrawAudioClipInspector(metadata);       break;
-            case AssetType::ScriptGraph:       DrawScriptGraphInspector(metadata);     break;
+            case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata);        break;
+            case AssetType::AnimationClip:     DrawAnimationClipInspector(metadata, context); break;
+            case AssetType::AudioClip:         DrawAudioClipInspector(metadata);              break;
+            case AssetType::ScriptGraph:       DrawScriptGraphInspector(metadata);            break;
             case AssetType::Prefab:
                 if (ImGui::Button("Instantiate"))
                     context.InstantiatePrefab(handle);

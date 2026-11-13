@@ -63,7 +63,7 @@ namespace ByteForge
         return std::min(index, GetFrameCount() - 1);
     }
 
-    bool AnimationClipAsset::IsFinished(const u32 time) const
+    bool AnimationClipAsset::IsFinished(const f32 time) const
     {
         return m_Data.LoopMode == AnimationLoopMode::Once && time >= m_Duration;
     }
@@ -142,7 +142,7 @@ namespace ByteForge
         for (const AnimationFrame& frame : clip.Frames)
         {
             frames.push_back(nlohmann::json{
-                { "textures", static_cast<u64>(frame.Texture) },
+                { "texture",  static_cast<u64>(frame.Texture) },
                 { "uvMin",    ToJson(frame.UVMin)             },
                 { "uvMax",    ToJson(frame.UVMax)             },
                 { "duration", frame.Duration                  }

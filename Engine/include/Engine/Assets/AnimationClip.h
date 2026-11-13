@@ -26,7 +26,7 @@ namespace ByteForge
         glm::vec2 UVMin{ 0.0f };
         glm::vec2 UVMax{ 1.0f };
 
-        f32 Duration = -1.0f;
+        f32 Duration = 1.0f;
     };
 
     struct AnimationClipData
@@ -51,7 +51,7 @@ namespace ByteForge
 
         [[nodiscard]] u32 SampleFrame(f32 time) const;
 
-        [[nodiscard]] bool IsFinished(u32 time) const;
+        [[nodiscard]] bool IsFinished(f32 time) const;
 
         [[nodiscard]] const Ref<Sprite>& GetSprite(u32 frame) const;
 

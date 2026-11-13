@@ -3,6 +3,7 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/AssetPayload.h"
 #include "Editor/Panels/GraphEditorPanel.h"
+#include "Editor/Panels/AnimationClipPanel.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
@@ -730,6 +731,8 @@ namespace ByteForge
             GetContext().Dialogs.RequestOpen(*entry.Handle);
         else if (entry.Type == AssetType::ScriptGraph && entry.Handle)
             GetContext().Open<GraphEditorPanel>().OpenGraph(*entry.Handle);
+        else if (entry.Type == AssetType::AnimationClip && entry.Handle)
+            GetContext().Open<AnimationClipPanel>().OpenClip(*entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)

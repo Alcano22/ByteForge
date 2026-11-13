@@ -57,10 +57,10 @@ namespace ByteForge::UI
     }
 
     void DrawImage(ImDrawList& drawList, const Ref<Texture2D>& texture,
-                   const ImVec2& min, const ImVec2& max, const ImU32 tint)
+                   const ImVec2& min, const ImVec2& max, const ImU32 tint,
+                   const ImVec2& uvMin, const ImVec2& uvMax)
     {
         const ScopedSamplerFilter filter(drawList, texture->GetFilter());
-        drawList.AddImage(ImGuiRenderer::Get().GetTextureId(texture), min, max,
-                          ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), tint);
+        drawList.AddImage(ImGuiRenderer::Get().GetTextureId(texture), min, max, uvMin, uvMax, tint);
     }
 }
