@@ -1,7 +1,6 @@
 #include "Engine/Scene/Components.h"
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Assets/AssetManager.h"
-#include "Engine/Core/Log.h"
 
 #include <box2d/box2d.h>
 
@@ -76,17 +75,11 @@ namespace ByteForge
             ResolveController();
 
         if (!m_Controller)
-        {
-            CORE_WARN("Animator: cannot play '{}', no controller is assigned", state);
             return false;
-        }
 
         const std::optional<u32> index = m_Controller->FindState(state);
         if (!index)
-        {
-            CORE_WARN("Animator: the controller has no state '{}'", state);
             return false;
-        }
 
         if (m_State == index && m_Playing && !restart)
             return true;

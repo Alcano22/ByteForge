@@ -53,6 +53,15 @@ internal static unsafe class ScriptAPI
     private static uint s_AudioSourceIsPlaying;
     private static uint s_AudioPlayOneShot;
 
+    private static uint s_AnimatorExists;
+    private static uint s_AnimatorPlay;
+    private static uint s_AnimatorStop;
+    private static uint s_AnimatorIsPlaying;
+    private static uint s_AnimatorGetState;
+    private static uint s_AnimatorGetNormalizedTime;
+    private static uint s_AnimatorGetSpeed;
+    private static uint s_AnimatorSetSpeed;
+
     private static uint s_PrefabInstantiate;
     private static uint s_PrefabInstantiateAt;
     private static uint s_PrefabInstantiateAsChild;
@@ -119,6 +128,15 @@ internal static unsafe class ScriptAPI
         s_AudioSourceStop               = Resolve("AudioSource.Stop",               "(Entity)->Void",                       ref complete);
         s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",          "(Entity)->Bool",                       ref complete);
         s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",              "(Asset:AudioClip)->Void",              ref complete);
+
+        s_AnimatorExists                = Resolve("Animator.Exists",                "(Entity)->Bool",                       ref complete);
+        s_AnimatorPlay                  = Resolve("Animator.Play",                  "(Entity,String,Bool)->Void",           ref complete);
+        s_AnimatorStop                  = Resolve("Animator.Stop",                  "(Entity)->Void",                       ref complete);
+        s_AnimatorIsPlaying             = Resolve("Animator.IsPlaying",             "(Entity)->Bool",                       ref complete);
+        s_AnimatorGetState              = Resolve("Animator.GetState",              "(Entity)->String",                     ref complete);
+        s_AnimatorGetNormalizedTime     = Resolve("Animator.GetNormalizedTime",     "(Entity)->Float",                      ref complete);
+        s_AnimatorGetSpeed              = Resolve("Animator.GetSpeed",              "(Entity)->Float",                      ref complete);
+        s_AnimatorSetSpeed              = Resolve("Animator.SetSpeed",              "(Entity,Float)->Void",                 ref complete);
 
         s_PrefabInstantiate             = Resolve("Prefab.Instantiate",             "(Asset:Prefab)->Entity",               ref complete);
         s_PrefabInstantiateAt           = Resolve("Prefab.InstantiateAt",           "(Asset:Prefab,Vector2)->Entity",       ref complete);
@@ -274,6 +292,40 @@ internal static unsafe class ScriptAPI
 
     public static void Audio_PlayOneShot(AudioClip? clip) =>
         Call(s_AudioPlayOneShot, new APIValue { Handle = clip?.Handle ?? 0, AssetType = (byte)AssetType.AudioClip });
+
+    // Animator
+
+    public static bool Animator_Exists(ulong entity) =>
+        Call(s_AnimatorExists, new APIValue { Handle = entity }).Bool != 0;
+
+    public static void Animator_Play(ulong entity, string state, bool restart)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(state);
+        fixed (byte* data = bytes)
+        {
+            Call(s_AnimatorPlay, new APIValue { Handle = entity },
+                 new APIValue { Text = data, TextLength = bytes.Length },
+                 new APIValue { Bool = (byte)(restart ? 1 : 0) });
+        }
+    }
+
+    public static void Animator_Stop(ulong entity) =>
+        Call(s_AnimatorStop, new APIValue { Handle = entity });
+
+    public static bool Animator_IsPlaying(ulong entity) =>
+        Call(s_AnimatorIsPlaying, new APIValue { Handle = entity }).Bool != 0;
+
+    public static string Animator_GetState(ulong entity) =>
+        Call(s_AnimatorGetState, new APIValue { Handle = entity }).ReadText();
+
+    public static float Animator_GetNormalizedTime(ulong entity) =>
+        Call(s_AnimatorGetNormalizedTime, new APIValue { Handle = entity }).Float;
+
+    public static float Animator_GetSpeed(ulong entity) =>
+        Call(s_AnimatorGetSpeed, new APIValue { Handle = entity }).Float;
+
+    public static void Animator_SetSpeed(ulong entity, float speed) =>
+        Call(s_AnimatorSetSpeed, new APIValue { Handle = entity }, new APIValue { Float = speed });
 
     // Prefab
 

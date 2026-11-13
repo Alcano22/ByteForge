@@ -12,6 +12,7 @@ public sealed class Entity : IEquatable<Entity>
     private AudioSource? _audioSource;
     private Rigidbody2D? _rigidbody2D;
     private SpriteRenderer? _spriteRenderer;
+    private Animator? _animator;
 
     internal Entity(ulong id)
     {
@@ -74,6 +75,7 @@ public sealed class Entity : IEquatable<Entity>
     public SpriteRenderer? SpriteRenderer => ScriptAPI.SpriteRenderer_Exists(ID) ? (_spriteRenderer ??= new SpriteRenderer(ID)) : null;
     public AudioSource? AudioSource => ScriptAPI.AudioSource_Exists(ID) ? (_audioSource ??= new AudioSource(ID)) : null;
     public Rigidbody2D? Rigidbody2D => ScriptAPI.Rigidbody2D_Exists(ID) ? (_rigidbody2D ??= new Rigidbody2D(ID)) : null;
+    public Animator? Animator => ScriptAPI.Animator_Exists(ID) ? (_animator ??= new Animator(ID)) : null;
 
     public void Destroy() => ScriptAPI.Entity_Destroy(ID);
 

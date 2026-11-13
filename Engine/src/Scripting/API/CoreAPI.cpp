@@ -10,10 +10,12 @@
 #include "Engine/Scene/SceneCamera.h"
 #include "Engine/Scripting/API/ScriptAPI.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <limits>
 #include <optional>
+#include <string>
 
 namespace ByteForge
 {
@@ -375,6 +377,51 @@ namespace ByteForge
             AudioEngine::Get().PlayOneShot(AssetRegistry::Resolve(clip.Handle), AudioBus::Game);
         }
 
+        bool AnimatorExists(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Resolve(entity).HasComponent<AnimatorComponent>();
+        }
+
+        void AnimatorPlay(const ScriptCallContext& context, const EntityRef entity,
+                          const std::string& state, const bool restart)
+        {
+            if (!context.Require<AnimatorComponent>(entity).Play(state, restart))
+            {
+                throw ScriptError(std::format("Animator.Play: there is no state '{}' (or no controller is assigned)",
+                                              state));
+            }
+        }
+
+        void AnimatorStop(const ScriptCallContext& context, const EntityRef entity)
+        {
+            context.Require<AnimatorComponent>(entity).Stop();
+        }
+
+        bool AnimatorIsPlaying(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<AnimatorComponent>(entity).IsPlaying();
+        }
+
+        std::string AnimatorGetState(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<AnimatorComponent>(entity).GetCurrentState();
+        }
+
+        f32 AnimatorGetNormalizedTime(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<AnimatorComponent>(entity).GetNormalizedTime();
+        }
+
+        f32 AnimatorGetSpeed(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<AnimatorComponent>(entity).Speed;
+        }
+
+        void AnimatorSetSpeed(const ScriptCallContext& context, const EntityRef entity, const f32 speed)
+        {
+            context.Require<AnimatorComponent>(entity).Speed = std::max(0.0f, speed);
+        }
+
         KeyCode ToKeyCode(const i32 key)
         {
             if (key < 0 || key > std::numeric_limits<u16>::max())
@@ -492,6 +539,15 @@ namespace ByteForge
         api.Register<&AudioSourcePlay>("AudioSource.Play", "Play", Impure, { "Entity" });
         api.Register<&AudioSourceStop>("AudioSource.Stop", "Stop", Impure, { "Entity" });
         api.Register<&AudioSourceIsPlaying>("AudioSource.IsPlaying", "Is Playing", Pure, { "Entity" });
+
+        api.Register<&AnimatorExists>("Animator.Exists", "Has Animator", Pure, { "Entity" });
+        api.Register<&AnimatorPlay>("Animator.Play", "Play Animation", Impure, { "Entity", "State", "Restart" });
+        api.Register<&AnimatorStop>("Animator.Stop", "Stop Animation", Impure, { "Entity" });
+        api.Register<&AnimatorIsPlaying>("Animator.IsPlaying", "Is Animation Playing", Pure, { "Entity" });
+        api.Register<&AnimatorGetState>("Animator.GetState", "Get Animation State", Pure, { "Entity" });
+        api.Register<&AnimatorGetNormalizedTime>("Animator.GetNormalizedTime", "Get Animation Progress", Pure, { "Entity" });
+        api.Register<&AnimatorGetSpeed>("Animator.GetSpeed", "Get Animator Speed", Pure, { "Entity" });
+        api.Register<&AnimatorSetSpeed>("Animator.SetSpeed", "Set Animator Speed", Impure, { "Entity", "Speed" });
 
         api.Register<&PrefabInstantiate>("Prefab.Instantiate", "Instantiate Prefab", Impure, { "Prefab" });
         api.Register<&PrefabInstantiateAt>("Prefab.InstantiateAt", "Instantiate Prefab At", Impure, { "Prefab", "Position" });
