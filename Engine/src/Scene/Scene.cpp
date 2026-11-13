@@ -7,6 +7,7 @@
 #include "Engine/Core/Log.h"
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Audio/AudioSystem.h"
+#include "Engine/Animation/AnimationSystem.h"
 #include "Scripting/ScriptRuntime.h"
 #include "Engine/Scripting/ScriptField.h"
 
@@ -32,7 +33,7 @@ namespace ByteForge
         using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, CameraComponent,
                                                    Rigidbody2DComponent, BoxCollider2DComponent,
                                                    CircleCollider2DComponent, AudioSourceComponent,
-                                                   ScriptComponent>;
+                                                   AnimatorComponent, ScriptComponent>;
 
         template<typename... Components>
         void CopyComponents(ComponentList<Components...>, const entt::registry& from, const entt::entity source,
@@ -364,6 +365,7 @@ namespace ByteForge
         m_PhysicsWorld->EnsureBodiesCreated(*this);
         m_ScriptRuntime->Update(ts);
         AudioSystem::Update(*this);
+        AnimationSystem::Update(*this, ts.GetSeconds());
         m_PhysicsWorld->Step(ts.GetSeconds(), *this);
 
         FlushPendingDestroy();

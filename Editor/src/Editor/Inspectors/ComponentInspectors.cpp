@@ -11,7 +11,9 @@
 #include <imgui.h>
 
 #include <array>
+#include <cfloat>
 #include <limits>
+#include <string>
 
 namespace ByteForge
 {
@@ -183,6 +185,41 @@ namespace ByteForge
             }
         }
 
+        void DrawAnimator(AnimatorComponent& animator, const Entity entity, EditorContext& context)
+        {
+            EditorUI::AssetReferenceField("Controller", AssetType::AnimatorController,
+                                          animator.Controller, context.SelectionContext);
+            ImGui::DragFloat("Speed", &animator.Speed, 0.01f, 0.0f, 10.0f, "%.2fx", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::Checkbox("Play on Start", &animator.PlayOnStart);
+
+            if (!entity.HasComponent<SpriteRendererComponent>())
+                ImGui::TextColored(EditorUI::ErrorColor, "Needs a Sprite Renderer to show its frames");
+
+            if (!entity.GetScene().IsRunning()) return;
+
+            ImGui::Separator();
+
+            const std::string state = animator.GetCurrentState();
+            ImGui::Text("State: %s", state.empty() ? "None" : state.c_str());
+            ImGui::ProgressBar(animator.GetNormalizedTime(), ImVec2(-FLT_MIN, 0.0f),
+                               animator.IsPlaying() ? "Playing" : "Stopped");
+
+            if (static_cast<u64>(animator.Controller) == 0) return;
+
+            const Ref<AnimatorControllerAsset> controller = AssetManager::LoadAnimatorController(animator.Controller);
+            for (u32 i = 0; i < controller->GetStateCount(); ++i)
+            {
+                const std::string& name = controller->GetState(i).Name;
+
+                ImGui::PushID(static_cast<i32>(i));
+                if (i > 0)
+                    ImGui::SameLine();
+                if (ImGui::SmallButton(name.c_str()))
+                    animator.Play(name, true);
+                ImGui::PopID();
+            }
+        }
+
         void DrawScript(ScriptComponent& script, const Entity entity, EditorContext& context)
         {
             EditorUI::DrawScriptComponentInspector(entity, script, context.SelectionContext);
@@ -215,6 +252,7 @@ namespace ByteForge
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
             Inspect<AudioSourceComponent, DrawAudioSource>("Audio Source", EditorIcon::ComponentAudioSource),
+            Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip),
             Inspect<ScriptComponent, DrawScript>("Script")
         };
     }

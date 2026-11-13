@@ -66,6 +66,7 @@ namespace
         RemoveIfPresent<BoxCollider2DComponent>(entity);
         RemoveIfPresent<CircleCollider2DComponent>(entity);
         RemoveIfPresent<AudioSourceComponent>(entity);
+        RemoveIfPresent<AnimatorComponent>(entity);
         RemoveIfPresent<ScriptComponent>(entity);
     }
 
@@ -157,6 +158,15 @@ namespace
             source.PlayOnStart = a.value("playOnStart", true);
         }
 
+        if (entityJson.contains("animator"))
+        {
+            const auto& a = entityJson.at("animator");
+            auto& animator = entity.AddComponent<AnimatorComponent>();
+            animator.Controller = UUID(a.value("controller", u64{ 0 }));
+            animator.Speed = a.value("speed", 1.0f);
+            animator.PlayOnStart = a.value("playOnStart", true);
+        }
+
         if (entityJson.contains("script"))
         {
             const auto& scriptJson = entityJson.at("script");
@@ -182,7 +192,7 @@ namespace
         return entity;
     }
 
-    void LinkToParent(Scene& scene, const Entity entity, const nlohmann::json& data)
+    void LinkToParent(const Scene& scene, const Entity entity, const nlohmann::json& data)
     {
         if (!data.contains("parent")) return;
 
@@ -360,6 +370,20 @@ namespace ByteForge
                 sourceJson["clip"] = static_cast<u64>(source.Clip);
 
             entityJson["audioSource"] = std::move(sourceJson);
+        }
+
+        if (entity.HasComponent<AnimatorComponent>())
+        {
+            const auto& animator = entity.GetComponent<AnimatorComponent>();
+            nlohmann::json animatorJson{
+                { "speed",       animator.Speed       },
+                { "playOnStart", animator.PlayOnStart }
+            };
+
+            if (static_cast<u64>(animator.Controller) != 0)
+                animatorJson["controller"] = static_cast<u64>(animator.Controller);
+
+            entityJson["animator"] = std::move(animatorJson);
         }
 
         if (entity.HasComponent<ScriptComponent>())
