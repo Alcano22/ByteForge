@@ -25,6 +25,7 @@ namespace ByteForge
         FilePhysicsMaterial,
         FileScriptGraph,
         FileAnimationClip,
+        FileAnimatorController,
         PlayerPlay,
         PlayerPause,
         PlayerStep,

@@ -14,8 +14,12 @@
 #include <Engine/Scripting/Visual/ScriptGraphSerializer.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <cfloat>
+#include <format>
+#include <optional>
+#include <string>
 #include <utility>
 
 namespace ByteForge::EditorUI
@@ -113,6 +117,139 @@ namespace ByteForge::EditorUI
                 context.Open<AnimationClipPanel>().OpenClip(metadata.Handle);
             ImGui::TextDisabled("or double-click it in the Assets panel");
         }
+
+        std::string MakeUniqueStateName(const AnimatorControllerData& data, const std::string& base,
+                                        const std::optional<usize> ignore = std::nullopt)
+        {
+            const auto taken = [&](const std::string& name)
+            {
+                for (usize i = 0; i < data.States.size(); ++i)
+                {
+                    if (i != ignore && data.States[i].Name == name)
+                        return true;
+                }
+                return false;
+            };
+
+            const std::string root = base.empty() ? "State" : base;
+            if (!taken(root))
+                return root;
+
+            for (u32 suffix = 1;; ++suffix)
+            {
+                std::string candidate = std::format("{} {}", root, suffix);
+                if (!taken(candidate))
+                    return candidate;
+            }
+        }
+
+        void DrawAnimatorControllerInspector(const AssetMetadata& metadata, EditorContext& context)
+        {
+            AnimatorControllerData data = AssetManager::LoadAnimatorController(metadata.Handle)->GetData();
+
+            bool changed = false;
+            bool committed = false;
+
+            const char* preview = data.States.empty()
+                                ? "None"
+                                : data.States[std::min<usize>(data.DefaultState, data.States.size() - 1)].Name.c_str();
+
+            if (ImGui::BeginCombo("Default State", preview))
+            {
+                for (usize i = 0; i < data.States.size(); ++i)
+                {
+                    ImGui::PushID(static_cast<i32>(i));
+                    const bool selected = i == data.DefaultState;
+                    if (ImGui::Selectable(data.States[i].Name.c_str(), selected) && !selected)
+                    {
+                        data.DefaultState = static_cast<u32>(i);
+                        changed = true;
+                        committed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::SeparatorText("States");
+
+            std::optional<usize> removed;
+
+            constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg;
+            if (!data.States.empty() && ImGui::BeginTable("##states", 4, tableFlags))
+            {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+                ImGui::TableSetupColumn("Clip", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+                ImGui::TableSetupColumn("Speed", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight());
+                ImGui::TableHeadersRow();
+
+                for (usize i = 0; i < data.States.size(); ++i)
+                {
+                    AnimatorState& state = data.States[i];
+                    ImGui::PushID(static_cast<i32>(i));
+                    ImGui::TableNextRow();
+
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    changed |= ImGui::InputText("##name", &state.Name);
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                    {
+                        state.Name = MakeUniqueStateName(data, state.Name, i);
+                        changed = true;
+                        committed = true;
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    if (AssetReferenceField("##clip", AssetType::AnimationClip, state.Clip, context.SelectionContext))
+                    {
+                        changed = true;
+                        committed = true;
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    changed |= ImGui::DragFloat("##speed", &state.Speed, 0.01f, 0.0f, 10.0f, "%.2fx",
+                                                ImGuiSliderFlags_AlwaysClamp);
+                    committed |= ImGui::IsItemDeactivatedAfterEdit();
+
+                    ImGui::TableNextColumn();
+                    if (ImGui::Button("x", ImVec2(ImGui::GetFrameHeight(), 0.0f)))
+                        removed = i;
+                    ImGui::SetItemTooltip("Remove state");
+
+                    ImGui::PopID();
+                }
+
+                ImGui::EndTable();
+            }
+
+            if (removed)
+            {
+                data.States.erase(data.States.begin() + static_cast<isize>(*removed));
+
+                if (data.DefaultState > *removed)
+                    --data.DefaultState;
+                else if (data.DefaultState == *removed)
+                    data.DefaultState = 0;
+
+                changed = true;
+                committed = true;
+            }
+
+            if (ImGui::Button("Add State"))
+            {
+                data.States.push_back(AnimatorState{ .Name = MakeUniqueStateName(data, "State") });
+                changed = true;
+                committed = true;
+            }
+
+            if (changed)
+                AssetManager::SetAnimatorController(metadata.Handle, std::move(data));
+            if (committed)
+                AssetManager::SaveAnimatorController(metadata.Handle);
+        }
     }
 
     void DrawAssetInspector(const UUID handle, EditorContext& context)
@@ -137,10 +274,11 @@ namespace ByteForge::EditorUI
                     context.Dialogs.RequestOpen(handle);
                 ImGui::TextDisabled("or double-click it in the Assets panel");
                 break;
-            case AssetType::PhysicsMaterial2D: DrawPhysicsMaterialInspector(metadata);        break;
-            case AssetType::AnimationClip:     DrawAnimationClipInspector(metadata, context); break;
-            case AssetType::AudioClip:         DrawAudioClipInspector(metadata);              break;
-            case AssetType::ScriptGraph:       DrawScriptGraphInspector(metadata);            break;
+            case AssetType::PhysicsMaterial2D:  DrawPhysicsMaterialInspector(metadata);             break;
+            case AssetType::AnimationClip:      DrawAnimationClipInspector(metadata, context);      break;
+            case AssetType::AnimatorController: DrawAnimatorControllerInspector(metadata, context); break;
+            case AssetType::AudioClip:          DrawAudioClipInspector(metadata);                   break;
+            case AssetType::ScriptGraph:        DrawScriptGraphInspector(metadata);                 break;
             case AssetType::Prefab:
                 if (ImGui::Button("Instantiate"))
                     context.InstantiatePrefab(handle);

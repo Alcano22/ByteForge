@@ -4,6 +4,7 @@
 #include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Assets/TextureAsset.h"
 #include "Engine/Assets/AnimationClip.h"
+#include "Engine/Assets/AnimatorController.h"
 #include "Engine/Scene/UUID.h"
 
 #include <expected>
@@ -36,6 +37,13 @@ namespace ByteForge
         static bool SaveAnimationClip(UUID handle);
 
         [[nodiscard]] static Result<UUID> CreateAnimationClip(const fs::path& relativePath);
+
+        [[nodiscard]] static Ref<AnimatorControllerAsset> LoadAnimatorController(UUID handle);
+
+        static void SetAnimatorController(UUID handle, AnimatorControllerData controller);
+        static bool SaveAnimatorController(UUID handle);
+
+        [[nodiscard]] static Result<UUID> CreateAnimatorController(const fs::path& relativePath);
 
         static void Reload(UUID handle);
     };

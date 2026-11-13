@@ -10,7 +10,8 @@ public enum AssetType : byte
     AudioClip,
     ScriptGraph,
     Prefab,
-    AnimationClip
+    AnimationClip,
+    AnimatorController
 }
 
 public abstract class Asset

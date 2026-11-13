@@ -22,7 +22,6 @@ namespace ByteForge
 
     namespace
     {
-        constexpr const char* UnsavedPopup = "Unsaved Changes###GraphUnsaved";
         constexpr const char* AddNodePopup = "Add Node###GraphAddNode";
 
         NE::EditorContext* CreateNodeEditor()

@@ -17,7 +17,8 @@ namespace ByteForge
         AudioClip,
         ScriptGraph,
         Prefab,
-        AnimationClip
+        AnimationClip,
+        AnimatorController
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

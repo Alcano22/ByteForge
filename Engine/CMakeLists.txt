@@ -37,6 +37,7 @@ add_library(Engine SHARED
         src/Assets/Prefab.cpp
         src/Assets/Pak.cpp
         src/Assets/AnimationClip.cpp
+        src/Assets/AnimatorController.cpp
         src/Audio/AudioEngine.cpp
         src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp

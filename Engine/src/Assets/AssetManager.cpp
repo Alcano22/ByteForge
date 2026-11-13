@@ -36,6 +36,7 @@ namespace ByteForge
         std::unordered_map<UUID, std::future<DecodedTexture>> s_Pending;
         std::unordered_map<UUID, Ref<PhysicsMaterialAsset>> s_PhysicsMaterials;
         std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
+        std::unordered_map<UUID, Ref<AnimatorControllerAsset>> s_AnimatorControllers;
         Ref<Texture2D> s_Fallback;
 
         const Ref<Texture2D>& Fallback()
@@ -114,6 +115,15 @@ namespace ByteForge
                 return std::unexpected(data.error());
 
             return ParseAnimationClip(*data);
+        }
+
+        Result<AnimatorControllerData> ReadAnimatorController(const UUID handle)
+        {
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return std::unexpected(data.error());
+
+            return ParseAnimatorController(*data);
         }
     }
 
@@ -275,6 +285,62 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
+    Ref<AnimatorControllerAsset> AssetManager::LoadAnimatorController(const UUID handle)
+    {
+        if (const auto it = s_AnimatorControllers.find(handle); it != s_AnimatorControllers.end())
+            return it->second;
+
+        AnimatorControllerData data;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::AnimatorController)
+            CORE_ERROR("AssetManager: {} is not a known animator controller", static_cast<u64>(handle));
+        else if (auto parsed = ReadAnimatorController(handle))
+            data = std::move(*parsed);
+        else
+            CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), parsed.error());
+
+        auto asset = MakeRef<AnimatorControllerAsset>(handle, std::move(data));
+        s_AnimatorControllers.emplace(handle, asset);
+        return asset;
+    }
+
+    void AssetManager::SetAnimatorController(const UUID handle, AnimatorControllerData controller)
+    {
+        LoadAnimatorController(handle)->SetData(std::move(controller));
+    }
+
+    bool AssetManager::SaveAnimatorController(const UUID handle)
+    {
+        const auto it = s_AnimatorControllers.find(handle);
+        AssetMetadata metadata;
+        if (it == s_AnimatorControllers.end() || !AssetRegistry::TryGetMetadata(handle, metadata))
+            return false;
+
+        const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
+        if (const auto written = WriteJsonFile(path, SerializeAnimatorController(it->second->GetData())); !written)
+        {
+            CORE_ERROR("AssetManager: cannot save '{}': {}", metadata.Path.generic_string(), written.error());
+            return false;
+        }
+
+        return true;
+    }
+
+    Result<UUID> AssetManager::CreateAnimatorController(const fs::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+
+        if (const auto written = WriteJsonFile(path, SerializeAnimatorController(AnimatorControllerData{})); !written)
+            return std::unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
     void AssetManager::Reload(const UUID handle)
     {
         AssetMetadata metadata;
@@ -297,6 +363,14 @@ namespace ByteForge
                 it->second->SetData(std::move(*clip));
             else
                 CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), clip.error());
+        }
+
+        if (const auto it = s_AnimatorControllers.find(handle); it != s_AnimatorControllers.end())
+        {
+            if (auto controller = ReadAnimatorController(handle))
+                it->second->SetData(std::move(*controller));
+            else
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), controller.error());
         }
     }
 
@@ -339,6 +413,7 @@ namespace ByteForge
         s_Assets.clear();
         s_PhysicsMaterials.clear();
         s_AnimationClips.clear();
+        s_AnimatorControllers.clear();
         s_Fallback.reset();
         Prefab::Clear();
     }

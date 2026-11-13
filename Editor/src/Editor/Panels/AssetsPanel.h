@@ -68,6 +68,7 @@ namespace ByteForge
         void CreateFolder();
         void CreatePhysicsMaterial();
         void CreateAnimationClip();
+        void CreateAnimatorController();
         void CreateScriptGraph();
         void CreatePrefab(Entity entity);
 

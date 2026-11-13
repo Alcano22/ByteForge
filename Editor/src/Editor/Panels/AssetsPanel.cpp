@@ -591,6 +591,8 @@ namespace ByteForge
                 CreatePhysicsMaterial();
             if (ImGui::MenuItem("Animation Clip"))
                 CreateAnimationClip();
+            if (ImGui::MenuItem("Animator Controller"))
+                CreateAnimatorController();
             if (ImGui::MenuItem("Script Graph"))
                 CreateScriptGraph();
 
@@ -653,6 +655,19 @@ namespace ByteForge
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Animation", AnimationClipExtension);
 
         if (const auto created = AssetManager::CreateAnimationClip(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateAnimatorController()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Animator", AnimatorControllerExtension);
+
+        if (const auto created = AssetManager::CreateAnimatorController(path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
             return;
