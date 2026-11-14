@@ -197,6 +197,7 @@ namespace ByteForge
         }
 
         theme->Colors = reloaded->Colors;
+        theme->Editor = reloaded->Editor;
         theme->Modified = false;
 
         if (theme->Name == m_ActiveName)

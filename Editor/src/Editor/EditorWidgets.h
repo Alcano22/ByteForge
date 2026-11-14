@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Editor/Selection.h"
+#include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/TextureAsset.h>
@@ -20,7 +21,8 @@
 
 namespace ByteForge::EditorUI
 {
-    inline constexpr ImVec4 ErrorColor{ 0.90f, 0.35f, 0.35f, 1.0f };
+    inline const ImVec4& ErrorColor = EditorColors::Get(EditorColor::Error);
+
     inline constexpr const char* EntityPayloadType = "ByteForge.Entity";
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);

@@ -4,6 +4,7 @@
 #include "Editor/AssetPayload.h"
 #include "Editor/Commands/EntityCommands.h"
 #include "Editor/Viewport/SceneGizmos.h"
+#include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Renderer/LineRenderer.h>
 #include <Engine/Scene/Entity.h>
@@ -20,7 +21,6 @@ namespace ByteForge
 {
     namespace
     {
-        constexpr glm::vec4 BackgroundColor{ 0.03f, 0.03f, 0.035f, 1.0f };
         constexpr f32 FocusPadding = 3.0f;
         constexpr f32 OverlayMargin = 8.0f;
         constexpr ImGuiKey SpaceToggleKey = ImGuiKey_X;
@@ -60,12 +60,15 @@ namespace ByteForge
     }
 
     ScenePanel::ScenePanel(EditorContext& context)
-        : EditorPanel(context, Name), m_Canvas({ .ClearColor = BackgroundColor, .EntityIds = true }) {}
+        : EditorPanel(context, Name),
+          m_Canvas({ .ClearColor = EditorColors::GetVec4(EditorColor::SceneBackground), .EntityIds = true }) {}
 
     void ScenePanel::OnUpdate(Timestep)
     {
         Scene* scene = GetContext().ActiveScene;
         if (scene == nullptr) return;
+
+        m_Canvas.SetClearColor(EditorColors::GetVec4(EditorColor::SceneBackground));
 
         m_Camera.SetViewportSize(m_Canvas.GetSize());
         const Entity selected = GetContext().SelectionContext.GetEntity();

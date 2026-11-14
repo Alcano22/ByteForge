@@ -1,5 +1,6 @@
 #include "Editor/Viewport/SceneGizmos.h"
 #include "Editor/Viewport/EditorCamera2D.h"
+#include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Renderer/LineRenderer.h>
 #include <Engine/Scene/Components.h>
@@ -17,18 +18,12 @@ namespace ByteForge::SceneGizmos
         constexpr f32 MinLineSpacingPixels = 12.0f;
         constexpr i64 MaxLinesPerAxis = 1000;
 
-        constexpr glm::vec4 MinorLineColor{ 1.0f, 1.0f, 1.0f, 0.05f };
-        constexpr glm::vec4 MajorLineColor{ 1.0f, 1.0f, 1.0f, 0.12f };
-        constexpr glm::vec4 XAxisColor{ 0.86f, 0.33f, 0.33f, 0.7f };
-        constexpr glm::vec4 YAxisColor{ 0.45f, 0.78f, 0.35f, 0.7f };
-        constexpr glm::vec4 SelectionColor{ 1.0f, 0.62f, 0.15f, 1.0f };
-
-        const glm::vec4& LineColor(const i64 index, const glm::vec4& axisColor)
+        glm::vec4 LineColor(const i64 index, const glm::vec4& axisColor)
         {
             if (index == 0)
                 return axisColor;
 
-            return index % 10 == 0 ? MajorLineColor : MinorLineColor;
+            return EditorColors::GetVec4(index % 10 == 0 ? EditorColor::GridMajor : EditorColor::GridMinor);
         }
     }
 
@@ -47,22 +42,26 @@ namespace ByteForge::SceneGizmos
 
         if (lastX - firstX > MaxLinesPerAxis || lastY - firstY > MaxLinesPerAxis) return;
 
+        const glm::vec4 axisColorX = EditorColors::GetVec4(EditorColor::AxisX);
+        const glm::vec4 axisColorY = EditorColors::GetVec4(EditorColor::AxisY);
+
         for (i64 i = firstX; i <= lastX; ++i)
         {
             const f32 x = static_cast<f32>(i) * spacing;
-            lines.DrawLine({ x, min.y, 0.0f }, { x, max.y, 0.0f }, LineColor(i, YAxisColor));
+            lines.DrawLine({ x, min.y, 0.0f }, { x, max.y, 0.0f }, LineColor(i, axisColorX));
         }
 
         for (i64 i = firstY; i <= lastY; ++i)
         {
             const f32 y = static_cast<f32>(i) * spacing;
-            lines.DrawLine({ min.x, y, 0.0f }, { max.x, y, 0.0f }, LineColor(i, XAxisColor));
+            lines.DrawLine({ min.x, y, 0.0f }, { max.x, y, 0.0f }, LineColor(i, axisColorY));
         }
     }
 
     void DrawSelection(LineRenderer& lines, const Entity entity)
     {
         const TransformComponent transform = entity.GetWorldTransform();
-        lines.DrawRect(transform.Position, glm::abs(transform.Scale), transform.Rotation, SelectionColor);
+        lines.DrawRect(transform.Position, glm::abs(transform.Scale), transform.Rotation,
+                       EditorColors::GetVec4(EditorColor::Selection));
     }
 }

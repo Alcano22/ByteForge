@@ -2,6 +2,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/Graph/GraphIds.h"
 #include "Editor/Graph/GraphTheme.h"
+#include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Core/Log.h>
 
@@ -29,11 +30,7 @@ namespace ByteForge
             NE::Config config;
             config.SettingsFile = nullptr;
 
-            NE::EditorContext* editor = NE::CreateEditor(&config);
-            NE::SetCurrentEditor(editor);
-            GraphTheme::ApplyStyle();
-            NE::SetCurrentEditor(nullptr);
-            return editor;
+            return NE::CreateEditor(&config);
         }
 
         void ShowHint(const std::string& text)
@@ -212,7 +209,7 @@ namespace ByteForge
             ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()),
                                "%zu error(s), %zu warning(s)", errors, warnings);
         } else if (warnings > 0)
-            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "%zu warning(s)", warnings);
+            ImGui::TextColored(EditorColors::Get(EditorColor::Warning), "%zu warning(s)", warnings);
         else
             ImGui::TextDisabled("No problems");
 
@@ -230,6 +227,7 @@ namespace ByteForge
     void GraphEditorPanel::DrawCanvas()
     {
         NE::SetCurrentEditor(m_Editor);
+        GraphTheme::ApplyStyle();
         NE::Begin("Graph");
 
         SyncPositionsToEditor();

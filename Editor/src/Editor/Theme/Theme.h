@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/Theme/EditorColors.h"
+
 #include <Engine/Core/Core.h>
 
 #include <imgui.h>
@@ -17,6 +19,8 @@ namespace ByteForge
         std::string Name;
         bool BuiltIn = false;
         std::array<ImVec4, ImGuiCol_COUNT> Colors{};
+
+        EditorColorSet Editor{};
 
         std::filesystem::path File;
         bool Modified = false;

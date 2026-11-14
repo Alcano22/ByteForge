@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Editor/Theme/EditorColors.h"
+
 #include <Engine/Core/Log.h>
 
 #include <imgui.h>
@@ -31,9 +33,9 @@ namespace ByteForge
             case LogLevel::Trace:
             case LogLevel::Debug:    return ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
             case LogLevel::Info:     return ImGui::GetStyleColorVec4(ImGuiCol_Text);
-            case LogLevel::Warn:     return { 0.95f, 0.75f, 0.30f, 1.0f };
+            case LogLevel::Warn:     return EditorColors::Get(EditorColor::Warning);
             case LogLevel::Error:
-            case LogLevel::Critical: return { 0.95f, 0.40f, 0.40f, 1.0f };
+            case LogLevel::Critical: return EditorColors::Get(EditorColor::Error);
         }
         return ImGui::GetStyleColorVec4(ImGuiCol_Text);
     }

@@ -132,7 +132,7 @@ namespace ByteForge
         ImGui::EndDisabled();
 
         if (error != nullptr)
-            ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.40f, 1.0f), "%s", error);
+            ImGui::TextColored(EditorColors::Get(EditorColor::Error), "%s", error);
     }
 
     void ThemeEditorPanel::DrawDeleteDialog(ThemeManager& themes, const std::string& name)
@@ -177,23 +177,63 @@ namespace ByteForge
 
         ImGui::BeginDisabled(editable == nullptr);
 
+        bool edited = false;
+
+        auto editColor = [&](const char* label, ImVec4& stored)
+        {
+            ImVec4 value = stored;
+            if (ImGui::ColorEdit4(label, &value.x, ColorFlags) && editable != nullptr)
+            {
+                stored = value;
+                edited = true;
+            }
+        };
+
+        std::string_view group;
+        for (const EditorColorInfo& info : GetEditorColorInfos())
+        {
+            if (!m_Filter.PassFilter(info.Label))
+                continue;
+
+            if (group != info.Group)
+            {
+                group = info.Group;
+                ImGui::SeparatorText(info.Group);
+            }
+
+            ImVec4 scratch = shown->Editor[static_cast<usize>(info.Id)];
+            ImVec4& stored = editable != nullptr ? editable->Editor[static_cast<usize>(info.Id)] : scratch;
+
+            ImGui::PushID(info.Key);
+            editColor(info.Label, stored);
+            ImGui::PopID();
+        }
+
+        bool imguiHeaderShown = false;
         for (i32 i = 0; i < ImGuiCol_COUNT; ++i)
         {
             const char* colorName = ImGui::GetStyleColorName(i);
-            if (!m_Filter.PassFilter(colorName)) continue;
+            if (!m_Filter.PassFilter(colorName))
+                continue;
 
-            ImVec4 value = shown->Colors[static_cast<usize>(i)];
+            if (!imguiHeaderShown)
+            {
+                ImGui::SeparatorText("UI (ImGui)");
+                imguiHeaderShown = true;
+            }
+
+            ImVec4 scratch = shown->Colors[static_cast<usize>(i)];
+            ImVec4& stored = editable != nullptr ? editable->Colors[static_cast<usize>(i)] : scratch;
 
             ImGui::PushID(i);
-            if (ImGui::ColorEdit4(colorName, &value.x, ColorFlags) && editable != nullptr)
-            {
-                editable->Colors[static_cast<usize>(i)] = value;
-                themes.MarkEdited(*editable);
-            }
+            editColor(colorName, stored);
             ImGui::PopID();
         }
 
         ImGui::EndDisabled();
         ImGui::EndChild();
+
+        if (edited && editable != nullptr)
+            themes.MarkEdited(*editable);
     }
 }

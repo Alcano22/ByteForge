@@ -1,4 +1,5 @@
 #include "Editor/Graph/GraphTheme.h"
+#include "Editor/Theme/EditorColors.h"
 
 #include <imgui_node_editor.h>
 
@@ -66,12 +67,12 @@ namespace ByteForge::GraphTheme
         style.PinRounding = 4.0f;
         style.LinkStrength = 120.0f;
 
-        style.Colors[NE::StyleColor_Bg]            = ImColor(22, 22, 26, 255);
-        style.Colors[NE::StyleColor_Grid]          = ImColor(60, 60, 70, 55);
-        style.Colors[NE::StyleColor_NodeBg]        = ImColor(30, 31, 36, 255);
-        style.Colors[NE::StyleColor_NodeBorder]    = ImColor(0, 0, 0, 170);
-        style.Colors[NE::StyleColor_HovNodeBorder] = ImColor(110, 150, 230, 255);
-        style.Colors[NE::StyleColor_SelNodeBorder] = ImColor(255, 176, 50, 255);
-        style.Colors[NE::StyleColor_PinRect]       = ImColor(110, 150, 230, 60);
+        style.Colors[NE::StyleColor_Bg]            = EditorColors::Get(EditorColor::GraphBackground);
+        style.Colors[NE::StyleColor_Grid]          = EditorColors::Get(EditorColor::GraphGrid);
+        style.Colors[NE::StyleColor_NodeBg]        = EditorColors::Get(EditorColor::GraphNode);
+        style.Colors[NE::StyleColor_NodeBorder]    = EditorColors::Get(EditorColor::GraphNodeBorder);
+        style.Colors[NE::StyleColor_HovNodeBorder] = EditorColors::Get(EditorColor::GraphNodeBorderHovered);
+        style.Colors[NE::StyleColor_SelNodeBorder] = EditorColors::Get(EditorColor::GraphNodeBorderSelected);
+        style.Colors[NE::StyleColor_PinRect]       = EditorColors::Get(EditorColor::GraphPinHighlight);
     }
 }
