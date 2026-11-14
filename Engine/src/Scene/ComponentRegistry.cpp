@@ -12,11 +12,13 @@ namespace ByteForge
     namespace
     {
         template<SerializableComponent T>
-        constexpr ComponentDescriptor Describe(const char* key, const bool removable = true)
+        constexpr ComponentDescriptor Describe(const char* key, const bool removable = true,
+                                               const bool hidden = false)
         {
             return {
                 .Key       = key,
                 .Removable = removable,
+                .Hidden    = hidden,
                 .TypeId    = ComponentTypeId<T>(),
                 .Has       = [](const Entity entity) { return entity.HasComponent<T>(); },
                 .Remove    = [](const Entity entity)
@@ -55,7 +57,8 @@ namespace ByteForge
             Describe<CircleCollider2DComponent>("circleCollider2D"),
             Describe<AudioSourceComponent>("audioSource"),
             Describe<AnimatorComponent>("animator"),
-            Describe<ScriptComponent>("script")
+            Describe<ScriptComponent>("script"),
+            Describe<ComponentOrderComponent>("componentOrder", true, true)
         };
 
         constexpr bool HasUniqueKeys()

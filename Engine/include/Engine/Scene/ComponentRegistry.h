@@ -23,6 +23,7 @@ namespace ByteForge
         const char* Key = nullptr;
 
         bool Removable = true;
+        bool Hidden = false;
 
         u32 TypeId = 0;
 

@@ -18,6 +18,8 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -268,6 +270,8 @@ namespace ByteForge
     {
         for (const ComponentDescriptor& descriptor : ComponentRegistry::GetAll())
         {
+            if (descriptor.Hidden) continue;
+
             const auto it = std::ranges::find(Inspectors, descriptor.TypeId, &ComponentInspector::TypeId);
             if (it == Inspectors.end())
             {

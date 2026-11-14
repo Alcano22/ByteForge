@@ -53,6 +53,7 @@ add_executable(Editor
         src/Editor/Inspectors/AssetInspector.cpp
         src/Editor/Inspectors/TextureSettingsEditor.cpp
         src/Editor/Inspectors/LogEntryInspector.cpp
+        src/Editor/Inspectors/ComponentOrdering.cpp
         src/Editor/Viewport/ViewportCanvas.cpp
         src/Editor/Viewport/EditorCamera2D.cpp
         src/Editor/Viewport/SceneGizmos.cpp

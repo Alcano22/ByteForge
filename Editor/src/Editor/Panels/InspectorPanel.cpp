@@ -4,6 +4,7 @@
 #include "Editor/StringUtils.h"
 #include "Editor/Inspectors/AssetInspector.h"
 #include "Editor/Inspectors/ComponentInspectors.h"
+#include "Editor/Inspectors/ComponentOrdering.h"
 #include "Editor/Inspectors/LogEntryInspector.h"
 #include "Editor/Inspectors/ScriptInspector.h"
 
@@ -24,6 +25,14 @@ namespace ByteForge
     namespace
     {
         constexpr const char* AddComponentPopupId = "##AddComponent";
+
+        constexpr const char* ComponentPayloadType = "ByteForge.Component";
+
+        void DrawInsertionLine(const f32 y, const f32 minX, const f32 maxX)
+        {
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(minX, y), ImVec2(maxX, y),
+                                                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
+        }
     }
 
     void InspectorPanel::OnImGuiRender()
@@ -83,11 +92,8 @@ namespace ByteForge
         DrawHeader(entity);
         ImGui::Separator();
 
-        for (const ComponentInspector& inspector : GetComponentInspectors())
-        {
-            if (inspector.Has(entity))
-                DrawComponentSection(inspector, entity);
-        }
+        for (const ComponentInspector* inspector : GetOrderedInspectors(entity))
+            DrawComponentSection(*inspector, entity);
 
         EditorUI::DrawScriptDropZone(entity);
     }
@@ -107,6 +113,44 @@ namespace ByteForge
 
         const bool open = ImGui::TreeNodeEx("##header", flags, "%s  %s",
                                             EditorIcons::Glyph(inspector.Icon), inspector.Name);
+
+        const ImVec2 headerMin = ImGui::GetItemRectMin();
+        const ImVec2 headerMax = ImGui::GetItemRectMax();
+        const f32 halfGap = ImGui::GetStyle().ItemSpacing.y * 0.5f;
+
+        if (inspector.Removable && ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload(ComponentPayloadType, &inspector.TypeId, sizeof(inspector.TypeId));
+            ImGui::TextUnformatted(inspector.Name);
+            ImGui::EndDragDropSource();
+        }
+
+        bool showLineAfterSection = false;
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            constexpr ImGuiDragDropFlags dropFlags = ImGuiDragDropFlags_AcceptBeforeDelivery
+                                                   | ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(ComponentPayloadType, dropFlags);
+                payload != nullptr && payload->DataSize == sizeof(u32))
+            {
+                const u32 movedTypeId = *static_cast<const u32*>(payload->Data);
+                const bool after = ImGui::GetMousePos().y > (headerMin.y + headerMax.y) * 0.5f;
+
+                if (CanMoveComponent(entity, movedTypeId, inspector.TypeId, after))
+                {
+                    if (payload->IsDelivery())
+                        MoveComponent(entity, movedTypeId, inspector.TypeId, after);
+                    else if (after)
+                        showLineAfterSection = true;
+                    else
+                        DrawInsertionLine(headerMin.y - halfGap, headerMin.x, headerMax.x);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         ImGui::OpenPopupOnItemClick("##options", ImGuiPopupFlags_MouseButtonRight);
 
         ImGui::SameLine(headerEnd - buttonSize);
@@ -131,6 +175,9 @@ namespace ByteForge
                 inspector.Draw(entity, GetContext());
             ImGui::TreePop();
         }
+
+        if (showLineAfterSection)
+            DrawInsertionLine(ImGui::GetCursorScreenPos().y - halfGap, headerMin.x, headerMax.x);
 
         ImGui::PopID();
 

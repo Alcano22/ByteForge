@@ -38,6 +38,7 @@ add_library(Engine SHARED
         src/Scene/Components/AudioSourceComponent.cpp
         src/Scene/Components/AnimatorComponent.cpp
         src/Scene/Components/ScriptComponent.cpp
+        src/Scene/Components/ComponentOrderComponent.cpp
         src/Project/ProjectSettings.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
