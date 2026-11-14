@@ -85,9 +85,9 @@ namespace ByteForge
     public:
         SetParentCommand(Scene& scene, UUID entityId, std::string name,
                          UUID oldParent, i32 oldIndex, const TransformComponent& before,
-                         UUID newParent, const TransformComponent& after);
+                         UUID newParent, i32 newIndex, const TransformComponent& after);
 
-        void Execute() override { Apply(m_NewParent, -1, m_After); }
+        void Execute() override { Apply(m_NewParent, m_NewIndex, m_After); }
         void Undo() override { Apply(m_OldParent, m_OldIndex, m_Before); }
         [[nodiscard]] std::string GetName() const override { return m_Name; }
 
@@ -102,6 +102,7 @@ namespace ByteForge
         i32 m_OldIndex;
         TransformComponent m_Before;
         UUID m_NewParent;
+        i32 m_NewIndex;
         TransformComponent m_After;
     };
 }

@@ -122,7 +122,7 @@ namespace ByteForge
         void RenameEntity(Entity entity, std::string name);
         void DuplicateEntity(Entity entity);
         void DestroyEntity(Entity entity);
-        void ReparentEntity(Entity entity, Entity newParent);
+        void MoveEntity(Entity entity, Entity newParent, i32 index = -1);
 
         void InstantiatePrefab(UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
 

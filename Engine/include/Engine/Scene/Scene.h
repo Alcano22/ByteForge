@@ -52,6 +52,8 @@ namespace ByteForge
         [[nodiscard]] std::vector<Entity> GetRootEntities();
         [[nodiscard]] bool IsDescendantOf(Entity entity, Entity ancestor) const;
 
+        [[nodiscard]] i32 GetSiblingIndex(Entity entity) const;
+
         [[nodiscard]] TransformComponent GetWorldTransform(Entity entity) const;
         void SetWorldTransform(Entity entity, const TransformComponent& world);
 
@@ -108,6 +110,9 @@ namespace ByteForge
 
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_EntityByUUID;
+
+        std::vector<UUID> m_RootOrder;
+
         std::vector<UUID> m_PendingDestroy;
         std::optional<UUID> m_PendingSceneLoad;
         Scope<Physics2DWorld> m_PhysicsWorld;

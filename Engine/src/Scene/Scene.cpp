@@ -81,6 +81,12 @@ namespace ByteForge
             return std::abs(divisor) < MinScaleMagnitude ? value : value / divisor;
         }
 
+        void InsertAtIndex(std::vector<UUID>& list, const UUID id, const i32 index)
+        {
+            const usize position = index < 0 ? list.size() : std::min(static_cast<usize>(index), list.size());
+            list.insert(list.begin() + static_cast<isize>(position), id);
+        }
+
         TransformComponent ComposeTransforms(const TransformComponent& parentWorld, const TransformComponent& local)
         {
             const f32 cosine = std::cos(parentWorld.Rotation);
@@ -147,6 +153,8 @@ namespace ByteForge
         entity.AddComponent<TagComponent>(name.empty() ? std::string("Entity") : name);
 
         m_EntityByUUID.emplace(uuid, entity.m_Handle);
+
+        m_RootOrder.push_back(uuid);
         return entity;
     }
 
@@ -159,7 +167,11 @@ namespace ByteForge
             std::erase(m_Registry.get<RelationshipComponent>(parent.m_Handle).Children, entity.GetUUID());
 
         if (const auto* id = m_Registry.try_get<UUIDComponent>(entity.m_Handle))
+        {
             m_EntityByUUID.erase(id->ID);
+
+            std::erase(m_RootOrder, id->ID);
+        }
 
         m_Registry.destroy(entity.m_Handle);
     }
@@ -259,15 +271,15 @@ namespace ByteForge
 
         if (const Entity oldParent = GetParent(child); oldParent.IsValid())
             std::erase(m_Registry.get<RelationshipComponent>(oldParent.m_Handle).Children, childId);
+        else
+            std::erase(m_RootOrder, childId);
 
         m_Registry.get<RelationshipComponent>(child.m_Handle).Parent = parent.IsValid() ? parent.GetUUID() : UUID(0);
 
         if (parent.IsValid())
-        {
-            auto& siblings = m_Registry.get<RelationshipComponent>(parent.m_Handle).Children;
-            const usize position = index < 0 ? siblings.size() : std::min(static_cast<usize>(index), siblings.size());
-            siblings.insert(siblings.begin() + static_cast<std::ptrdiff_t>(position), childId);
-        }
+            InsertAtIndex(m_Registry.get<RelationshipComponent>(parent.m_Handle).Children, childId, index);
+        else
+            InsertAtIndex(m_RootOrder, childId, index);
 
         if (keepWorldTransform)
             SetWorldTransform(child, world);
@@ -303,11 +315,12 @@ namespace ByteForge
     std::vector<Entity> Scene::GetRootEntities()
     {
         std::vector<Entity> roots;
+        roots.reserve(m_RootOrder.size());
 
-        for (const auto handle : m_Registry.view<RelationshipComponent>())
+        for (const UUID id : m_RootOrder)
         {
-            if (static_cast<u64>(m_Registry.get<RelationshipComponent>(handle).Parent) == 0)
-                roots.emplace_back(handle, this);
+            if (const Entity root = FindEntityByUUID(id); root.IsValid())
+                roots.push_back(root);
         }
 
         return roots;
@@ -322,6 +335,20 @@ namespace ByteForge
         }
 
         return false;
+    }
+
+    i32 Scene::GetSiblingIndex(const Entity entity) const
+    {
+        if (!entity.IsValid())
+            return -1;
+
+        const Entity parent = GetParent(entity);
+        const std::vector<UUID>& siblings = parent.IsValid()
+                                          ? m_Registry.get<RelationshipComponent>(parent.m_Handle).Children
+                                          : m_RootOrder;
+
+        const auto it = std::ranges::find(siblings, entity.GetUUID());
+        return it != siblings.end() ? static_cast<i32>(it - siblings.begin()) : -1;
     }
 
     TransformComponent Scene::GetWorldTransform(const Entity entity) const
@@ -542,6 +569,7 @@ namespace ByteForge
         m_PendingDestroy.clear();
         m_Registry.clear();
         m_EntityByUUID.clear();
+        m_RootOrder.clear();
         ResetPhysicsWorld();
     }
 

@@ -22,6 +22,8 @@ namespace ByteForge
         constexpr const char* CreatePopupId = "##CreateEntity";
         constexpr f32 MinDropZoneHeight = 24.0f;
 
+        constexpr f32 InsertZoneFraction = 0.25f;
+
         void AddBox(const Entity entity, const Rigidbody2DComponent::BodyType type)
         {
             entity.AddComponent<SpriteRendererComponent>();
@@ -29,10 +31,20 @@ namespace ByteForge
             entity.AddComponent<BoxCollider2DComponent>();
         }
 
+        enum class DropZone { Before, Into, After };
+
+        struct DropTarget
+        {
+            Entity Parent;
+            i32 Index = -1;
+        };
+
         struct HierarchyDrop
         {
             Entity Dragged;
             std::optional<UUID> PrefabHandle;
+
+            bool Delivered = false;
         };
 
         HierarchyDrop AcceptHierarchyDrop(const Scene& scene)
@@ -42,10 +54,15 @@ namespace ByteForge
             if (!ImGui::BeginDragDropTarget())
                 return drop;
 
-            if (const ImGuiPayload* entityPayload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType);
+            constexpr ImGuiDragDropFlags entityFlags = ImGuiDragDropFlags_AcceptBeforeDelivery
+                                                     | ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+
+            if (const ImGuiPayload* entityPayload = ImGui::AcceptDragDropPayload(EditorUI::EntityPayloadType,
+                                                                                 entityFlags);
                 entityPayload != nullptr && entityPayload->DataSize == sizeof(u64))
             {
                 drop.Dragged = scene.FindEntityByUUID(UUID(*static_cast<const u64*>(entityPayload->Data)));
+                drop.Delivered = entityPayload->IsDelivery();
             } else if (const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(AssetPayloadType))
             {
                 if (const auto asset = ReadAssetPayload(assetPayload); asset && asset->Type == AssetType::Prefab)
@@ -54,6 +71,73 @@ namespace ByteForge
 
             ImGui::EndDragDropTarget();
             return drop;
+        }
+
+        DropZone GetDropZone()
+        {
+            const ImVec2 min = ImGui::GetItemRectMin();
+            const ImVec2 max = ImGui::GetItemRectMax();
+            const f32 relative = (ImGui::GetMousePos().y - min.y) / std::max(max.y - min.y, 1.0f);
+
+            if (relative < InsertZoneFraction)
+                return DropZone::Before;
+            if (relative > 1.0f - InsertZoneFraction)
+                return DropZone::After;
+            return DropZone::Into;
+        }
+
+        DropTarget ResolveDropTarget(const Scene& scene, const Entity hovered,
+                                     const DropZone zone, const bool expanded)
+        {
+            switch (zone)
+            {
+                case DropZone::Before:
+                    return { scene.GetParent(hovered), scene.GetSiblingIndex(hovered) };
+
+                case DropZone::After:
+                    if (expanded)
+                        return { hovered, 0 };
+                    return { scene.GetParent(hovered), scene.GetSiblingIndex(hovered) + 1 };
+
+                case DropZone::Into:
+                    break;
+            }
+
+            return { hovered, -1 };
+        }
+
+        bool CanMoveTo(const Entity dragged, const Entity parent)
+        {
+            return !parent.IsValid() || (parent != dragged && !parent.IsDescendantOf(dragged));
+        }
+
+        void DrawInsertionLine(const f32 y)
+        {
+            const ImVec2 min = ImGui::GetItemRectMin();
+            const ImVec2 max = ImGui::GetItemRectMax();
+
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, y), ImVec2(max.x, y),
+                                                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
+        }
+
+        void DrawDropIndicator(const DropZone zone)
+        {
+            switch (zone)
+            {
+                case DropZone::Before:
+                    DrawInsertionLine(ImGui::GetItemRectMin().y);
+                    break;
+
+                case DropZone::After:
+                    DrawInsertionLine(ImGui::GetItemRectMax().y);
+                    break;
+
+                case DropZone::Into:
+                    ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                                                        ImGui::GetColorU32(ImGuiCol_DragDropTarget),
+                                                        0.0f, 0, 2.0f);
+                    break;
+            }
         }
     }
 
@@ -141,8 +225,20 @@ namespace ByteForge
         }
 
         const HierarchyDrop drop = AcceptHierarchyDrop(scene);
-        if (drop.Dragged.IsValid())
-            context.ReparentEntity(drop.Dragged, entity);
+        if (drop.Dragged.IsValid() && drop.Dragged != entity)
+        {
+            const DropZone zone = GetDropZone();
+            const DropTarget target = ResolveDropTarget(scene, entity, zone, open && !children.empty());
+
+            if (CanMoveTo(drop.Dragged, target.Parent))
+            {
+                if (drop.Delivered)
+                    context.MoveEntity(drop.Dragged, target.Parent, target.Index);
+                else
+                    DrawDropIndicator(zone);
+            }
+        }
+
         if (drop.PrefabHandle)
             context.InstantiatePrefab(*drop.PrefabHandle, entity);
 
@@ -159,12 +255,10 @@ namespace ByteForge
             ImGui::Separator();
 
             if (ImGui::MenuItem("Create Empty Child"))
-            {
                 context.CreateEntity("Entity", [entity](const Entity child) { child.SetParent(entity, false); });
-            }
 
             if (ImGui::MenuItem("Unparent", nullptr, false, entity.HasParent()))
-                context.ReparentEntity(entity, {});
+                context.MoveEntity(entity, {});
 
             ImGui::Separator();
 
@@ -194,7 +288,13 @@ namespace ByteForge
 
         const HierarchyDrop drop = AcceptHierarchyDrop(*context.ActiveScene);
         if (drop.Dragged.IsValid())
-            context.ReparentEntity(drop.Dragged, {});
+        {
+            if (drop.Delivered)
+                context.MoveEntity(drop.Dragged, {});
+            else
+                DrawInsertionLine(ImGui::GetItemRectMin().y);
+        }
+
         if (drop.PrefabHandle)
             context.InstantiatePrefab(*drop.PrefabHandle);
     }

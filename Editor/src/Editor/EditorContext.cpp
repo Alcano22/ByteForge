@@ -148,38 +148,50 @@ namespace ByteForge
         });
     }
 
-    void EditorContext::ReparentEntity(const Entity entity, const Entity newParent)
+    void EditorContext::MoveEntity(const Entity entity, const Entity newParent, const i32 index)
     {
-        Defer([this, entity, newParent]
+        Defer([this, entity, newParent, index]
         {
             if (ActiveScene == nullptr || !entity.IsValid()) return;
 
             if (newParent.IsValid() && (newParent == entity || newParent.IsDescendantOf(entity))) return;
 
             const Entity oldParent = ActiveScene->GetParent(entity);
-            if (oldParent == newParent) return;
+            const i32 oldIndex = ActiveScene->GetSiblingIndex(entity);
 
-            i32 oldIndex = -1;
-            if (oldParent.IsValid())
+            i32 newIndex = index;
+            if (newIndex >= 0 && oldParent == newParent && oldIndex < newIndex)
+                --newIndex;
+
+            if (oldParent == newParent)
             {
-                const std::vector<Entity> siblings = oldParent.GetChildren();
-                const auto it = std::ranges::find(siblings, entity);
-                oldIndex = static_cast<i32>(it - siblings.begin());
+                const auto siblingCount = static_cast<i32>(newParent.IsValid()
+                                                         ? newParent.GetChildren().size()
+                                                         : ActiveScene->GetRootEntities().size());
+                const i32 finalIndex = newIndex < 0 ? siblingCount - 1 : std::min(newIndex, siblingCount - 1);
+                if (finalIndex == oldIndex) return;
             }
 
             const TransformComponent before = entity.GetComponent<TransformComponent>();
             const UUID oldParentId = oldParent.IsValid() ? oldParent.GetUUID() : UUID(0);
             const UUID newParentId = newParent.IsValid() ? newParent.GetUUID() : UUID(0);
 
-            entity.SetParent(newParent, true);
+            entity.SetParent(newParent, true, newIndex);
 
             const TransformComponent after = entity.GetComponent<TransformComponent>();
-            const std::string label = newParent.IsValid()
-                                    ? std::format("Move '{}' into '{}'", entity.GetTag(), newParent.GetTag())
-                                    : std::format("Unparent '{}'", entity.GetTag());
+
+            std::string label;
+            if (oldParent != newParent)
+            {
+                label = newParent.IsValid()
+                      ? std::format("Move '{}' into '{}'", entity.GetTag(), newParent.GetTag())
+                      : std::format("Unparent '{}'", entity.GetTag());
+            } else
+                label = std::format("Reorder '{}'", entity.GetTag());
 
             RecordIfEditing(MakeScope<SetParentCommand>(*ActiveScene, entity.GetUUID(), label,
-                                                        oldParentId, oldIndex, before, newParentId, after));
+                                                        oldParentId, oldIndex, before,
+                                                        newParentId, newIndex, after));
         });
     }
 

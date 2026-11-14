@@ -76,10 +76,10 @@ namespace ByteForge
 
     SetParentCommand::SetParentCommand(Scene& scene, const UUID entityId, std::string name,
                                        const UUID oldParent, const i32 oldIndex, const TransformComponent& before,
-                                       const UUID newParent, const TransformComponent& after)
+                                       const UUID newParent, const i32 newIndex, const TransformComponent& after)
         : m_Scene(scene), m_EntityId(entityId), m_Name(std::move(name)),
           m_OldParent(oldParent), m_OldIndex(oldIndex), m_Before(before),
-          m_NewParent(newParent), m_After(after) {}
+          m_NewParent(newParent), m_NewIndex(newIndex), m_After(after) {}
 
     void SetParentCommand::Apply(const UUID parentId, const i32 index, const TransformComponent& local) const
     {
