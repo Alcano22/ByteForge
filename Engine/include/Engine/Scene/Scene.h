@@ -71,7 +71,7 @@ namespace ByteForge
         void SyncRuntimeBodies(Entity root);
         void RebuildRuntimeBody(Entity entity);
 
-        [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity) const;
+        [[nodiscard]] ScriptInstance* FindScriptInstance(Entity entity, UUID entry) const;
 
         [[nodiscard]] bool IsRunning() const { return m_ScriptRuntime != nullptr; }
 

@@ -1,5 +1,6 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/Components.h"
+#include "Engine/Scene/ComponentRegistry.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Physics2DWorld.h"
 #include "Engine/Scene/RaycastHit2D.h"
@@ -27,39 +28,20 @@ namespace ByteForge
 {
     namespace
     {
-        template<typename... Components>
-        struct ComponentList {};
-
-        using DuplicableComponents = ComponentList<TransformComponent, SpriteRendererComponent, CameraComponent,
-                                                   Rigidbody2DComponent, BoxCollider2DComponent,
-                                                   CircleCollider2DComponent, AudioSourceComponent,
-                                                   AnimatorComponent, ScriptComponent>;
-
-        template<typename... Components>
-        void CopyComponents(ComponentList<Components...>, const entt::registry& from, const entt::entity source,
-                            entt::registry& to, const entt::entity target)
-        {
-            ([&]
-            {
-                if (const auto* component = from.try_get<Components>(source))
-                {
-                    const Components copy = *component;
-                    to.emplace_or_replace<Components>(target, copy);
-                }
-            }(), ...);
-        }
-
         void RemapEntityReferences(const Scene& scene, const Entity root, const std::unordered_map<UUID, UUID>& remap)
         {
-            if (auto* script = root.TryGetComponent<ScriptComponent>())
+            if (auto* component = root.TryGetComponent<ScriptComponent>())
             {
-                for (auto& [name, value] : script->Fields)
+                for (ScriptEntry& script : component->Scripts)
                 {
-                    auto* reference = std::get_if<EntityRef>(&value);
-                    if (reference == nullptr) continue;
+                    for (auto& [name, value] : script.Fields)
+                    {
+                        auto* reference = std::get_if<EntityRef>(&value);
+                        if (reference == nullptr) continue;
 
-                    if (const auto it = remap.find(reference->Id); it != remap.end())
-                        reference->Id = it->second;
+                        if (const auto it = remap.find(reference->Id); it != remap.end())
+                            reference->Id = it->second;
+                    }
                 }
             }
 
@@ -217,7 +199,7 @@ namespace ByteForge
         const Scene& sourceScene = *source.m_Scene;
 
         const Entity copy = CreateEntity(source.GetTag());
-        CopyComponents(DuplicableComponents{}, sourceScene.m_Registry, source.m_Handle, m_Registry, copy.m_Handle);
+        ComponentRegistry::CopyAll(source, copy);
         remap.emplace(source.GetUUID(), copy.GetUUID());
 
         for (const Entity child : sourceScene.GetChildren(source))
@@ -557,9 +539,9 @@ namespace ByteForge
             m_PhysicsWorld->RebuildBody(entity);
     }
 
-    ScriptInstance* Scene::FindScriptInstance(const Entity entity) const
+    ScriptInstance* Scene::FindScriptInstance(const Entity entity, const UUID entry) const
     {
-        return m_ScriptRuntime ? m_ScriptRuntime->FindInstance(entity.m_Handle) : nullptr;
+        return m_ScriptRuntime ? m_ScriptRuntime->FindInstance(entity.m_Handle, entry) : nullptr;
     }
 
     void Scene::Clear()

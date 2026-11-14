@@ -6,6 +6,7 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scripting/ScriptEngine.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <exception>
 #include <utility>
@@ -14,13 +15,18 @@ namespace ByteForge
 {
     namespace
     {
+        bool SameId(const UUID a, const UUID b)
+        {
+            return static_cast<u64>(a) == static_cast<u64>(b);
+        }
+
         void ApplyFields(const ScriptBackend& backend, const std::string& className,
-                         ScriptInstance& script, const ScriptComponent& component)
+                         ScriptInstance& script, const ScriptEntry& entry)
         {
             for (const ScriptFieldInfo& field : backend.GetFields(className))
             {
-                const auto it = component.Fields.find(field.Name);
-                if (it == component.Fields.end() || !IsCompatible(it->second, field)) continue;
+                const auto it = entry.Fields.find(field.Name);
+                if (it == entry.Fields.end() || !IsCompatible(it->second, field)) continue;
 
                 if (!script.SetField(field.Name, it->second))
                     CORE_WARN("Could not set field '{}' of script '{}'", field.Name, className);
@@ -58,7 +64,7 @@ namespace ByteForge
             handles.push_back(handle);
 
         for (const entt::entity handle : handles)
-            Release(handle);
+            ReleaseAll(handle);
 
         m_Released.clear();
         ScriptEngine::Get().OnRuntimeStop(m_Scene);
@@ -69,70 +75,118 @@ namespace ByteForge
     {
         Sync();
 
-        std::vector<entt::entity> handles;
-        handles.reserve(m_Instances.size());
-        for (const auto& [handle, instance] : m_Instances)
-            handles.push_back(handle);
-
-        for (const entt::entity handle : handles)
-            Invoke(handle, "OnUpdate", [ts](ScriptInstance& script) { script.OnUpdate(ts); });
+        for (const auto& [handle, entry] : CollectKeys())
+            Invoke(handle, entry, "OnUpdate", [ts](ScriptInstance& script) { script.OnUpdate(ts); });
 
         m_Released.clear();
     }
 
     void ScriptRuntime::DispatchContact(const entt::entity self, const ContactEvent event, const Entity other)
     {
-        Invoke(self, "OnContact", [event, other](ScriptInstance& script) { script.OnContact(event, other); });
+        const entt::registry& registry = m_Scene.m_Registry;
+        if (!registry.valid(self)) return;
+
+        const auto* component = registry.try_get<ScriptComponent>(self);
+        if (component == nullptr) return;
+
+        std::vector<UUID> entries;
+        entries.reserve(component->Scripts.size());
+        for (const ScriptEntry& entry : component->Scripts)
+            entries.push_back(entry.Id);
+
+        for (const UUID entry : entries)
+            Invoke(self, entry, "OnContact", [event, other](ScriptInstance& script) { script.OnContact(event, other); });
     }
 
-    ScriptInstance* ScriptRuntime::FindInstance(const entt::entity handle) const
+    ScriptInstance* ScriptRuntime::FindInstance(const entt::entity handle, const UUID entry) const
+    {
+        const Instance* instance = const_cast<ScriptRuntime*>(this)->FindMutable(handle, entry);
+        if (instance == nullptr || instance->Failed)
+            return nullptr;
+
+        return instance->Script.get();
+    }
+
+    ScriptRuntime::Instance* ScriptRuntime::FindMutable(const entt::entity handle, const UUID entry)
     {
         const auto it = m_Instances.find(handle);
-        if (it == m_Instances.end() || it->second.Failed)
+        if (it == m_Instances.end())
             return nullptr;
-        return it->second.Script.get();
+
+        const auto found = std::ranges::find_if(it->second, [entry](const Instance& instance)
+        {
+            return SameId(instance.EntryId, entry);
+        });
+        return found != it->second.end() ? &*found : nullptr;
+    }
+
+    std::vector<ScriptRuntime::ScriptKey> ScriptRuntime::CollectKeys() const
+    {
+        std::vector<ScriptKey> keys;
+
+        const entt::registry& registry = m_Scene.m_Registry;
+        for (const auto handle : registry.view<ScriptComponent>())
+        {
+            for (const ScriptEntry& entry : registry.get<ScriptComponent>(handle).Scripts)
+                keys.push_back({ handle, entry.Id });
+        }
+
+        return keys;
     }
 
     void ScriptRuntime::Sync()
     {
         entt::registry& registry = m_Scene.m_Registry;
 
-        std::vector<std::pair<entt::entity, std::string>> pending;
-        for (const auto handle : registry.view<ScriptComponent>())
+        std::vector<ScriptKey> stale;
+        for (const auto& [handle, instances] : m_Instances)
         {
-            const std::string& className = registry.get<ScriptComponent>(handle).ClassName;
+            const auto* component = registry.valid(handle) ? registry.try_get<ScriptComponent>(handle) : nullptr;
 
-            const auto it = m_Instances.find(handle);
-            if (it == m_Instances.end() || it->second.ClassName != className)
-                pending.emplace_back(handle, className);
+            for (const Instance& instance : instances)
+            {
+                const ScriptEntry* entry = component != nullptr ? component->Find(instance.EntryId) : nullptr;
+                if (entry == nullptr || entry->ClassName != instance.ClassName)
+                    stale.push_back({ handle, instance.EntryId });
+            }
         }
 
-        for (const auto& [handle, className] : pending)
-        {
-            if (!registry.valid(handle)) continue;
+        for (const auto& [handle, entry] : stale)
+            Release(handle, entry);
 
-            Release(handle);
-            Create(handle, className);
+        for (const auto& [handle, entryId] : CollectKeys())
+        {
+            if (!registry.valid(handle) || FindMutable(handle, entryId) != nullptr) continue;
+
+            const auto* component = registry.try_get<ScriptComponent>(handle);
+            const ScriptEntry* entry = component != nullptr ? component->Find(entryId) : nullptr;
+
+            if (entry == nullptr || entry->ClassName.empty()) continue;
+
+            Create(handle, *entry);
         }
     }
 
-    void ScriptRuntime::Create(const entt::entity handle, const std::string& className)
+    void ScriptRuntime::Create(const entt::entity handle, const ScriptEntry& entry)
     {
         const Entity entity(handle, &m_Scene);
-        Instance instance{ .ClassName = className, .EntityId = entity.GetUUID() };
 
-        ScriptBackend* backend = className.empty() ? nullptr : ScriptEngine::Get().FindBackend(className);
+        const std::string className = entry.ClassName;
+        const UUID entryId = entry.Id;
+
+        Instance instance{ .EntryId = entryId, .EntityId = entity.GetUUID(), .ClassName = className };
+
+        ScriptBackend* backend = ScriptEngine::Get().FindBackend(className);
         if (backend == nullptr)
         {
             instance.Failed = true;
-            if (!className.empty())
-                CORE_WARN("Script class '{}' on '{}' does not exist", className, entity.GetTag());
+            CORE_WARN("Script class '{}' on '{}' does not exist", className, entity.GetTag());
         } else
         {
             try
             {
                 instance.Script = backend->CreateInstance(className, entity);
-                ApplyFields(*backend, className, *instance.Script, entity.GetComponent<ScriptComponent>());
+                ApplyFields(*backend, className, *instance.Script, entry);
             } catch (const std::exception& e)
             {
                 instance.Failed = true;
@@ -140,52 +194,76 @@ namespace ByteForge
             }
         }
 
-        m_Instances.insert_or_assign(handle, std::move(instance));
-        Invoke(handle, "OnCreate", [](ScriptInstance& script) { script.OnCreate(); });
+        m_Instances[handle].push_back(std::move(instance));
+        Invoke(handle, entryId, "OnCreate", [](ScriptInstance& script) { script.OnCreate(); });
     }
 
-    void ScriptRuntime::Release(const entt::entity handle)
+    void ScriptRuntime::Release(const entt::entity handle, const UUID entry)
     {
-        if (!m_Instances.contains(handle)) return;
+        if (FindMutable(handle, entry) == nullptr) return;
 
-        Invoke(handle, "OnDestroy", [](ScriptInstance& script) { script.OnDestroy(); });
+        Invoke(handle, entry, "OnDestroy", [](ScriptInstance& script) { script.OnDestroy(); });
 
-        if (const auto it = m_Instances.find(handle); it != m_Instances.end())
+        const auto it = m_Instances.find(handle);
+        if (it == m_Instances.end()) return;
+
+        std::vector<Instance>& instances = it->second;
+        const auto found = std::ranges::find_if(instances, [entry](const Instance& instance)
         {
-            m_Released.push_back(std::move(it->second));
+            return SameId(instance.EntryId, entry);
+        });
+        if (found == instances.end()) return;
+
+        m_Released.push_back(std::move(*found));
+        instances.erase(found);
+
+        if (instances.empty())
             m_Instances.erase(it);
-        }
+    }
+
+    void ScriptRuntime::ReleaseAll(const entt::entity handle)
+    {
+        const auto it = m_Instances.find(handle);
+        if (it == m_Instances.end()) return;
+
+        std::vector<UUID> entries;
+        entries.reserve(it->second.size());
+        for (const Instance& instance : it->second)
+            entries.push_back(instance.EntryId);
+
+        for (auto entry = entries.rbegin(); entry != entries.rend(); ++entry)
+            Release(handle, *entry);
     }
 
     void ScriptRuntime::OnComponentDestroyed(entt::registry&, const entt::entity handle)
     {
         if (m_Running)
-            Release(handle);
+            ReleaseAll(handle);
     }
 
     template<typename Fn>
-    void ScriptRuntime::Invoke(const entt::entity handle, const char* callback, Fn&& call)
+    void ScriptRuntime::Invoke(const entt::entity handle, const UUID entry, const char* callback, Fn&& call)
     {
-        const auto it = m_Instances.find(handle);
-        if (it == m_Instances.end() || it->second.Failed || !it->second.Script) return;
+        const Instance* instance = FindMutable(handle, entry);
+        if (instance == nullptr || instance->Failed || !instance->Script) return;
 
-        ScriptInstance& script = *it->second.Script;
+        ScriptInstance& script = *instance->Script;
 
         try
         {
             call(script);
         } catch (const std::exception& e)
         {
-            const auto failed = m_Instances.find(handle);
-            if (failed == m_Instances.end())
+            Instance* failed = FindMutable(handle, entry);
+            if (failed == nullptr)
             {
                 CORE_ERROR("A released script failed in {}: {}", callback, e.what());
                 return;
             }
 
-            failed->second.Failed = true;
+            failed->Failed = true;
             CORE_ERROR("Script '{}' on entity {} failed in {}: {} (disabled until the next play)",
-                       failed->second.ClassName, static_cast<u64>(failed->second.EntityId), callback, e.what());
+                       failed->ClassName, static_cast<u64>(failed->EntityId), callback, e.what());
         }
     }
 }

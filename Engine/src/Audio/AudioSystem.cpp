@@ -16,20 +16,23 @@ namespace ByteForge
     {
         AudioEngine& engine = AudioEngine::Get();
 
-        scene.Each<ScriptComponent>([&engine](const Entity, const ScriptComponent& script)
+        scene.Each<ScriptComponent>([&engine](const Entity, const ScriptComponent& component)
         {
-            for (const auto& [name, value] : script.Fields)
+            for (const ScriptEntry& script : component.Scripts)
             {
-                const auto* asset = std::get_if<AssetRef>(&value);
-                if (asset == nullptr || asset->Type != AssetType::AudioClip || !asset->IsSet()) continue;
+                for (const auto& [name, value] : script.Fields)
+                {
+                    const auto* asset = std::get_if<AssetRef>(&value);
+                    if (asset == nullptr || asset->Type != AssetType::AudioClip || !asset->IsSet()) continue;
 
-                AssetMetadata metadata;
-                if (!AssetRegistry::TryGetMetadata(asset->Handle, metadata)) continue;
+                    AssetMetadata metadata;
+                    if (!AssetRegistry::TryGetMetadata(asset->Handle, metadata)) continue;
 
-                const auto* settings = metadata.GetSettings<AudioClipSettings>();
-                if (settings != nullptr && settings->Stream) continue;
+                    const auto* settings = metadata.GetSettings<AudioClipSettings>();
+                    if (settings != nullptr && settings->Stream) continue;
 
-                engine.Preload(AssetRegistry::Resolve(asset->Handle));
+                    engine.Preload(AssetRegistry::Resolve(asset->Handle));
+                }
             }
         });
     }

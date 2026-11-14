@@ -30,7 +30,11 @@ namespace ByteForge
         template<typename T>
         void ResetComponent(T& component) { component = T{}; }
 
-        void ResetComponent(ScriptComponent& script) { script.Fields.clear(); }
+        void ResetComponent(ScriptComponent& component)
+        {
+            for (ScriptEntry& script : component.Scripts)
+                script.Fields.clear();
+        }
 
         void DrawTransform(TransformComponent& transform, const Entity entity, EditorContext&)
         {
@@ -260,7 +264,7 @@ namespace ByteForge
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
             Inspect<AudioSourceComponent, DrawAudioSource>("Audio Source", EditorIcon::ComponentAudioSource),
             Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip),
-            Inspect<ScriptComponent, DrawScript>("Script")
+            Inspect<ScriptComponent, DrawScript>("Scripts")
         };
     }
 

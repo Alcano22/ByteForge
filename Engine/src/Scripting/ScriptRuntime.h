@@ -31,30 +31,41 @@ namespace ByteForge
 
         void DispatchContact(entt::entity self, ContactEvent event, Entity other);
 
-        [[nodiscard]] ScriptInstance* FindInstance(entt::entity handle) const;
-
-    private:
-        void Sync();
-
-        void Create(entt::entity handle, const std::string& className);
-        void Release(entt::entity handle);
-
-        void OnComponentDestroyed(entt::registry& registry, entt::entity handle);
-
-        template<typename Fn>
-        void Invoke(entt::entity handle, const char* callback, Fn&& call);
+        [[nodiscard]] ScriptInstance* FindInstance(entt::entity handle, UUID entry) const;
 
     private:
         struct Instance
         {
-            std::string ClassName;
+            UUID EntryId;
             UUID EntityId;
+            std::string ClassName;
             Scope<ScriptInstance> Script;
             bool Failed = false;
         };
 
+        struct ScriptKey
+        {
+            entt::entity Handle;
+            UUID Entry;
+        };
+
+        void Sync();
+
+        void Create(entt::entity handle, const ScriptEntry& entry);
+        void Release(entt::entity handle, UUID entry);
+        void ReleaseAll(entt::entity handle);
+
+        [[nodiscard]] Instance* FindMutable(entt::entity handle, UUID entry);
+        [[nodiscard]] std::vector<ScriptKey> CollectKeys() const;
+
+        void OnComponentDestroyed(entt::registry& registry, entt::entity handle);
+
+        template<typename Fn>
+        void Invoke(entt::entity handle, UUID entry, const char* callback, Fn&& call);
+
+    private:
         Scene& m_Scene;
-        std::unordered_map<entt::entity, Instance> m_Instances;
+        std::unordered_map<entt::entity, std::vector<Instance>> m_Instances;
 
         std::vector<Instance> m_Released;
 
