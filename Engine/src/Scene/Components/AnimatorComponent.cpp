@@ -1,74 +1,14 @@
-#include "Engine/Scene/Components.h"
+#include "Engine/Scene/Components/AnimatorComponent.h"
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Assets/AssetManager.h"
 
-#include <box2d/box2d.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
-#include <utility>
-#include <format>
 
 namespace ByteForge
 {
-    void Rigidbody2DComponent::RequireRuntimeBody(const char* method) const
-    {
-        if (m_RuntimeBodyId != 0) return;
-
-        throw std::runtime_error(std::format(
-            "Rigidbody2DComponent::{}: the physics body does not exist yet (it is created the first time "
-            "the entity's Scene runs OnUpdate)", method));
-    }
-
-    glm::vec2 Rigidbody2DComponent::GetLinearVelocity() const
-    {
-        RequireRuntimeBody("GetLinearVelocity");
-
-        const b2Vec2 velocity = b2Body_GetLinearVelocity(b2LoadBodyId(m_RuntimeBodyId));
-        return { velocity.x, velocity.y };
-    }
-
-    void Rigidbody2DComponent::SetLinearVelocity(const glm::vec2& velocity) const
-    {
-        RequireRuntimeBody("SetLinearVelocity");
-
-        b2Body_SetLinearVelocity(b2LoadBodyId(m_RuntimeBodyId), { velocity.x, velocity.y });
-    }
-
-    void Rigidbody2DComponent::ApplyForceToCenter(const glm::vec2& force, const bool wake) const
-    {
-        RequireRuntimeBody("ApplyForceToCenter");
-
-        b2Body_ApplyForceToCenter(b2LoadBodyId(m_RuntimeBodyId), { force.x, force.y }, wake);
-    }
-
-    void Rigidbody2DComponent::ApplyLinearImpulseToCenter(const glm::vec2& impulse, const bool wake) const
-    {
-        RequireRuntimeBody("ApplyLinearImpulseToCenter");
-
-        b2Body_ApplyLinearImpulseToCenter(b2LoadBodyId(m_RuntimeBodyId), { impulse.x, impulse.y }, wake);
-    }
-
-    void Rigidbody2DComponent::Teleport(const glm::vec2& position, const f32 rotation) const
-    {
-        if (m_RuntimeBodyId != 0)
-            b2Body_SetTransform(b2LoadBodyId(m_RuntimeBodyId), { position.x, position.y }, b2MakeRot(rotation));
-    }
-
-    void AudioSourceComponent::Play() const
-    {
-        if (m_Sound)
-            m_Sound->Play();
-    }
-
-    void AudioSourceComponent::Stop() const
-    {
-        if (m_Sound)
-            m_Sound->Stop();
-    }
-
-    bool AudioSourceComponent::IsPlaying() const { return m_Sound && m_Sound->IsPlaying(); }
-
     bool AnimatorComponent::Play(const std::string_view state, const bool restart)
     {
         if (static_cast<u64>(m_LoadedController) != static_cast<u64>(Controller))
@@ -137,5 +77,21 @@ namespace ByteForge
             return none;
 
         return m_Controller->GetClip(*m_State);
+    }
+
+    void AnimatorComponent::Write(const AnimatorComponent& component, nlohmann::json& json)
+    {
+        json["speed"]       = component.Speed;
+        json["playOnStart"] = component.PlayOnStart;
+
+        if (static_cast<u64>(component.Controller) != 0)
+            json["controller"] = static_cast<u64>(component.Controller);
+    }
+
+    void AnimatorComponent::Read(AnimatorComponent& component, const nlohmann::json& json)
+    {
+        component.Controller  = UUID(json.value("controller", u64{ 0 }));
+        component.Speed       = json.value("speed", 1.0f);
+        component.PlayOnStart = json.value("playOnStart", true);
     }
 }

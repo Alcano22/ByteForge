@@ -27,8 +27,17 @@ add_library(Engine SHARED
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
         src/Scene/SceneSerializer.cpp
-        src/Scene/Components.cpp
         src/Scene/Physics2DWorld.cpp
+        src/Scene/ComponentRegistry.cpp
+        src/Scene/Components/TransformComponent.cpp
+        src/Scene/Components/SpriteRendererComponent.cpp
+        src/Scene/Components/CameraComponent.cpp
+        src/Scene/Components/Rigidbody2DComponent.cpp
+        src/Scene/Components/BoxCollider2DComponent.cpp
+        src/Scene/Components/CircleCollider2DComponent.cpp
+        src/Scene/Components/AudioSourceComponent.cpp
+        src/Scene/Components/AnimatorComponent.cpp
+        src/Scene/Components/ScriptComponent.cpp
         src/Project/ProjectSettings.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
