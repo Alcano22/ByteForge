@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Core/Core.h"
 #include "Engine/Scene/UUID.h"
 #include "Engine/Scripting/ScriptField.h"
 
@@ -18,7 +19,7 @@ namespace ByteForge
         std::map<std::string, ScriptValue, std::less<>> Fields;
     };
 
-    struct ScriptComponent
+    struct BYTEFORGE_API ScriptComponent
     {
         std::vector<ScriptEntry> Scripts;
 
