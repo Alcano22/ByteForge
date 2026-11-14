@@ -17,6 +17,7 @@ namespace ByteForge
             return {
                 .Key       = key,
                 .Removable = removable,
+                .TypeId    = ComponentTypeId<T>(),
                 .Has       = [](const Entity entity) { return entity.HasComponent<T>(); },
                 .Remove    = [](const Entity entity)
                 {
@@ -80,6 +81,16 @@ namespace ByteForge
         for (const ComponentDescriptor& descriptor : Descriptors)
         {
             if (key == descriptor.Key)
+                return &descriptor;
+        }
+        return nullptr;
+    }
+
+    const ComponentDescriptor* ComponentRegistry::FindByType(const u32 typeId)
+    {
+        for (const ComponentDescriptor& descriptor : Descriptors)
+        {
+            if (descriptor.TypeId == typeId)
                 return &descriptor;
         }
         return nullptr;

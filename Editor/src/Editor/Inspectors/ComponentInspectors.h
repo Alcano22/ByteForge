@@ -18,6 +18,8 @@ namespace ByteForge
 
         bool Removable = true;
 
+        u32 TypeId = 0;
+
         bool (*Has)(Entity) = nullptr;
         void (*Add)(Entity) = nullptr;
         void (*Remove)(Entity) = nullptr;
@@ -26,4 +28,6 @@ namespace ByteForge
     };
 
     [[nodiscard]] std::span<const ComponentInspector> GetComponentInspectors();
+
+    void ValidateComponentInspectors();
 }

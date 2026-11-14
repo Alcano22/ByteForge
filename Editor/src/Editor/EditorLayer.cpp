@@ -1,5 +1,6 @@
 #include "Editor/EditorLayer.h"
 #include "Editor/Shell/EditorShell.h"
+#include "Editor/Inspectors/ComponentInspectors.h"
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/Panels/ConsolePanel.h"
 #include "Editor/Panels/InspectorPanel.h"
@@ -20,6 +21,8 @@ namespace ByteForge
 {
     void EditorLayer::OnAttach()
     {
+        ValidateComponentInspectors();
+
         m_Context.Layouts.Init();
 
         AssetRegistry::Init("assets");

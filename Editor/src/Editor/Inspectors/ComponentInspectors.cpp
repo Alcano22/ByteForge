@@ -4,15 +4,19 @@
 #include "Editor/EditorWidgets.h"
 
 #include <Engine/Assets/AssetManager.h>
+#include <Engine/Scene/ComponentRegistry.h>
 #include <Engine/Scene/Components.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
+#include <algorithm>
 #include <array>
 #include <cfloat>
+#include <format>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 namespace ByteForge
@@ -233,6 +237,7 @@ namespace ByteForge
                 .Name      = name,
                 .Icon      = icon,
                 .Removable = removable,
+                .TypeId    = ComponentTypeId<T>(),
                 .Has       = [](const Entity entity) { return entity.HasComponent<T>(); },
                 .Add       = [](const Entity entity) { entity.AddComponent<T>(); },
                 .Remove    = [](const Entity entity) { entity.RemoveComponent<T>(); },
@@ -258,4 +263,33 @@ namespace ByteForge
     }
 
     std::span<const ComponentInspector> GetComponentInspectors() { return Inspectors; }
+
+    void ValidateComponentInspectors()
+    {
+        for (const ComponentDescriptor& descriptor : ComponentRegistry::GetAll())
+        {
+            const auto it = std::ranges::find(Inspectors, descriptor.TypeId, &ComponentInspector::TypeId);
+            if (it == Inspectors.end())
+            {
+                throw std::logic_error(std::format("Component '{}' is registered in the ComponentRegistry but has no"
+                                                   "inspector (add an Inspect<...> entry in ComponentInspectors.cpp)",
+                                                   descriptor.Key));
+            }
+
+            if (it->Removable != descriptor.Removable)
+            {
+                throw std::logic_error(std::format("Component '{}': the inspector '{}' and the ComponentRegistry "
+                                                   "disagree on 'removable'", descriptor.Key, it->Name));
+            }
+        }
+
+        for (const ComponentInspector& inspector : Inspectors)
+        {
+            if (ComponentRegistry::FindByType(inspector.TypeId) == nullptr)
+            {
+                throw std::logic_error(std::format("Inspector '{}' has no entry in the ComponentRegistry (add a "
+                                                   "Describe<...> line in ComponentRegistry.cpp)", inspector.Name));
+            }
+        }
+    }
 }
