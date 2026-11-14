@@ -2,17 +2,15 @@ using ByteForge.Interop;
 
 namespace ByteForge;
 
-public sealed class AudioSource
+public sealed class AudioSource : Component
 {
-    private readonly ulong _entity;
-
-    internal AudioSource(ulong entity)
+    internal AudioSource(Entity entity)
     {
-        _entity = entity;
+        Entity = entity;
     }
 
-    public bool IsPlaying => ScriptAPI.AudioSource_IsPlaying(_entity);
+    public bool IsPlaying => ScriptAPI.AudioSource_IsPlaying(Entity.ID);
 
-    public void Play() => ScriptAPI.AudioSource_Play(_entity);
-    public void Stop() => ScriptAPI.AudioSource_Stop(_entity);
+    public void Play() => ScriptAPI.AudioSource_Play(Entity.ID);
+    public void Stop() => ScriptAPI.AudioSource_Stop(Entity.ID);
 }

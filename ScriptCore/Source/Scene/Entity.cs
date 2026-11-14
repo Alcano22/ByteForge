@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using ByteForge.Interop;
 
 namespace ByteForge;
@@ -8,11 +9,7 @@ public sealed class Entity : IEquatable<Entity>
 {
     public ulong ID { get; }
 
-    private Transform? _transform;
-    private AudioSource? _audioSource;
-    private Rigidbody2D? _rigidbody2D;
-    private SpriteRenderer? _spriteRenderer;
-    private Animator? _animator;
+    private Dictionary<Type, Component>? _components;
 
     internal Entity(ulong id)
     {
@@ -71,11 +68,44 @@ public sealed class Entity : IEquatable<Entity>
     public void SetParent(Entity? parent, bool keepWorldTransform = true) =>
         ScriptAPI.Entity_SetParent(ID, parent?.ID ?? 0, keepWorldTransform);
 
-    public Transform Transform => _transform ??= new Transform(ID);
-    public SpriteRenderer? SpriteRenderer => ScriptAPI.SpriteRenderer_Exists(ID) ? (_spriteRenderer ??= new SpriteRenderer(ID)) : null;
-    public AudioSource? AudioSource => ScriptAPI.AudioSource_Exists(ID) ? (_audioSource ??= new AudioSource(ID)) : null;
-    public Rigidbody2D? Rigidbody2D => ScriptAPI.Rigidbody2D_Exists(ID) ? (_rigidbody2D ??= new Rigidbody2D(ID)) : null;
-    public Animator? Animator => ScriptAPI.Animator_Exists(ID) ? (_animator ??= new Animator(ID)) : null;
+    public Transform Transform => GetComponent<Transform>()!;
+
+    public T? GetComponent<T>() where T : Component
+    {
+        if (BuiltInComponents.Contains(typeof(T)))
+            return (T?)GetBuiltIn(typeof(T));
+
+        return ScriptHost.FindScript<T>(ID);
+    }
+
+    public bool TryGetComponent<T>([NotNullWhen(true)] out T? component) where T : Component
+    {
+        component = GetComponent<T>();
+        return component is not null;
+    }
+
+    public bool HasComponent<T>() where T : Component => GetComponent<T>() is not null;
+
+    /// <summary>All components of type T, in inspector order. Several scripts of one type are all returned.</summary>
+    public IReadOnlyList<T> GetComponents<T>() where T : Component
+    {
+        if (BuiltInComponents.Contains(typeof(T)))
+            return GetComponent<T>() is { } single ? [single] : [];
+
+        return ScriptHost.FindScripts<T>(ID);
+    }
+
+    private Component? GetBuiltIn(Type type)
+    {
+        if (!BuiltInComponents.Exists(type, ID))
+            return null;
+
+        _components ??= new Dictionary<Type, Component>();
+        if (!_components.TryGetValue(type, out Component? component))
+            _components[type] = component = BuiltInComponents.Create(type, this);
+        
+        return component;
+    }
 
     public void Destroy() => ScriptAPI.Entity_Destroy(ID);
 

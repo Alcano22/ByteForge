@@ -3,27 +3,25 @@ using ByteForge.Interop;
 
 namespace ByteForge;
 
-public sealed class Animator
+public sealed class Animator : Component
 {
-    private readonly ulong _entity;
-
-    internal Animator(ulong entity)
+    internal Animator(Entity entity)
     {
-        _entity = entity;
+        Entity = entity;
     }
 
-    public bool IsPlaying => ScriptAPI.Animator_IsPlaying(_entity);
+    public bool IsPlaying => ScriptAPI.Animator_IsPlaying(Entity.ID);
 
     /// <summary>Name of the active state, empty if none is active.</summary>
-    public string CurrentState => ScriptAPI.Animator_GetState(_entity);
+    public string CurrentState => ScriptAPI.Animator_GetState(Entity.ID);
 
     /// <summary>Progress through the current pass of the clip in [0, 1].</summary>
-    public float NormalizedTime => ScriptAPI.Animator_GetNormalizedTime(_entity);
+    public float NormalizedTime => ScriptAPI.Animator_GetNormalizedTime(Entity.ID);
 
     public float Speed
     {
-        get => ScriptAPI.Animator_GetSpeed(_entity);
-        set => ScriptAPI.Animator_SetSpeed(_entity, value);
+        get => ScriptAPI.Animator_GetSpeed(Entity.ID);
+        set => ScriptAPI.Animator_SetSpeed(Entity.ID, value);
     }
 
     /// <summary>
@@ -33,8 +31,8 @@ public sealed class Animator
     public void Play(string state, bool restart = false)
     {
         ArgumentNullException.ThrowIfNull(state);
-        ScriptAPI.Animator_Play(_entity, state, restart);
+        ScriptAPI.Animator_Play(Entity.ID, state, restart);
     }
 
-    public void Stop() => ScriptAPI.Animator_Stop(_entity);
+    public void Stop() => ScriptAPI.Animator_Stop(Entity.ID);
 }

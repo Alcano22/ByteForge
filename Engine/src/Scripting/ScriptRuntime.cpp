@@ -154,6 +154,8 @@ namespace ByteForge
         for (const auto& [handle, entry] : stale)
             Release(handle, entry);
 
+        std::vector<ScriptKey> created;
+
         for (const auto& [handle, entryId] : CollectKeys())
         {
             if (!registry.valid(handle) || FindMutable(handle, entryId) != nullptr) continue;
@@ -164,7 +166,11 @@ namespace ByteForge
             if (entry == nullptr || entry->ClassName.empty()) continue;
 
             Create(handle, *entry);
+            created.push_back({ handle, entryId });
         }
+
+        for (const auto& [handle, entryId] : created)
+            Invoke(handle, entryId, "OnCreate", [](ScriptInstance& script) { script.OnCreate(); });
     }
 
     void ScriptRuntime::Create(const entt::entity handle, const ScriptEntry& entry)
@@ -195,7 +201,6 @@ namespace ByteForge
         }
 
         m_Instances[handle].push_back(std::move(instance));
-        Invoke(handle, entryId, "OnCreate", [](ScriptInstance& script) { script.OnCreate(); });
     }
 
     void ScriptRuntime::Release(const entt::entity handle, const UUID entry)

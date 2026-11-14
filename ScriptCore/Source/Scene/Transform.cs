@@ -1,50 +1,47 @@
-using System;
 using ByteForge.Interop;
 
 namespace ByteForge;
 
-public sealed class Transform
+public sealed class Transform : Component
 {
-    private readonly ulong _entity;
-
-    internal Transform(ulong entity)
+    internal Transform(Entity entity)
     {
-        _entity = entity;
+        Entity = entity;
     }
 
     public Vector3 Position
     {
-        get => ScriptAPI.Transform_GetPosition(_entity);
-        set => ScriptAPI.Transform_SetPosition(_entity, value);
+        get => ScriptAPI.Transform_GetPosition(Entity.ID);
+        set => ScriptAPI.Transform_SetPosition(Entity.ID, value);
     }
 
     public float Rotation
     {
-        get => ScriptAPI.Transform_GetRotation(_entity);
-        set => ScriptAPI.Transform_SetRotation(_entity, value);
+        get => ScriptAPI.Transform_GetRotation(Entity.ID);
+        set => ScriptAPI.Transform_SetRotation(Entity.ID, value);
     }
 
     public Vector2 Scale
     {
-        get => ScriptAPI.Transform_GetScale(_entity);
-        set => ScriptAPI.Transform_SetScale(_entity, value);
+        get => ScriptAPI.Transform_GetScale(Entity.ID);
+        set => ScriptAPI.Transform_SetScale(Entity.ID, value);
     }
 
     public Vector3 LocalPosition
     {
-        get => ScriptAPI.Transform_GetLocalPosition(_entity);
-        set => ScriptAPI.Transform_SetLocalPosition(_entity, value);
+        get => ScriptAPI.Transform_GetLocalPosition(Entity.ID);
+        set => ScriptAPI.Transform_SetLocalPosition(Entity.ID, value);
     }
 
     public float LocalRotation
     {
-        get => ScriptAPI.Transform_GetLocalRotation(_entity);
-        set => ScriptAPI.Transform_SetLocalRotation(_entity, value);
+        get => ScriptAPI.Transform_GetLocalRotation(Entity.ID);
+        set => ScriptAPI.Transform_SetLocalRotation(Entity.ID, value);
     }
 
     public Vector2 LocalScale
     {
-        get => ScriptAPI.Transform_GetLocalScale(_entity);
-        set => ScriptAPI.Transform_SetLocalScale(_entity, value);
+        get => ScriptAPI.Transform_GetLocalScale(Entity.ID);
+        set => ScriptAPI.Transform_SetLocalScale(Entity.ID, value);
     }
 }

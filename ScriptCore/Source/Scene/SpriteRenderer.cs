@@ -2,18 +2,16 @@ using ByteForge.Interop;
 
 namespace ByteForge;
 
-public sealed class SpriteRenderer
+public sealed class SpriteRenderer : Component
 {
-    private readonly ulong _entity;
-
-    internal SpriteRenderer(ulong entity)
+    internal SpriteRenderer(Entity entity)
     {
-        _entity = entity;
+        Entity = entity;
     }
 
     public int SortingLayer
     {
-        get => ScriptAPI.SpriteRenderer_GetSortingLayer(_entity);
-        set => ScriptAPI.SpriteRenderer_SetSortingLayer(_entity, value);
+        get => ScriptAPI.SpriteRenderer_GetSortingLayer(Entity.ID);
+        set => ScriptAPI.SpriteRenderer_SetSortingLayer(Entity.ID, value);
     }
 }

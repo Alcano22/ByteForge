@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -10,6 +11,8 @@ namespace ByteForge.Interop;
 internal static unsafe class ScriptHost
 {
     private static readonly Dictionary<string, ScriptClass> s_Classes = new();
+
+    private static readonly Dictionary<ulong, List<ScriptBehaviour>> s_ScriptsByEntity = new();
 
     private static GameAssemblyContext? s_GameContext;
     private static Assembly? s_GameAssembly;
@@ -35,6 +38,54 @@ internal static unsafe class ScriptHost
                 s_Classes[type.FullName!] = new ScriptClass(type);
             }
         }
+    }
+
+    internal static T? FindScript<T>(ulong entity) where T : Component
+    {
+        if (!s_ScriptsByEntity.TryGetValue(entity, out List<ScriptBehaviour>? scripts))
+            return null;
+
+        foreach (ScriptBehaviour script in scripts)
+        {
+            if (script is T match)
+                return match;
+        }
+
+        return null;
+    }
+
+    internal static IReadOnlyList<T> FindScripts<T>(ulong entity) where T : Component
+    {
+        var result = new List<T>();
+        if (!s_ScriptsByEntity.TryGetValue(entity, out List<ScriptBehaviour>? scripts))
+            return result;
+
+        foreach (ScriptBehaviour script in scripts)
+        {
+            if (script is T match)
+                result.Add(match);
+        }
+
+        return result;
+    }
+
+    private static void Register(ScriptBehaviour script)
+    {
+        ulong entity = script.Entity.ID;
+        if (!s_ScriptsByEntity.TryGetValue(entity, out List<ScriptBehaviour>? scripts))
+            s_ScriptsByEntity[entity] = scripts = new List<ScriptBehaviour>();
+
+        scripts.Add(script);
+    }
+
+    private static void Unregister(ScriptBehaviour script)
+    {
+        ulong entity = script.Entity.ID;
+        if (!s_ScriptsByEntity.TryGetValue(entity, out List<ScriptBehaviour>? scripts)) return;
+
+        scripts.Remove(script);
+        if (scripts.Count == 0)
+            s_ScriptsByEntity.Remove(entity);
     }
 
     [UnmanagedCallersOnly]
@@ -89,6 +140,7 @@ internal static unsafe class ScriptHost
         if (s_GameContext == null) return;
 
         s_Classes.Clear();
+        s_ScriptsByEntity.Clear();
         s_GameAssembly = null;
 
         s_GameContext.Unload();
@@ -140,6 +192,8 @@ internal static unsafe class ScriptHost
             var script = (ScriptBehaviour)Activator.CreateInstance(scriptClass.Type)!;
             script.Entity = new Entity(entity);
 
+            Register(script);
+
             return GCHandle.ToIntPtr(GCHandle.Alloc(script));
         } catch (Exception e)
         {
@@ -153,7 +207,12 @@ internal static unsafe class ScriptHost
     {
         try
         {
-            GCHandle.FromIntPtr(instance).Free();
+            GCHandle handle = GCHandle.FromIntPtr(instance);
+
+            if (handle.Target is ScriptBehaviour script)
+                Unregister(script);
+
+            handle.Free();
         } catch (Exception e)
         {
             Log.Error($"Could not release a script instance: {e}");

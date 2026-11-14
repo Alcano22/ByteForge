@@ -1,11 +1,7 @@
 namespace ByteForge;
 
-public abstract class ScriptBehaviour
+public abstract class ScriptBehaviour : Component
 {
-    public Entity Entity { get; internal set; } = null!;
-
-    public Transform Transform => Entity.Transform;
-
     protected virtual void OnCreate() {}
     protected virtual void OnDestroy() {}
 
