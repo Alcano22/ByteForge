@@ -21,6 +21,20 @@ namespace ByteForge
         [[nodiscard]] const std::string& GetActiveName() const { return m_ActiveName; }
         [[nodiscard]] const Theme* Find(std::string_view name) const;
 
+        [[nodiscard]] Theme* FindEditable(std::string_view name);
+
+        void MarkEdited(Theme& theme);
+
+        [[nodiscard]] const char* GetNameError(std::string_view name) const;
+
+        bool Duplicate(std::string_view sourceName, const std::string& newName);
+
+        bool Save(std::string_view name);
+
+        bool Revert(std::string_view name);
+
+        bool Delete(std::string_view name);
+
     private:
         void LoadUserThemes();
         void Activate(const Theme& theme);

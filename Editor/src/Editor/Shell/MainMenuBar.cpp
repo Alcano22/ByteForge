@@ -3,6 +3,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/GameExporter.h"
 #include "Editor/Panels/ProjectSettingsPanel.h"
+#include "Editor/Panels/ThemeEditorPanel.h"
 #include "Editor/Theme/ThemeManager.h"
 
 #include <imgui.h>
@@ -98,6 +99,9 @@ namespace ByteForge
             }
 
             ImGui::Separator();
+
+            if (ImGui::MenuItem("Edit Themes..."))
+                context.Open<ThemeEditorPanel>().RequestFocus();
 
             if (ImGui::MenuItem("Reload Custom Themes"))
                 themes.Reload();

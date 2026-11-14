@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -16,6 +17,9 @@ namespace ByteForge
         std::string Name;
         bool BuiltIn = false;
         std::array<ImVec4, ImGuiCol_COUNT> Colors{};
+
+        std::filesystem::path File;
+        bool Modified = false;
 
         [[nodiscard]] static Theme FromStyle(std::string name, const ImGuiStyle& style, bool builtIn);
 

@@ -20,6 +20,11 @@ namespace ByteForge
         fs::path GetThemeDirectory() { return GetStateDirectory() / "themes"; }
         fs::path GetActiveThemePath() { return GetStateDirectory() / "theme.json"; }
 
+        fs::path GetThemeFile(const std::string_view name)
+        {
+            return GetThemeDirectory() / (std::string(name) + ThemeExtension);
+        }
+
         std::optional<nlohmann::json> ReadJson(const fs::path& file)
         {
             std::ifstream stream(file);
@@ -92,6 +97,137 @@ namespace ByteForge
         return it != m_Themes.end() ? &*it : nullptr;
     }
 
+    Theme* ThemeManager::FindEditable(const std::string_view name)
+    {
+        const auto it = std::ranges::find(m_Themes, name, &Theme::Name);
+        return it != m_Themes.end() && !it->BuiltIn ? &*it : nullptr;
+    }
+
+    void ThemeManager::MarkEdited(Theme& theme)
+    {
+        theme.Modified = true;
+
+        if (theme.Name == m_ActiveName)
+            theme.Apply();
+    }
+
+    const char* ThemeManager::GetNameError(const std::string_view name) const
+    {
+        if (name.empty())
+            return "Enter a name";
+
+        if (name.find_first_of("\\/:*?\"<>|") != std::string_view::npos)
+            return "The name must not contain \\ / : * ? \" < > |";
+
+        if (name.front() == ' ' || name.back() == ' ' || name.back() == '.')
+            return "The name must not start or end with a space or end with a dot";
+
+        if (Find(name) != nullptr)
+            return "A theme with this name already exists";
+
+        std::error_code error;
+        if (fs::exists(GetThemeFile(name), error))
+            return "A theme file with this name already exists";
+
+        return nullptr;
+    }
+
+    bool ThemeManager::Duplicate(const std::string_view sourceName, const std::string& newName)
+    {
+        const Theme* source = Find(sourceName);
+        if (source == nullptr)
+            return false;
+
+        if (const char* error = GetNameError(newName))
+        {
+            APP_ERROR("Cannot create theme '{}': {}", newName, error);
+            return false;
+        }
+
+        Theme copy = *source;
+        copy.Name = newName;
+        copy.BuiltIn = false;
+        copy.Modified = false;
+        copy.File = GetThemeFile(newName);
+
+        if (const auto written = WriteJsonFile(copy.File, copy.ToJson()); !written)
+        {
+            APP_ERROR("Cannot save theme '{}': {}", newName, written.error());
+            return false;
+        }
+
+        m_Themes.push_back(std::move(copy));
+        return SetActive(newName);
+    }
+
+    bool ThemeManager::Save(const std::string_view name)
+    {
+        Theme* theme = FindEditable(name);
+        if (theme == nullptr)
+            return false;
+
+        if (const auto written = WriteJsonFile(theme->File, theme->ToJson()); !written)
+        {
+            APP_ERROR("Cannot save theme '{}': {}", theme->Name, written.error());
+            return false;
+        }
+
+        theme->Modified = false;
+        return true;
+    }
+
+    bool ThemeManager::Revert(const std::string_view name)
+    {
+        Theme* theme = FindEditable(name);
+        if (theme == nullptr)
+            return false;
+
+        const auto json = ReadJson(theme->File);
+        if (!json)
+        {
+            APP_ERROR("Cannot read theme file '{}'", theme->File.filename().generic_string());
+            return false;
+        }
+
+        const auto reloaded = Theme::FromJson(*json, theme->Name, *Find(DefaultThemeName));
+        if (!reloaded)
+        {
+            APP_ERROR("Theme file '{}' is not a valid theme", theme->File.filename().generic_string());
+            return false;
+        }
+
+        theme->Colors = reloaded->Colors;
+        theme->Modified = false;
+
+        if (theme->Name == m_ActiveName)
+            theme->Apply();
+
+        return true;
+    }
+
+    bool ThemeManager::Delete(const std::string_view name)
+    {
+        const auto it = std::ranges::find(m_Themes, name, &Theme::Name);
+        if (it == m_Themes.end() || it->BuiltIn)
+            return false;
+
+        std::error_code error;
+        std::filesystem::remove(it->File, error);
+        if (error)
+        {
+            APP_ERROR("Cannot delete theme file '{}': {}", it->File.filename().generic_string(), error.message());
+            return false;
+        }
+
+        const bool wasActive = it->Name == m_ActiveName;
+        m_Themes.erase(it);
+
+        if (wasActive)
+            SetActive(DefaultThemeName);
+
+        return true;
+    }
+
     void ThemeManager::LoadUserThemes()
     {
         std::vector<fs::path> files;
@@ -132,6 +268,7 @@ namespace ByteForge
                 continue;
             }
 
+            theme->File = file;
             m_Themes.push_back(std::move(*theme));
         }
     }
