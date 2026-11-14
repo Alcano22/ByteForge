@@ -33,6 +33,9 @@ add_executable(Editor
         src/Editor/GameExporter.cpp
         src/Editor/PopupManager.cpp
         src/Editor/EditorLayouts.cpp
+        src/Editor/Theme/Theme.cpp
+        src/Editor/Theme/ThemePresets.cpp
+        src/Editor/Theme/ThemeManager.cpp
         src/Editor/Shell/EditorShell.cpp
         src/Editor/Shell/MainMenuBar.cpp
         src/Editor/Shell/Toolbar.cpp

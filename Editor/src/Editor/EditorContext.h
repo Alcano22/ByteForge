@@ -11,6 +11,7 @@
 #include "Editor/SceneDialogs.h"
 #include "Editor/GameExporter.h"
 #include "Editor/PopupManager.h"
+#include "Editor/Theme/ThemeManager.h"
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Core/Core.h>
@@ -163,6 +164,7 @@ namespace ByteForge
         PopupManager Popups;
         SceneDialogs Dialogs{ *this };
         EditorLayouts Layouts;
+        ThemeManager Themes;
         ExportTask Export;
         Selection SelectionContext;
         CommandHistory History;

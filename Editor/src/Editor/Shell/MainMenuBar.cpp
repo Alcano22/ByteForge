@@ -3,6 +3,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/GameExporter.h"
 #include "Editor/Panels/ProjectSettingsPanel.h"
+#include "Editor/Theme/ThemeManager.h"
 
 #include <imgui.h>
 
@@ -71,6 +72,39 @@ namespace ByteForge
             ImGui::EndMenu();
         }
 
+        void DrawThemeMenu(EditorContext& context)
+        {
+            ThemeManager& themes = context.Themes;
+
+            if (!ImGui::BeginMenu("Theme")) return;
+
+            bool customHeaderShown = false;
+            const std::vector<Theme>& all = themes.GetThemes();
+
+            for (usize i = 0; i < all.size(); ++i)
+            {
+                const Theme& theme = all[i];
+
+                if (!theme.BuiltIn && !customHeaderShown)
+                {
+                    ImGui::SeparatorText("Custom");
+                    customHeaderShown = true;
+                }
+
+                ImGui::PushID(static_cast<i32>(i));
+                if (ImGui::MenuItem(theme.Name.c_str(), nullptr, theme.Name == themes.GetActiveName()))
+                    themes.SetActive(theme.Name);
+                ImGui::PopID();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Reload Custom Themes"))
+                themes.Reload();
+
+            ImGui::EndMenu();
+        }
+
         void DrawViewMenu(EditorContext& context)
         {
             context.ForEachPanel([](EditorPanel& panel)
@@ -81,6 +115,7 @@ namespace ByteForge
 
             ImGui::Separator();
             DrawLayoutMenu(context);
+            DrawThemeMenu(context);
         }
 
         void DrawUnsavedIndicator(const EditorContext& context)

@@ -24,6 +24,7 @@ namespace ByteForge
         ValidateComponentInspectors();
 
         m_Context.Layouts.Init();
+        m_Context.Themes.Init();
 
         AssetRegistry::Init("assets");
 

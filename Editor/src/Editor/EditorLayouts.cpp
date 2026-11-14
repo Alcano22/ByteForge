@@ -1,5 +1,6 @@
 #include "Editor/EditorLayouts.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorPaths.h"
 #include "Editor/Panels/AssetsPanel.h"
 #include "Editor/Panels/ConsolePanel.h"
 #include "Editor/Panels/GamePanel.h"
@@ -34,7 +35,6 @@ namespace ByteForge
 
         constexpr const char* LayoutExtension = ".ini";
 
-        fs::path GetStateDirectory() { return fs::current_path() / ".byteforge"; }
         fs::path GetLayoutDirectory() { return GetStateDirectory() / "layouts"; }
         fs::path GetLayoutPath(const std::string& name) { return GetLayoutDirectory() / (name + LayoutExtension); }
 
