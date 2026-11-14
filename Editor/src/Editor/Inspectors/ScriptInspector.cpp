@@ -17,7 +17,6 @@
 #include <imgui_stdlib.h>
 
 #include <algorithm>
-#include <cfloat>
 #include <expected>
 #include <format>
 #include <optional>
@@ -31,18 +30,6 @@ namespace ByteForge::EditorUI
 {
     namespace
     {
-        constexpr const char* AddScriptPopup = "##AddScript";
-
-        enum class EntryAction{ None, Remove, MoveUp, MoveDown };
-
-        void AssignScript(ScriptEntry& script, std::string className)
-        {
-            if (script.ClassName == className) return;
-
-            script.ClassName = std::move(className);
-            script.Fields.clear();
-        }
-
         std::optional<std::string> AcceptScriptDrop()
         {
             const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
@@ -69,8 +56,7 @@ namespace ByteForge::EditorUI
                     ? Result<std::string>(ScriptGraphClassName(UUID(dragged->Handle)))
                     : ScriptProject::FindClassForAsset(UUID(dragged->Handle));
 
-                const ImU32 color = className ? ImGui::GetColorU32(ImGuiCol_DragDropTarget)
-                                              : ImGui::GetColorU32(ErrorColor);
+                const ImU32 color = className ? ImGui::GetColorU32(ImGuiCol_DragDropTarget) : ImGui::GetColorU32(ErrorColor);
                 drawList.AddRect(min, max, color, rounding, 0, 2.0f);
 
                 if (ImGui::BeginTooltip())
@@ -106,50 +92,8 @@ namespace ByteForge::EditorUI
             }, value);
         }
 
-        void DrawClassPicker(ScriptEntry& script)
-        {
-            const ScriptEngine& engine = ScriptEngine::Get();
-            const std::vector<ScriptClassInfo> classes = engine.GetClasses();
-            const bool known = script.ClassName.empty() ||
-                               std::ranges::any_of(classes, [&](const ScriptClassInfo& info)
-                               {
-                                   return info.Name == script.ClassName;
-                               });
-
-            const std::string preview = script.ClassName.empty() ? "None" : engine.GetDisplayName(script.ClassName);
-
-            if (!known)
-                ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
-            const bool open = ImGui::BeginCombo("Class", preview.c_str());
-            if (!known)
-                ImGui::PopStyleColor();
-
-            if (open)
-            {
-                if (ImGui::Selectable("None", script.ClassName.empty()))
-                    AssignScript(script, {});
-
-                for (const ScriptClassInfo& info : classes)
-                {
-                    ImGui::PushID(info.Name.c_str());
-                    if (ImGui::Selectable(info.DisplayName.c_str(), info.Name == script.ClassName))
-                        AssignScript(script, info.Name);
-
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("%s", info.Backend.c_str());
-                    ImGui::PopID();
-                }
-
-                ImGui::EndCombo();
-            } else if (std::optional<std::string> className = AcceptScriptDrop())
-                AssignScript(script, std::move(*className));
-
-            if (!known)
-                ImGui::TextColored(ErrorColor, "Class '%s' not found", script.ClassName.c_str());
-        }
-
-        void DrawLiveField(ScriptInstance* live, const ScriptFieldInfo& field, const char* label,
-                           Scene& scene, Selection& selection)
+        void DrawLiveField(ScriptInstance* live, const ScriptFieldInfo& field,
+                           const char* label, Scene& scene, Selection& selection)
         {
             if (std::optional<ScriptValue> value = live != nullptr ? live->GetField(field.Name) : std::nullopt)
             {
@@ -164,8 +108,8 @@ namespace ByteForge::EditorUI
             ImGui::EndDisabled();
         }
 
-        void DrawStoredField(ScriptEntry& script, const ScriptFieldInfo& field, const char* label,
-                             Scene& scene, Selection& selection)
+        void DrawStoredField(ScriptEntry& script, const ScriptFieldInfo& field,
+                             const char* label, Scene& scene, Selection& selection)
         {
             const auto it = script.Fields.find(field.Name);
             const bool overridden = it != script.Fields.end() && IsCompatible(it->second, field);
@@ -185,9 +129,11 @@ namespace ByteForge::EditorUI
         void DrawFields(const Entity entity, ScriptEntry& script, Selection& selection)
         {
             const std::span<const ScriptFieldInfo> fields = ScriptEngine::Get().GetFields(script.ClassName);
-            if (fields.empty()) return;
-
-            ImGui::Separator();
+            if (fields.empty())
+            {
+                ImGui::TextDisabled("No editable fields");
+                return;
+            }
 
             Scene& scene = entity.GetScene();
             ScriptInstance* live = scene.FindScriptInstance(entity, script.Id);
@@ -205,122 +151,62 @@ namespace ByteForge::EditorUI
                 ImGui::PopID();
             }
         }
-
-        EntryAction DrawScriptEntry(const Entity entity, ScriptEntry& script, const usize index,
-                                    const usize count, Selection& selection)
-        {
-            const ScriptEngine& engine = ScriptEngine::Get();
-            const bool unknown = !script.ClassName.empty() && engine.FindBackend(script.ClassName) == nullptr;
-            const std::string title = script.ClassName.empty() ? "None" : engine.GetDisplayName(script.ClassName);
-
-            EntryAction action = EntryAction::None;
-
-            const f32 startX = ImGui::GetCursorPosX();
-            const f32 width = ImGui::GetContentRegionAvail().x;
-            const f32 buttonWidth = ImGui::GetFrameHeight();
-
-            constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed
-                                               | ImGuiTreeNodeFlags_DefaultOpen
-                                               | ImGuiTreeNodeFlags_AllowOverlap;
-
-            if (unknown)
-                ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
-            const bool open = ImGui::TreeNodeEx("##Script", flags, "%s", title.c_str());
-            if (unknown)
-                ImGui::PopStyleColor();
-
-            if (ImGui::BeginPopupContextItem("##ScriptMenu"))
-            {
-                if (ImGui::MenuItem("Move Up", nullptr, false, index > 0))
-                    action = EntryAction::MoveUp;
-                if (ImGui::MenuItem("Move Down", nullptr, false, index + 1 < count))
-                    action = EntryAction::MoveDown;
-                ImGui::Separator();
-                if (ImGui::MenuItem("Remove"))
-                    action = EntryAction::Remove;
-                ImGui::EndPopup();
-            }
-
-            ImGui::SameLine(startX + width - buttonWidth);
-            if (ImGui::Button("X", ImVec2(buttonWidth, ImGui::GetFrameHeight())))
-                action = EntryAction::Remove;
-            ImGui::SetItemTooltip("Remove script");
-
-            if (open)
-            {
-                DrawClassPicker(script);
-                DrawFields(entity, script, selection);
-                ImGui::TreePop();
-            }
-
-            return action;
-        }
-
-        void DrawAddScript(ScriptComponent& component)
-        {
-            ImGui::Spacing();
-
-            if (ImGui::Button("Add Script", ImVec2(-FLT_MIN, 0.0f)))
-                ImGui::OpenPopup(AddScriptPopup);
-
-            if (std::optional<std::string> className = AcceptScriptDrop())
-                component.Add(std::move(*className));
-
-            if (!ImGui::BeginPopup(AddScriptPopup)) return;
-
-            const std::vector<ScriptClassInfo> classes = ScriptEngine::Get().GetClasses();
-            if (classes.empty())
-                ImGui::TextDisabled("No script classes found");
-
-            for (const ScriptClassInfo& info : classes)
-            {
-                ImGui::PushID(info.Name.c_str());
-                if (ImGui::Selectable(info.DisplayName.c_str()))
-                    component.Add(info.Name);
-
-                ImGui::SameLine();
-                ImGui::TextDisabled("%s", info.Backend.c_str());
-                ImGui::PopID();
-            }
-
-            ImGui::EndPopup();
-        }
     }
 
-    void DrawScriptComponentInspector(const Entity entity, ScriptComponent& component, Selection& selection)
+    std::string GetScriptTitle(const ScriptEntry& script)
     {
-        if (component.Scripts.empty())
-            ImGui::TextDisabled("No scripts");
+        if (script.ClassName.empty())
+            return "Script (None)";
 
-        std::optional<std::pair<usize, EntryAction>> pending;
+        if (IsScriptMissing(script))
+            return std::format("{} (Missing)", script.ClassName);
 
-        for (usize i = 0; i < component.Scripts.size(); ++i)
+        return ScriptEngine::Get().GetDisplayName(script.ClassName);
+    }
+
+    bool IsScriptMissing(const ScriptEntry& script)
+    {
+        return !script.ClassName.empty() && ScriptEngine::Get().FindBackend(script.ClassName) == nullptr;
+    }
+
+    void DrawScriptEntryInspector(const Entity entity, ScriptEntry& script, Selection& selection)
+    {
+        if (script.ClassName.empty())
         {
-            ScriptEntry& script = component.Scripts[i];
-
-            ImGui::PushID(std::format("{}", static_cast<u64>(script.Id)).c_str());
-            const EntryAction action = DrawScriptEntry(entity, script, i, component.Scripts.size(), selection);
-            ImGui::PopID();
-
-            if (action != EntryAction::None && !pending)
-                pending = { i, action };
+            ImGui::TextDisabled("This script has no class. Remove it and add a script again.");
+            return;
         }
 
-        if (pending)
+        if (IsScriptMissing(script))
         {
-            const auto [index, action] = *pending;
-            auto& scripts = component.Scripts;
-
-            switch (action)
-            {
-                case EntryAction::Remove:   scripts.erase(scripts.begin() + static_cast<std::ptrdiff_t>(index)); break;
-                case EntryAction::MoveUp:   std::swap(scripts[index], scripts[index - 1]); break;
-                case EntryAction::MoveDown: std::swap(scripts[index], scripts[index + 1]); break;
-                case EntryAction::None:     break;
-            }
+            ImGui::TextColored(ErrorColor, "Class '%s' not found", script.ClassName.c_str());
+            ImGui::TextDisabled("It was renamed or deleted. Its saved values are kept.");
+            return;
         }
 
-        DrawAddScript(component);
+        DrawFields(entity, script, selection);
+    }
+
+    ScriptEntry& AddScript(const Entity entity, std::string className)
+    {
+        auto& component = entity.HasComponent<ScriptComponent>()
+                        ? entity.GetComponent<ScriptComponent>()
+                        : entity.AddComponent<ScriptComponent>();
+        return component.Add(std::move(className));
+    }
+
+    void RemoveScript(const Entity entity, const UUID script)
+    {
+        auto* component = entity.TryGetComponent<ScriptComponent>();
+        if (component == nullptr) return;
+
+        std::erase_if(component->Scripts, [script](const ScriptEntry& entry)
+        {
+            return static_cast<u64>(entry.Id) == static_cast<u64>(script);
+        });
+
+        if (component->Scripts.empty())
+            entity.RemoveComponent<ScriptComponent>();
     }
 
     void DrawScriptDropZone(const Entity entity)
@@ -329,12 +215,7 @@ namespace ByteForge::EditorUI
         ImGui::Dummy(ImVec2(available.x, std::max(available.y, ImGui::GetFrameHeight() * 3.0f)));
 
         if (std::optional<std::string> className = AcceptScriptDrop())
-        {
-            auto& component = entity.HasComponent<ScriptComponent>()
-                            ? entity.GetComponent<ScriptComponent>()
-                            : entity.AddComponent<ScriptComponent>();
-            component.Add(std::move(*className));
-        }
+            AddScript(entity, std::move(*className));
     }
 
     void DrawScriptAssetInspector(const UUID handle)

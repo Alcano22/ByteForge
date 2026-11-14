@@ -1,5 +1,4 @@
 #include "Editor/Inspectors/ComponentInspectors.h"
-#include "Editor/Inspectors/ScriptInspector.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 
@@ -29,12 +28,6 @@ namespace ByteForge
 
         template<typename T>
         void ResetComponent(T& component) { component = T{}; }
-
-        void ResetComponent(ScriptComponent& component)
-        {
-            for (ScriptEntry& script : component.Scripts)
-                script.Fields.clear();
-        }
 
         void DrawTransform(TransformComponent& transform, const Entity entity, EditorContext&)
         {
@@ -230,11 +223,6 @@ namespace ByteForge
             }
         }
 
-        void DrawScript(ScriptComponent& script, const Entity entity, EditorContext& context)
-        {
-            EditorUI::DrawScriptComponentInspector(entity, script, context.SelectionContext);
-        }
-
         template<typename T, auto DrawFn>
         constexpr ComponentInspector Inspect(const char* name, const EditorIcon icon = EditorIcon::FileScript,
                                              const bool removable = true)
@@ -263,8 +251,7 @@ namespace ByteForge
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
             Inspect<AudioSourceComponent, DrawAudioSource>("Audio Source", EditorIcon::ComponentAudioSource),
-            Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip),
-            Inspect<ScriptComponent, DrawScript>("Scripts")
+            Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip)
         };
     }
 

@@ -2,15 +2,26 @@
 
 #include "Editor/Inspectors/ComponentInspectors.h"
 
+#include <Engine/Scene/Components.h>
 #include <Engine/Scene/Entity.h>
 
 #include <vector>
 
 namespace ByteForge
 {
-    [[nodiscard]] std::vector<const ComponentInspector*> GetOrderedInspectors(Entity entity);
+    struct InspectorSection
+    {
+        ComponentOrderKey Key;
 
-    [[nodiscard]] bool CanMoveComponent(Entity entity, u32 movedTypeId, u32 targetTypeId, bool after);
+        const ComponentInspector* Inspector = nullptr;
 
-    void MoveComponent(Entity entity, u32 movedTypeId, u32 targetTypeId, bool after);
+        [[nodiscard]] bool IsPinned() const { return Inspector != nullptr && !Inspector->Removable; }
+    };
+
+    [[nodiscard]] std::vector<InspectorSection> GetOrderedSections(Entity entity);
+
+    [[nodiscard]] bool CanMoveSection(Entity entity, const ComponentOrderKey& moved,
+                                      const ComponentOrderKey& target, bool after);
+
+    void MoveSection(Entity entity, const ComponentOrderKey& moved, const ComponentOrderKey& target, bool after);
 }

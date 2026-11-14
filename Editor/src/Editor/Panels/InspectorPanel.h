@@ -7,7 +7,7 @@
 
 namespace ByteForge
 {
-    struct ComponentInspector;
+    struct InspectorSection;
 
     class InspectorPanel : public EditorPanel
     {
@@ -21,7 +21,7 @@ namespace ByteForge
 
     private:
         void DrawEntity(Entity entity) const;
-        void DrawComponentSection(const ComponentInspector& inspector, Entity entity) const;
+        void DrawSection(const InspectorSection& section, Entity entity) const;
 
         static void DrawHeader(Entity entity);
         static void DrawAddComponentPopup(Entity entity);

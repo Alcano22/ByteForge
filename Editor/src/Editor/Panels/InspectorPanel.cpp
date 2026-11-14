@@ -1,5 +1,6 @@
 #include "Editor/Panels/InspectorPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/Overloaded.h"
 #include "Editor/StringUtils.h"
 #include "Editor/Inspectors/AssetInspector.h"
@@ -9,6 +10,7 @@
 #include "Editor/Inspectors/ScriptInspector.h"
 
 #include <Engine/Scene/Components.h>
+#include <Engine/Scripting/ScriptEngine.h>
 
 #include <imgui.h>
 
@@ -19,6 +21,7 @@
 #include <variant>
 #include <format>
 #include <string>
+#include <vector>
 
 namespace ByteForge
 {
@@ -32,6 +35,12 @@ namespace ByteForge
         {
             ImGui::GetWindowDrawList()->AddLine(ImVec2(minX, y), ImVec2(maxX, y),
                                                 ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
+        }
+
+        ScriptEntry* FindScript(const Entity entity, const u64 scriptId)
+        {
+            auto* component = entity.TryGetComponent<ScriptComponent>();
+            return component != nullptr ? component->Find(UUID(scriptId)) : nullptr;
         }
     }
 
@@ -92,36 +101,66 @@ namespace ByteForge
         DrawHeader(entity);
         ImGui::Separator();
 
-        for (const ComponentInspector* inspector : GetOrderedInspectors(entity))
-            DrawComponentSection(*inspector, entity);
+        for (const InspectorSection& section : GetOrderedSections(entity))
+            DrawSection(section, entity);
 
         EditorUI::DrawScriptDropZone(entity);
     }
 
-    void InspectorPanel::DrawComponentSection(const ComponentInspector& inspector, const Entity entity) const
+    void InspectorPanel::DrawSection(const InspectorSection& section, const Entity entity) const
     {
+        EditorContext& context = GetContext();
+        const ComponentInspector* inspector = section.Inspector;
+
+        ScriptEntry* script = nullptr;
+        std::string title;
+        std::string id;
+        EditorIcon icon = EditorIcon::FileScript;
+        bool removable = true;
+        bool missing = false;
+
+        if (inspector != nullptr)
+        {
+            title = inspector->Name;
+            id = inspector->Name;
+            icon = inspector->Icon;
+            removable = inspector->Removable;
+        } else
+        {
+            script = FindScript(entity, section.Key.ScriptId);
+            if (script == nullptr) return;
+
+            title = EditorUI::GetScriptTitle(*script);
+            id = std::format("script{}", section.Key.ScriptId);
+            missing = EditorUI::IsScriptMissing(*script);
+        }
+
         constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen
                                            | ImGuiTreeNodeFlags_Framed
                                            | ImGuiTreeNodeFlags_SpanAvailWidth
                                            | ImGuiTreeNodeFlags_FramePadding
                                            | ImGuiTreeNodeFlags_AllowOverlap;
 
-        ImGui::PushID(inspector.Name);
+        ImGui::PushID(id.c_str());
 
         const f32 buttonSize = ImGui::GetFrameHeight();
         const f32 headerEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
 
+        if (missing)
+            ImGui::PushStyleColor(ImGuiCol_Text, EditorUI::ErrorColor);
         const bool open = ImGui::TreeNodeEx("##header", flags, "%s  %s",
-                                            EditorIcons::Glyph(inspector.Icon), inspector.Name);
+                                            EditorIcons::Glyph(icon), title.c_str());
+        if (missing)
+            ImGui::PopStyleColor();
 
         const ImVec2 headerMin = ImGui::GetItemRectMin();
         const ImVec2 headerMax = ImGui::GetItemRectMax();
         const f32 halfGap = ImGui::GetStyle().ItemSpacing.y * 0.5f;
 
-        if (inspector.Removable && ImGui::BeginDragDropSource())
+        if (removable && ImGui::BeginDragDropSource())
         {
-            ImGui::SetDragDropPayload(ComponentPayloadType, &inspector.TypeId, sizeof(inspector.TypeId));
-            ImGui::TextUnformatted(inspector.Name);
+            ImGui::SetDragDropPayload(ComponentPayloadType, &section.Key, sizeof(ComponentOrderKey));
+            ImGui::TextUnformatted(title.c_str());
             ImGui::EndDragDropSource();
         }
 
@@ -133,15 +172,17 @@ namespace ByteForge
                                                    | ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
 
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(ComponentPayloadType, dropFlags);
-                payload != nullptr && payload->DataSize == sizeof(u32))
+                payload != nullptr && payload->DataSize == sizeof(ComponentOrderKey))
             {
-                const u32 movedTypeId = *static_cast<const u32*>(payload->Data);
+                ComponentOrderKey moved;
+                std::memcpy(&moved, payload->Data, sizeof(ComponentOrderKey));
+
                 const bool after = ImGui::GetMousePos().y > (headerMin.y + headerMax.y) * 0.5f;
 
-                if (CanMoveComponent(entity, movedTypeId, inspector.TypeId, after))
+                if (CanMoveSection(entity, moved, section.Key, after))
                 {
                     if (payload->IsDelivery())
-                        MoveComponent(entity, movedTypeId, inspector.TypeId, after);
+                        MoveSection(entity, moved, section.Key, after);
                     else if (after)
                         showLineAfterSection = true;
                     else
@@ -161,9 +202,14 @@ namespace ByteForge
         if (ImGui::BeginPopup("##options"))
         {
             if (ImGui::MenuItem("Reset"))
-                inspector.Reset(entity);
+            {
+                if (inspector != nullptr)
+                    inspector->Reset(entity);
+                else
+                    script->Fields.clear();
+            }
 
-            if (ImGui::MenuItem("Remove Component", nullptr, false, inspector.Removable))
+            if (ImGui::MenuItem("Remove Component", nullptr, false, removable))
                 remove = true;
 
             ImGui::EndPopup();
@@ -172,7 +218,12 @@ namespace ByteForge
         if (open)
         {
             if (!remove)
-                inspector.Draw(entity, GetContext());
+            {
+                if (inspector != nullptr)
+                    inspector->Draw(entity, context);
+                else
+                    EditorUI::DrawScriptEntryInspector(entity, *script, context.SelectionContext);
+            }
             ImGui::TreePop();
         }
 
@@ -182,7 +233,12 @@ namespace ByteForge
         ImGui::PopID();
 
         if (remove)
-            inspector.Remove(entity);
+        {
+            if (inspector != nullptr)
+                inspector->Remove(entity);
+            else
+                EditorUI::RemoveScript(entity, UUID(section.Key.ScriptId));
+        }
     }
 
     void InspectorPanel::DrawHeader(const Entity entity)
@@ -242,8 +298,38 @@ namespace ByteForge
             }
         }
 
+        bool scriptsHeaderShown = false;
+        for (const ScriptClassInfo& info : ScriptEngine::Get().GetClasses())
+        {
+            if (!ContainsIgnoreCase(info.DisplayName.c_str(), query)) continue;
+
+            if (!scriptsHeaderShown)
+            {
+                ImGui::SeparatorText("Scripts");
+                scriptsHeaderShown = true;
+            }
+
+            const bool pickedByEnter = submitted && !anyMatch;
+            anyMatch = true;
+
+            ImGui::PushID(info.Name.c_str());
+
+            const std::string label = std::format("{}  {}", EditorIcons::Glyph(EditorIcon::FileScript),
+                                                  info.DisplayName);
+            if (ImGui::Selectable(label.c_str()) || pickedByEnter)
+            {
+                EditorUI::AddScript(entity, info.Name);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", info.Backend.c_str());
+
+            ImGui::PopID();
+        }
+
         if (!anyMatch)
-            ImGui::TextDisabled(query.empty() ? "All components added" : "No components match");
+            ImGui::TextDisabled(query.empty() ? "Nothing to add" : "No components match");
 
         ImGui::EndPopup();
     }

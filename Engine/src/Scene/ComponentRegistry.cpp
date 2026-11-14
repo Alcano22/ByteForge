@@ -57,7 +57,7 @@ namespace ByteForge
             Describe<CircleCollider2DComponent>("circleCollider2D"),
             Describe<AudioSourceComponent>("audioSource"),
             Describe<AnimatorComponent>("animator"),
-            Describe<ScriptComponent>("script"),
+            Describe<ScriptComponent>("script", true, true),
             Describe<ComponentOrderComponent>("componentOrder", true, true)
         };
 
