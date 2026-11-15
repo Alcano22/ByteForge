@@ -2,6 +2,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/Settings/ProjectGeneralPage.h"
 #include "Editor/Settings/ThemeSettingsPage.h"
+#include "Editor/Settings/ToolingSettingsPage.h"
 
 #include <imgui.h>
 
@@ -45,6 +46,7 @@ namespace ByteForge
 
         m_Pages.push_back(MakeScope<ProjectGeneralPage>());
         m_Pages.push_back(MakeScope<ThemeSettingsPage>());
+        m_Pages.push_back(MakeScope<ToolingSettingsPage>());
     }
 
     void SettingsPanel::ShowPage(const std::string_view name)

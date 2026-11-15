@@ -33,6 +33,7 @@ add_executable(Editor
         src/Editor/GameExporter.cpp
         src/Editor/PopupManager.cpp
         src/Editor/EditorLayouts.cpp
+        src/Editor/Tooling/CodeEditorLauncher.cpp
         src/Editor/Theme/Theme.cpp
         src/Editor/Theme/ThemePresets.cpp
         src/Editor/Theme/ThemeManager.cpp
@@ -51,6 +52,7 @@ add_executable(Editor
         src/Editor/Panels/SettingsPanel.cpp
         src/Editor/Settings/ProjectGeneralPage.cpp
         src/Editor/Settings/ThemeSettingsPage.cpp
+        src/Editor/Settings/ToolingSettingsPage.cpp
         src/Editor/Commands/CommandHistory.cpp
         src/Editor/Commands/EntityCommands.cpp
         src/Editor/Commands/EntityEditTracker.cpp

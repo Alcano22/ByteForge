@@ -25,6 +25,7 @@ namespace ByteForge
 
         m_Context.Layouts.Init();
         m_Context.Themes.Init();
+        m_Context.CodeEditor.Init();
 
         AssetRegistry::Init("assets");
 

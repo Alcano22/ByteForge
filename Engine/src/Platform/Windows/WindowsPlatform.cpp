@@ -12,9 +12,12 @@
 
 #include <array>
 #include <cstdio>
+#include <cwchar>
 #include <format>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace ByteForge
 {
@@ -54,6 +57,24 @@ namespace ByteForge
 
             quoted.push_back(L'"');
             return quoted;
+        }
+
+        std::wstring BuildCommandLine(const std::vector<std::string>& arguments)
+        {
+            std::wstring commandLine;
+            for (const std::string& argument : arguments)
+            {
+                if (!commandLine.empty())
+                    commandLine.push_back(L' ');
+                commandLine += QuoteArgument(fs::path(argument).wstring());
+            }
+            return commandLine;
+        }
+
+        bool IsBatchFile(const fs::path& program)
+        {
+            const std::wstring extension = program.extension().wstring();
+            return _wcsicmp(extension.c_str(), L".cmd") == 0 || _wcsicmp(extension.c_str(), L".bat") == 0;
         }
     }
 
@@ -142,6 +163,55 @@ namespace ByteForge
 
         result.ExitCode = static_cast<i32>(exitCode);
         return result;
+    }
+
+    Result<> Platform::LaunchProcess(const std::vector<std::string>& arguments)
+    {
+        if (arguments.empty())
+            return std::unexpected(std::string("no program given"));
+
+        std::wstring commandLine = BuildCommandLine(arguments);
+
+        if (IsBatchFile(fs::path(arguments.front())))
+            commandLine = L"cmd.exe /s /c \"" + commandLine + L"\"";
+
+        STARTUPINFOW startup{};
+        startup.cb = sizeof(startup);
+
+        PROCESS_INFORMATION process{};
+        if (!CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, FALSE,
+                            CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP, nullptr, nullptr, &startup, &process))
+        {
+            return std::unexpected(std::format("cannot start '{}' (error {})", arguments.front(), GetLastError()));
+        }
+
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
+        return {};
+    }
+
+    std::optional<fs::path> Platform::FindExecutable(const std::string_view name)
+    {
+        if (name.empty())
+            return std::nullopt;
+
+        const fs::path requested{ std::string(name) };
+        if (requested.has_parent_path())
+        {
+            std::error_code error;
+            return fs::is_regular_file(requested, error) ? std::optional(requested) : std::nullopt;
+        }
+
+        for (const wchar_t* extension : { L".exe", L".cmd", L".bat", L".com" })
+        {
+            std::array<wchar_t, MAX_PATH> buffer{};
+            const DWORD length = SearchPathW(nullptr, requested.c_str(), extension,
+                                             static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+            if (length > 0 && length < buffer.size())
+                return fs::path(std::wstring(buffer.data(), length));
+        }
+
+        return std::nullopt;
     }
 }
 

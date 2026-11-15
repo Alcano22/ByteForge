@@ -170,6 +170,9 @@ namespace ByteForge
             if (ImGui::BeginMenu("Scripts"))
             {
                 ActionMenuItem(context, EditorActions::ReloadScripts);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Open Script Project"))
+                    context.CodeEditor.OpenProject();
                 ImGui::EndMenu();
             }
 

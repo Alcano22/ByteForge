@@ -748,6 +748,8 @@ namespace ByteForge
             GetContext().Open<GraphEditorPanel>().OpenGraph(*entry.Handle);
         else if (entry.Type == AssetType::AnimationClip && entry.Handle)
             GetContext().Open<AnimationClipPanel>().OpenClip(*entry.Handle);
+        else if (entry.Type == AssetType::Script)
+            GetContext().CodeEditor.OpenFile(AssetRegistry::GetAssetRoot() / entry.Path);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
