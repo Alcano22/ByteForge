@@ -64,6 +64,15 @@ namespace ByteForge
         return WriteFileAtomic(file, std::as_bytes(std::span<const char>(text.data(), text.size())));
     }
 
+    Result<nlohmann::json> ReadJsonFile(const fs::path& file)
+    {
+        const Result<std::vector<std::byte>> bytes = ReadBinaryFile(file);
+        if (!bytes)
+            return std::unexpected(bytes.error());
+
+        return ParseJson(*bytes, file.generic_string());
+    }
+
     Result<> WriteJsonFile(const fs::path& file, const nlohmann::json& data)
     {
         std::string text;
@@ -76,5 +85,26 @@ namespace ByteForge
         }
 
         return WriteFileAtomic(file, text);
+    }
+
+    Result<nlohmann::json> ParseJson(const std::span<const std::byte> bytes, const std::string_view source)
+    {
+        const auto* begin = reinterpret_cast<const char*>(bytes.data());
+
+        nlohmann::json json = nlohmann::json::parse(begin, begin + bytes.size(), nullptr, false);
+        if (json.is_discarded())
+            return std::unexpected(std::format("'{}' is not valid JSON", source));
+
+        return json;
+    }
+
+    std::optional<fs::file_time_type> GetLastWriteTime(const fs::path& file)
+    {
+        std::error_code error;
+        const fs::file_time_type time = fs::last_write_time(file, error);
+        if (error)
+            return std::nullopt;
+
+        return time;
     }
 }

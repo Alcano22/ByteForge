@@ -25,7 +25,7 @@ namespace ByteForge
         json["loop"]        = component.Loop;
         json["playOnStart"] = component.PlayOnStart;
 
-        if (static_cast<u64>(component.Clip) != 0)
+        if (component.Clip.IsSet())
             json["clip"] = static_cast<u64>(component.Clip);
     }
 

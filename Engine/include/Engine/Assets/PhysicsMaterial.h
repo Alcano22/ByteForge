@@ -24,7 +24,7 @@ namespace ByteForge
             : m_Handle(handle), m_Material(material) {}
 
         [[nodiscard]] UUID GetHandle() const { return m_Handle; }
-        [[nodiscard]] bool IsFileBacked() const { return static_cast<u64>(m_Handle) != 0; }
+        [[nodiscard]] bool IsFileBacked() const { return m_Handle.IsSet(); }
         [[nodiscard]] const PhysicsMaterial2D& GetMaterial() const { return m_Material; }
 
     private:

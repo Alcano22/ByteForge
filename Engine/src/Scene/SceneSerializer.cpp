@@ -85,20 +85,11 @@ namespace ByteForge
 
     bool SceneSerializer::DeserializeFromFile(Scene& scene, const std::string& filepath)
     {
-        std::ifstream file(filepath);
-        if (!file.is_open())
+        const Result<nlohmann::json> data = ReadJsonFile(filepath);
+        if (!data)
             return false;
 
-        nlohmann::json data;
-        try
-        {
-            file >> data;
-        } catch (const nlohmann::json::parse_error&)
-        {
-            return false;
-        }
-
-        Deserialize(scene, data);
+        Deserialize(scene, *data);
         return true;
     }
 

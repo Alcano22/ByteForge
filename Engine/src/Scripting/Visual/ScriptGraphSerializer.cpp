@@ -204,15 +204,13 @@ namespace ByteForge
 
     Result<ScriptGraph> LoadScriptGraph(const fs::path& path)
     {
-        std::ifstream file(path);
-        if (!file.is_open())
-            return std::unexpected("the file cannot be opened");
+        const Result<nlohmann::json> data = ReadJsonFile(path);
+        if (!data)
+            return std::unexpected(data.error());
 
         try
         {
-            nlohmann::json data;
-            file >> data;
-            return DeserializeScriptGraph(data);
+            return DeserializeScriptGraph(*data);
         } catch (const nlohmann::json::exception& e)
         {
             return std::unexpected(e.what());

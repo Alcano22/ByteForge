@@ -245,7 +245,7 @@ namespace ByteForge
         if (!settings)
             throw std::runtime_error(std::format("Player::CreateApplication: {}", settings.error()));
 
-        if (static_cast<u64>(settings->StartScene) == 0)
+        if (!settings->StartScene.IsSet())
             throw std::runtime_error(std::format("Player::CreateApplication: '{}' does not define a start scene",
                                                  ProjectSettings::FileName));
 

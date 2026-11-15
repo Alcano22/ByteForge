@@ -6,18 +6,14 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <fstream>
 #include <format>
 #include <span>
+#include <system_error>
 
 namespace ByteForge
 {
     namespace
     {
-        constexpr const char* MetaExtension = ".meta";
-
-        bool IsMetaFile(const fs::path& path) { return path.extension() == MetaExtension; }
-
         bool IsTemporaryFile(const fs::path& path) { return path.extension() == TemporaryFileExtension; }
 
         bool IsInside(const fs::path& path, const fs::path& directory)
@@ -29,13 +25,7 @@ namespace ByteForge
 
         fs::path GetMetaPath(const fs::path& absolutePath)
         {
-            return absolutePath.string() + MetaExtension;
-        }
-
-        nlohmann::json ParseJson(const std::span<const std::byte> bytes)
-        {
-            const auto* begin = reinterpret_cast<const char*>(bytes.data());
-            return nlohmann::json::parse(begin, begin + bytes.size(), nullptr, false);
+            return absolutePath.string() + AssetRegistry::MetaExtension;
         }
 
         bool ParseMeta(const nlohmann::json& data, AssetMetadata& outMetadata)
@@ -54,6 +44,13 @@ namespace ByteForge
             {
                 return false;
             }
+        }
+
+        bool ParseMetaBytes(const std::span<const std::byte> bytes, const std::string_view source,
+                            AssetMetadata& outMetadata)
+        {
+            const Result<nlohmann::json> json = ParseJson(bytes, source);
+            return json && ParseMeta(*json, outMetadata);
         }
 
         bool IsEngineData(const fs::path& path)
@@ -121,7 +118,7 @@ namespace ByteForge
             const Result<std::vector<std::byte>> meta = (*opened)->Read(entry.Path + MetaExtension);
 
             AssetMetadata metadata;
-            if (!meta || !ParseMeta(ParseJson(*meta), metadata))
+            if (!meta || !ParseMetaBytes(*meta, entry.Path, metadata))
             {
                 CORE_WARN("AssetRegistry: '{}' has no valid metadata in the archive and is skipped", entry.Path);
                 ++skipped;
@@ -290,11 +287,7 @@ namespace ByteForge
         if (!bytes)
             return std::unexpected(bytes.error());
 
-        nlohmann::json data = ParseJson(*bytes);
-        if (data.is_discarded())
-            return std::unexpected(std::format("'{}' is not valid JSON", it->second.Path.generic_string()));
-
-        return data;
+        return ParseJson(*bytes, it->second.Path.generic_string());
     }
 
     bool AssetRegistry::ContainsFile(const fs::path& relativePath)
@@ -368,17 +361,17 @@ namespace ByteForge
 
     bool AssetRegistry::ReadMeta(const fs::path& metaPath, AssetMetadata& outMetadata)
     {
-        std::ifstream file(metaPath);
-        if (!file.is_open())
+        std::error_code error;
+        if (!fs::exists(metaPath, error))
             return false;
 
-        const nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
-        if (data.is_discarded())
+        const Result<nlohmann::json> data = ReadJsonFile(metaPath);
+        if (!data)
         {
-            CORE_ERROR("AssetRegistry: '{}' is not valid JSON", metaPath.string());
+            CORE_ERROR("AssetRegistry: {}", data.error());
             return false;
         }
 
-        return ParseMeta(data, outMetadata);
+        return ParseMeta(*data, outMetadata);
     }
 }

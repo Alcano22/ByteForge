@@ -270,7 +270,7 @@ namespace ByteForge
     Entity Scene::GetParent(const Entity entity) const
     {
         const auto* relationship = m_Registry.try_get<RelationshipComponent>(entity.m_Handle);
-        if (relationship == nullptr || static_cast<u64>(relationship->Parent) == 0)
+        if (relationship == nullptr || !relationship->Parent.IsSet())
             return {};
 
         return FindEntityByUUID(relationship->Parent);

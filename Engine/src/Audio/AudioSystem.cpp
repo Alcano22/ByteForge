@@ -53,7 +53,7 @@ namespace ByteForge
     {
         scene.Each<AudioSourceComponent>([](const Entity, AudioSourceComponent& source)
         {
-            if (static_cast<u64>(source.m_LoadedClip) != static_cast<u64>(source.Clip))
+            if (source.m_LoadedClip != source.Clip)
                 Reload(source);
 
             Apply(source);
@@ -65,7 +65,7 @@ namespace ByteForge
         source.m_Sound.reset();
         source.m_LoadedClip = source.Clip;
 
-        if (static_cast<u64>(source.Clip) == 0) return;
+        if (!source.Clip.IsSet()) return;
 
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(source.Clip, metadata) || metadata.Type != AssetType::AudioClip)

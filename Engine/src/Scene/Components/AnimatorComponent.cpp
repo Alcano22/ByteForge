@@ -11,7 +11,7 @@ namespace ByteForge
 {
     bool AnimatorComponent::Play(const std::string_view state, const bool restart)
     {
-        if (static_cast<u64>(m_LoadedController) != static_cast<u64>(Controller))
+        if (m_LoadedController != Controller)
             ResolveController();
 
         if (!m_Controller)
@@ -56,8 +56,8 @@ namespace ByteForge
     void AnimatorComponent::ResolveController()
     {
         m_LoadedController = Controller;
-        m_Controller = static_cast<u64>(Controller) != 0 ? AssetManager::LoadAnimatorController(Controller)
-                                                         : Ref<AnimatorControllerAsset>{};
+        m_Controller = Controller.IsSet() ? AssetManager::LoadAnimatorController(Controller)
+                                          : Ref<AnimatorControllerAsset>{};
         m_State.reset();
         m_Time = 0.0f;
         m_Playing = false;
@@ -84,7 +84,7 @@ namespace ByteForge
         json["speed"]       = component.Speed;
         json["playOnStart"] = component.PlayOnStart;
 
-        if (static_cast<u64>(component.Controller) != 0)
+        if (component.Controller.IsSet())
             json["controller"] = static_cast<u64>(component.Controller);
     }
 

@@ -247,7 +247,7 @@ namespace ByteForge
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
-                    if (static_cast<u64>(link.From.Node) == static_cast<u64>(node) && link.From.Pin == pin)
+                    if (link.From.Node == node && link.From.Pin == pin)
                         return &link;
                 }
                 return nullptr;
@@ -257,7 +257,7 @@ namespace ByteForge
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
-                    if (static_cast<u64>(link.To.Node) == static_cast<u64>(node) && link.To.Pin == pin)
+                    if (link.To.Node == node && link.To.Pin == pin)
                         return &link;
                 }
                 return nullptr;

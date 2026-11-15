@@ -4,7 +4,6 @@
 #include <nlohmann/json.hpp>
 
 #include <format>
-#include <fstream>
 
 namespace ByteForge
 {
@@ -15,11 +14,11 @@ namespace ByteForge
 
     Result<ProjectSettings> ProjectSettings::Load(const fs::path& file)
     {
-        std::ifstream stream(file);
-        if (!stream.is_open())
-            return std::unexpected(std::format("cannot open '{}'", file.string()));
+        const Result<nlohmann::json> loaded = ReadJsonFile(file);
+        if (!loaded)
+            return std::unexpected(loaded.error());
 
-        const nlohmann::json json = nlohmann::json::parse(stream, nullptr, false);
+        const nlohmann::json& json = *loaded;
         if (!json.is_object())
             return std::unexpected(std::format("'{}' is not a valid project file", file.string()));
 

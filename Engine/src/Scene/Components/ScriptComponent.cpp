@@ -57,10 +57,7 @@ namespace ByteForge
 
     ScriptEntry* ScriptComponent::Find(const UUID id)
     {
-        const auto it = std::ranges::find_if(Scripts, [id](const ScriptEntry& entry)
-        {
-            return static_cast<u64>(entry.Id) == static_cast<u64>(id);
-        });
+        const auto it = std::ranges::find(Scripts, id, &ScriptEntry::Id);
         return it != Scripts.end() ? &*it : nullptr;
     }
 

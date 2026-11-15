@@ -28,7 +28,7 @@ namespace ByteForge
     {
         UUID Handle{ 0 };
 
-        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Handle) != 0; }
+        [[nodiscard]] bool IsSet() const { return Handle.IsSet(); }
     };
 
     using AudioClipHandle = AssetHandle<AssetType::AudioClip>;

@@ -154,14 +154,13 @@ namespace ByteForge
         });
     }
 
-    Result<> ScriptGraph::CheckVariableName(const std::string_view name,
-                                                                    const UUID ignore) const
+    Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore) const
     {
         if (name.empty())
             return std::unexpected("A variable needs a name");
 
         const GraphVariable* existing = FindVariable(name);
-        if (existing != nullptr && static_cast<u64>(existing->Id) != static_cast<u64>(ignore))
+        if (existing != nullptr && existing->Id != ignore)
             return std::unexpected(std::format("A variable named '{}' already exists", name));
 
         return {};

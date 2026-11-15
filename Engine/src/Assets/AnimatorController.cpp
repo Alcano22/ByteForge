@@ -49,8 +49,8 @@ namespace ByteForge
 
         for (const AnimatorState& state : m_Data.States)
         {
-            m_Clips.push_back(static_cast<u64>(state.Clip) != 0 ? AssetManager::LoadAnimationClip(state.Clip)
-                                                                : Ref<AnimationClipAsset>{});
+            m_Clips.push_back(state.Clip.IsSet() ? AssetManager::LoadAnimationClip(state.Clip)
+                                                 : Ref<AnimationClipAsset>{});
         }
     }
 

@@ -85,10 +85,7 @@ namespace ByteForge
         UUID Node{ 0 };
         std::string Pin;
 
-        [[nodiscard]] bool operator==(const PinRef& other) const
-        {
-            return static_cast<u64>(Node) == static_cast<u64>(other.Node) && Pin == other.Pin;
-        }
+        [[nodiscard]] bool operator==(const PinRef&) const = default;
     };
 
     struct GraphLink

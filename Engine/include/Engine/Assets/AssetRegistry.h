@@ -34,6 +34,10 @@ namespace ByteForge
     public:
         static constexpr const char* GameScriptsEntry = ".scripts/GameScripts.dll";
 
+        static constexpr const char* MetaExtension = ".meta";
+
+        [[nodiscard]] static bool IsMetaFile(const fs::path& path) { return path.extension() == MetaExtension; }
+
         static void Init(const fs::path& assetRoot);
 
         [[nodiscard]] static Result<> Mount(const fs::path& archive);

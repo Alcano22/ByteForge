@@ -21,12 +21,9 @@ namespace ByteForge
 
         std::string Component;
 
-        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Id) != 0; }
+        [[nodiscard]] bool IsSet() const { return Id.IsSet(); }
 
-        [[nodiscard]] bool operator==(const EntityRef& other) const
-        {
-            return static_cast<u64>(Id) == static_cast<u64>(other.Id) && Component == other.Component;
-        }
+        [[nodiscard]] bool operator==(const EntityRef&) const = default;
     };
 
     struct AssetRef
@@ -34,12 +31,9 @@ namespace ByteForge
         AssetType Type = AssetType::None;
         UUID Handle{ 0 };
 
-        [[nodiscard]] bool IsSet() const { return static_cast<u64>(Handle) != 0; }
+        [[nodiscard]] bool IsSet() const { return Handle.IsSet(); }
 
-        [[nodiscard]] bool operator==(const AssetRef& other) const
-        {
-            return Type == other.Type && static_cast<u64>(Handle) == static_cast<u64>(other.Handle);
-        }
+        [[nodiscard]] bool operator==(const AssetRef&) const = default;
     };
 
     enum class ScriptFieldType : u8 { Bool, Int, Float, Double, Vector2, Vector3, Vector4, Entity, Asset, String };

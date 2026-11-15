@@ -4,11 +4,9 @@
 #include "Engine/Assets/AnimationClip.h"
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
+#include "Engine/Core/StringUtils.h"
 
 #include <magic_enum/magic_enum.hpp>
-
-#include <algorithm>
-#include <cctype>
 
 namespace ByteForge
 {
@@ -24,8 +22,7 @@ namespace ByteForge
 
     AssetType AssetTypeFromExtension(const std::string& extension)
     {
-        std::string ext = extension;
-        std::ranges::transform(ext, ext.begin(), [](const u8 c) { return std::tolower(c); });
+        const std::string ext = ToLower(extension);
 
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".tga")
             return AssetType::Texture2D;

@@ -12,7 +12,7 @@ namespace ByteForge
     {
         scene.Each<AnimatorComponent>([deltaTime](const Entity entity, AnimatorComponent& animator)
         {
-            if (static_cast<u64>(animator.m_LoadedController) != static_cast<u64>(animator.Controller))
+            if (animator.m_LoadedController != animator.Controller)
             {
                 animator.ResolveController();
                 if (animator.PlayOnStart)

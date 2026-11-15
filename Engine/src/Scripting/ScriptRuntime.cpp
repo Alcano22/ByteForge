@@ -15,11 +15,6 @@ namespace ByteForge
 {
     namespace
     {
-        bool SameId(const UUID a, const UUID b)
-        {
-            return static_cast<u64>(a) == static_cast<u64>(b);
-        }
-
         void ApplyFields(const ScriptBackend& backend, const std::string& className,
                          ScriptInstance& script, const ScriptEntry& entry)
         {
@@ -113,10 +108,7 @@ namespace ByteForge
         if (it == m_Instances.end())
             return nullptr;
 
-        const auto found = std::ranges::find_if(it->second, [entry](const Instance& instance)
-        {
-            return SameId(instance.EntryId, entry);
-        });
+        const auto found = std::ranges::find(it->second, entry, &Instance::EntryId);
         return found != it->second.end() ? &*found : nullptr;
     }
 
@@ -239,10 +231,7 @@ namespace ByteForge
         if (it == m_Instances.end()) return;
 
         std::vector<Instance>& instances = it->second;
-        const auto found = std::ranges::find_if(instances, [entry](const Instance& instance)
-        {
-            return SameId(instance.EntryId, entry);
-        });
+        const auto found = std::ranges::find(instances, entry, &Instance::EntryId);
         if (found == instances.end()) return;
 
         m_Released.push_back(std::move(*found));

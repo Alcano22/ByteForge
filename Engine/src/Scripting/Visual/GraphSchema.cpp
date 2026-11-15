@@ -279,7 +279,7 @@ namespace ByteForge
 
     Result<PinType> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
     {
-        if (static_cast<u64>(from.Node) == static_cast<u64>(to.Node))
+        if (from.Node == to.Node)
             return std::unexpected("A node cannot connect to itself");
 
         SignatureCache cache(graph);
