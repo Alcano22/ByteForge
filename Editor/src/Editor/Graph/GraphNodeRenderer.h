@@ -70,7 +70,7 @@ namespace ByteForge
         std::unordered_map<uintptr_t, DrawnPin> m_Pins;
         std::unordered_map<uintptr_t, GraphLink> m_Links;
         std::unordered_set<uintptr_t> m_ConnectedPins;
-        std::unordered_map<u64, std::string> m_Errors;
+        std::unordered_map<UUID, std::string> m_Errors;
 
         std::optional<ActiveEdit> m_Active;
         std::vector<ValueEdit> m_Edits;

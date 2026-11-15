@@ -200,10 +200,7 @@ namespace ByteForge::EditorUI
         auto* component = entity.TryGetComponent<ScriptComponent>();
         if (component == nullptr) return;
 
-        std::erase_if(component->Scripts, [script](const ScriptEntry& entry)
-        {
-            return static_cast<u64>(entry.Id) == static_cast<u64>(script);
-        });
+        std::erase_if(component->Scripts, [script](const ScriptEntry& entry) { return entry.Id == script; });
 
         if (component->Scripts.empty())
             entity.RemoveComponent<ScriptComponent>();

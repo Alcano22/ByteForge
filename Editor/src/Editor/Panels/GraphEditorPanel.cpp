@@ -90,8 +90,7 @@ namespace ByteForge
         m_Open = true;
         m_FocusRequested = true;
 
-        if (m_Document && static_cast<u64>(m_Document->GetAsset()) == static_cast<u64>(asset))
-            return;
+        if (m_Document && m_Document->GetAsset() == asset) return;
 
         if (m_Document && m_Document->IsDirty())
         {

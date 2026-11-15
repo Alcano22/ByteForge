@@ -11,11 +11,10 @@ namespace ByteForge
     {
         bool UsesVariable(const GraphNode& node, const UUID variable)
         {
-            const auto key = static_cast<u64>(variable);
             if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
-                return static_cast<u64>(get->Variable) == key;
+                return get->Variable == variable;
             if (const auto* set = std::get_if<SetVariableNode>(&node.Data))
-                return static_cast<u64>(set->Variable) == key;
+                return set->Variable == variable;
             return false;
         }
     }
@@ -38,8 +37,7 @@ namespace ByteForge
 
     const GraphNode* ScriptGraph::FindNode(const UUID id) const
     {
-        const auto it = std::ranges::find(m_Nodes, static_cast<u64>(id),
-                                          [](const GraphNode& node) { return static_cast<u64>(node.Id); });
+        const auto it = std::ranges::find(m_Nodes, id, &GraphNode::Id);
         return it != m_Nodes.end() ? &*it : nullptr;
     }
 
@@ -50,8 +48,7 @@ namespace ByteForge
 
     const GraphVariable* ScriptGraph::FindVariable(const UUID id) const
     {
-        const auto it = std::ranges::find(m_Variables, static_cast<u64>(id),
-                                          [](const GraphVariable& variable) { return static_cast<u64>(variable.Id); });
+        const auto it = std::ranges::find(m_Variables, id, &GraphVariable::Id);
         return it != m_Variables.end() ? &*it : nullptr;
     }
 
@@ -68,12 +65,8 @@ namespace ByteForge
 
     void ScriptGraph::RemoveNode(const UUID id)
     {
-        const auto key = static_cast<u64>(id);
-        std::erase_if(m_Links, [key](const GraphLink& link)
-        {
-            return static_cast<u64>(link.From.Node) == key || static_cast<u64>(link.To.Node) == key;
-        });
-        std::erase_if(m_Nodes, [key](const GraphNode& node) { return static_cast<u64>(node.Id) == key; });
+        std::erase_if(m_Links, [id](const GraphLink& link) { return link.From.Node == id || link.To.Node == id; });
+        std::erase_if(m_Nodes, [id](const GraphNode& node) { return node.Id == id; });
     }
 
     Result<> ScriptGraph::Connect(const PinRef& from, const PinRef& to)
@@ -148,10 +141,7 @@ namespace ByteForge
         for (const UUID node : users)
             RemoveNode(node);
 
-        std::erase_if(m_Variables, [key = static_cast<u64>(id)](const GraphVariable& variable)
-        {
-            return static_cast<u64>(variable.Id) == key;
-        });
+        std::erase_if(m_Variables, [id](const GraphVariable& variable) { return variable.Id == id; });
     }
 
     Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore) const

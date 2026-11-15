@@ -269,8 +269,7 @@ namespace ByteForge
         m_Drag.reset();
 
         EditorContext& context = GetContext();
-        if (context.ActiveScene == nullptr ||
-            static_cast<u64>(drag.EntityId) != static_cast<u64>(entity.GetUUID())) return;
+        if (context.ActiveScene == nullptr || drag.EntityId != entity.GetUUID()) return;
 
         const TransformComponent& after = entity.GetComponent<TransformComponent>();
         if (after == drag.Before) return;

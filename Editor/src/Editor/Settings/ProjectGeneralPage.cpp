@@ -2,7 +2,9 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/StringUtils.h>
 #include <Engine/Project/ProjectSettings.h>
 
 #include <imgui.h>
@@ -10,8 +12,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <format>
-#include <string_view>
-#include <system_error>
 
 namespace ByteForge
 {
@@ -24,16 +24,6 @@ namespace ByteForge
         void CopyToBuffer(std::array<char, N>& buffer, const std::string& text)
         {
             std::snprintf(buffer.data(), buffer.size(), "%s", text.c_str());
-        }
-
-        std::string Trimmed(const std::string_view text)
-        {
-            const usize first = text.find_first_not_of(" \t");
-            if (first == std::string_view::npos)
-                return {};
-
-            const usize last = text.find_last_not_of(" \t");
-            return std::string(text.substr(first, last - first + 1));
         }
     }
 
@@ -68,7 +58,7 @@ namespace ByteForge
         if (changed)
             m_Dirty = true;
 
-        if (static_cast<u64>(m_StartScene) == 0)
+        if (!m_StartScene.IsSet())
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             ImGui::TextWrapped("No startup scene: an exported game cannot start without one.");
@@ -77,7 +67,7 @@ namespace ByteForge
 
         ImGui::Separator();
 
-        const bool valid = !Trimmed(m_Name.data()).empty();
+        const bool valid = !Trim(m_Name.data()).empty();
 
         ImGui::BeginDisabled(!m_Dirty || !valid);
         if (ImGui::Button("Apply"))
@@ -132,8 +122,8 @@ namespace ByteForge
     void ProjectGeneralPage::Apply()
     {
         ProjectSettings settings;
-        settings.Name = Trimmed(m_Name.data());
-        settings.WindowTitle = Trimmed(m_WindowTitle.data());
+        settings.Name = std::string(Trim(m_Name.data()));
+        settings.WindowTitle = std::string(Trim(m_WindowTitle.data()));
         if (settings.WindowTitle.empty())
             settings.WindowTitle = settings.Name;
 
@@ -158,8 +148,6 @@ namespace ByteForge
 
     fs::file_time_type ProjectGeneralPage::ReadFileTime()
     {
-        std::error_code error;
-        const fs::file_time_type time = fs::last_write_time(GetFile(), error);
-        return error ? fs::file_time_type::min() : time;
+        return GetLastWriteTime(GetFile()).value_or(fs::file_time_type::min());
     }
 }

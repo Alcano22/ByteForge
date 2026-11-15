@@ -2,6 +2,7 @@
 
 #include <Engine/Scripting/API/ScriptAPI.h>
 #include <Engine/Scripting/Visual/GraphSchema.h>
+#include <Engine/Core/StringUtils.h>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -22,16 +23,6 @@ namespace ByteForge
     {
         constexpr f32 PaletteWidth = 280.0f;
         constexpr f32 ListHeight   = 320.0f;
-
-        std::string ToLower(const std::string_view text)
-        {
-            std::string result(text);
-            std::ranges::transform(result, result.begin(), [](const u8 c)
-            {
-                return static_cast<char>(std::tolower(c));
-            });
-            return result;
-        }
 
         bool HasEvent(const ScriptGraph& graph, const GraphEvent event)
         {

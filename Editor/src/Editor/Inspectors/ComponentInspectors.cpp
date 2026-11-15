@@ -80,7 +80,7 @@ namespace ByteForge
             if (!EditorUI::AssetReferenceField(label, AssetType::PhysicsMaterial2D, handle, selection, noneText))
                 return false;
 
-            material = static_cast<u64>(handle) != 0 ? AssetManager::LoadPhysicsMaterial(handle) : nullptr;
+            material = handle.IsSet() ? AssetManager::LoadPhysicsMaterial(handle) : nullptr;
             return true;
         }
 
@@ -207,7 +207,7 @@ namespace ByteForge
             ImGui::ProgressBar(animator.GetNormalizedTime(), ImVec2(-FLT_MIN, 0.0f),
                                animator.IsPlaying() ? "Playing" : "Stopped");
 
-            if (static_cast<u64>(animator.Controller) == 0) return;
+            if (!animator.Controller.IsSet()) return;
 
             const Ref<AnimatorControllerAsset> controller = AssetManager::LoadAnimatorController(animator.Controller);
             for (u32 i = 0; i < controller->GetStateCount(); ++i)

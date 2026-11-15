@@ -111,7 +111,7 @@ namespace ByteForge
         m_Open = true;
         RequestFocus();
 
-        if (m_Asset && static_cast<u64>(*m_Asset) == static_cast<u64>(asset)) return;
+        if (m_Asset && *m_Asset == asset) return;
 
         if (m_Asset && m_Dirty)
         {
@@ -478,7 +478,7 @@ namespace ByteForge
 
         GetContext().Popups.Open("Slice Sprite Sheet", [this, settings, asset](Popup& popup) mutable
         {
-            if (!m_Asset || static_cast<u64>(*m_Asset) != static_cast<u64>(asset))
+            if (!m_Asset || *m_Asset != asset)
             {
                 popup.Close();
                 return;
@@ -506,7 +506,7 @@ namespace ByteForge
             ImGui::TextDisabled("Creates %zu frames", frames.size());
             ImGui::Spacing();
 
-            ImGui::BeginDisabled(static_cast<u64>(settings.Texture) == 0);
+            ImGui::BeginDisabled(!settings.Texture.IsSet());
             if (ImGui::Button("Append"))
             {
                 AddFrames(frames, false);

@@ -15,7 +15,7 @@ namespace ByteForge
 {
     void EntityEditTracker::Begin(const Entity entity, CommandHistory& history)
     {
-        if (m_Pending && static_cast<u64>(m_Pending->EntityId) != static_cast<u64>(entity.GetUUID()))
+        if (m_Pending && m_Pending->EntityId != entity.GetUUID())
             Flush(history);
 
         m_FrameStart = SceneSerializer::SerializeEntity(entity);

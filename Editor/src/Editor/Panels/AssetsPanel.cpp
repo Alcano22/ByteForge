@@ -28,14 +28,12 @@ namespace ByteForge
 {
     namespace
     {
-        bool IsMetaFile(const fs::path& path) { return path.extension() == ".meta"; }
-
         bool IsEmptyDirectory(const fs::path& path)
         {
             std::error_code ec;
             for (const auto& child : fs::directory_iterator(path, ec))
             {
-                if (!IsMetaFile(child.path()))
+                if (!AssetRegistry::IsMetaFile(child.path()))
                     return false;
             }
             return true;
@@ -291,7 +289,7 @@ namespace ByteForge
         for (const auto& item : fs::directory_iterator(assetRoot / m_CurrentDirectory, ec))
         {
             const fs::path name = item.path().filename();
-            if (IsMetaFile(name)) continue;
+            if (AssetRegistry::IsMetaFile(name)) continue;
 
             std::error_code itemError;
             const bool isDirectory = item.is_directory(itemError);

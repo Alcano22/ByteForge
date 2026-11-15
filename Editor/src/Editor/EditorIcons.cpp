@@ -2,6 +2,7 @@
 #include "Editor/EditorFonts.h"
 
 #include <Engine/Core/Log.h>
+#include <Engine/Core/StringUtils.h>
 
 #include <lunasvg.h>
 
@@ -175,10 +176,7 @@ namespace ByteForge
             { ".bfanimator", EditorIcon::FileAnimatorController }
         };
 
-        std::string extension = path.extension().string();
-        std::ranges::transform(extension, extension.begin(),
-                               [](const u8 c) { return static_cast<char>(std::tolower(c)); });
-
+        const std::string extension = ToLower(path.extension().string());
         const auto it = icons.find(extension);
         return it != icons.end() ? it->second : EditorIcon::FileGeneric;
     }

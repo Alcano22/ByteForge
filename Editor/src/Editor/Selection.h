@@ -69,7 +69,7 @@ namespace ByteForge
         [[nodiscard]] bool IsAsset(const UUID handle) const
         {
             const auto* selected = std::get_if<AssetSelection>(&m_Value);
-            return selected != nullptr && static_cast<u64>(selected->Handle) == static_cast<u64>(handle);
+            return selected != nullptr && selected->Handle == handle;
         }
 
         [[nodiscard]] bool IsLogEntry(const u64 id) const

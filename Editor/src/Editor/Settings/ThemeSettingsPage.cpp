@@ -3,6 +3,8 @@
 #include "Editor/Theme/EditorColors.h"
 #include "Editor/Theme/ThemeManager.h"
 
+#include <Engine/Core/StringUtils.h>
+
 #include <imgui.h>
 
 #include <cfloat>
@@ -14,18 +16,9 @@ namespace ByteForge
     namespace
     {
         constexpr const char* DeletePopupId = "Delete Theme";
+
         constexpr ImGuiColorEditFlags ColorFlags = ImGuiColorEditFlags_AlphaBar
                                                  | ImGuiColorEditFlags_AlphaPreviewHalf;
-
-        std::string Trimmed(const std::string_view text)
-        {
-            const usize first = text.find_first_not_of(" \t");
-            if (first == std::string_view::npos)
-                return {};
-
-            const usize last = text.find_last_not_of(" \t");
-            return std::string(text.substr(first, last - first + 1));
-        }
     }
 
     void ThemeSettingsPage::Draw(EditorContext& context)
@@ -105,7 +98,7 @@ namespace ByteForge
         ImGui::SetNextItemWidth(-(buttonWidth + style.ItemSpacing.x));
         ImGui::InputTextWithHint("##NewName", "Name of the copy", m_NewName.data(), m_NewName.size());
 
-        const std::string newName = Trimmed(m_NewName.data());
+        const std::string newName(Trim(m_NewName.data()));
         const char* error = newName.empty() ? nullptr : themes.GetNameError(newName);
 
         ImGui::SameLine();

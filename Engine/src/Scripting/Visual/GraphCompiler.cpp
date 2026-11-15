@@ -65,7 +65,7 @@ namespace ByteForge
             }
 
         private:
-            std::optional<std::string> FirstError() const
+            [[nodiscard]] std::optional<std::string> FirstError() const
             {
                 for (const GraphDiagnostic& diagnostic : ValidateGraph(m_Graph))
                 {
@@ -231,11 +231,10 @@ namespace ByteForge
 
             const NodeSignature& Signature(const UUID node)
             {
-                const auto key = static_cast<u64>(node);
-                if (const auto it = m_Signatures.find(key); it != m_Signatures.end())
+                if (const auto it = m_Signatures.find(node); it != m_Signatures.end())
                     return it->second;
 
-                return m_Signatures.emplace(key, DescribeNode(m_Graph, *m_Graph.FindNode(node))).first->second;
+                return m_Signatures.emplace(node, DescribeNode(m_Graph, *m_Graph.FindNode(node))).first->second;
             }
 
             const PinInfo& RequirePin(const UUID node, const std::string_view name, const PinDirection direction)
@@ -243,7 +242,7 @@ namespace ByteForge
                 return *FindPin(Signature(node), name, direction);
             }
 
-            const GraphLink* FindLinkFrom(const UUID node, const std::string_view pin) const
+            [[nodiscard]] const GraphLink* FindLinkFrom(const UUID node, const std::string_view pin) const
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
@@ -253,7 +252,7 @@ namespace ByteForge
                 return nullptr;
             }
 
-            const GraphLink* FindLinkTo(const UUID node, const std::string_view pin) const
+            [[nodiscard]] const GraphLink* FindLinkTo(const UUID node, const std::string_view pin) const
             {
                 for (const GraphLink& link : m_Graph.GetLinks())
                 {
@@ -265,17 +264,16 @@ namespace ByteForge
 
             u32 Label(const UUID node)
             {
-                const auto key = static_cast<u64>(node);
-                if (const auto it = m_Labels.find(key); it != m_Labels.end())
+                if (const auto it = m_Labels.find(node); it != m_Labels.end())
                     return it->second;
 
                 const auto index = static_cast<u32>(m_Program.Labels.size());
                 m_Program.Labels.push_back(Signature(node).Title);
-                m_Labels.emplace(key, index);
+                m_Labels.emplace(node, index);
                 return index;
             }
 
-            u32 Here() const { return static_cast<u32>(m_Program.Code.size()); }
+            [[nodiscard]] u32 Here() const { return static_cast<u32>(m_Program.Code.size()); }
 
             u32 Emit(const GraphOp op, const u32 a = 0, const u32 b = 0,
                           const u32 c = 0, const u32 d = 0)
@@ -294,11 +292,11 @@ namespace ByteForge
             const ScriptGraph& m_Graph;
             GraphProgram m_Program;
 
-            std::map<u64, NodeSignature> m_Signatures;
+            std::map<UUID, NodeSignature> m_Signatures;
             std::map<u64, u32> m_VariableSlots;
             std::map<std::pair<u64, std::string>, u32> m_OutputSlots;
             std::map<u64, u32> m_NodeCode;
-            std::map<u64, u32> m_Labels;
+            std::map<UUID, u32> m_Labels;
             u32 m_Label = 0;
         };
     }

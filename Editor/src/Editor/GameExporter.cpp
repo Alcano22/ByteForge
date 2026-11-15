@@ -423,8 +423,7 @@ namespace ByteForge
             return std::unexpected(std::format("{} (use File > Set as Startup Scene first)", settings.error()));
 
         AssetMetadata startScene;
-        if (static_cast<u64>(settings->StartScene) == 0 ||
-            !AssetRegistry::TryGetMetadata(settings->StartScene, startScene) ||
+        if (!settings->StartScene.IsSet() || !AssetRegistry::TryGetMetadata(settings->StartScene, startScene) ||
             startScene.Type != AssetType::Scene)
         {
             return std::unexpected("the project has no valid startup scene (File > Set as Startup Scene)");

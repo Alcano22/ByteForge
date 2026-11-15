@@ -3,6 +3,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Core/JobSystem.h>
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
@@ -72,8 +73,9 @@ namespace ByteForge
             const auto size = fs::file_size(path, error);
             MixValue(hash, error ? std::uintmax_t{ 0 } : size);
 
-            const auto time = fs::last_write_time(path, error);
-            MixValue(hash, error ? std::int64_t{ 0 } : static_cast<i64>(time.time_since_epoch().count()));
+            // CHANGED
+            const std::optional<fs::file_time_type> time = GetLastWriteTime(path);
+            MixValue(hash, time ? static_cast<i64>(time->time_since_epoch().count()) : i64{ 0 });
         }
 
         std::string ComputeFingerprint(const fs::path& root, const fs::path& scriptCore)

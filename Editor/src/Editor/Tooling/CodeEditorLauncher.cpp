@@ -4,12 +4,12 @@
 #include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/StringUtils.h>
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <format>
-#include <fstream>
 #include <string>
 
 namespace ByteForge
@@ -109,13 +109,6 @@ namespace ByteForge
 
             return arguments;
         }
-
-        void ReplaceAll(std::string& text, const std::string_view placeholder, const std::string_view value)
-        {
-            for (usize at = text.find(placeholder); at != std::string::npos;
-                 at = text.find(placeholder, at + value.size()))
-                text.replace(at, placeholder.size(), value);
-        }
     }
 
     std::span<const CodeEditorInfo> CodeEditorLauncher::GetKnownEditors() { return KnownEditors; }
@@ -161,19 +154,20 @@ namespace ByteForge
 
     void CodeEditorLauncher::Load()
     {
-        std::ifstream stream(GetSettingsFile());
-        if (!stream.is_open()) return;
+        const fs::path file = GetSettingsFile();
+        if (!GetLastWriteTime(file))
+            return;
 
-        const nlohmann::json json = nlohmann::json::parse(stream, nullptr, false);
-        if (json.is_discarded() || !json.is_object())
+        const Result<nlohmann::json> json = ReadJsonFile(file);
+        if (!json || !json->is_object())
         {
             APP_ERROR("Cannot read '.byteforge/tooling.json', using the default editor");
             return;
         }
 
-        m_Selected = json.value("editor", std::string());
-        m_CustomExecutable = json.value("customExecutable", std::string());
-        m_CustomArguments = json.value("customArguments", m_CustomArguments);
+        m_Selected = json->value("editor", std::string());
+        m_CustomExecutable = json->value("customExecutable", std::string());
+        m_CustomArguments = json->value("customArguments", m_CustomArguments);
     }
 
     void CodeEditorLauncher::Save() const

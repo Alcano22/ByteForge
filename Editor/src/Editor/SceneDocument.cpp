@@ -1,9 +1,11 @@
 #include "Editor/SceneDocument.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorPaths.h"
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
@@ -13,7 +15,6 @@
 #include <cstdint>
 #include <exception>
 #include <format>
-#include <fstream>
 #include <system_error>
 
 namespace ByteForge
@@ -24,17 +25,13 @@ namespace ByteForge
 
         fs::path GetStateFile()
         {
-            return fs::current_path() / ".byteforge" / "EditorState.json";
+            return GetStateDirectory() / "EditorState.json";
         }
 
         nlohmann::json ReadState()
         {
-            std::ifstream file(GetStateFile());
-            if (!file.is_open())
-                return nlohmann::json::object();
-
-            nlohmann::json state = nlohmann::json::parse(file, nullptr, false);
-            return state.is_object() ? state : nlohmann::json::object();
+            Result<nlohmann::json> state = ReadJsonFile(GetStateFile());
+            return state && state->is_object() ? std::move(*state) : nlohmann::json::object();
         }
 
         void WriteState(const nlohmann::json& state)
@@ -44,7 +41,8 @@ namespace ByteForge
             std::error_code error;
             fs::create_directories(file.parent_path(), error);
 
-            std::ofstream(file) << state.dump(4);
+            if (const auto written = WriteJsonFile(file, state); !written)
+                APP_ERROR("Cannot save the editor state: {}", written.error());
         }
     }
 

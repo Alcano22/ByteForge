@@ -165,7 +165,7 @@ namespace ByteForge
         for (const GraphDiagnostic& diagnostic : diagnostics)
         {
             if (diagnostic.Severity == GraphSeverity::Error)
-                m_Errors.try_emplace(static_cast<u64>(diagnostic.Node), diagnostic.Message);
+                m_Errors.try_emplace(diagnostic.Node, diagnostic.Message);
         }
 
         for (const GraphLink& link : graph.GetLinks())
@@ -248,7 +248,7 @@ namespace ByteForge
     void GraphNodeRenderer::DrawNode(const ScriptGraph& graph, const GraphNode& node)
     {
         const NodeSignature signature = DescribeNode(graph, node);
-        const auto error = m_Errors.find(static_cast<u64>(node.Id));
+        const auto error = m_Errors.find(node.Id);
         const bool failed = error != m_Errors.end();
 
         std::vector<PinView> inputs;
@@ -391,7 +391,7 @@ namespace ByteForge
         const NE::NodeId hovered = NE::GetHoveredNode();
         if (hovered.Get() == 0) return;
 
-        const auto it = m_Errors.find(static_cast<u64>(GraphIds::ToUUID(hovered)));
+        const auto it = m_Errors.find(GraphIds::ToUUID(hovered));
         if (it == m_Errors.end()) return;
 
         NE::Suspend();

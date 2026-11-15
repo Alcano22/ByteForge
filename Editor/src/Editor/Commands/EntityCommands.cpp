@@ -84,7 +84,7 @@ namespace ByteForge
     void SetParentCommand::Apply(const UUID parentId, const i32 index, const TransformComponent& local) const
     {
         const Entity entity = FindOrThrow(m_Scene, m_EntityId);
-        const Entity parent = static_cast<u64>(parentId) != 0 ? FindOrThrow(m_Scene, parentId) : Entity{};
+        const Entity parent = parentId.IsSet() ? FindOrThrow(m_Scene, parentId) : Entity{};
 
         entity.SetParent(parent, false, index);
         entity.GetComponent<TransformComponent>() = local;

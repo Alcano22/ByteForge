@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
 #include <optional>
 #include <system_error>
 
@@ -24,19 +23,6 @@ namespace ByteForge
         {
             return GetThemeDirectory() / (std::string(name) + ThemeExtension);
         }
-
-        std::optional<nlohmann::json> ReadJson(const fs::path& file)
-        {
-            std::ifstream stream(file);
-            if (!stream.is_open())
-                return std::nullopt;
-
-            nlohmann::json json = nlohmann::json::parse(stream, nullptr, false);
-            if (json.is_discarded())
-                return std::nullopt;
-
-            return json;
-        }
     }
 
     void ThemeManager::Init()
@@ -47,7 +33,7 @@ namespace ByteForge
         Reload();
 
         std::string wanted = DefaultThemeName;
-        if (const auto saved = ReadJson(GetActiveThemePath()); saved && saved->is_object())
+        if (const auto saved = ReadJsonFile(GetActiveThemePath()); saved && saved->is_object())
             wanted = saved->value("active", wanted);
 
         const Theme* theme = Find(wanted);
@@ -182,10 +168,10 @@ namespace ByteForge
         if (theme == nullptr)
             return false;
 
-        const auto json = ReadJson(theme->File);
+        const Result<nlohmann::json> json = ReadJsonFile(theme->File);
         if (!json)
         {
-            APP_ERROR("Cannot read theme file '{}'", theme->File.filename().generic_string());
+            APP_ERROR("Cannot read theme: {}", json.error());
             return false;
         }
 
@@ -249,10 +235,10 @@ namespace ByteForge
         {
             const std::string fileName = file.filename().generic_string();
 
-            const auto json = ReadJson(file);
+            const Result<nlohmann::json> json = ReadJsonFile(file);
             if (!json)
             {
-                APP_ERROR("Cannot read theme file '{}'", fileName);
+                APP_ERROR("Cannot read theme: {}", json.error());
                 continue;
             }
 

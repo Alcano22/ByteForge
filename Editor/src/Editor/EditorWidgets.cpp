@@ -320,7 +320,7 @@ namespace ByteForge::EditorUI
             ImGui::Separator();
 
             bool changed = false;
-            const bool hasAsset = static_cast<u64>(handle) != 0;
+            const bool hasAsset = handle.IsSet();
 
             ImGui::BeginChild("##results");
 
@@ -343,7 +343,7 @@ namespace ByteForge::EditorUI
 
                 ImGui::PushID(path.c_str());
 
-                const bool selected = static_cast<u64>(handle) == static_cast<u64>(metadata.Handle);
+                const bool selected = handle == metadata.Handle;
                 if ((ImGui::Selectable(AssetLabel(metadata).c_str(), selected) || pickedByEnter) && !selected)
                 {
                     handle = metadata.Handle;
@@ -433,7 +433,7 @@ namespace ByteForge::EditorUI
         bool changed = false;
         ImGui::PushID(label);
 
-        const bool hasAsset = static_cast<u64>(handle) != 0;
+        const bool hasAsset = handle.IsSet();
         AssetMetadata metadata;
         const bool known = hasAsset && AssetRegistry::TryGetMetadata(handle, metadata);
 

@@ -154,20 +154,19 @@ namespace ByteForge
 
             const NodeSignature* Find(const UUID id)
             {
-                const auto key = static_cast<u64>(id);
-                if (const auto it = m_Signatures.find(key); it != m_Signatures.end())
+                if (const auto it = m_Signatures.find(id); it != m_Signatures.end())
                     return &it->second;
 
                 const GraphNode* node = m_Graph.FindNode(id);
                 if (node == nullptr)
                     return nullptr;
 
-                return &m_Signatures.emplace(key, DescribeNode(m_Graph, *node)).first->second;
+                return &m_Signatures.emplace(id, DescribeNode(m_Graph, *node)).first->second;
             }
 
         private:
             const ScriptGraph& m_Graph;
-            std::map<u64, NodeSignature> m_Signatures;
+            std::unordered_map<UUID, NodeSignature> m_Signatures;
         };
 
         using DataEdges = std::map<u64, std::vector<u64>>; // producer -> consumers
