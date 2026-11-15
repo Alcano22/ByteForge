@@ -1,6 +1,10 @@
 #pragma once
 
+#include "Editor/Commands/CommandHistory.h"
+
 #include <Engine/Scene/UUID.h>
+
+#include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <optional>
@@ -27,7 +31,13 @@ namespace ByteForge
 
         bool SetAsStartupScene() const;
 
-        [[nodiscard]] bool HasFile() const { return m_Handle.has_value(); }
+        bool OpenPrefab(UUID prefab);
+        void ClosePrefab();
+        [[nodiscard]] bool IsEditingPrefab() const { return m_PrefabStage.has_value(); }
+        [[nodiscard]] std::optional<UUID> GetPrefab() const;
+        [[nodiscard]] std::string GetSceneName() const;
+
+        [[nodiscard]] bool HasFile() const { return IsEditingPrefab() || m_Handle.has_value(); }
         [[nodiscard]] bool IsDirty() const;
 
         [[nodiscard]] fs::path GetPath() const;
@@ -40,6 +50,8 @@ namespace ByteForge
     private:
         bool Write(const fs::path& absolutePath);
 
+        bool SavePrefab();
+
         void ResetEditorState() const;
         void RememberAsLast() const;
 
@@ -47,7 +59,16 @@ namespace ByteForge
         static constexpr const char* Extension = ".bfscene";
 
     private:
+        struct PrefabStage
+        {
+            UUID Prefab;
+            nlohmann::json SceneSnapshot;
+            CommandHistory SceneHistory;
+            bool Saved = false;
+        };
+
         EditorContext& m_Context;
         std::optional<UUID> m_Handle;
+        std::optional<PrefabStage> m_PrefabStage;
     };
 }

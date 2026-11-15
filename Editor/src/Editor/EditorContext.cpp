@@ -205,6 +205,12 @@ namespace ByteForge
         {
             if (ActiveScene == nullptr) return;
 
+            if (Document.GetPrefab() == handle)
+            {
+                APP_WARN("A prefab cannot contain itself");
+                return;
+            }
+
             const auto instance = Prefab::Instantiate(*ActiveScene, handle, parent, position);
             if (!instance)
             {

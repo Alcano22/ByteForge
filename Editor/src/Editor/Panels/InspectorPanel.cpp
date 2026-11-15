@@ -32,6 +32,8 @@ namespace ByteForge
     {
         constexpr const char* AddComponentPopupId = "##AddComponent";
 
+        constexpr const char* OpenLabel = "Open";
+
         constexpr const char* ComponentPayloadType = "ByteForge.Component";
 
         ScriptEntry* FindScript(const Entity entity, const u64 scriptId)
@@ -260,7 +262,7 @@ namespace ByteForge
 
         f32 buttonsWidth = EditorUI::ButtonWidth(UnpackLabel);
         if (exists)
-            buttonsWidth += EditorUI::ButtonWidth(SelectAssetLabel) + spacing;
+            buttonsWidth += EditorUI::ButtonWidth(OpenLabel) + EditorUI::ButtonWidth(SelectAssetLabel) + spacing * 2.0f;
         if (showSelectRoot)
             buttonsWidth += EditorUI::ButtonWidth(SelectRootLabel) + spacing;
 
@@ -294,6 +296,11 @@ namespace ByteForge
         {
             if (ImGui::Button(SelectAssetLabel))
                 context.SelectionContext.SelectAsset(prefab);
+            ImGui::SameLine();
+
+            if (ImGui::Button(OpenLabel))
+                context.Dialogs.RequestOpenPrefab(prefab);
+            ImGui::SetItemTooltip("Edit the prefab; its instances in this scene are updated when you go back");
             ImGui::SameLine();
         }
 

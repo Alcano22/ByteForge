@@ -42,6 +42,8 @@ namespace ByteForge
         Entity DuplicateEntity(Entity source);
         Entity CopySubtree(Entity source);
 
+        void RemapEntityReferences(Entity root, const std::unordered_map<UUID, UUID>& remap) const;
+
         [[nodiscard]] Entity FindEntityByUUID(UUID uuid) const;
         [[nodiscard]] Entity FindEntityByPickingId(u32 pickingId);
         [[nodiscard]] Entity GetPrimaryCamera();

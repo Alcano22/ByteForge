@@ -1,8 +1,10 @@
 #include "Editor/SceneDocument.h"
+#include "Editor/Commands/EntityCommands.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorPaths.h"
 
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Prefab.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/FileSystem.h>
@@ -16,6 +18,8 @@
 #include <exception>
 #include <format>
 #include <system_error>
+#include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -26,6 +30,12 @@ namespace ByteForge
         fs::path GetStateFile()
         {
             return GetStateDirectory() / "EditorState.json";
+        }
+
+        fs::path GetAssetPath(const UUID handle)
+        {
+            AssetMetadata metadata;
+            return AssetRegistry::TryGetMetadata(handle, metadata) ? metadata.Path : fs::path{};
         }
 
         nlohmann::json ReadState()
@@ -102,6 +112,9 @@ namespace ByteForge
 
     bool SceneDocument::Save()
     {
+        if (m_PrefabStage)
+            return SavePrefab();
+
         if (!m_Handle)
             return false;
 
@@ -110,6 +123,12 @@ namespace ByteForge
 
     bool SceneDocument::SaveAs(const fs::path& relativePath)
     {
+        if (m_PrefabStage)
+        {
+            APP_WARN("Close the prefab before saving the scene under a new name");
+            return false;
+        }
+
         const fs::path absolutePath = AssetRegistry::GetAssetRoot() / relativePath;
 
         std::error_code error;
@@ -121,6 +140,81 @@ namespace ByteForge
         m_Handle = AssetRegistry::Import(relativePath);
         RememberAsLast();
         return true;
+    }
+
+    bool SceneDocument::OpenPrefab(const UUID prefab)
+    {
+        if (!m_Context.IsEditing() || m_Context.ActiveScene == nullptr)
+        {
+            APP_WARN("Stop the play session to edit a prefab");
+            return false;
+        }
+
+        if (m_PrefabStage && m_PrefabStage->Prefab == prefab)
+            return true;
+
+        ClosePrefab();
+
+        Scene& scene = *m_Context.ActiveScene;
+        nlohmann::json snapshot = SceneSerializer::Serialize(scene);
+
+        scene.Clear();
+        const Result<Entity> root = Prefab::LoadForEditing(scene, prefab);
+        if (!root)
+        {
+            SceneSerializer::Deserialize(scene, snapshot);
+            APP_ERROR("Cannot open prefab: {}", root.error());
+            return false;
+        }
+
+        m_PrefabStage = PrefabStage{
+            .Prefab        = prefab,
+            .SceneSnapshot = std::move(snapshot),
+            .SceneHistory  = std::exchange(m_Context.History, CommandHistory{})
+        };
+
+        m_Context.SelectionContext.ClearEntity();
+        m_Context.SelectionContext.Select(*root);
+
+        APP_INFO("Editing prefab '{}'", GetAssetPath(prefab).generic_string());
+        return true;
+    }
+
+    void SceneDocument::ClosePrefab()
+    {
+        if (!m_PrefabStage) return;
+
+        PrefabStage stage = std::move(*m_PrefabStage);
+        m_PrefabStage.reset();
+
+        Scene& scene = *m_Context.ActiveScene;
+        SceneSerializer::Deserialize(scene, stage.SceneSnapshot);
+
+        m_Context.History = std::move(stage.SceneHistory);
+        m_Context.SelectionContext.ClearEntity();
+
+        if (!stage.Saved) return;
+
+        const usize updated = Prefab::SyncInstances(scene, stage.Prefab);
+        if (updated == 0) return;
+
+        const std::string name = GetAssetPath(stage.Prefab).stem().string();
+        m_Context.History.Record(MakeScope<SceneSnapshotCommand>(scene, std::format("Update '{}' instances", name),
+                                                                 std::move(stage.SceneSnapshot),
+                                                                 SceneSerializer::Serialize(scene)));
+
+        APP_INFO("Updated {} instance(s) of '{}'", updated, name);
+    }
+
+    std::optional<UUID> SceneDocument::GetPrefab() const
+    {
+        return m_PrefabStage ? std::optional(m_PrefabStage->Prefab) : std::nullopt;
+    }
+
+    std::string SceneDocument::GetSceneName() const
+    {
+        const fs::path path = m_Handle ? GetAssetPath(*m_Handle) : fs::path{};
+        return path.empty() ? "Untitled" : path.stem().string();
     }
 
     bool SceneDocument::SetAsStartupScene() const
@@ -155,7 +249,7 @@ namespace ByteForge
             return false;
         }
 
-        APP_INFO("'{}' is now the startup scene", GetPath().generic_string());
+        APP_INFO("'{}' is now the startup scene", GetAssetPath(*m_Handle).generic_string());
         return true;
     }
 
@@ -163,10 +257,10 @@ namespace ByteForge
 
     fs::path SceneDocument::GetPath() const
     {
-        AssetMetadata metadata;
-        if (!m_Handle || !AssetRegistry::TryGetMetadata(*m_Handle, metadata))
-            return {};
-        return metadata.Path;
+        if (m_PrefabStage)
+            return GetAssetPath(m_PrefabStage->Prefab);
+
+        return m_Handle ? GetAssetPath(*m_Handle) : fs::path{};
     }
 
     std::string SceneDocument::GetName() const
@@ -177,7 +271,9 @@ namespace ByteForge
 
     void SceneDocument::Update() const
     {
-        Application::Get().GetWindow().SetTitle(std::format("{} - {}{}", WindowTitle, GetName(), IsDirty() ? "*" : ""));
+        Application::Get().GetWindow().SetTitle(std::format("{} - {}{}{}", WindowTitle, GetName(),
+                                                            IsEditingPrefab() ? " (Prefab)" : "",
+                                                            IsDirty() ? "*" : ""));
     }
 
     fs::path SceneDocument::ToScenePath(const std::string_view name)
@@ -207,6 +303,29 @@ namespace ByteForge
 
         m_Context.History.MarkClean();
         APP_INFO("Scene saved to '{}'", absolutePath.generic_string());
+        return true;
+    }
+
+    bool SceneDocument::SavePrefab()
+    {
+        const std::vector<Entity> roots = m_Context.ActiveScene->GetRootEntities();
+        if (roots.size() != 1)
+        {
+            APP_ERROR("A prefab needs exactly one root entity (found {}); move the others below the root",
+                      roots.size());
+            return false;
+        }
+
+        if (const auto saved = Prefab::Save(m_PrefabStage->Prefab, roots.front()); !saved)
+        {
+            APP_ERROR("Could not save prefab: {}", saved.error());
+            return false;
+        }
+
+        m_PrefabStage->Saved = true;
+        m_Context.History.MarkClean();
+
+        APP_INFO("Prefab saved to '{}'", GetPath().generic_string());
         return true;
     }
 

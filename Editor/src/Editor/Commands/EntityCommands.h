@@ -45,6 +45,22 @@ namespace ByteForge
         nlohmann::json m_After;
     };
 
+    class SceneSnapshotCommand final : public EditorCommand
+    {
+    public:
+        SceneSnapshotCommand(Scene& scene, std::string name, nlohmann::json before, nlohmann::json after);
+
+        void Execute() override;
+        void Undo() override;
+        [[nodiscard]] std::string GetName() const override { return m_Name; }
+
+    private:
+        Scene& m_Scene;
+        std::string m_Name;
+        nlohmann::json m_Before;
+        nlohmann::json m_After;
+    };
+
     class CreateEntityCommand final : public EditorCommand
     {
     public:

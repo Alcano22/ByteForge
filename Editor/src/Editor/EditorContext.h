@@ -107,7 +107,11 @@ namespace ByteForge
         [[nodiscard]] bool IsPlaying() const { return State == SceneState::Play; }
         [[nodiscard]] bool IsPaused() const { return State == SceneState::Pause; }
         [[nodiscard]] bool IsEditing() const { return State == SceneState::Edit; }
-        [[nodiscard]] bool CanPlay() const { return IsEditing() && ActiveScene != nullptr && !Scripts.IsBuilding(); }
+
+        [[nodiscard]] bool CanPlay() const
+        {
+            return IsEditing() && ActiveScene != nullptr && !Scripts.IsBuilding() && !Document.IsEditingPrefab();
+        }
 
         [[nodiscard]] bool ConsumeStepRequest()
         {
@@ -140,6 +144,8 @@ namespace ByteForge
                 fn(*panel);
         }
 
+        void Defer(std::function<void()> action);
+
     private:
         template<typename T>
         [[nodiscard]] T* TryGet() const
@@ -153,7 +159,6 @@ namespace ByteForge
             return nullptr;
         }
 
-        void Defer(std::function<void()> action);
         void FlushDeferred();
 
         [[nodiscard]] std::string MakeUniqueName(const std::string& name) const;

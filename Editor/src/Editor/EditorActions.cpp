@@ -8,14 +8,27 @@ namespace ByteForge
 {
     namespace
     {
-        bool IsEditingScene(const EditorContext& context)
+        bool IsEditingDocument(const EditorContext& context)
         {
             return context.IsEditing() && context.ActiveScene != nullptr;
+        }
+
+        bool IsEditingScene(const EditorContext& context)
+        {
+            return IsEditingDocument(context) && !context.Document.IsEditingPrefab();
         }
 
         const char* OnlyWhileEditing(const EditorContext& context)
         {
             return context.IsEditing() ? nullptr : "Stop the play session first";
+        }
+
+        const char* OnlyWhileEditingScene(const EditorContext& context)
+        {
+            if (const char* reason = OnlyWhileEditing(context))
+                return reason;
+
+            return context.Document.IsEditingPrefab() ? "Close the prefab first" : nullptr;
         }
     }
 
@@ -76,7 +89,7 @@ namespace ByteForge
             .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_N,
             .Execute        = [](EditorContext& context) { context.Dialogs.RequestNew(); },
             .CanExecute     = IsEditingScene,
-            .DisabledReason = OnlyWhileEditing
+            .DisabledReason = OnlyWhileEditingScene
         };
 
         const EditorAction OpenScene{
@@ -84,14 +97,18 @@ namespace ByteForge
             .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_O,
             .Execute        = [](EditorContext& context) { context.Dialogs.RequestOpenFromDisk(); },
             .CanExecute     = IsEditingScene,
-            .DisabledReason = OnlyWhileEditing
+            .DisabledReason = OnlyWhileEditingScene
         };
 
         const EditorAction SaveScene{
             .Name           = "Save Scene",
             .Shortcut       = ImGuiMod_Ctrl | ImGuiKey_S,
             .Execute        = [](EditorContext& context) { context.Dialogs.RequestSave(); },
-            .CanExecute     = IsEditingScene,
+            .CanExecute     = IsEditingDocument,
+            .DynamicLabel   = [](const EditorContext& context)
+            {
+                return std::string(context.Document.IsEditingPrefab() ? "Save Prefab" : "Save Scene");
+            },
             .DisabledReason = OnlyWhileEditing
         };
 
@@ -100,7 +117,7 @@ namespace ByteForge
             .Shortcut       = ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
             .Execute        = [](EditorContext& context) { context.Dialogs.RequestSaveAs(); },
             .CanExecute     = IsEditingScene,
-            .DisabledReason = OnlyWhileEditing
+            .DisabledReason = OnlyWhileEditingScene
         };
 
         const EditorAction Undo{
@@ -142,6 +159,9 @@ namespace ByteForge
             .DynamicLabel   = [](const EditorContext& context) { return std::string(context.IsEditing() ? "Play" : "Stop"); },
             .DisabledReason = [](const EditorContext& context) -> const char*
             {
+                if (context.Document.IsEditingPrefab())
+                    return "Close the prefab to play the scene";
+
                 return context.Scripts.IsBuilding() ? "Waiting for scripts to compile" : nullptr;
             }
         };

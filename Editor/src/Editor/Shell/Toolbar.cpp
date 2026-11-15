@@ -40,11 +40,31 @@ namespace ByteForge
             ImGui::ProgressBar(-1.0f * static_cast<f32>(ImGui::GetTime()),
                                ImVec2(BuildStatusWidth, ImGui::GetFrameHeight()), overlay.c_str());
         }
+
+        void DrawPrefabBreadcrumb(EditorContext& context)
+        {
+            if (!context.Document.IsEditingPrefab()) return;
+
+            const std::string back = std::format("< {}", context.Document.GetSceneName());
+            if (ImGui::Button(back.c_str()))
+                context.Dialogs.RequestClosePrefab();
+            ImGui::SetItemTooltip("Back to the scene (its instances of this prefab are updated)");
+
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            {
+                const EditorUI::ScopedStyleColor color(ImGuiCol_Text, EditorColors::Get(EditorColor::PrefabInstance));
+                ImGui::Text("Prefab: %s%s", context.Document.GetName().c_str(), context.Document.IsDirty() ? "*" : "");
+            }
+
+            ImGui::SameLine();
+        }
     }
 
     void DrawToolbar(EditorContext& context)
     {
         ImGui::Separator();
+        DrawPrefabBreadcrumb(context);
 
         const ImGuiStyle& style = ImGui::GetStyle();
         const f32 buttonWidth = ImGui::GetTextLineHeight() + style.FramePadding.x * 2.0f;

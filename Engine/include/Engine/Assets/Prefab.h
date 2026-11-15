@@ -20,8 +20,14 @@ namespace ByteForge
     public:
         [[nodiscard]] static Result<UUID> Create(Entity root, const fs::path& relativePath);
 
+        [[nodiscard]] static Result<void> Save(UUID handle, Entity root);
+
         [[nodiscard]] static Result<Entity> Instantiate(Scene& scene, UUID handle, Entity parent = {},
                                                         std::optional<glm::vec2> position = std::nullopt);
+
+        [[nodiscard]] static Result<Entity> LoadForEditing(Scene& scene, UUID handle);
+
+        static usize SyncInstances(Scene& scene, UUID handle);
 
         static void Link(Entity root, UUID handle);
         static void Unlink(Entity entity);

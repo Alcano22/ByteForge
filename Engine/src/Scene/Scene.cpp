@@ -28,7 +28,7 @@ namespace ByteForge
 {
     namespace
     {
-        void RemapEntityReferences(const Scene& scene, const Entity root, const std::unordered_map<UUID, UUID>& remap)
+        void RemapSubtreeReferences(const Scene& scene, const Entity root, const std::unordered_map<UUID, UUID>& remap)
         {
             if (auto* component = root.TryGetComponent<ScriptComponent>())
             {
@@ -46,7 +46,7 @@ namespace ByteForge
             }
 
             for (const Entity child : scene.GetChildren(root))
-                RemapEntityReferences(scene, child, remap);
+                RemapSubtreeReferences(scene, child, remap);
         }
 
         struct SpriteDrawItem
@@ -190,8 +190,13 @@ namespace ByteForge
         std::unordered_map<UUID, UUID> remap;
         const Entity copy = CopyEntityTree(source, remap);
 
-        RemapEntityReferences(*this, copy, remap);
+        RemapEntityReferences(copy, remap);
         return copy;
+    }
+
+    void Scene::RemapEntityReferences(const Entity root, const std::unordered_map<UUID, UUID>& remap) const
+    {
+        RemapSubtreeReferences(*this, root, remap);
     }
 
     Entity Scene::CopyEntityTree(const Entity source, std::unordered_map<UUID, UUID>& remap)

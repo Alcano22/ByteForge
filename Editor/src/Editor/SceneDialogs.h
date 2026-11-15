@@ -19,6 +19,9 @@ namespace ByteForge
         void RequestOpen(UUID scene);
         void RequestOpenFromDisk();
 
+        void RequestOpenPrefab(UUID prefab);
+        void RequestClosePrefab();
+
         bool RequestSave();
         bool RequestSaveAs();
 

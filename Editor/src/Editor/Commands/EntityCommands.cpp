@@ -65,6 +65,13 @@ namespace ByteForge
     void ModifyEntitiesCommand::Execute() { ApplyEntities(m_Scene, m_After); }
     void ModifyEntitiesCommand::Undo() { ApplyEntities(m_Scene, m_Before); }
 
+    SceneSnapshotCommand::SceneSnapshotCommand(Scene& scene, std::string name,
+                                               nlohmann::json before, nlohmann::json after)
+        : m_Scene(scene), m_Name(std::move(name)), m_Before(std::move(before)), m_After(std::move(after)) {}
+
+    void SceneSnapshotCommand::Execute() { SceneSerializer::Deserialize(m_Scene, m_After); }
+    void SceneSnapshotCommand::Undo() { SceneSerializer::Deserialize(m_Scene, m_Before); }
+
     CreateEntityCommand::CreateEntityCommand(Scene& scene, std::string name, nlohmann::json subtree)
         : m_Scene(scene), m_Name(std::move(name)), m_Subtree(std::move(subtree)) {}
 

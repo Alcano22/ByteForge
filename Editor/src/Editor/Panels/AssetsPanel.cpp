@@ -746,6 +746,8 @@ namespace ByteForge
             GetContext().Open<AnimationClipPanel>().OpenClip(*entry.Handle);
         else if (entry.Type == AssetType::Script)
             GetContext().CodeEditor.OpenFile(AssetRegistry::GetAssetRoot() / entry.Path);
+        else if (entry.Type == AssetType::Prefab && entry.Handle)
+            GetContext().Dialogs.RequestOpenPrefab(*entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)

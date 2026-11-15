@@ -14,6 +14,8 @@
 #include <fstream>
 #include <system_error>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -60,31 +62,61 @@ namespace ByteForge
                 UnlinkSubtree(child, handle, false);
         }
 
+        nlohmann::json MakePrefabData(const Entity root)
+        {
+            nlohmann::json entities = SceneSerializer::SerializeSubtree(root);
+
+            for (nlohmann::json& entity : entities)
+                entity.erase(InstanceKey());
+
+            nlohmann::json& rootJson = entities.at(0);
+            rootJson.erase("parent");
+
+            const TransformComponent world = root.GetWorldTransform();
+            rootJson["transform"] = {
+                { "position", ToJson(world.Position) },
+                { "rotation", world.Rotation         },
+                { "scale",    ToJson(world.Scale)    }
+            };
+
+            return { { "version", FormatVersion }, { "entities", std::move(entities) } };
+        }
+
+        Result<nlohmann::json> ReadEntities(const UUID handle, std::string& name)
+        {
+            AssetMetadata metadata;
+            if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Prefab)
+                return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
+
+            name = metadata.Path.generic_string();
+
+            Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return std::unexpected(data.error());
+
+            if (!data->is_object() || !data->contains("entities") ||
+                !data->at("entities").is_array() || data->at("entities").empty())
+            {
+                return std::unexpected(std::format("'{}' is not a valid prefab", name));
+            }
+
+            return std::move(data->at("entities"));
+        }
+
         Result<const Prototype*> LoadPrototype(const UUID handle)
         {
             if (const auto it = s_Cache.find(handle); it != s_Cache.end())
                 return &it->second;
 
-            AssetMetadata metadata;
-            if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Prefab)
-                return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
-
-            const std::string name = metadata.Path.generic_string();
-
-            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
-            if (!data)
-                return std::unexpected(data.error());
-
-            if (!data->is_object() || !data->contains("entities") || !data->at("entities").is_array() ||
-                data->at("entities").empty())
-            {
-                return std::unexpected(std::format("'{}' is not a valid prefab", name));
-            }
+            std::string name;
+            const Result<nlohmann::json> entities = ReadEntities(handle, name);
+            if (!entities)
+                return std::unexpected(entities.error());
 
             Prototype prototype{ .Entities = MakeScope<Scene>() };
             try
             {
-                prototype.Root = SceneSerializer::DeserializeSubtree(*prototype.Entities, data->at("entities"));
+                prototype.Root = SceneSerializer::DeserializeSubtree(*prototype.Entities, *entities);
             } catch (const std::exception& e)
             {
                 return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
@@ -93,6 +125,76 @@ namespace ByteForge
             LinkSubtree(prototype.Root, handle, true);
 
             return &s_Cache.insert_or_assign(handle, std::move(prototype)).first->second;
+        }
+
+        void CollectMembers(const Entity entity, const UUID handle, const bool first,
+                            std::unordered_map<UUID, Entity>& members)
+        {
+            const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+            if (link == nullptr || link->Prefab != handle || (!first && link->Root)) return;
+
+            members.emplace(link->Source, entity);
+
+            for (const Entity child : entity.GetChildren())
+                CollectMembers(child, handle, false, members);
+        }
+
+        struct SyncPair
+        {
+            Entity Source;
+            Entity Target;
+            i32 SiblingIndex = 0;
+        };
+
+        void PairEntities(Scene& scene, const Entity source, const i32 siblingIndex,
+                          const std::unordered_map<UUID, Entity>& members,
+                          std::unordered_map<UUID, UUID>& remap, std::vector<SyncPair>& pairs)
+        {
+            const auto existing = members.find(source.GetUUID());
+            const Entity target = existing != members.end() ? existing->second : scene.CreateEntity(source.GetTag());
+
+            remap.emplace(source.GetUUID(), target.GetUUID());
+            pairs.push_back({ .Source = source, .Target = target, .SiblingIndex = siblingIndex });
+
+            i32 index = 0;
+            for (const Entity child : source.GetChildren())
+                PairEntities(scene, child, index++, members, remap, pairs);
+        }
+
+        void SyncInstance(Scene& scene, const Entity instanceRoot, const Prototype& prototype, const UUID handle)
+        {
+            std::unordered_map<UUID, Entity> members;
+            CollectMembers(instanceRoot, handle, true, members);
+
+            const TransformComponent rootTransform = instanceRoot.GetComponent<TransformComponent>();
+            const std::string rootName = instanceRoot.GetTag();
+
+            members.insert_or_assign(prototype.Root.GetUUID(), instanceRoot);
+
+            std::unordered_map<UUID, UUID> remap;
+            std::vector<SyncPair> pairs;
+            PairEntities(scene, prototype.Root, 0, members, remap, pairs);
+
+            for (const SyncPair& pair : pairs)
+            {
+                SceneSerializer::ApplyEntity(pair.Target, SceneSerializer::SerializeEntity(pair.Source));
+
+                if (pair.Source == prototype.Root) continue;
+
+                const Entity parent = scene.FindEntityByUUID(remap.at(pair.Source.GetParent().GetUUID()));
+                pair.Target.SetParent(parent, false, pair.SiblingIndex);
+            }
+
+            instanceRoot.GetComponent<TransformComponent>() = rootTransform;
+            instanceRoot.GetComponent<TagComponent>().Tag = rootName;
+
+            for (const auto& [source, entity] : members)
+            {
+                if (!remap.contains(source) && entity != instanceRoot && entity.IsValid())
+                    scene.DestroyEntity(entity);
+            }
+
+            scene.RemapEntityReferences(instanceRoot, remap);
         }
     }
 
@@ -107,26 +209,24 @@ namespace ByteForge
         if (fs::exists(path, error))
             return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
 
-        nlohmann::json entities = SceneSerializer::SerializeSubtree(root);
-
-        for (nlohmann::json& entity : entities)
-            entity.erase(InstanceKey());
-
-        nlohmann::json& rootJson = entities.at(0);
-        rootJson.erase("parent");
-
-        const TransformComponent world = root.GetWorldTransform();
-        rootJson["transform"] = {
-            { "position", ToJson(world.Position) },
-            { "rotation", world.Rotation         },
-            { "scale",    ToJson(world.Scale)    }
-        };
-
-        const nlohmann::json data{ { "version", FormatVersion }, { "entities", std::move(entities) } };
-        if (const auto written = WriteJsonFile(path, data); !written)
+        if (const auto written = WriteJsonFile(path, MakePrefabData(root)); !written)
             return std::unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
+    }
+
+    Result<void> Prefab::Save(const UUID handle, const Entity root)
+    {
+        if (!root.IsValid())
+            return std::unexpected("the entity is not valid");
+        if (!Exists(handle))
+            return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
+
+        if (const auto written = WriteJsonFile(AssetRegistry::Resolve(handle), MakePrefabData(root)); !written)
+            return std::unexpected(written.error());
+
+        Invalidate(handle);
+        return {};
     }
 
     Result<Entity> Prefab::Instantiate(Scene& scene, const UUID handle, const Entity parent,
@@ -150,6 +250,41 @@ namespace ByteForge
             root.SetParent(parent, true);
 
         return root;
+    }
+
+    Result<Entity> Prefab::LoadForEditing(Scene& scene, const UUID handle)
+    {
+        std::string name;
+        const Result<nlohmann::json> entities = ReadEntities(handle, name);
+        if (!entities)
+            return std::unexpected(entities.error());
+
+        try
+        {
+            return SceneSerializer::DeserializeSubtree(scene, *entities);
+        } catch (const std::exception& e)
+        {
+            return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
+        }
+    }
+
+    usize Prefab::SyncInstances(Scene& scene, const UUID handle)
+    {
+        const Result<const Prototype*> prototype = LoadPrototype(handle);
+        if (!prototype)
+            return 0;
+
+        std::vector<Entity> roots;
+        scene.Each<PrefabInstanceComponent>([&](const Entity entity, const PrefabInstanceComponent& link)
+        {
+            if (link.Prefab == handle && link.Root)
+                roots.push_back(entity);
+        });
+
+        for (const Entity root : roots)
+            SyncInstance(scene, root, **prototype, handle);
+
+        return roots.size();
     }
 
     void Prefab::Link(const Entity root, const UUID handle)

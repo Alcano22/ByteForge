@@ -35,14 +35,36 @@ namespace ByteForge
 
     void SceneDialogs::RequestNew()
     {
-        if (EnsureEditing("create a scene"))
-            Guard([this] { m_Context.Document.New(); });
+        if (!EnsureEditing("create a scene")) return;
+
+        if (m_Context.Document.IsEditingPrefab())
+        {
+            Guard([this]
+            {
+                m_Context.Document.ClosePrefab();
+                RequestNew();
+            });
+            return;
+        }
+
+        Guard([this] { m_Context.Document.New(); });
     }
 
     void SceneDialogs::RequestOpen(const UUID scene)
     {
-        if (EnsureEditing("open a scene"))
-            Guard([this, scene] { m_Context.Document.Open(scene); });
+        if (!EnsureEditing("open a scene")) return;
+
+        if (m_Context.Document.IsEditingPrefab())
+        {
+            Guard([this, scene]
+            {
+                m_Context.Document.ClosePrefab();
+                RequestOpen(scene);
+            });
+            return;
+        }
+
+        Guard([this, scene] { m_Context.Document.Open(scene); });
     }
 
     void SceneDialogs::RequestOpenFromDisk()
@@ -62,6 +84,29 @@ namespace ByteForge
         RequestOpen(AssetRegistry::Import(*relative));
     }
 
+    void SceneDialogs::RequestOpenPrefab(const UUID prefab)
+    {
+        if (!EnsureEditing("edit a prefab")) return;
+
+        const std::optional<UUID> current = m_Context.Document.GetPrefab();
+        if (current == prefab) return;
+
+        m_Context.Defer([this, prefab, switching = current.has_value()]
+        {
+            if (switching)
+                Guard([this, prefab] { m_Context.Document.OpenPrefab(prefab); });
+            else
+                m_Context.Document.OpenPrefab(prefab);
+        });
+    }
+
+    void SceneDialogs::RequestClosePrefab()
+    {
+        if (!m_Context.Document.IsEditingPrefab()) return;
+
+        m_Context.Defer([this] { Guard([this] { m_Context.Document.ClosePrefab(); }); });
+    }
+
     bool SceneDialogs::RequestSave()
     {
         if (!EnsureEditing("save"))
@@ -74,6 +119,12 @@ namespace ByteForge
     {
         if (!EnsureEditing("save"))
             return false;
+
+        if (m_Context.Document.IsEditingPrefab())
+        {
+            APP_WARN("Close the prefab before saving the scene under a new name");
+            return false;
+        }
 
         const std::string defaultName = m_Context.Document.GetName() + SceneDocument::Extension;
         const std::optional<fs::path> chosen =
@@ -93,6 +144,17 @@ namespace ByteForge
 
     bool SceneDialogs::RequestQuit()
     {
+        if (m_Context.Document.IsEditingPrefab())
+        {
+            Guard([this]
+            {
+                m_Context.Document.ClosePrefab();
+                if (!RequestQuit())
+                    Application::Get().Close();
+            });
+            return true;
+        }
+
         if (!m_Context.Document.IsDirty())
             return false;
 
