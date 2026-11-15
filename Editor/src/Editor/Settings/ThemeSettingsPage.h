@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Editor/EditorPanel.h"
+#include "Editor/Settings/SettingsPage.h"
 
 #include <imgui.h>
 
@@ -11,14 +11,13 @@ namespace ByteForge
 {
     class ThemeManager;
 
-    class ThemeEditorPanel : public EditorPanel
+    class ThemeSettingsPage final : public SettingsPage
     {
     public:
-        static constexpr const char* Name = "Theme Editor";
+        [[nodiscard]] const char* GetName() const override { return "Theme"; }
+        [[nodiscard]] SettingsGroup GetGroup() const override { return SettingsGroup::Editor; }
 
-        explicit ThemeEditorPanel(EditorContext& context);
-
-        void OnImGuiRender() override;
+        void Draw(EditorContext& context) override;
 
     private:
         void DrawThemeSelector(ThemeManager& themes);

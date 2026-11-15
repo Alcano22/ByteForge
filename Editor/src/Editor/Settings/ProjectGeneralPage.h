@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Editor/EditorPanel.h"
+#include "Editor/Settings/SettingsPage.h"
 
+#include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
 
 #include <array>
@@ -10,14 +11,14 @@
 
 namespace ByteForge
 {
-    class ProjectSettingsPanel : public EditorPanel
+    class ProjectGeneralPage final : public SettingsPage
     {
     public:
-        static constexpr const char* Name = "Project Settings";
+        [[nodiscard]] const char* GetName() const override { return "General"; }
+        [[nodiscard]] SettingsGroup GetGroup() const override { return SettingsGroup::Project; }
+        [[nodiscard]] bool HasUnsavedChanges() const override { return m_Dirty; }
 
-        explicit ProjectSettingsPanel(EditorContext& context);
-
-        void OnImGuiRender() override;
+        void Draw(EditorContext& context) override;
 
     private:
         void Reload();

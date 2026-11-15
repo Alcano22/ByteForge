@@ -1,4 +1,4 @@
-#include "Editor/Panels/ProjectSettingsPanel.h"
+#include "Editor/Settings/ProjectGeneralPage.h"
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 
@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <format>
 #include <string_view>
 #include <system_error>
 
@@ -36,29 +37,10 @@ namespace ByteForge
         }
     }
 
-    ProjectSettingsPanel::ProjectSettingsPanel(EditorContext& context)
-        : EditorPanel(context, Name)
+    void ProjectGeneralPage::Draw(EditorContext& context)
     {
-        m_Open = false;
-    }
-
-    void ProjectSettingsPanel::OnImGuiRender()
-    {
-        if (!m_Open) return;
-
         if (!m_Dirty && (!m_Loaded || ReadFileTime() != m_FileTime))
             Reload();
-
-        if (ConsumeFocusRequest())
-            ImGui::SetNextWindowFocus();
-
-        ImGui::SetNextWindowSize(ImVec2(460.0f, 0.0f), ImGuiCond_FirstUseEver);
-
-        if (!ImGui::Begin(GetName().c_str(), &m_Open))
-        {
-            ImGui::End();
-            return;
-        }
 
         if (!m_Error.empty())
         {
@@ -81,7 +63,7 @@ namespace ByteForge
         ImGui::SetItemTooltip("Initial size of the game window");
 
         changed |= EditorUI::AssetReferenceField("Startup Scene", AssetType::Scene, m_StartScene,
-                                                 GetContext().SelectionContext);
+                                                 context.SelectionContext);
 
         if (changed)
             m_Dirty = true;
@@ -114,11 +96,9 @@ namespace ByteForge
             ImGui::SameLine();
             ImGui::TextDisabled("Unsaved changes");
         }
-
-        ImGui::End();
     }
 
-    void ProjectSettingsPanel::Reload()
+    void ProjectGeneralPage::Reload()
     {
         m_Error.clear();
 
@@ -149,7 +129,7 @@ namespace ByteForge
         m_Dirty = false;
     }
 
-    void ProjectSettingsPanel::Apply()
+    void ProjectGeneralPage::Apply()
     {
         ProjectSettings settings;
         settings.Name = Trimmed(m_Name.data());
@@ -174,9 +154,9 @@ namespace ByteForge
         m_Dirty = false;
     }
 
-    fs::path ProjectSettingsPanel::GetFile() { return fs::current_path() / ProjectSettings::FileName; }
+    fs::path ProjectGeneralPage::GetFile() { return fs::current_path() / ProjectSettings::FileName; }
 
-    fs::file_time_type ProjectSettingsPanel::ReadFileTime()
+    fs::file_time_type ProjectGeneralPage::ReadFileTime()
     {
         std::error_code error;
         const fs::file_time_type time = fs::last_write_time(GetFile(), error);

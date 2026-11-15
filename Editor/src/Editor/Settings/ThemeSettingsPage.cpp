@@ -1,5 +1,7 @@
-#include "Editor/Panels/ThemeEditorPanel.h"
+#include "Editor/Settings/ThemeSettingsPage.h"
 #include "Editor/EditorContext.h"
+#include "Editor/Theme/EditorColors.h"
+#include "Editor/Theme/ThemeManager.h"
 
 #include <imgui.h>
 
@@ -26,37 +28,18 @@ namespace ByteForge
         }
     }
 
-    ThemeEditorPanel::ThemeEditorPanel(EditorContext& context)
-        : EditorPanel(context, Name)
+    void ThemeSettingsPage::Draw(EditorContext& context)
     {
-        m_Open = false;
-    }
-
-    void ThemeEditorPanel::OnImGuiRender()
-    {
-        if (ConsumeFocusRequest())
-            ImGui::SetNextWindowFocus();
-
-        ImGui::SetNextWindowSize(ImVec2(440.0f, 680.0f), ImGuiCond_FirstUseEver);
-
-        if (!ImGui::Begin(GetName().c_str(), &m_Open))
-        {
-            ImGui::End();
-            return;
-        }
-
-        ThemeManager& themes = GetContext().Themes;
+        ThemeManager& themes = context.Themes;
 
         DrawThemeSelector(themes);
         DrawActions(themes);
 
         ImGui::SeparatorText("Colors");
         DrawColors(themes);
-
-        ImGui::End();
     }
 
-    void ThemeEditorPanel::DrawThemeSelector(ThemeManager& themes)
+    void ThemeSettingsPage::DrawThemeSelector(ThemeManager& themes)
     {
         const Theme* active = themes.Find(themes.GetActiveName());
         if (active == nullptr) return;
@@ -82,7 +65,7 @@ namespace ByteForge
         ImGui::EndCombo();
     }
 
-    void ThemeEditorPanel::DrawActions(ThemeManager& themes)
+    void ThemeSettingsPage::DrawActions(ThemeManager& themes)
     {
         const Theme* active = themes.Find(themes.GetActiveName());
         if (active == nullptr) return;
@@ -135,11 +118,12 @@ namespace ByteForge
             ImGui::TextColored(EditorColors::Get(EditorColor::Error), "%s", error);
     }
 
-    void ThemeEditorPanel::DrawDeleteDialog(ThemeManager& themes, const std::string& name)
+    void ThemeSettingsPage::DrawDeleteDialog(ThemeManager& themes, const std::string& name)
     {
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (!ImGui::BeginPopupModal(DeletePopupId, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+        if (!ImGui::BeginPopupModal(DeletePopupId, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            return;
 
         ImGui::Text("Delete theme '%s'?", name.c_str());
         ImGui::TextDisabled("Its file is removed and this cannot be undone.");
@@ -158,7 +142,7 @@ namespace ByteForge
         ImGui::EndPopup();
     }
 
-    void ThemeEditorPanel::DrawColors(ThemeManager& themes)
+    void ThemeSettingsPage::DrawColors(ThemeManager& themes)
     {
         const std::string name = themes.GetActiveName();
 

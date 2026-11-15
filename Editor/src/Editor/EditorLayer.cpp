@@ -7,8 +7,7 @@
 #include "Editor/Panels/SceneHierarchyPanel.h"
 #include "Editor/Panels/ScenePanel.h"
 #include "Editor/Panels/GamePanel.h"
-#include "Editor/Panels/ProjectSettingsPanel.h"
-#include "Editor/Panels/ThemeEditorPanel.h"
+#include "Editor/Panels/SettingsPanel.h"
 #include "Editor/Viewport/TransformGizmo.h"
 
 #include <Engine/Core/Platform.h>
@@ -47,8 +46,7 @@ namespace ByteForge
         m_Context.Open<InspectorPanel>();
         m_Context.Open<AssetsPanel>();
         m_Context.Open<ConsolePanel>();
-        m_Context.Open<ProjectSettingsPanel>();
-        m_Context.Open<ThemeEditorPanel>();
+        m_Context.Open<SettingsPanel>();
     }
 
     void EditorLayer::OnEvent(Event& event)

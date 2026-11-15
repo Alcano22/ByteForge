@@ -2,8 +2,7 @@
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
 #include "Editor/GameExporter.h"
-#include "Editor/Panels/ProjectSettingsPanel.h"
-#include "Editor/Panels/ThemeEditorPanel.h"
+#include "Editor/Panels/SettingsPanel.h"
 #include "Editor/Theme/ThemeManager.h"
 
 #include <imgui.h>
@@ -101,7 +100,7 @@ namespace ByteForge
             ImGui::Separator();
 
             if (ImGui::MenuItem("Edit Themes..."))
-                context.Open<ThemeEditorPanel>().RequestFocus();
+                context.Open<SettingsPanel>().ShowPage("Theme");
 
             if (ImGui::MenuItem("Reload Custom Themes"))
                 themes.Reload();
@@ -163,8 +162,8 @@ namespace ByteForge
                 ActionMenuItem(context, EditorActions::TogglePause);
                 ActionMenuItem(context, EditorActions::Step);
                 ImGui::Separator();
-                if (ImGui::MenuItem("Project Settings..."))
-                    context.Open<ProjectSettingsPanel>().RequestFocus();
+                if (ImGui::MenuItem("Settings..."))
+                    context.Open<SettingsPanel>().ShowPage("General");
                 ImGui::EndMenu();
             }
 
