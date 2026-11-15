@@ -64,7 +64,7 @@ namespace ByteForge::EditorUI
                     if (className)
                         ImGui::Text("Script: %s", className->c_str());
                     else
-                        ImGui::TextColored(ErrorColor, "%s", className.error().c_str());
+                        ErrorText("%s", className.error().c_str());
                     ImGui::EndTooltip();
                 }
 
@@ -179,7 +179,7 @@ namespace ByteForge::EditorUI
 
         if (IsScriptMissing(script))
         {
-            ImGui::TextColored(ErrorColor, "Class '%s' not found", script.ClassName.c_str());
+            ErrorText("Class '%s' not found", script.ClassName.c_str());
             ImGui::TextDisabled("It was renamed or deleted. Its saved values are kept.");
             return;
         }
@@ -221,6 +221,6 @@ namespace ByteForge::EditorUI
         if (className)
             ImGui::Text("Class: %s", className->c_str());
         else
-            ImGui::TextColored(ErrorColor, "%s", className.error().c_str());
+            ErrorText("%s", className.error().c_str());
     }
 }

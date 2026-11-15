@@ -25,6 +25,46 @@ namespace ByteForge::EditorUI
 
     inline constexpr const char* EntityPayloadType = "ByteForge.Entity";
 
+    [[nodiscard]] inline f32 ButtonWidth(const char* label)
+    {
+        return ImGui::CalcTextSize(label).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    }
+
+    inline void PushID(const u64 id)
+    {
+        const auto* bytes = reinterpret_cast<const char*>(&id);
+        ImGui::PushID(bytes, bytes + sizeof(id));
+    }
+
+    class ScopedStyleColor
+    {
+    public:
+        ScopedStyleColor(const ImGuiCol index, const ImVec4& color, const bool enabled = true)
+            : m_Enabled(enabled)
+        {
+            if (m_Enabled)
+                ImGui::PushStyleColor(index, color);
+        }
+
+        ~ScopedStyleColor()
+        {
+            if (m_Enabled)
+                ImGui::PopStyleColor();
+        }
+
+        ScopedStyleColor(const ScopedStyleColor&) = delete;
+        ScopedStyleColor& operator=(const ScopedStyleColor&) = delete;
+
+    private:
+        bool m_Enabled;
+    };
+
+    void ErrorText(const char* format, ...) IM_FMTARGS(1);
+    void ErrorTextWrapped(const char* format, ...) IM_FMTARGS(1);
+
+    void DrawInsertionLine(f32 y, f32 minX, f32 maxX);
+    void DrawInsertionLine(f32 y);
+
     bool PopupSearchField(const char* hint, std::string& query, f32 width = -FLT_MIN);
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);

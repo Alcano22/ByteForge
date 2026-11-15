@@ -112,25 +112,16 @@ namespace ByteForge
             return !parent.IsValid() || (parent != dragged && !parent.IsDescendantOf(dragged));
         }
 
-        void DrawInsertionLine(const f32 y)
-        {
-            const ImVec2 min = ImGui::GetItemRectMin();
-            const ImVec2 max = ImGui::GetItemRectMax();
-
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, y), ImVec2(max.x, y),
-                                                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
-        }
-
         void DrawDropIndicator(const DropZone zone)
         {
             switch (zone)
             {
                 case DropZone::Before:
-                    DrawInsertionLine(ImGui::GetItemRectMin().y);
+                    EditorUI::DrawInsertionLine(ImGui::GetItemRectMin().y);
                     break;
 
                 case DropZone::After:
-                    DrawInsertionLine(ImGui::GetItemRectMax().y);
+                    EditorUI::DrawInsertionLine(ImGui::GetItemRectMax().y);
                     break;
 
                 case DropZone::Into:
@@ -194,8 +185,7 @@ namespace ByteForge
         EditorContext& context = GetContext();
         Scene& scene = *context.ActiveScene;
 
-        const auto uuid = static_cast<u64>(entity.GetUUID());
-        ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(uuid)));
+        EditorUI::PushID(entity.GetUUID());
 
         if (entity == m_RenameTarget)
         {
@@ -222,6 +212,7 @@ namespace ByteForge
         {
             m_PressedEntity = {};
 
+            const auto uuid = static_cast<u64>(entity.GetUUID());
             ImGui::SetDragDropPayload(EditorUI::EntityPayloadType, &uuid, sizeof(uuid));
             ImGui::TextUnformatted(entity.GetTag().c_str());
             ImGui::EndDragDropSource();
@@ -303,7 +294,7 @@ namespace ByteForge
             if (drop.Delivered)
                 context.MoveEntity(drop.Dragged, {});
             else
-                DrawInsertionLine(ImGui::GetItemRectMin().y);
+                EditorUI::DrawInsertionLine(ImGui::GetItemRectMin().y);
         }
 
         if (drop.PrefabHandle)

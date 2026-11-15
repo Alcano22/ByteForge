@@ -20,8 +20,7 @@ namespace ByteForge
 
     private:
         void DrawThemeSelector(ThemeManager& themes);
-        void DrawActions(ThemeManager& themes);
-        void DrawDeleteDialog(ThemeManager& themes, const std::string& name);
+        void DrawActions(EditorContext& context);
         void DrawColors(ThemeManager& themes);
 
     private:

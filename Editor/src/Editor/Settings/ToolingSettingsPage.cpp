@@ -72,7 +72,7 @@ namespace ByteForge
         void DrawCustomEditor(CodeEditorLauncher& editors)
         {
             const ImGuiStyle& style = ImGui::GetStyle();
-            const f32 browseWidth = ImGui::CalcTextSize("Browse...").x + style.FramePadding.x * 2.0f;
+            const f32 browseWidth = EditorUI::ButtonWidth("Browse...");
 
             std::string executable = editors.GetCustomExecutable();
             ImGui::SetNextItemWidth(ImGui::CalcItemWidth() - browseWidth - style.ItemInnerSpacing.x);
@@ -124,7 +124,7 @@ namespace ByteForge
         if (command)
             ImGui::TextDisabled("Runs: %s", JoinCommand(*command).c_str());
         else
-            ImGui::TextColored(EditorUI::ErrorColor, "%s", command.error().c_str());
+            EditorUI::ErrorText("%s", command.error().c_str());
 
         ImGui::Spacing();
 

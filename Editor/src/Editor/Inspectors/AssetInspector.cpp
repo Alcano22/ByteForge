@@ -81,7 +81,7 @@ namespace ByteForge::EditorUI
 
             if (!s_Graph)
             {
-                ImGui::TextColored(ErrorColor, "Cannot load: %s", s_Graph.error().c_str());
+                ErrorText("Cannot load: %s", s_Graph.error().c_str());
                 return;
             }
 

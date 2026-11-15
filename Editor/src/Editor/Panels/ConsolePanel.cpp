@@ -1,5 +1,6 @@
 #include "Editor/Panels/ConsolePanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/LogFormat.h"
 #include "Editor/StringUtils.h"
 
@@ -168,7 +169,7 @@ namespace ByteForge
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
 
-                    ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(entry.Id)));
+                    EditorUI::PushID(entry.Id);
 
                     if (ImGui::Selectable(row.Time.c_str(), selection.IsLogEntry(entry.Id),
                                           ImGuiSelectableFlags_SpanAllColumns))
@@ -206,7 +207,7 @@ namespace ByteForge
 
     bool ConsolePanel::PassesFilter(const Row& row) const
     {
-        if (m_ShowCategory[CategoryOf(row.Entry.Level)])
+        if (!m_ShowCategory[CategoryOf(row.Entry.Level)])
             return false;
 
         return ContainsIgnoreCase(row.Entry.Message, m_Filter) || ContainsIgnoreCase(row.Entry.Logger, m_Filter);

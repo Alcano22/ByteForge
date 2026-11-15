@@ -1,4 +1,5 @@
 #include "Editor/Graph/GraphNodeRenderer.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/AssetPayload.h"
 #include "Editor/Graph/GraphIds.h"
 #include "Editor/Graph/GraphTheme.h"
@@ -275,7 +276,7 @@ namespace ByteForge
             NE::PushStyleColor(NE::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()));
 
         NE::BeginNode(id);
-        ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(static_cast<u64>(node.Id))));
+        EditorUI::PushID(node.Id);
 
         const ImVec2 start = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(ImVec2(start.x + TextPadding, start.y));

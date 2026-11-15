@@ -1,5 +1,6 @@
 #include "Editor/Settings/ThemeSettingsPage.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/Theme/EditorColors.h"
 #include "Editor/Theme/ThemeManager.h"
 
@@ -11,15 +12,36 @@
 #include <cfloat>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace ByteForge
 {
     namespace
     {
-        constexpr const char* DeletePopupId = "Delete Theme";
-
         constexpr ImGuiColorEditFlags ColorFlags = ImGuiColorEditFlags_AlphaBar
                                                  | ImGuiColorEditFlags_AlphaPreviewHalf;
+
+        void OpenDeleteDialog(EditorContext& context, std::string name)
+        {
+            ThemeManager& themes = context.Themes;
+
+            context.Popups.Open("Delete Theme", [&themes, name = std::move(name)](Popup& popup)
+            {
+                ImGui::Text("Delete theme '%s'?", name.c_str());
+                ImGui::TextDisabled("Its file is removed and this cannot be undone.");
+                ImGui::Spacing();
+
+                if (ImGui::Button("Delete"))
+                {
+                    themes.Delete(name);
+                    popup.Close();
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel"))
+                    popup.Close();
+            });
+        }
     }
 
     void ThemeSettingsPage::Draw(EditorContext& context)
@@ -27,7 +49,7 @@ namespace ByteForge
         ThemeManager& themes = context.Themes;
 
         DrawThemeSelector(themes);
-        DrawActions(themes);
+        DrawActions(context);
 
         ImGui::SeparatorText("Colors");
         DrawColors(themes);
@@ -59,8 +81,10 @@ namespace ByteForge
         ImGui::EndCombo();
     }
 
-    void ThemeSettingsPage::DrawActions(ThemeManager& themes)
+    void ThemeSettingsPage::DrawActions(EditorContext& context)
     {
+        ThemeManager& themes = context.Themes;
+
         const Theme* active = themes.Find(themes.GetActiveName());
         if (active == nullptr) return;
 
@@ -86,17 +110,14 @@ namespace ByteForge
 
         ImGui::BeginDisabled(builtIn);
         if (ImGui::Button("Delete..."))
-            ImGui::OpenPopup(DeletePopupId);
+            OpenDeleteDialog(context, name);
         ImGui::EndDisabled();
-
-        DrawDeleteDialog(themes, name);
 
         ImGui::SeparatorText("Duplicate");
 
-        const ImGuiStyle& style = ImGui::GetStyle();
-        const f32 buttonWidth = ImGui::CalcTextSize("Duplicate").x + style.FramePadding.x * 2.0f;
+        const f32 buttonWidth = EditorUI::ButtonWidth("Duplicate");
 
-        ImGui::SetNextItemWidth(-(buttonWidth + style.ItemSpacing.x));
+        ImGui::SetNextItemWidth(-(buttonWidth + ImGui::GetStyle().ItemSpacing.x));
         ImGui::InputTextWithHint("##NewName", "Name of the copy", &m_NewName);
 
         const std::string newName(Trim(m_NewName));
@@ -109,31 +130,7 @@ namespace ByteForge
         ImGui::EndDisabled();
 
         if (error != nullptr)
-            ImGui::TextColored(EditorColors::Get(EditorColor::Error), "%s", error);
-    }
-
-    void ThemeSettingsPage::DrawDeleteDialog(ThemeManager& themes, const std::string& name)
-    {
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-        if (!ImGui::BeginPopupModal(DeletePopupId, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-            return;
-
-        ImGui::Text("Delete theme '%s'?", name.c_str());
-        ImGui::TextDisabled("Its file is removed and this cannot be undone.");
-        ImGui::Spacing();
-
-        if (ImGui::Button("Delete"))
-        {
-            themes.Delete(name);
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel"))
-            ImGui::CloseCurrentPopup();
-
-        ImGui::EndPopup();
+            EditorUI::ErrorText("%s", error);
     }
 
     void ThemeSettingsPage::DrawColors(ThemeManager& themes)

@@ -17,12 +17,13 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstdarg>
+#include <cstring>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <format>
-#include <cstring>
 
 namespace ByteForge::EditorUI
 {
@@ -127,7 +128,7 @@ namespace ByteForge::EditorUI
             AssetMetadata metadata;
             if (!AssetRegistry::TryGetMetadata(asset->GetHandle(), metadata))
             {
-                ImGui::TextColored(ErrorColor, "Missing asset");
+                ErrorText("Missing asset");
                 return;
             }
 
@@ -139,7 +140,7 @@ namespace ByteForge::EditorUI
                     ImGui::TextDisabled("Loading...");
                     break;
                 case AssetLoadState::Failed:
-                    ImGui::TextColored(ErrorColor, "Failed to load");
+                    ErrorText("Failed to load");
                     break;
                 case AssetLoadState::Loaded:
                 {
@@ -355,6 +356,35 @@ namespace ByteForge::EditorUI
         }
     }
 
+    void ErrorText(const char* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        ImGui::TextColoredV(ErrorColor, format, args);
+        va_end(args);
+    }
+
+    void ErrorTextWrapped(const char* format, ...)
+    {
+        const ScopedStyleColor color(ImGuiCol_Text, ErrorColor);
+
+        va_list args;
+        va_start(args, format);
+        ImGui::TextWrappedV(format, args);
+        va_end(args);
+    }
+
+    void DrawInsertionLine(const f32 y, const f32 minX, const f32 maxX)
+    {
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(minX, y), ImVec2(maxX, y),
+                                            ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
+    }
+
+    void DrawInsertionLine(const f32 y)
+    {
+        DrawInsertionLine(y, ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().x);
+    }
+
     bool PopupSearchField(const char* hint, std::string& query, const f32 width)
     {
         if (ImGui::IsWindowAppearing())
@@ -400,9 +430,8 @@ namespace ByteForge::EditorUI
         DrawAssetInfo(asset.get());
         ImGui::EndGroup();
 
-        const f32 browseWidth = ImGui::CalcTextSize("Browse").x + style.FramePadding.x * 2.0f;
-        const f32 clearWidth = asset
-            ? ImGui::CalcTextSize("Clear").x + style.FramePadding.x * 2.0f + style.ItemSpacing.x : 0.0f;
+        const f32 browseWidth = ButtonWidth("Browse");
+        const f32 clearWidth = asset ? ButtonWidth("Clear") + style.ItemSpacing.x : 0.0f;
         ImGui::SetCursorScreenPos(ImVec2(end.x - FieldPadding - browseWidth - clearWidth, previewMin.y));
 
         if (asset)
@@ -442,14 +471,12 @@ namespace ByteForge::EditorUI
         const std::string buttonLabel = text + "###field";
 
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-        if (hasAsset && !known)
-            ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
+        {
+            const ScopedStyleColor missingColor(ImGuiCol_Text, ErrorColor, hasAsset && !known);
 
-        if (ImGui::Button(buttonLabel.c_str(), ImVec2(ImGui::CalcItemWidth(), 0.0f)))
-            ImGui::OpenPopup(AssetPickerPopupId);
-
-        if (hasAsset && !known)
-            ImGui::PopStyleColor();
+            if (ImGui::Button(buttonLabel.c_str(), ImVec2(ImGui::CalcItemWidth(), 0.0f)))
+                ImGui::OpenPopup(AssetPickerPopupId);
+        }
         ImGui::PopStyleVar();
 
         if (known)
@@ -517,11 +544,11 @@ namespace ByteForge::EditorUI
 
         const bool error = missing || lacksComponent;
 
-        if (error)
-            ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
-        const bool open = ImGui::BeginCombo(label, preview.c_str());
-        if (error)
-            ImGui::PopStyleColor();
+        bool open = false;
+        {
+            const ScopedStyleColor errorColor(ImGuiCol_Text, ErrorColor, error);
+            open = ImGui::BeginCombo(label, preview.c_str());
+        }
 
         if (open)
         {
@@ -535,8 +562,7 @@ namespace ByteForge::EditorUI
             {
                 if (!accepts(entity)) return;
 
-                const auto id = static_cast<u64>(entity.GetUUID());
-                ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
+                EditorUI::PushID(entity.GetUUID());
 
                 const bool selected = target == entity;
                 if (ImGui::Selectable(tag.Tag.c_str(), selected) && !selected)

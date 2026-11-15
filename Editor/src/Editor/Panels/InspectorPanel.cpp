@@ -32,12 +32,6 @@ namespace ByteForge
 
         constexpr const char* ComponentPayloadType = "ByteForge.Component";
 
-        void DrawInsertionLine(const f32 y, const f32 minX, const f32 maxX)
-        {
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(minX, y), ImVec2(maxX, y),
-                                                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f);
-        }
-
         ScriptEntry* FindScript(const Entity entity, const u64 scriptId)
         {
             auto* component = entity.TryGetComponent<ScriptComponent>();
@@ -147,12 +141,11 @@ namespace ByteForge
         const f32 buttonSize = ImGui::GetFrameHeight();
         const f32 headerEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
 
-        if (missing)
-            ImGui::PushStyleColor(ImGuiCol_Text, EditorUI::ErrorColor);
-        const bool open = ImGui::TreeNodeEx("##header", flags, "%s  %s",
-                                            EditorIcons::Glyph(icon), title.c_str());
-        if (missing)
-            ImGui::PopStyleColor();
+        bool open = false;
+        {
+            const EditorUI::ScopedStyleColor missingColor(ImGuiCol_Text, EditorUI::ErrorColor, missing);
+            open = ImGui::TreeNodeEx("##header", flags, "%s  %s", EditorIcons::Glyph(icon), title.c_str());
+        }
 
         const ImVec2 headerMin = ImGui::GetItemRectMin();
         const ImVec2 headerMax = ImGui::GetItemRectMax();
@@ -187,7 +180,7 @@ namespace ByteForge
                     else if (after)
                         showLineAfterSection = true;
                     else
-                        DrawInsertionLine(headerMin.y - halfGap, headerMin.x, headerMax.x);
+                        EditorUI::DrawInsertionLine(headerMin.y - halfGap, headerMin.x, headerMax.x);
                 }
             }
             ImGui::EndDragDropTarget();
@@ -229,7 +222,7 @@ namespace ByteForge
         }
 
         if (showLineAfterSection)
-            DrawInsertionLine(ImGui::GetCursorScreenPos().y - halfGap, headerMin.x, headerMax.x);
+            EditorUI::DrawInsertionLine(ImGui::GetCursorScreenPos().y - halfGap, headerMin.x, headerMax.x);
 
         ImGui::PopID();
 
@@ -246,10 +239,9 @@ namespace ByteForge
     {
         auto& tag = entity.GetComponent<TagComponent>();
 
-        const ImGuiStyle& style = ImGui::GetStyle();
-        const f32 buttonWidth = ImGui::CalcTextSize("Add Component").x + style.FramePadding.x * 2.0f;
+        const f32 buttonWidth = EditorUI::ButtonWidth("Add Component");
 
-        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x);
         ImGui::InputText("##Tag", &tag.Tag);
 
         ImGui::SameLine();

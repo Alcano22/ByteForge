@@ -28,9 +28,7 @@ namespace ByteForge
 
         if (!m_Error.empty())
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, EditorUI::ErrorColor);
-            ImGui::TextWrapped("%s", m_Error.c_str());
-            ImGui::PopStyleColor();
+            EditorUI::ErrorTextWrapped("%s", m_Error.c_str());
             ImGui::Separator();
         }
 

@@ -196,7 +196,7 @@ namespace ByteForge
             ImGui::Checkbox("Play on Start", &animator.PlayOnStart);
 
             if (!entity.HasComponent<SpriteRendererComponent>())
-                ImGui::TextColored(EditorUI::ErrorColor, "Needs a Sprite Renderer to show its frames");
+                EditorUI::ErrorText("Needs a Sprite Renderer to show its frames");
 
             if (!entity.GetScene().IsRunning()) return;
 
