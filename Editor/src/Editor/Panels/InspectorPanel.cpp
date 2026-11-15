@@ -43,23 +43,6 @@ namespace ByteForge
             auto* component = entity.TryGetComponent<ScriptComponent>();
             return component != nullptr ? component->Find(UUID(scriptId)) : nullptr;
         }
-
-        bool IsSectionOverridden(const InspectorSection& section, const nlohmann::json& overrides)
-        {
-            if (!overrides.is_object())
-                return false;
-
-            if (section.Inspector == nullptr)
-            {
-                const char* scriptKey = ComponentRegistry::FindByType(ComponentTypeId<ScriptComponent>())->Key;
-                const auto scripts = overrides.find(scriptKey);
-                return scripts != overrides.end() && scripts->is_object() &&
-                       scripts->contains(std::to_string(section.Key.ScriptId));
-            }
-
-            const ComponentDescriptor* descriptor = ComponentRegistry::FindByType(section.Key.TypeId);
-            return descriptor != nullptr && overrides.contains(descriptor->Key);
-        }
     }
 
     void InspectorPanel::OnImGuiRender()
@@ -116,11 +99,11 @@ namespace ByteForge
 
     void InspectorPanel::DrawEntity(const Entity entity) const
     {
-        DrawHeader(entity);
-        DrawPrefabBar(entity);
-        ImGui::Separator();
-
         const nlohmann::json overrides = Prefab::GetOverrides(entity);
+
+        DrawHeader(entity);
+        DrawPrefabBar(entity, overrides);
+        ImGui::Separator();
 
         for (const InspectorSection& section : GetOrderedSections(entity))
             DrawSection(section, entity, overrides);
@@ -157,7 +140,10 @@ namespace ByteForge
             missing = EditorUI::IsScriptMissing(*script);
         }
 
-        const bool overridden = IsSectionOverridden(section, overrides);
+        const bool isInstance = !overrides.is_null();
+        const std::string overridePath = inspector != nullptr ? Prefab::ComponentOverridePath(section.Key.TypeId)
+                                                              : Prefab::ScriptOverridePath(section.Key.ScriptId);
+        const bool overridden = isInstance && Prefab::IsOverridden(overrides, overridePath);
 
         constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen
                                            | ImGuiTreeNodeFlags_Framed
@@ -237,6 +223,17 @@ namespace ByteForge
             if (ImGui::MenuItem("Remove Component", nullptr, false, removable))
                 remove = true;
 
+            if (isInstance)
+            {
+                ImGui::Separator();
+
+                const bool canChange = overridden && context.IsEditing();
+                if (ImGui::MenuItem("Apply to Prefab", nullptr, false, canChange))
+                    context.ApplyPrefabOverrides(entity, PrefabOverrideScope::Path, overridePath);
+                if (ImGui::MenuItem("Revert to Prefab", nullptr, false, canChange))
+                    context.RevertPrefabOverrides(entity, PrefabOverrideScope::Path, overridePath);
+            }
+
             ImGui::EndPopup();
         }
 
@@ -276,7 +273,7 @@ namespace ByteForge
         }
     }
 
-    void InspectorPanel::DrawPrefabBar(const Entity entity) const
+    void InspectorPanel::DrawPrefabBar(const Entity entity, const nlohmann::json& overrides) const
     {
         const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
         if (link == nullptr) return;
@@ -292,8 +289,11 @@ namespace ByteForge
         constexpr const char* SelectRootLabel = "Select Root";
         constexpr const char* SelectAssetLabel = "Select Asset";
         constexpr const char* UnpackLabel = "Unpack";
+        constexpr const char* OverridesLabel = "Overrides";
+        constexpr const char* OverridesPopupId = "##PrefabOverrides";
 
         const bool showSelectRoot = root.IsValid() && root != entity;
+        const bool showOverrides = exists && root.IsValid();
         const f32 spacing = ImGui::GetStyle().ItemSpacing.x;
 
         f32 buttonsWidth = EditorUI::ButtonWidth(UnpackLabel);
@@ -301,6 +301,8 @@ namespace ByteForge
             buttonsWidth += EditorUI::ButtonWidth(OpenLabel) + EditorUI::ButtonWidth(SelectAssetLabel) + spacing * 2.0f;
         if (showSelectRoot)
             buttonsWidth += EditorUI::ButtonWidth(SelectRootLabel) + spacing;
+        if (showOverrides)
+            buttonsWidth += EditorUI::ButtonWidth(OverridesLabel) + spacing;
 
         const f32 rowEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
 
@@ -325,6 +327,42 @@ namespace ByteForge
         {
             if (ImGui::Button(SelectRootLabel))
                 context.SelectionContext.Select(root);
+            ImGui::SameLine();
+        }
+
+        if (showOverrides)
+        {
+            if (ImGui::Button(OverridesLabel))
+                ImGui::OpenPopup(OverridesPopupId);
+            ImGui::SetItemTooltip("Apply this instance's changes to the prefab, or revert them");
+
+            if (ImGui::BeginPopup(OverridesPopupId))
+            {
+                const bool editing = context.IsEditing();
+                const bool entityOverridden = overrides.is_object() && !overrides.empty();
+
+                ImGui::TextDisabled("Whole instance");
+                if (ImGui::MenuItem("Apply All to Prefab", nullptr, false, editing))
+                    context.ApplyPrefabOverrides(entity, PrefabOverrideScope::Instance);
+                if (ImGui::MenuItem("Revert All", nullptr, false, editing))
+                    context.RevertPrefabOverrides(entity, PrefabOverrideScope::Instance);
+
+                ImGui::Separator();
+
+                ImGui::TextDisabled("This entity");
+                if (ImGui::MenuItem("Apply Entity to Prefab", nullptr, false, editing && entityOverridden))
+                    context.ApplyPrefabOverrides(entity, PrefabOverrideScope::Entity);
+                if (ImGui::MenuItem("Revert Entity", nullptr, false, editing && entityOverridden))
+                    context.RevertPrefabOverrides(entity, PrefabOverrideScope::Entity);
+
+                if (root == entity)
+                {
+                    ImGui::Separator();
+                    ImGui::TextDisabled("The root keeps its transform and name");
+                }
+
+                ImGui::EndPopup();
+            }
             ImGui::SameLine();
         }
 

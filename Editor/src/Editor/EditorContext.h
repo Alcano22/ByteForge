@@ -36,6 +36,8 @@ namespace ByteForge
 {
     class Scene;
 
+    enum class PrefabOverrideScope : u8;
+
     class EditorContext
     {
     public:
@@ -133,6 +135,8 @@ namespace ByteForge
         void InstantiatePrefab(UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
         Result<UUID> CreatePrefab(Entity root, const fs::path& relativePath);
         void UnpackPrefab(Entity entity);
+        void ApplyPrefabOverrides(Entity entity, PrefabOverrideScope scope, std::string path = {});
+        void RevertPrefabOverrides(Entity entity, PrefabOverrideScope scope, std::string path = {});
 
         bool Undo();
         bool Redo();

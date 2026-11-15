@@ -11,12 +11,16 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <exception>
 #include <format>
 #include <fstream>
+#include <ranges>
+#include <span>
 #include <string>
 #include <system_error>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -27,6 +31,8 @@ namespace ByteForge
     namespace
     {
         constexpr i32 FormatVersion = 1;
+
+        constexpr std::array<const char*, 2> RootPlacementKeys{ "transform", "tag" };
 
         struct Prototype
         {
@@ -93,7 +99,7 @@ namespace ByteForge
             return { { "version", FormatVersion }, { "entities", std::move(entities) } };
         }
 
-        Result<nlohmann::json> ReadEntities(const UUID handle, std::string& name)
+        Result<nlohmann::json> ReadPrefabFile(const UUID handle, std::string& name)
         {
             AssetMetadata metadata;
             if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Prefab)
@@ -105,11 +111,20 @@ namespace ByteForge
             if (!data)
                 return std::unexpected(data.error());
 
-            if (!data->is_object() || !data->contains("entities") ||
-                !data->at("entities").is_array() || data->at("entities").empty())
+            if (!data->is_object() || !data->contains("entities") || !data->at("entities").is_array() ||
+                data->at("entities").empty())
             {
                 return std::unexpected(std::format("'{}' is not a valid prefab", name));
             }
+
+            return data;
+        }
+
+        Result<nlohmann::json> ReadEntities(const UUID handle, std::string& name)
+        {
+            Result<nlohmann::json> data = ReadPrefabFile(handle, name);
+            if (!data)
+                return std::unexpected(data.error());
 
             return std::move(data->at("entities"));
         }
@@ -158,7 +173,8 @@ namespace ByteForge
             return toSource;
         }
 
-        void RemapScriptFields(nlohmann::json& script, const std::unordered_map<UUID, UUID>& remap)
+        template<typename Fn>
+        void ForEachEntityReference(nlohmann::json& script, Fn&& fn)
         {
             const auto fields = script.find("fields");
             if (fields == script.end() || !fields->is_object()) return;
@@ -167,15 +183,21 @@ namespace ByteForge
 
             for (auto& [name, field] : fields->items())
             {
-                if (!field.is_object() || field.value("type", std::string()) != entityType || !field.contains("value"))
-                    continue;
+                if (!field.is_object() || field.value("type", std::string()) != entityType) continue;
 
-                nlohmann::json& value = field.at("value");
-                nlohmann::json& id = value.is_object() ? value["entity"] : value;
-                if (!id.is_number_unsigned()) continue;
+                const auto value = field.find("value");
+                if (value == field.end()) continue;
 
-                if (const auto it = remap.find(UUID(id.get<u64>())); it != remap.end())
-                    id = static_cast<u64>(it->second);
+                nlohmann::json* id = &*value;
+                if (value->is_object())
+                {
+                    const auto entity = value->find("entity");
+                    if (entity == value->end()) continue;
+                    id = &*entity;
+                }
+
+                if (id->is_number_unsigned())
+                    fn(name, *id);
             }
         }
 
@@ -200,7 +222,13 @@ namespace ByteForge
                     script["index"] = index++;
 
                     if (toSource != nullptr)
-                        RemapScriptFields(script, *toSource);
+                    {
+                        ForEachEntityReference(script, [&](const std::string&, nlohmann::json& reference)
+                        {
+                            if (const auto it = toSource->find(UUID(reference.get<u64>())); it != toSource->end())
+                                reference = static_cast<u64>(it->second);
+                        });
+                    }
 
                     byId[id] = std::move(script);
                 }
@@ -281,6 +309,195 @@ namespace ByteForge
                     roots.push_back(entity);
             });
             return roots;
+        }
+
+        struct InstanceContext
+        {
+            Entity Root;
+            UUID Handle;
+            const Prototype* Source = nullptr;
+            std::unordered_map<UUID, Entity> Members;
+        };
+
+        Result<InstanceContext> FindInstance(const Entity entity)
+        {
+            const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+            if (link == nullptr)
+                return std::unexpected(std::format("'{}' is not part of a prefab instance", entity.GetTag()));
+
+            InstanceContext instance{ .Root = Prefab::GetInstanceRoot(entity), .Handle = link->Prefab };
+            if (!instance.Root.IsValid())
+                return std::unexpected(std::format("'{}' is detached from its prefab instance", entity.GetTag()));
+
+            const Result<const Prototype*> prototype = LoadPrototype(instance.Handle);
+            if (!prototype)
+                return std::unexpected(prototype.error());
+
+            instance.Source = *prototype;
+            CollectMembers(instance.Root, instance.Handle, true, instance.Members);
+            return instance;
+        }
+
+        void RecordInstance(const InstanceContext& instance)
+        {
+            const std::unordered_map<UUID, UUID> toSource = MakeToSourceMap(instance.Members);
+
+            for (const auto& [source, entity] : instance.Members)
+            {
+                const Entity sourceEntity = instance.Source->Entities->FindEntityByUUID(source);
+                if (!sourceEntity.IsValid()) continue;
+
+                entity.GetComponent<PrefabInstanceComponent>().Overrides =
+                    ComputeOverrides(sourceEntity, entity, toSource);
+            }
+        }
+
+        std::vector<std::string> SplitPath(const std::string_view path)
+        {
+            std::vector<std::string> tokens;
+            for (const auto token : std::views::split(path, '/'))
+            {
+                if (!token.empty())
+                    tokens.emplace_back(token.begin(), token.end());
+            }
+            return tokens;
+        }
+
+        const nlohmann::json* FindPath(const nlohmann::json& overrides, const std::vector<std::string>& tokens)
+        {
+            const nlohmann::json* current = &overrides;
+            for (const std::string& token : tokens)
+            {
+                if (!current->is_object())
+                    return nullptr;
+
+                const auto it = current->find(token);
+                if (it == current->end())
+                    return nullptr;
+
+                current = &*it;
+            }
+            return current;
+        }
+
+        nlohmann::json ExtractPath(const nlohmann::json& overrides, const std::vector<std::string>& tokens)
+        {
+            nlohmann::json patch = nlohmann::json::object();
+
+            const nlohmann::json* value = FindPath(overrides, tokens);
+            if (value == nullptr)
+                return patch;
+
+            nlohmann::json* slot = &patch;
+            for (const std::string& token : tokens)
+                slot = &(*slot)[token];
+            *slot = *value;
+
+            return patch;
+        }
+
+        bool EraseTokens(nlohmann::json& node, const std::span<const std::string> tokens)
+        {
+            if (tokens.empty() || !node.is_object()) return false;
+
+            const auto it = node.find(tokens.front());
+            if (it == node.end()) return false;
+
+            if (tokens.size() == 1)
+            {
+                node.erase(it);
+                return true;
+            }
+
+            if (!EraseTokens(*it, tokens.subspan(1))) return false;
+
+            if (it->is_object() && it->empty())
+                node.erase(it);
+            return true;
+        }
+
+        nlohmann::json SelectOverrides(const nlohmann::json& overrides, const PrefabOverrideScope scope,
+                                       const std::vector<std::string>& tokens, const bool root)
+        {
+            if (!overrides.is_object()) return nlohmann::json::object();
+            if (scope == PrefabOverrideScope::Path) return ExtractPath(overrides, tokens);
+
+            nlohmann::json selected = overrides;
+            if (root)
+            {
+                for (const char* key : RootPlacementKeys)
+                    selected.erase(key);
+            }
+            return selected;
+        }
+
+        void DropOverrides(nlohmann::json& overrides, const PrefabOverrideScope scope,
+                           const std::vector<std::string>& tokens, const bool root)
+        {
+            if (!overrides.is_object())
+            {
+                overrides = nlohmann::json::object();
+                return;
+            }
+
+            if (scope == PrefabOverrideScope::Path)
+            {
+                EraseTokens(overrides, tokens);
+                return;
+            }
+
+            nlohmann::json kept = nlohmann::json::object();
+            if (root)
+            {
+                for (const char* key : RootPlacementKeys)
+                {
+                    if (const auto it = overrides.find(key); it != overrides.end())
+                        kept[key] = *it;
+                }
+            }
+            overrides = std::move(kept);
+        }
+
+        std::vector<Entity> GetTargets(const InstanceContext& instance, const Entity entity,
+                                       const PrefabOverrideScope scope)
+        {
+            if (scope != PrefabOverrideScope::Instance)
+                return { entity };
+
+            std::vector<Entity> targets;
+            for (const auto& [source, member] : instance.Members)
+                targets.push_back(member);
+            return targets;
+        }
+
+        nlohmann::json PatchFileEntity(const nlohmann::json& fileEntity, const nlohmann::json& patch,
+                                       const std::unordered_set<u64>& prefabIds, const std::string& prefabName)
+        {
+            nlohmann::json comparable = MakeComparable(fileEntity, nullptr);
+            comparable.merge_patch(patch);
+
+            if (const auto scripts = comparable.find(ScriptKey()); scripts != comparable.end() && scripts->is_object())
+            {
+                for (auto& [id, script] : scripts->items())
+                {
+                    ForEachEntityReference(script, [&](const std::string& field, nlohmann::json& reference)
+                    {
+                        const u64 value = reference.get<u64>();
+                        if (value == 0 || prefabIds.contains(value)) return;
+
+                        CORE_WARN("Prefab '{}': field '{}' references an entity outside the prefab and is cleared",
+                                  prefabName, field);
+                        reference = u64{ 0 };
+                    });
+                }
+            }
+
+            nlohmann::json result = MakeEntityJson(std::move(comparable));
+            result["uuid"] = fileEntity.at("uuid");
+            if (const auto parent = fileEntity.find("parent"); parent != fileEntity.end())
+                result["parent"] = *parent;
+
+            return result;
         }
 
         struct SyncPair
@@ -397,10 +614,22 @@ namespace ByteForge
     {
         if (!root.IsValid())
             return std::unexpected("the entity is not valid");
+
+        return WriteData(handle, MakePrefabData(root));
+    }
+
+    Result<nlohmann::json> Prefab::ReadData(const UUID handle)
+    {
+        std::string name;
+        return ReadPrefabFile(handle, name);
+    }
+
+    Result<void> Prefab::WriteData(const UUID handle, const nlohmann::json& data)
+    {
         if (!Exists(handle))
             return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
 
-        if (const auto written = WriteJsonFile(AssetRegistry::Resolve(handle), MakePrefabData(root)); !written)
+        if (const auto written = WriteJsonFile(AssetRegistry::Resolve(handle), data); !written)
             return std::unexpected(written.error());
 
         Invalidate(handle);
@@ -479,44 +708,129 @@ namespace ByteForge
     {
         for (const Entity root : FindInstanceRoots(scene))
         {
-            const UUID handle = root.GetComponent<PrefabInstanceComponent>().Prefab;
-
-            const Result<const Prototype*> prototype = LoadPrototype(handle);
-            if (!prototype) continue;
-
-            std::unordered_map<UUID, Entity> members;
-            CollectMembers(root, handle, true, members);
-            const std::unordered_map<UUID, UUID> toSource = MakeToSourceMap(members);
-
-            for (const auto& [source, entity] : members)
-            {
-                const Entity sourceEntity = (*prototype)->Entities->FindEntityByUUID(source);
-                if (!sourceEntity.IsValid()) continue;
-
-                entity.GetComponent<PrefabInstanceComponent>().Overrides =
-                    ComputeOverrides(sourceEntity, entity, toSource);
-            }
+            if (const Result<InstanceContext> instance = FindInstance(root))
+                RecordInstance(*instance);
         }
     }
 
     nlohmann::json Prefab::GetOverrides(const Entity entity)
     {
-        const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
-        if (link == nullptr) return nullptr;
+        const Result<InstanceContext> instance = FindInstance(entity);
+        if (!instance)
+            return nullptr;
 
-        const Entity root = GetInstanceRoot(entity);
-        if (!root.IsValid()) return nullptr;
+        const UUID source = entity.GetComponent<PrefabInstanceComponent>().Source;
+        const Entity sourceEntity = instance->Source->Entities->FindEntityByUUID(source);
+        if (!sourceEntity.IsValid())
+            return nullptr;
 
-        const Result<const Prototype*> prototype = LoadPrototype(link->Prefab);
-        if (!prototype) return nullptr;
+        return ComputeOverrides(sourceEntity, entity, MakeToSourceMap(instance->Members));
+    }
 
-        const Entity sourceEntity = (*prototype)->Entities->FindEntityByUUID(link->Source);
-        if (!sourceEntity.IsValid()) return nullptr;
+    std::string Prefab::ComponentOverridePath(const u32 componentTypeId)
+    {
+        const ComponentDescriptor* descriptor = ComponentRegistry::FindByType(componentTypeId);
+        return std::format("/{}", descriptor != nullptr ? descriptor->Key : "?");
+    }
 
-        std::unordered_map<UUID, Entity> members;
-        CollectMembers(root, link->Prefab, true, members);
+    std::string Prefab::ScriptOverridePath(const u64 scriptId)
+    {
+        return std::format("/{}/{}", ScriptKey(), scriptId);
+    }
 
-        return ComputeOverrides(sourceEntity, entity, MakeToSourceMap(members));
+    bool Prefab::IsOverridden(const nlohmann::json& overrides, const std::string_view path)
+    {
+        const std::vector<std::string> tokens = SplitPath(path);
+        return !tokens.empty() && FindPath(overrides, tokens) != nullptr;
+    }
+
+    Result<void> Prefab::ApplyOverrides(const Entity entity, const PrefabOverrideScope scope,
+                                        const std::string_view path)
+    {
+        const std::vector<std::string> tokens = SplitPath(path);
+        if (scope == PrefabOverrideScope::Path && tokens.empty())
+            return std::unexpected("no override path given");
+
+        const Result<InstanceContext> instance = FindInstance(entity);
+        if (!instance)
+            return std::unexpected(instance.error());
+
+        Scene& scene = entity.GetScene();
+        RecordOverrides(scene);
+
+        std::string name;
+        Result<nlohmann::json> data = ReadPrefabFile(instance->Handle, name);
+        if (!data)
+            return std::unexpected(data.error());
+
+        nlohmann::json& fileEntities = data->at("entities");
+
+        std::unordered_set<u64> prefabIds;
+        for (const nlohmann::json& fileEntity : fileEntities)
+            prefabIds.insert(fileEntity.value("uuid", u64{ 0 }));
+
+        const std::vector<Entity> targets = GetTargets(*instance, entity, scope);
+        std::vector<Entity> applied;
+
+        for (const Entity target : targets)
+        {
+            const auto& link = target.GetComponent<PrefabInstanceComponent>();
+
+            const nlohmann::json patch = SelectOverrides(link.Overrides, scope, tokens, target == instance->Root);
+            if (patch.empty()) continue;
+
+            const auto fileEntity = std::ranges::find_if(fileEntities, [&](const nlohmann::json& candidate)
+            {
+                return candidate.value("uuid", u64{ 0 }) == static_cast<u64>(link.Source);
+            });
+
+            if (fileEntity == fileEntities.end())
+            {
+                CORE_WARN("Prefab '{}': '{}' is no longer part of the prefab and is skipped", name, target.GetTag());
+                continue;
+            }
+
+            *fileEntity = PatchFileEntity(*fileEntity, patch, prefabIds, name);
+            applied.push_back(target);
+        }
+
+        if (applied.empty())
+            return {};
+
+        if (const Result<void> written = WriteData(instance->Handle, *data); !written)
+            return written;
+
+        for (const Entity target : applied)
+        {
+            DropOverrides(target.GetComponent<PrefabInstanceComponent>().Overrides, scope, tokens,
+                          target == instance->Root);
+        }
+
+        SyncInstances(scene, instance->Handle);
+        return {};
+    }
+
+    Result<void> Prefab::RevertOverrides(const Entity entity, const PrefabOverrideScope scope,
+                                         const std::string_view path)
+    {
+        const std::vector<std::string> tokens = SplitPath(path);
+        if (scope == PrefabOverrideScope::Path && tokens.empty())
+            return std::unexpected("no override path given");
+
+        const Result<InstanceContext> instance = FindInstance(entity);
+        if (!instance)
+            return std::unexpected(instance.error());
+
+        RecordInstance(*instance);
+
+        for (const Entity target : GetTargets(*instance, entity, scope))
+        {
+            DropOverrides(target.GetComponent<PrefabInstanceComponent>().Overrides, scope, tokens,
+                          target == instance->Root);
+        }
+
+        SyncInstance(entity.GetScene(), instance->Root, *instance->Source, instance->Handle);
+        return {};
     }
 
     void Prefab::Link(const Entity root, const UUID handle)

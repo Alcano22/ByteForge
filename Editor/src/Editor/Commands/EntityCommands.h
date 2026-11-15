@@ -61,6 +61,27 @@ namespace ByteForge
         nlohmann::json m_After;
     };
 
+    class PrefabApplyCommand final : public EditorCommand
+    {
+    public:
+        PrefabApplyCommand(Scene& scene, UUID prefab, std::string name,
+                           nlohmann::json prefabBefore, nlohmann::json prefabAfter,
+                           nlohmann::json sceneBefore, nlohmann::json sceneAfter);
+
+        void Execute() override;
+        void Undo() override;
+        [[nodiscard]] std::string GetName() const override { return m_Name; }
+
+    private:
+        Scene& m_Scene;
+        UUID m_Prefab;
+        std::string m_Name;
+        nlohmann::json m_PrefabBefore;
+        nlohmann::json m_PrefabAfter;
+        nlohmann::json m_SceneBefore;
+        nlohmann::json m_SceneAfter;
+    };
+
     class CreateEntityCommand final : public EditorCommand
     {
     public:

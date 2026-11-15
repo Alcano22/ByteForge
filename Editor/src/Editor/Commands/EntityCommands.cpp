@@ -4,6 +4,8 @@
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Scene/Components.h>
+#include <Engine/Assets/Prefab.h>
+#include <Engine/Core/Log.h>
 
 #include <cstdint>
 #include <format>
@@ -49,6 +51,19 @@ namespace ByteForge
             for (const nlohmann::json& entityJson : entities)
                 SceneSerializer::ApplyEntity(FindOrThrow(scene, UuidOf(entityJson)), entityJson);
         }
+
+        void SwapPrefabData(const UUID prefab, const nlohmann::json& expected, const nlohmann::json& replacement)
+        {
+            const Result<nlohmann::json> current = Prefab::ReadData(prefab);
+            if (!current || *current != expected)
+            {
+                APP_WARN("The prefab was changed since; only the scene is restored");
+                return;
+            }
+
+            if (const Result<void> written = Prefab::WriteData(prefab, replacement); !written)
+                APP_ERROR("Could not restore the prefab: {}", written.error());
+        }
     }
 
     ModifyEntityCommand::ModifyEntityCommand(Scene& scene, std::string name,
@@ -71,6 +86,25 @@ namespace ByteForge
 
     void SceneSnapshotCommand::Execute() { SceneSerializer::Deserialize(m_Scene, m_After); }
     void SceneSnapshotCommand::Undo() { SceneSerializer::Deserialize(m_Scene, m_Before); }
+
+    PrefabApplyCommand::PrefabApplyCommand(Scene& scene, const UUID prefab, std::string name,
+                                           nlohmann::json prefabBefore, nlohmann::json prefabAfter,
+                                           nlohmann::json sceneBefore, nlohmann::json sceneAfter)
+        : m_Scene(scene), m_Prefab(prefab), m_Name(std::move(name)),
+          m_PrefabBefore(std::move(prefabBefore)), m_PrefabAfter(std::move(prefabAfter)),
+          m_SceneBefore(std::move(sceneBefore)), m_SceneAfter(std::move(sceneAfter)) {}
+
+    void PrefabApplyCommand::Execute()
+    {
+        SwapPrefabData(m_Prefab, m_PrefabBefore, m_PrefabAfter);
+        SceneSerializer::Deserialize(m_Scene, m_SceneAfter);
+    }
+
+    void PrefabApplyCommand::Undo()
+    {
+        SwapPrefabData(m_Prefab, m_PrefabAfter, m_PrefabBefore);
+        SceneSerializer::Deserialize(m_Scene, m_SceneBefore);
+    }
 
     CreateEntityCommand::CreateEntityCommand(Scene& scene, std::string name, nlohmann::json subtree)
         : m_Scene(scene), m_Name(std::move(name)), m_Subtree(std::move(subtree)) {}

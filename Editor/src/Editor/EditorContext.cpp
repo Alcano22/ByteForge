@@ -21,6 +21,23 @@
 
 namespace ByteForge
 {
+    namespace
+    {
+        std::string DescribeOverrides(const Entity entity, const PrefabOverrideScope scope, const std::string_view path)
+        {
+            switch (scope)
+            {
+                case PrefabOverrideScope::Path:
+                    return std::format("'{}' {}", entity.GetTag(), path.substr(1));
+                case PrefabOverrideScope::Entity:
+                    return std::format("'{}'", entity.GetTag());
+                case PrefabOverrideScope::Instance:
+                    return std::format("Instance '{}'", Prefab::GetInstanceRoot(entity).GetTag());
+            }
+            return {};
+        }
+    }
+
     void EditorContext::UpdateScene(const Timestep ts)
     {
         if (ActiveScene == nullptr) return;
@@ -261,6 +278,65 @@ namespace ByteForge
 
             RecordIfEditing(MakeScope<ModifyEntitiesCommand>(*ActiveScene, std::format("Unpack '{}'", target.GetTag()),
                                                              std::move(before), SceneSerializer::SerializeSubtree(target)));
+        });
+    }
+
+    void EditorContext::ApplyPrefabOverrides(const Entity entity, const PrefabOverrideScope scope, std::string path)
+    {
+        Defer([this, entity, scope, path = std::move(path)]
+        {
+            if (!IsEditing() || ActiveScene == nullptr || !entity.IsValid()) return;
+
+            const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+            if (link == nullptr) return;
+
+            const UUID prefab = link->Prefab;
+            const std::string label = std::format("Apply {} to Prefab", DescribeOverrides(entity, scope, path));
+
+            Result<nlohmann::json> prefabBefore = Prefab::ReadData(prefab);
+            if (!prefabBefore)
+            {
+                APP_ERROR("Cannot apply to the prefab: {}", prefabBefore.error());
+                return;
+            }
+
+            nlohmann::json sceneBefore = SceneSerializer::Serialize(*ActiveScene);
+
+            if (const Result<void> applied = Prefab::ApplyOverrides(entity, scope, path); !applied)
+            {
+                APP_ERROR("Cannot apply to the prefab: {}", applied.error());
+                return;
+            }
+
+            Result<nlohmann::json> prefabAfter = Prefab::ReadData(prefab);
+            if (!prefabAfter || *prefabAfter == *prefabBefore) return;
+
+            History.Record(MakeScope<PrefabApplyCommand>(*ActiveScene, prefab, label,
+                                                         std::move(*prefabBefore), std::move(*prefabAfter),
+                                                         std::move(sceneBefore), SceneSerializer::Serialize(*ActiveScene)));
+            DropInvalidSelection();
+            APP_INFO("{}", label);
+        });
+    }
+
+    void EditorContext::RevertPrefabOverrides(const Entity entity, const PrefabOverrideScope scope, std::string path)
+    {
+        Defer([this, entity, scope, path = std::move(path)]
+        {
+            if (!IsEditing() || ActiveScene == nullptr || !entity.IsValid()) return;
+
+            const std::string label = std::format("Revert {}", DescribeOverrides(entity, scope, path));
+            nlohmann::json before = SceneSerializer::Serialize(*ActiveScene);
+
+            if (const Result<void> reverted = Prefab::RevertOverrides(entity, scope, path); !reverted)
+            {
+                APP_ERROR("Cannot revert: {}", reverted.error());
+                return;
+            }
+
+            History.Record(MakeScope<SceneSnapshotCommand>(*ActiveScene, label, std::move(before),
+                                                           SceneSerializer::Serialize(*ActiveScene)));
+            DropInvalidSelection();
         });
     }
 
