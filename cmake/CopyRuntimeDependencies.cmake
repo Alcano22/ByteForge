@@ -4,6 +4,10 @@
 #
 # Arguments: EXECUTABLE, DESTINATION, SEARCH_DIR_ENGINE, SEARCH_DIR_PACKAGES
 
+if(POLICY CMP0207)
+    cmake_policy(SET CMP0207 NEW)
+endif()
+
 foreach(argument EXECUTABLE DESTINATION SEARCH_DIR_ENGINE SEARCH_DIR_PACKAGES)
     if(NOT DEFINED ${argument})
         message(FATAL_ERROR "CopyRuntimeDependencies.cmake needs ${argument}")
