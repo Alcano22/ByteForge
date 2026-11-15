@@ -114,10 +114,10 @@ add_custom_command(TARGET Editor POST_BUILD
 
 if (WIN32)
     add_custom_command(TARGET Editor POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:Player>
-            "$<TARGET_FILE_DIR:Editor>/player/"
-        COMMAND_EXPAND_LISTS
+        COMMAND ${CMAKE_COMMAND}
+            -DSOURCE_DIR=$<TARGET_FILE_DIR:Player>
+            -DDESTINATION=$<TARGET_FILE_DIR:Editor>/player
+            -P ${CMAKE_SOURCE_DIR}/cmake/CopyDllsFromDirectory.cmake
         COMMENT "Copying the player's DLLs for game export"
         VERBATIM
     )
