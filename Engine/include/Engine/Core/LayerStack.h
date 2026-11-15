@@ -2,14 +2,16 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/Layer.h"
+#include "Engine/Core/NonCopyable.h"
 
 #include <vector>
 
 namespace ByteForge
 {
-    class BYTEFORGE_API LayerStack
+    class BYTEFORGE_API LayerStack : NonCopyable
     {
     public:
+        LayerStack() = default;
         ~LayerStack();
 
         void PushLayer(Scope<Layer> layer);
