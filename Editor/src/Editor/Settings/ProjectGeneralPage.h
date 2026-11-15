@@ -28,8 +28,8 @@ namespace ByteForge
         [[nodiscard]] static fs::file_time_type ReadFileTime();
 
     private:
-        std::array<char, 128> m_Name{};
-        std::array<char, 128> m_WindowTitle{};
+        std::string m_Name;
+        std::string m_WindowTitle;
         std::array<i32, 2> m_WindowSize{ 1280, 720 };
         UUID m_StartScene{ 0 };
 

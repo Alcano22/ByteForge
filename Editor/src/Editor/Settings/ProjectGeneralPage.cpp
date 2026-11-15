@@ -8,9 +8,9 @@
 #include <Engine/Project/ProjectSettings.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
-#include <cstdio>
 #include <format>
 
 namespace ByteForge
@@ -19,12 +19,6 @@ namespace ByteForge
     {
         constexpr i32 MinWindowSize = 1;
         constexpr i32 MaxWindowSize = 16384;
-
-        template<usize N>
-        void CopyToBuffer(std::array<char, N>& buffer, const std::string& text)
-        {
-            std::snprintf(buffer.data(), buffer.size(), "%s", text.c_str());
-        }
     }
 
     void ProjectGeneralPage::Draw(EditorContext& context)
@@ -42,10 +36,10 @@ namespace ByteForge
 
         bool changed = false;
 
-        changed |= ImGui::InputText("Name", m_Name.data(), m_Name.size());
+        changed |= ImGui::InputText("Name", &m_Name);
         ImGui::SetItemTooltip("Name of the game, also used for the exported folder and executable");
 
-        changed |= ImGui::InputText("Window Title", m_WindowTitle.data(), m_WindowTitle.size());
+        changed |= ImGui::InputText("Window Title", &m_WindowTitle);
 
         if (ImGui::DragInt2("Window Size", m_WindowSize.data(), 1.0f, MinWindowSize, MaxWindowSize,
                             "%d", ImGuiSliderFlags_AlwaysClamp))
@@ -67,7 +61,7 @@ namespace ByteForge
 
         ImGui::Separator();
 
-        const bool valid = !Trim(m_Name.data()).empty();
+        const bool valid = !Trim(m_Name).empty();
 
         ImGui::BeginDisabled(!m_Dirty || !valid);
         if (ImGui::Button("Apply"))
@@ -109,8 +103,8 @@ namespace ByteForge
             settings.WindowTitle = settings.Name;
         }
 
-        CopyToBuffer(m_Name, settings.Name);
-        CopyToBuffer(m_WindowTitle, settings.WindowTitle);
+        m_Name = settings.Name;
+        m_WindowTitle = settings.WindowTitle;
         m_WindowSize = { static_cast<i32>(settings.WindowWidth), static_cast<i32>(settings.WindowHeight) };
         m_StartScene = settings.StartScene;
 
@@ -122,8 +116,8 @@ namespace ByteForge
     void ProjectGeneralPage::Apply()
     {
         ProjectSettings settings;
-        settings.Name = std::string(Trim(m_Name.data()));
-        settings.WindowTitle = std::string(Trim(m_WindowTitle.data()));
+        settings.Name = std::string(Trim(m_Name));
+        settings.WindowTitle = std::string(Trim(m_WindowTitle));
         if (settings.WindowTitle.empty())
             settings.WindowTitle = settings.Name;
 

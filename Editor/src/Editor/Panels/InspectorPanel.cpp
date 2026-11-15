@@ -13,6 +13,7 @@
 #include <Engine/Scripting/ScriptEngine.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <array>
@@ -245,17 +246,11 @@ namespace ByteForge
     {
         auto& tag = entity.GetComponent<TagComponent>();
 
-        std::array<char, 256> buffer{};
-        const usize length = std::min(tag.Tag.size(), buffer.size() - 1);
-        std::memcpy(buffer.data(), tag.Tag.data(), length);
-        buffer[length] = '\0';
-
         const ImGuiStyle& style = ImGui::GetStyle();
         const f32 buttonWidth = ImGui::CalcTextSize("Add Component").x + style.FramePadding.x * 2.0f;
 
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x);
-        if (ImGui::InputText("##Tag", buffer.data(), buffer.size()))
-            tag.Tag = buffer.data();
+        ImGui::InputText("##Tag", &tag.Tag);
 
         ImGui::SameLine();
         if (ImGui::Button("Add Component"))
@@ -268,19 +263,11 @@ namespace ByteForge
     {
         if (!ImGui::BeginPopup(AddComponentPopupId)) return;
 
-        static std::array<char, 64> s_Filter{};
-        if (ImGui::IsWindowAppearing())
-        {
-            s_Filter.fill('\0');
-            ImGui::SetKeyboardFocusHere();
-        }
-
-        ImGui::SetNextItemWidth(220.0f);
-        const bool submitted = ImGui::InputTextWithHint("##search", "Search components...", s_Filter.data(),
-                                                        s_Filter.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+        static std::string s_Filter;
+        const bool submitted = EditorUI::PopupSearchField("Search components...", s_Filter, 220.0f);
         ImGui::Separator();
 
-        const std::string_view query(s_Filter.data());
+        const std::string_view query = s_Filter;
         bool anyMatch = false;
 
         for (const ComponentInspector& inspector : GetComponentInspectors())

@@ -4,7 +4,7 @@
 
 #include <Engine/Scene/Entity.h>
 
-#include <array>
+#include <string>
 
 namespace ByteForge
 {
@@ -29,7 +29,7 @@ namespace ByteForge
 
     private:
         Entity m_RenameTarget;
-        std::array<char, 256> m_RenameBuffer{};
+        std::string m_RenameText;
         bool m_FocusRenameField = false;
 
         Entity m_PressedEntity;

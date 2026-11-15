@@ -107,7 +107,7 @@ namespace ByteForge
         u64 m_SeenAssetRevision = 0;
 
         std::optional<fs::path> m_RenamingPath;
-        std::array<char, 256> m_RenameBuffer{};
+        std::string m_RenameText;
         std::optional<fs::path> m_RenameAfterRefresh;
         bool m_FocusRename = false;
 

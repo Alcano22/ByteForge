@@ -11,6 +11,7 @@
 #include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <array>
@@ -228,19 +229,13 @@ namespace ByteForge::EditorUI
             if (!ImGui::BeginPopup(PickerPopupId))
                 return false;
 
-            static std::array<char, 128> s_Filter{};
+            static std::string s_Filter;
             static std::vector<AssetMetadata> s_Candidates;
 
             if (ImGui::IsWindowAppearing())
-            {
-                s_Filter.fill('\0');
                 s_Candidates = AssetRegistry::GetAssetsOfType(AssetType::Texture2D);
-                ImGui::SetKeyboardFocusHere();
-            }
 
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            const bool submitted = ImGui::InputTextWithHint("##search", "Search textures...", s_Filter.data(),
-                                                            s_Filter.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+            const bool submitted = PopupSearchField("Search textures...", s_Filter);
             ImGui::Separator();
 
             bool changed = false;
@@ -252,7 +247,7 @@ namespace ByteForge::EditorUI
                 changed = true;
             }
 
-            const std::string_view query(s_Filter.data());
+            const std::string_view query = s_Filter;
             const f32 rowHeight = std::max(PickerThumbnailSize, ImGui::GetTextLineHeight() * 2.0f + 2.0f);
             bool anyMatch = false;
 
@@ -304,19 +299,13 @@ namespace ByteForge::EditorUI
             if (!ImGui::BeginPopup(AssetPickerPopupId))
                 return false;
 
-            static std::array<char, 128> s_Filter{};
+            static std::string s_Filter;
             static std::vector<AssetMetadata> s_Candidates;
 
             if (ImGui::IsWindowAppearing())
-            {
-                s_Filter.fill('\0');
                 s_Candidates = AssetRegistry::GetAssetsOfType(type);
-                ImGui::SetKeyboardFocusHere();
-            }
 
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            const bool submitted = ImGui::InputTextWithHint("##search", "Search...", s_Filter.data(), s_Filter.size(),
-                                                            ImGuiInputTextFlags_EnterReturnsTrue);
+            const bool submitted = PopupSearchField("Search...", s_Filter);
             ImGui::Separator();
 
             bool changed = false;
@@ -330,7 +319,7 @@ namespace ByteForge::EditorUI
                 changed = true;
             }
 
-            const std::string_view query(s_Filter.data());
+            const std::string_view query = s_Filter;
             bool anyMatch = false;
 
             for (const AssetMetadata& metadata : s_Candidates)
@@ -364,6 +353,18 @@ namespace ByteForge::EditorUI
             ImGui::EndPopup();
             return changed;
         }
+    }
+
+    bool PopupSearchField(const char* hint, std::string& query, const f32 width)
+    {
+        if (ImGui::IsWindowAppearing())
+        {
+            query.clear();
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(width);
+        return ImGui::InputTextWithHint("##search", hint, &query, ImGuiInputTextFlags_EnterReturnsTrue);
     }
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection)

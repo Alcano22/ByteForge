@@ -13,6 +13,8 @@
 #include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
 
+#include <imgui_stdlib.h>
+
 #include <algorithm>
 #include <exception>
 #include <system_error>
@@ -506,11 +508,7 @@ namespace ByteForge
 
     void AssetsPanel::BeginRename(const Entry& entry)
     {
-        const std::string name = GetDisplayName(entry.Path, entry.IsDirectory);
-        const usize length = std::min(name.size(), m_RenameBuffer.size() - 1);
-        std::memcpy(m_RenameBuffer.data(), name.data(), length);
-        m_RenameBuffer[length] = '\0';
-
+        m_RenameText = GetDisplayName(entry.Path, entry.IsDirectory);
         m_RenamingPath = entry.Path;
         m_FocusRename = true;
     }
@@ -520,7 +518,7 @@ namespace ByteForge
         const std::optional<fs::path> from = std::exchange(m_RenamingPath, std::nullopt);
         if (!from) return;
 
-        const std::string_view name = Trim(m_RenameBuffer.data());
+        const std::string_view name = Trim(m_RenameText);
 
         std::error_code error;
         const bool isDirectory = fs::is_directory(AssetRegistry::GetAssetRoot() / *from, error);
@@ -555,8 +553,8 @@ namespace ByteForge
         if (std::exchange(m_FocusRename, false))
             ImGui::SetKeyboardFocusHere();
 
-        const bool submitted = ImGui::InputText("##rename", m_RenameBuffer.data(), m_RenameBuffer.size(),
-                                                ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+        const bool submitted = ImGui::InputText("##rename", &m_RenameText, ImGuiInputTextFlags_EnterReturnsTrue
+                                                                         | ImGuiInputTextFlags_AutoSelectAll);
 
         if (submitted)
             CommitRename();

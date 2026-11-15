@@ -7,6 +7,7 @@
 #include <Engine/Scene/Scene.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -360,11 +361,7 @@ namespace ByteForge
 
     void SceneHierarchyPanel::BeginRename(const Entity entity)
     {
-        const std::string& tag = entity.GetTag();
-        const usize length = std::min(tag.size(), m_RenameBuffer.size() - 1);
-        std::memcpy(m_RenameBuffer.data(), tag.data(), length);
-        m_RenameBuffer[length] = '\0';
-
+        m_RenameText = entity.GetTag();
         m_RenameTarget = entity;
         m_FocusRenameField = true;
     }
@@ -378,12 +375,12 @@ namespace ByteForge
         }
 
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputText("##rename", m_RenameBuffer.data(), m_RenameBuffer.size(), ImGuiInputTextFlags_AutoSelectAll);
+        ImGui::InputText("##rename", &m_RenameText, ImGuiInputTextFlags_AutoSelectAll);
 
         if (ImGui::IsItemDeactivated())
         {
             if (!ImGui::IsKeyPressed(ImGuiKey_Escape))
-                GetContext().RenameEntity(m_RenameTarget, m_RenameBuffer.data());
+                GetContext().RenameEntity(m_RenameTarget, m_RenameText);
 
             m_RenameTarget = {};
         }

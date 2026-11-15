@@ -4,6 +4,7 @@
 #include "Editor/StringUtils.h"
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <cstdint>
 #include <format>
@@ -125,7 +126,7 @@ namespace ByteForge
 
         ImGui::SameLine(0.0f, 16.0f);
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputTextWithHint("##filter", "Search...", m_Filter.data(), m_Filter.size());
+        ImGui::InputTextWithHint("##filter", "Search...", &m_Filter);
     }
 
     void ConsolePanel::DrawEntries()
@@ -205,10 +206,9 @@ namespace ByteForge
 
     bool ConsolePanel::PassesFilter(const Row& row) const
     {
-        if (!m_ShowCategory[CategoryOf(row.Entry.Level)])
+        if (m_ShowCategory[CategoryOf(row.Entry.Level)])
             return false;
 
-        const std::string_view query(m_Filter.data());
-        return ContainsIgnoreCase(row.Entry.Message, query) || ContainsIgnoreCase(row.Entry.Logger, query);
+        return ContainsIgnoreCase(row.Entry.Message, m_Filter) || ContainsIgnoreCase(row.Entry.Logger, m_Filter);
     }
 }

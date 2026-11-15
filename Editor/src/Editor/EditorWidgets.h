@@ -25,6 +25,8 @@ namespace ByteForge::EditorUI
 
     inline constexpr const char* EntityPayloadType = "ByteForge.Entity";
 
+    bool PopupSearchField(const char* hint, std::string& query, f32 width = -FLT_MIN);
+
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);
 
     bool AssetReferenceField(const char* label, AssetType type, UUID& handle,

@@ -12,6 +12,7 @@
 #include <Engine/Core/Log.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 #include <imgui_internal.h>
 
 #include <algorithm>
@@ -192,27 +193,24 @@ namespace ByteForge
 
     void EditorLayouts::OpenSaveDialog(PopupManager& popups)
     {
-        std::array<char, 64> nameBuffer{};
-        std::snprintf(nameBuffer.data(), nameBuffer.size(), "%s", "My Layout");
-
-        popups.Open("Save Layout", [this, nameBuffer](Popup& popup) mutable
+        popups.Open("Save Layout", [this, name = std::string("My Layout")](Popup& popup) mutable
         {
             if (ImGui::IsWindowAppearing())
                 ImGui::SetKeyboardFocusHere();
 
-            const bool submitted = ImGui::InputTextWithHint("##name", "Layout name", nameBuffer.data(),
-                                                            nameBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+            const bool submitted = ImGui::InputTextWithHint("##name", "Layout name", &name,
+                                                            ImGuiInputTextFlags_EnterReturnsTrue);
 
-            const std::string name = MakeLayoutName(nameBuffer.data());
-            const bool valid = !name.empty();
+            const std::string layoutName = MakeLayoutName(name);
+            const bool valid = !layoutName.empty();
 
-            if (valid && fs::exists(GetLayoutPath(name)))
-                ImGui::TextDisabled("'%s' will be overwritten", name.c_str());
+            if (valid && fs::exists(GetLayoutPath(layoutName)))
+                ImGui::TextDisabled("'%s' will be overwritten", layoutName.c_str());
 
             ImGui::BeginDisabled(!valid);
             if (ImGui::Button("Save") || (submitted && valid))
             {
-                SaveUserLayout(name);
+                SaveUserLayout(layoutName);
                 popup.Close();
             }
             ImGui::EndDisabled();

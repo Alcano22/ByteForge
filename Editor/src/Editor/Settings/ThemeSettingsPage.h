@@ -4,7 +4,6 @@
 
 #include <imgui.h>
 
-#include <array>
 #include <string>
 
 namespace ByteForge
@@ -26,7 +25,7 @@ namespace ByteForge
         void DrawColors(ThemeManager& themes);
 
     private:
-        std::array<char, 128> m_NewName{};
+        std::string m_NewName;
         ImGuiTextFilter m_Filter;
     };
 }

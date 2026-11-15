@@ -6,6 +6,7 @@
 #include <Engine/Core/StringUtils.h>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <cfloat>
 #include <string>
@@ -96,15 +97,15 @@ namespace ByteForge
         const f32 buttonWidth = ImGui::CalcTextSize("Duplicate").x + style.FramePadding.x * 2.0f;
 
         ImGui::SetNextItemWidth(-(buttonWidth + style.ItemSpacing.x));
-        ImGui::InputTextWithHint("##NewName", "Name of the copy", m_NewName.data(), m_NewName.size());
+        ImGui::InputTextWithHint("##NewName", "Name of the copy", &m_NewName);
 
-        const std::string newName(Trim(m_NewName.data()));
+        const std::string newName(Trim(m_NewName));
         const char* error = newName.empty() ? nullptr : themes.GetNameError(newName);
 
         ImGui::SameLine();
         ImGui::BeginDisabled(newName.empty() || error != nullptr);
         if (ImGui::Button("Duplicate") && themes.Duplicate(name, newName))
-            m_NewName[0] = '\0';
+            m_NewName.clear();
         ImGui::EndDisabled();
 
         if (error != nullptr)
