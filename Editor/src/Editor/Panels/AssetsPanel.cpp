@@ -689,7 +689,7 @@ namespace ByteForge
     {
         const fs::path path = MakeUniquePath(m_CurrentDirectory, MakeFileStem(entity.GetTag()), PrefabExtension);
 
-        if (const auto created = Prefab::Create(entity, path); !created)
+        if (const auto created = GetContext().CreatePrefab(entity, path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
             return;

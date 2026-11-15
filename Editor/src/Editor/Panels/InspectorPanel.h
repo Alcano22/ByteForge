@@ -22,6 +22,7 @@ namespace ByteForge
     private:
         void DrawEntity(Entity entity) const;
         void DrawSection(const InspectorSection& section, Entity entity) const;
+        void DrawPrefabBar(Entity entity) const;
 
         static void DrawHeader(Entity entity);
         static void DrawAddComponentPopup(Entity entity);

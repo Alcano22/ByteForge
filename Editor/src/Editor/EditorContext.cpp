@@ -121,6 +121,9 @@ namespace ByteForge
             const Entity copy = ActiveScene->DuplicateEntity(entity);
             copy.GetComponent<TagComponent>().Tag = MakeUniqueName(entity.GetTag());
 
+            if (const auto* link = copy.TryGetComponent<PrefabInstanceComponent>(); link != nullptr && !link->Root)
+                Prefab::Unlink(copy);
+
             RecordIfEditing(MakeScope<CreateEntityCommand>(*ActiveScene, std::format("Duplicate '{}'", entity.GetTag()),
                                                            SceneSerializer::SerializeSubtree(copy)));
             SelectionContext.Select(copy);
@@ -220,6 +223,38 @@ namespace ByteForge
                                                            std::format("Instantiate '{}'", root.GetTag()),
                                                            SceneSerializer::SerializeSubtree(root)));
             SelectionContext.Select(root);
+        });
+    }
+
+    Result<UUID> EditorContext::CreatePrefab(const Entity root, const fs::path& relativePath)
+    {
+        const Result<UUID> handle = Prefab::Create(root, relativePath);
+        if (!handle || !IsEditing())
+            return handle;
+
+        nlohmann::json before = SceneSerializer::SerializeSubtree(root);
+        Prefab::Link(root, *handle);
+
+        History.Record(MakeScope<ModifyEntitiesCommand>(root.GetScene(),
+                                                        std::format("Create Prefab from '{}'", root.GetTag()),
+                                                        std::move(before), SceneSerializer::SerializeSubtree(root)));
+        return handle;
+    }
+
+    void EditorContext::UnpackPrefab(const Entity entity)
+    {
+        Defer([this, entity]
+        {
+            if (ActiveScene == nullptr || !entity.HasComponent<PrefabInstanceComponent>()) return;
+
+            const Entity root = Prefab::GetInstanceRoot(entity);
+            const Entity target = root.IsValid() ? root : entity;
+
+            nlohmann::json before = SceneSerializer::SerializeSubtree(target);
+            Prefab::Unlink(target);
+
+            RecordIfEditing(MakeScope<ModifyEntitiesCommand>(*ActiveScene, std::format("Unpack '{}'", target.GetTag()),
+                                                             std::move(before), SceneSerializer::SerializeSubtree(target)));
         });
     }
 

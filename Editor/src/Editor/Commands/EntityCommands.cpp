@@ -43,6 +43,12 @@ namespace ByteForge
 
             SceneSerializer::DeserializeSubtree(scene, subtree);
         }
+
+        void ApplyEntities(const Scene& scene, const nlohmann::json& entities)
+        {
+            for (const nlohmann::json& entityJson : entities)
+                SceneSerializer::ApplyEntity(FindOrThrow(scene, UuidOf(entityJson)), entityJson);
+        }
     }
 
     ModifyEntityCommand::ModifyEntityCommand(Scene& scene, std::string name,
@@ -51,6 +57,13 @@ namespace ByteForge
 
     void ModifyEntityCommand::Execute() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, UuidOf(m_After)), m_After); }
     void ModifyEntityCommand::Undo() { SceneSerializer::ApplyEntity(FindOrThrow(m_Scene, UuidOf(m_Before)), m_Before); }
+
+    ModifyEntitiesCommand::ModifyEntitiesCommand(Scene& scene, std::string name,
+                                                 nlohmann::json before, nlohmann::json after)
+        : m_Scene(scene), m_Name(std::move(name)), m_Before(std::move(before)), m_After(std::move(after)) {}
+
+    void ModifyEntitiesCommand::Execute() { ApplyEntities(m_Scene, m_After); }
+    void ModifyEntitiesCommand::Undo() { ApplyEntities(m_Scene, m_Before); }
 
     CreateEntityCommand::CreateEntityCommand(Scene& scene, std::string name, nlohmann::json subtree)
         : m_Scene(scene), m_Name(std::move(name)), m_Subtree(std::move(subtree)) {}

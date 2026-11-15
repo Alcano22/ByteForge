@@ -127,6 +127,8 @@ namespace ByteForge
         void MoveEntity(Entity entity, Entity newParent, i32 index = -1);
 
         void InstantiatePrefab(UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
+        Result<UUID> CreatePrefab(Entity root, const fs::path& relativePath);
+        void UnpackPrefab(Entity entity);
 
         bool Undo();
         bool Redo();

@@ -58,7 +58,8 @@ namespace ByteForge
             Describe<AudioSourceComponent>("audioSource"),
             Describe<AnimatorComponent>("animator"),
             Describe<ScriptComponent>("script", true, true),
-            Describe<ComponentOrderComponent>("componentOrder", true, true)
+            Describe<ComponentOrderComponent>("componentOrder", true, true),
+            Describe<PrefabInstanceComponent>("prefabInstance", true, true)
         };
 
         constexpr bool HasUniqueKeys()

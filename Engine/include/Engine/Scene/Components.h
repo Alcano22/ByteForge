@@ -13,3 +13,4 @@
 #include "Engine/Scene/Components/AnimatorComponent.h"
 #include "Engine/Scene/Components/ScriptComponent.h"
 #include "Engine/Scene/Components/ComponentOrderComponent.h"
+#include "Engine/Scene/Components/PrefabInstanceComponent.h"

@@ -5,6 +5,7 @@
 
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Scene.h>
+#include <Engine/Assets/Prefab.h>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -202,8 +203,18 @@ namespace ByteForge
         if (context.SelectionContext.IsEntity(entity))
             flags |= ImGuiTreeNodeFlags_Selected;
 
+        const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+        const std::optional<UUID> prefab = link != nullptr ? std::optional(link->Prefab) : std::nullopt;
+        const bool prefabExists = prefab && Prefab::Exists(*prefab);
+
         const std::string label = std::format("{}###entity", entity.GetTag());
-        const bool open = ImGui::TreeNodeEx(label.c_str(), flags);
+        bool open = false;
+        {
+            const ImVec4& prefabColor = prefabExists ? EditorColors::Get(EditorColor::PrefabInstance)
+                                                     : EditorUI::ErrorColor;
+            const EditorUI::ScopedStyleColor color(ImGuiCol_Text, prefabColor, prefab.has_value());
+            open = ImGui::TreeNodeEx(label.c_str(), flags);
+        }
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
             m_PressedEntity = entity;
@@ -261,6 +272,16 @@ namespace ByteForge
 
             if (ImGui::MenuItem("Unparent", nullptr, false, entity.HasParent()))
                 context.MoveEntity(entity, {});
+
+            if (prefab)
+            {
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Select Prefab Asset", nullptr, false, prefabExists))
+                    context.SelectionContext.SelectAsset(*prefab);
+                if (ImGui::MenuItem("Unpack Prefab"))
+                    context.UnpackPrefab(entity);
+            }
 
             ImGui::Separator();
 

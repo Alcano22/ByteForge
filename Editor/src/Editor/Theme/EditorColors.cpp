@@ -21,7 +21,9 @@ namespace ByteForge
             { EditorColor::GraphNodeBorder,         "GraphNodeBorder",         "Node border",            "Node Graph" },
             { EditorColor::GraphNodeBorderHovered,  "GraphNodeBorderHovered",  "Node border (hovered)",  "Node Graph" },
             { EditorColor::GraphNodeBorderSelected, "GraphNodeBorderSelected", "Node border (selected)", "Node Graph" },
-            { EditorColor::GraphPinHighlight,       "GraphPinHighlight",       "Pin highlight",          "Node Graph" }
+            { EditorColor::GraphPinHighlight,       "GraphPinHighlight",       "Pin highlight",          "Node Graph" },
+
+            { EditorColor::PrefabInstance,          "PrefabInstance",          "Prefab instance",        "Hierarchy"  }
         }};
 
         constexpr bool TableMatchesEnum()

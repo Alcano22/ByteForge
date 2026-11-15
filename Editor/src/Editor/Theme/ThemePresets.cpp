@@ -112,6 +112,8 @@ namespace ByteForge
             set(EditorColor::GraphNodeBorderSelected, Rgba8(255, 176, 50));
             set(EditorColor::GraphPinHighlight,       Rgba8(110, 150, 230, 60));
 
+            set(EditorColor::PrefabInstance,          Rgba8(115, 170, 255));
+
             return colors;
         }
 
@@ -151,6 +153,9 @@ namespace ByteForge
             set(EditorColor::GraphNodeBorderHovered,  palette.Accent);
             set(EditorColor::GraphNodeBorderSelected, selection);
             set(EditorColor::GraphPinHighlight,       WithAlpha(palette.Accent, 0.24f));
+
+            set(EditorColor::PrefabInstance, dark ? ImVec4(0.45f, 0.67f, 1.0f, 1.0f)
+                                                  : ImVec4(0.12f, 0.38f, 0.80f, 1.0f));
 
             return colors;
         }

@@ -1,6 +1,7 @@
 #include "Engine/Assets/Prefab.h"
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Core/FileSystem.h"
+#include "Engine/Scene/ComponentRegistry.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/SceneSerializer.h"
@@ -29,6 +30,35 @@ namespace ByteForge
         };
 
         std::unordered_map<UUID, Prototype> s_Cache;
+
+        const char* InstanceKey()
+        {
+            return ComponentRegistry::FindByType(ComponentTypeId<PrefabInstanceComponent>())->Key;
+        }
+
+        void LinkSubtree(const Entity entity, const UUID handle, const bool root)
+        {
+            const PrefabInstanceComponent link{ .Prefab = handle, .Source = entity.GetUUID(), .Root = root };
+
+            if (auto* existing = entity.TryGetComponent<PrefabInstanceComponent>())
+                *existing = link;
+            else
+                entity.AddComponent<PrefabInstanceComponent>(link);
+
+            for (const Entity child : entity.GetChildren())
+                LinkSubtree(child, handle, false);
+        }
+
+        void UnlinkSubtree(const Entity entity, const UUID handle, const bool first)
+        {
+            const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+            if (link == nullptr || link->Prefab != handle || (!first && link->Root)) return;
+
+            entity.RemoveComponent<PrefabInstanceComponent>();
+
+            for (const Entity child : entity.GetChildren())
+                UnlinkSubtree(child, handle, false);
+        }
 
         Result<const Prototype*> LoadPrototype(const UUID handle)
         {
@@ -60,6 +90,8 @@ namespace ByteForge
                 return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
             }
 
+            LinkSubtree(prototype.Root, handle, true);
+
             return &s_Cache.insert_or_assign(handle, std::move(prototype)).first->second;
         }
     }
@@ -76,6 +108,9 @@ namespace ByteForge
             return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
 
         nlohmann::json entities = SceneSerializer::SerializeSubtree(root);
+
+        for (nlohmann::json& entity : entities)
+            entity.erase(InstanceKey());
 
         nlohmann::json& rootJson = entities.at(0);
         rootJson.erase("parent");
@@ -115,6 +150,48 @@ namespace ByteForge
             root.SetParent(parent, true);
 
         return root;
+    }
+
+    void Prefab::Link(const Entity root, const UUID handle)
+    {
+        if (root.IsValid())
+            LinkSubtree(root, handle, true);
+    }
+
+    void Prefab::Unlink(const Entity entity)
+    {
+        const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+        if (link == nullptr) return;
+
+        const UUID handle = link->Prefab;
+        UnlinkSubtree(entity, handle, true);
+    }
+
+    Entity Prefab::GetInstanceRoot(const Entity entity)
+    {
+        Entity current = entity;
+
+        while (true)
+        {
+            const auto* link = current.TryGetComponent<PrefabInstanceComponent>();
+            if (link == nullptr)
+                return {};
+            if (link->Root)
+                return current;
+
+            const Entity parent = current.GetParent();
+            const auto* parentLink = parent.TryGetComponent<PrefabInstanceComponent>();
+            if (parentLink == nullptr || parentLink->Prefab != link->Prefab)
+                return {};
+
+            current = parent;
+        }
+    }
+
+    bool Prefab::Exists(const UUID handle)
+    {
+        AssetMetadata metadata;
+        return handle.IsSet() && AssetRegistry::TryGetMetadata(handle, metadata) && metadata.Type == AssetType::Prefab;
     }
 
     void Prefab::Invalidate(const UUID handle) { s_Cache.erase(handle); }

@@ -30,6 +30,8 @@ namespace ByteForge
         GraphNodeBorderSelected,
         GraphPinHighlight,
 
+        PrefabInstance,
+
         Count
     };
 

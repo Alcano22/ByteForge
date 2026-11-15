@@ -18,11 +18,17 @@ namespace ByteForge
     class BYTEFORGE_API Prefab
     {
     public:
-        [[nodiscard]] static Result<UUID> Create(Entity root,
-                                                                     const fs::path& relativePath);
+        [[nodiscard]] static Result<UUID> Create(Entity root, const fs::path& relativePath);
 
-        [[nodiscard]] static Result<Entity> Instantiate(
-            Scene& scene, UUID handle, Entity parent = {}, std::optional<glm::vec2> position = std::nullopt);
+        [[nodiscard]] static Result<Entity> Instantiate(Scene& scene, UUID handle, Entity parent = {},
+                                                        std::optional<glm::vec2> position = std::nullopt);
+
+        static void Link(Entity root, UUID handle);
+        static void Unlink(Entity entity);
+
+        [[nodiscard]] static Entity GetInstanceRoot(Entity entity);
+
+        [[nodiscard]] static bool Exists(UUID handle);
 
         static void Invalidate(UUID handle);
         static void Clear();

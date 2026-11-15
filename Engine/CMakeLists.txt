@@ -39,6 +39,7 @@ add_library(Engine SHARED
         src/Scene/Components/AnimatorComponent.cpp
         src/Scene/Components/ScriptComponent.cpp
         src/Scene/Components/ComponentOrderComponent.cpp
+        src/Scene/Components/PrefabInstanceComponent.cpp
         src/Project/ProjectSettings.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp

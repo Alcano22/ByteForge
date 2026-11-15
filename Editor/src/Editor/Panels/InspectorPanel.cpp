@@ -10,6 +10,8 @@
 #include "Editor/Inspectors/ScriptInspector.h"
 
 #include <Engine/Scene/Components.h>
+#include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Prefab.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
 #include <imgui.h>
@@ -94,6 +96,7 @@ namespace ByteForge
     void InspectorPanel::DrawEntity(const Entity entity) const
     {
         DrawHeader(entity);
+        DrawPrefabBar(entity);
         ImGui::Separator();
 
         for (const InspectorSection& section : GetOrderedSections(entity))
@@ -233,6 +236,70 @@ namespace ByteForge
             else
                 EditorUI::RemoveScript(entity, UUID(section.Key.ScriptId));
         }
+    }
+
+    void InspectorPanel::DrawPrefabBar(const Entity entity) const
+    {
+        const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+        if (link == nullptr) return;
+
+        EditorContext& context = GetContext();
+
+        const UUID prefab = link->Prefab;
+        const Entity root = Prefab::GetInstanceRoot(entity);
+
+        AssetMetadata metadata;
+        const bool exists = Prefab::Exists(prefab) && AssetRegistry::TryGetMetadata(prefab, metadata);
+
+        constexpr const char* SelectRootLabel = "Select Root";
+        constexpr const char* SelectAssetLabel = "Select Asset";
+        constexpr const char* UnpackLabel = "Unpack";
+
+        const bool showSelectRoot = root.IsValid() && root != entity;
+        const f32 spacing = ImGui::GetStyle().ItemSpacing.x;
+
+        f32 buttonsWidth = EditorUI::ButtonWidth(UnpackLabel);
+        if (exists)
+            buttonsWidth += EditorUI::ButtonWidth(SelectAssetLabel) + spacing;
+        if (showSelectRoot)
+            buttonsWidth += EditorUI::ButtonWidth(SelectRootLabel) + spacing;
+
+        const f32 rowEnd = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+
+        ImGui::AlignTextToFramePadding();
+        if (exists)
+        {
+            const EditorUI::ScopedStyleColor color(ImGuiCol_Text, EditorColors::Get(EditorColor::PrefabInstance));
+            ImGui::Text("%s  %s", EditorIcons::Glyph(EditorIcons::ForFile(metadata.Path)),
+                        metadata.Path.stem().string().c_str());
+        } else
+            EditorUI::ErrorText("Missing prefab");
+
+        if (!root.IsValid() && exists)
+        {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(detached from its instance)");
+        }
+
+        ImGui::SameLine(std::max(rowEnd - buttonsWidth, ImGui::GetCursorPosX()));
+
+        if (showSelectRoot)
+        {
+            if (ImGui::Button(SelectRootLabel))
+                context.SelectionContext.Select(root);
+            ImGui::SameLine();
+        }
+
+        if (exists)
+        {
+            if (ImGui::Button(SelectAssetLabel))
+                context.SelectionContext.SelectAsset(prefab);
+            ImGui::SameLine();
+        }
+
+        if (ImGui::Button(UnpackLabel))
+            context.UnpackPrefab(entity);
+        ImGui::SetItemTooltip("Turn the instance back into ordinary entities");
     }
 
     void InspectorPanel::DrawHeader(const Entity entity)
