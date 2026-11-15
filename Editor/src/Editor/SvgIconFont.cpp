@@ -4,8 +4,7 @@
 #include <lunasvg.h>
 
 #include <algorithm>
-#include <cmath>
-#include <cstring>
+#include <string_view>
 
 namespace ByteForge
 {
@@ -107,7 +106,10 @@ namespace ByteForge
         config.FontLoader = &GetLoader();
         config.FontData = this;
         config.FontDataOwnedByAtlas = false;
-        std::strncpy(config.Name, "SVG icons", sizeof(config.Name) - 1);
+
+        constexpr std::string_view name = "SVG icons";
+        static_assert(name.size() < sizeof(ImFontConfig::Name), "font name does not fit ImFontConfig::Name");
+        std::ranges::copy(name, config.Name);
 
         ImGui::GetIO().Fonts->AddFont(&config);
     }
