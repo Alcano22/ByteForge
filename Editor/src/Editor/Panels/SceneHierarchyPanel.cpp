@@ -215,13 +215,23 @@ namespace ByteForge
         const bool open = ImGui::TreeNodeEx(label.c_str(), flags);
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
-            context.SelectionContext.Select(entity);
+            m_PressedEntity = entity;
 
         if (ImGui::BeginDragDropSource())
         {
+            m_PressedEntity = {};
+
             ImGui::SetDragDropPayload(EditorUI::EntityPayloadType, &uuid, sizeof(uuid));
             ImGui::TextUnformatted(entity.GetTag().c_str());
             ImGui::EndDragDropSource();
+        }
+
+        if (m_PressedEntity == entity && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            if (ImGui::IsItemHovered())
+                context.SelectionContext.Select(entity);
+
+            m_PressedEntity = {};
         }
 
         const HierarchyDrop drop = AcceptHierarchyDrop(scene);

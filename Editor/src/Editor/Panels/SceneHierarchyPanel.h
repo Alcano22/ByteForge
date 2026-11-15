@@ -31,5 +31,7 @@ namespace ByteForge
         Entity m_RenameTarget;
         std::array<char, 256> m_RenameBuffer{};
         bool m_FocusRenameField = false;
+
+        Entity m_PressedEntity;
     };
 }
