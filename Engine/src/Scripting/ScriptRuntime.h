@@ -52,6 +52,7 @@ namespace ByteForge
         void Sync();
 
         void Create(entt::entity handle, const ScriptEntry& entry);
+        void ApplyStoredFields(entt::entity handle, UUID entryId);
         void Release(entt::entity handle, UUID entry);
         void ReleaseAll(entt::entity handle);
 

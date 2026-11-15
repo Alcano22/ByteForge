@@ -50,7 +50,7 @@ namespace ByteForge
                 static_cast<std::vector<ScriptFieldInfo>*>(userData)->push_back({
                     .Name    = name,
                     .Type    = fieldType,
-                    .Default = ManagedValue::Read(fieldType, value)
+                    .Default = ManagedValue::ReadField(fieldType, value)
                 });
             } catch (...) {}
         }
@@ -62,7 +62,7 @@ namespace ByteForge
             try
             {
                 *static_cast<std::optional<ScriptValue>*>(userData) =
-                    ManagedValue::Read(static_cast<ScriptFieldType>(type), value);
+                    ManagedValue::ReadField(static_cast<ScriptFieldType>(type), value);
             } catch (...) {}
         }
 

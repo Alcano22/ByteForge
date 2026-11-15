@@ -9,5 +9,7 @@ namespace ByteForge::ManagedValue
     inline constexpr usize SlotSize = 16;
 
     [[nodiscard]] ScriptValue Read(ScriptFieldType type, const void* slot);
+    [[nodiscard]] ScriptValue ReadField(ScriptFieldType type, const void* slot);
+
     void Write(const ScriptValue& value, void* slot);
 }

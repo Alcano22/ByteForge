@@ -40,15 +40,15 @@ internal static unsafe class ScriptHost
         }
     }
 
-    internal static T? FindScript<T>(ulong entity) where T : Component
+    internal static Component? FindScript(ulong entity, Type type)
     {
         if (!s_ScriptsByEntity.TryGetValue(entity, out List<ScriptBehaviour>? scripts))
             return null;
 
         foreach (ScriptBehaviour script in scripts)
         {
-            if (script is T match)
-                return match;
+            if (type.IsInstanceOfType(script))
+                return script;
         }
 
         return null;

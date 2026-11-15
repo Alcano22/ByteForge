@@ -7,6 +7,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
+#include <Engine/Scripting/ComponentReference.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
@@ -491,26 +492,48 @@ namespace ByteForge::EditorUI
         bool changed = false;
         ImGui::PushID(label);
 
+        const bool wantsComponent = !reference.Component.empty();
+        const std::string_view typeLabel = wantsComponent ? ComponentTypeLabel(reference.Component) : std::string_view{};
+
+        const auto accepts = [&](const Entity entity)
+        {
+            return !wantsComponent || HasComponentType(entity, reference.Component);
+        };
+
         const Entity target = reference.IsSet() ? scene.FindEntityByUUID(reference.Id) : Entity{};
         const bool missing = reference.IsSet() && !target.IsValid();
-        const std::string preview = !reference.IsSet() ? "None" : missing ? "Missing entity" : target.GetTag();
+        const bool lacksComponent = target.IsValid() && !accepts(target);
 
-        if (missing)
+        std::string preview;
+        if (!reference.IsSet())
+            preview = wantsComponent ? std::format("None ({})", typeLabel) : "None";
+        else if (missing)
+            preview = "Missing entity";
+        else if (lacksComponent)
+            preview = std::format("{} (no {})", target.GetTag(), typeLabel);
+        else
+            preview = wantsComponent ? std::format("{} ({})", target.GetTag(), typeLabel) : target.GetTag();
+
+        const bool error = missing || lacksComponent;
+
+        if (error)
             ImGui::PushStyleColor(ImGuiCol_Text, ErrorColor);
         const bool open = ImGui::BeginCombo(label, preview.c_str());
-        if (missing)
+        if (error)
             ImGui::PopStyleColor();
 
         if (open)
         {
             if (ImGui::Selectable("None", !reference.IsSet()) && reference.IsSet())
             {
-                reference = {};
+                reference.Id = UUID(0);
                 changed = true;
             }
 
             scene.Each<TagComponent>([&](const Entity entity, const TagComponent& tag)
             {
+                if (!accepts(entity)) return;
+
                 const auto id = static_cast<u64>(entity.GetUUID());
                 ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(id)));
 
@@ -529,15 +552,26 @@ namespace ByteForge::EditorUI
 
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EntityPayloadType);
-                payload != nullptr && payload->DataSize == static_cast<i32>(sizeof(u64)))
+            const ImGuiPayload* peek = ImGui::GetDragDropPayload();
+            if (peek != nullptr && peek->IsDataType(EntityPayloadType) && peek->DataSize == static_cast<i32>(sizeof(u64)))
             {
                 u64 id = 0;
-                std::memcpy(&id, payload->Data, sizeof(id));
-                reference.Id = UUID(id);
-                changed = true;
+                std::memcpy(&id, peek->Data, sizeof(id));
+
+                const Entity dragged = scene.FindEntityByUUID(UUID(id));
+                if (dragged.IsValid() && accepts(dragged) && ImGui::AcceptDragDropPayload(EntityPayloadType))
+                {
+                    reference.Id = UUID(id);
+                    changed = true;
+                }
             }
             ImGui::EndDragDropTarget();
+        }
+
+        if (lacksComponent)
+        {
+            ImGui::SetItemTooltip("'%s' has no %.*s anymore", target.GetTag().c_str(),
+                                  static_cast<int>(typeLabel.size()), typeLabel.data());
         }
 
         ImGui::PopID();

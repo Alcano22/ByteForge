@@ -20,11 +20,13 @@ internal enum ScriptFieldType
     String
 }
 
-internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, AssetType assetType = AssetType.None)
+internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, AssetType assetType = AssetType.None,
+                                         Type? componentType = null)
 {
     public const int MaxValueSize = 16;
     private const int AssetTypeOffset = sizeof(ulong);
     private const int StringLengthOffset = 8;
+    private const int ComponentTypeOffset = 8;
 
     private static readonly Dictionary<Type, ScriptFieldType> s_FieldTypes = new()
     {
@@ -46,9 +48,13 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
         [typeof(Prefab)]     = AssetType.Prefab
     };
 
+    private readonly byte[]? _componentTypeName =
+        componentType != null ? Encoding.UTF8.GetBytes(componentType.FullName + "\0") : null;
+
     public FieldInfo Info { get; } = info;
     public ScriptFieldType Type { get; } = type;
     public AssetType AssetType { get; } = assetType;
+    public Type? ComponentType { get; } = componentType;
     public string Name => Info.Name;
 
     public static ScriptField? TryCreate(FieldInfo info)
@@ -59,6 +65,9 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
         if (s_AssetTypes.TryGetValue(info.FieldType, out AssetType assetType))
             return new ScriptField(info, ScriptFieldType.Asset, assetType);
 
+        if (typeof(Component).IsAssignableFrom(info.FieldType) && !info.FieldType.IsAbstract)
+            return new ScriptField(info, ScriptFieldType.Entity, componentType: info.FieldType);
+
         return null;
     }
 
@@ -68,6 +77,18 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
         new Span<byte>(value, MaxValueSize).Clear();
 
         using var name = new Utf8String(Name);
+
+        if (_componentTypeName != null)
+        {
+            Read(target, value);
+
+            fixed (byte* typeName = _componentTypeName)
+            {
+                *(byte**)(value + ComponentTypeOffset) = typeName;
+                sink(name.Pointer, (int)Type, value, userData);
+            }
+            return;
+        }
 
         if (Type != ScriptFieldType.String)
         {
@@ -98,13 +119,29 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
             ScriptFieldType.Vector2 => *(Vector2*)source,
             ScriptFieldType.Vector3 => *(Vector3*)source,
             ScriptFieldType.Vector4 => *(Vector4*)source,
-            ScriptFieldType.Entity  => *(ulong*)source is var id and not 0 ? new Entity(id) : null,
+            ScriptFieldType.Entity  => ReadEntity(*(ulong*)source),
             ScriptFieldType.Asset   => Asset.Create(AssetType, *(ulong*)source),
             ScriptFieldType.String  => ReadString(source),
             _ => throw new InvalidOperationException($"Unknown field type {Type}")
         };
 
         Info.SetValue(target, value);
+    }
+
+    private object? ReadEntity(ulong id)
+    {
+        if (id == 0)
+            return null;
+
+        var entity = new Entity(id);
+        if (ComponentType == null)
+            return entity;
+
+        Component? component = entity.GetComponent(ComponentType);
+        if (component == null)
+            Log.Warning($"Field '{Name}': entity {id} has no {ComponentType.Name}");
+
+        return component;
     }
 
     private void Read(object? target, void* destination)
@@ -120,7 +157,14 @@ internal sealed unsafe class ScriptField(FieldInfo info, ScriptFieldType type, A
             case ScriptFieldType.Vector2: *(Vector2*)destination = value is Vector2 v2 ? v2 : default; break;
             case ScriptFieldType.Vector3: *(Vector3*)destination = value is Vector3 v3 ? v3 : default; break;
             case ScriptFieldType.Vector4: *(Vector4*)destination = value is Vector4 v4 ? v4 : default; break;
-            case ScriptFieldType.Entity:  *(ulong*)destination = (value as Entity)?.ID ?? 0; break;
+            case ScriptFieldType.Entity:
+                *(ulong*)destination = value switch
+                {
+                    Component component => component.Entity.ID,
+                    Entity entity       => entity.ID,
+                    _                   => 0UL
+                };
+                break;
             case ScriptFieldType.Asset:
                 *(ulong*)destination = (value as Asset)?.Handle ?? 0;
                 *((byte*)destination + AssetTypeOffset) = (byte)AssetType;

@@ -18,12 +18,27 @@ namespace ByteForge::JsonValue
                     return ToJson(v);
             }, value);
         }
+
+        EntityRef ReadEntityRef(const nlohmann::json& v)
+        {
+            if (v.is_object())
+                return { UUID(v.value("entity", u64{ 0 })), v.value("component", std::string()) };
+
+            return { UUID(v.get<u64>()) };
+        }
     }
 
     nlohmann::json ToJson(const glm::vec2& v) { return { v.x, v.y }; }
     nlohmann::json ToJson(const glm::vec3& v) { return { v.x, v.y, v.z }; }
     nlohmann::json ToJson(const glm::vec4& v) { return { v.x, v.y, v.z, v.w }; }
-    nlohmann::json ToJson(const EntityRef& v) { return static_cast<u64>(v.Id); }
+
+    nlohmann::json ToJson(const EntityRef& v)
+    {
+        if (v.Component.empty())
+            return static_cast<u64>(v.Id);
+
+        return { { "entity", static_cast<u64>(v.Id) }, { "component", v.Component } };
+    }
 
     nlohmann::json ToJson(const AssetRef& v)
     {
@@ -58,7 +73,7 @@ namespace ByteForge::JsonValue
             case ScriptFieldType::Vector2: return ToVec2(v);
             case ScriptFieldType::Vector3: return ToVec3(v);
             case ScriptFieldType::Vector4: return ToVec4(v);
-            case ScriptFieldType::Entity:  return EntityRef{ UUID(v.get<u64>()) };
+            case ScriptFieldType::Entity:  return ReadEntityRef(v);
             case ScriptFieldType::Asset:
                 return AssetRef{ AssetTypeFromString(v.at("type").get<std::string>()),
                                  UUID(v.at("handle").get<u64>()) };

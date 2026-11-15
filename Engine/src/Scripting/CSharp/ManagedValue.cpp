@@ -12,6 +12,7 @@
 //   Bool                  uint8 at 0
 //   Int/Float/Double/Vec  raw value at 0
 //   Entity                uint64 UUID at 0
+//                         script fields only: const char* component type at 8 (null for plain entity fields)
 //   Asset                 uint64 handle at 0, uint8 AssetType at 8
 //   String                const char* at 0, int32 length at 8 (borrowed, never owned by the slot)
 
@@ -63,6 +64,20 @@ namespace ByteForge::ManagedValue
             }
         }
         throw std::runtime_error("Unknown script value type");
+    }
+
+    ScriptValue ReadField(const ScriptFieldType type, const void* slot)
+    {
+        ScriptValue value = Read(type, slot);
+
+        if (auto* entity = std::get_if<EntityRef>(&value))
+        {
+            const auto* secondary = static_cast<const std::byte*>(slot) + SecondaryOffset;
+            if (const auto* component = Load<const char*>(secondary); component != nullptr)
+                entity->Component = component;
+        }
+
+        return value;
     }
 
     void Write(const ScriptValue& value, void* slot)

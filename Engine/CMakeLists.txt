@@ -81,6 +81,7 @@ add_library(Engine SHARED
         src/Scripting/NativeScripts.cpp
         src/Scripting/NativeScriptBackend.cpp
         src/Scripting/ScriptValueJson.cpp
+        src/Scripting/ComponentReference.cpp
         src/Scripting/API/ScriptAPI.cpp
         src/Scripting/API/CoreAPI.cpp
         src/Scripting/CSharp/DotNetHost.cpp

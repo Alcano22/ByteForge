@@ -70,12 +70,14 @@ public sealed class Entity : IEquatable<Entity>
 
     public Transform Transform => GetComponent<Transform>()!;
 
-    public T? GetComponent<T>() where T : Component
-    {
-        if (BuiltInComponents.Contains(typeof(T)))
-            return (T?)GetBuiltIn(typeof(T));
+    public T? GetComponent<T>() where T : Component => (T?)GetComponent(typeof(T));
 
-        return ScriptHost.FindScript<T>(ID);
+    internal Component? GetComponent(Type type)
+    {
+        if (BuiltInComponents.Contains(type))
+            return GetBuiltIn(type);
+
+        return ScriptHost.FindScript(ID, type);
     }
 
     public bool TryGetComponent<T>([NotNullWhen(true)] out T? component) where T : Component

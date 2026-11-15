@@ -170,6 +170,9 @@ namespace ByteForge
         }
 
         for (const auto& [handle, entryId] : created)
+            ApplyStoredFields(handle, entryId);
+
+        for (const auto& [handle, entryId] : created)
             Invoke(handle, entryId, "OnCreate", [](ScriptInstance& script) { script.OnCreate(); });
     }
 
@@ -192,7 +195,6 @@ namespace ByteForge
             try
             {
                 instance.Script = backend->CreateInstance(className, entity);
-                ApplyFields(*backend, className, *instance.Script, entry);
             } catch (const std::exception& e)
             {
                 instance.Failed = true;
@@ -201,6 +203,30 @@ namespace ByteForge
         }
 
         m_Instances[handle].push_back(std::move(instance));
+    }
+
+    void ScriptRuntime::ApplyStoredFields(const entt::entity handle, const UUID entryId)
+    {
+        Instance* instance = FindMutable(handle, entryId);
+        if (instance == nullptr || instance->Failed || !instance->Script) return;
+
+        const entt::registry& registry = m_Scene.m_Registry;
+        const auto* component = registry.valid(handle) ? registry.try_get<ScriptComponent>(handle) : nullptr;
+        const ScriptEntry* entry = component != nullptr ? component->Find(entryId) : nullptr;
+        if (entry == nullptr) return;
+
+        ScriptBackend* backend = ScriptEngine::Get().FindBackend(instance->ClassName);
+        if (backend == nullptr) return;
+
+        try
+        {
+            ApplyFields(*backend, instance->ClassName, *instance->Script, *entry);
+        } catch (const std::exception& e)
+        {
+            instance->Failed = true;
+            CORE_ERROR("Could not apply the fields of script '{}' on entity {}: {}",
+                       instance->ClassName, static_cast<u64>(instance->EntityId), e.what());
+        }
     }
 
     void ScriptRuntime::Release(const entt::entity handle, const UUID entry)

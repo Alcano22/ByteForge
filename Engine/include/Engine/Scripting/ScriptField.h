@@ -19,11 +19,13 @@ namespace ByteForge
     {
         UUID Id{ 0 };
 
+        std::string Component;
+
         [[nodiscard]] bool IsSet() const { return static_cast<u64>(Id) != 0; }
 
         [[nodiscard]] bool operator==(const EntityRef& other) const
         {
-            return static_cast<u64>(Id) == static_cast<u64>(other.Id);
+            return static_cast<u64>(Id) == static_cast<u64>(other.Id) && Component == other.Component;
         }
     };
 
@@ -86,8 +88,18 @@ namespace ByteForge
         if (GetFieldType(value) != field.Type)
             return false;
 
-        const auto* asset = std::get_if<AssetRef>(&value);
-        const auto* expected = std::get_if<AssetRef>(&field.Default);
-        return asset == nullptr || (expected != nullptr && asset->Type == expected->Type);
+        if (const auto* asset = std::get_if<AssetRef>(&value))
+        {
+            const auto* expected = std::get_if<AssetRef>(&field.Default);
+            return expected != nullptr && asset->Type == expected->Type;
+        }
+
+        if (const auto* entity = std::get_if<EntityRef>(&value))
+        {
+            const auto* expected = std::get_if<EntityRef>(&field.Default);
+            return expected != nullptr && entity->Component == expected->Component;
+        }
+
+        return true;
     }
 }
