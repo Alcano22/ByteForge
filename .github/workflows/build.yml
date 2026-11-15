@@ -19,7 +19,7 @@ jobs:
     name: Windows (MSVC)
     runs-on: windows-2025
     env:
-      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      BYTEFORGE_VCPKG: ${{ github.workspace }}/vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
 
     steps:
@@ -39,9 +39,9 @@ jobs:
 
       - name: Set up vcpkg
         run: |
-          git clone https://github.com/microsoft/vcpkg "${{ env.VCPKG_ROOT }}"
-          git -C "${{ env.VCPKG_ROOT }}" checkout ${{ env.VCPKG_COMMIT }}
-          & "${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.bat" -disableMetrics
+          git clone https://github.com/microsoft/vcpkg "${{ env.BYTEFORGE_VCPKG }}"
+          git -C "${{ env.BYTEFORGE_VCPKG }}" checkout ${{ env.VCPKG_COMMIT }}
+          & "${{ env.BYTEFORGE_VCPKG }}/bootstrap-vcpkg.bat" -disableMetrics
           New-Item -ItemType Directory -Force "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}" | Out-Null
 
       - name: Restore vcpkg packages
@@ -53,7 +53,9 @@ jobs:
           restore-keys: vcpkg-windows-${{ env.VCPKG_COMMIT }}-
 
       - name: Configure
-        run: cmake --preset windows-release
+        run: |
+          $env:VCPKG_ROOT = "${{ env.BYTEFORGE_VCPKG }}"
+          cmake --preset windows-release
 
       - name: Save vcpkg packages
         if: steps.vcpkg-cache.outputs.cache-hit != 'true'
