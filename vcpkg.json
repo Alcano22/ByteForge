@@ -1,11 +1,16 @@
 {
   "name": "byte-forge",
   "version": "0.1.0",
+  "builtin-baseline": "386d7c478221b7ee0c97bfe6ea61dcf65121d564",
   "dependencies": [
     "glfw3",
     {
       "name": "vulkan-loader",
-      "features": ["xcb", "xlib", "wayland"]
+      "features": [
+        { "name": "xcb", "platform": "linux" },
+        { "name": "xlib", "platform": "linux" },
+        { "name": "wayland", "platform": "linux" }
+      ]
     },
     "vulkan",
     "vulkan-memory-allocator",
@@ -31,7 +36,8 @@
     "nethost",
     {
       "name": "dbus",
-      "default-features": false
+      "default-features": false,
+      "platform": "linux"
     },
     "nativefiledialog-extended",
     "lunasvg",

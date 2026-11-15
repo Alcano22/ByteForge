@@ -111,3 +111,16 @@ add_custom_command(TARGET Editor POST_BUILD
     COMMENT "Preparing the player runtime for game export"
     VERBATIM
 )
+
+if (WIN32)
+    add_custom_command(TARGET Editor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:Player>
+            "$<TARGET_FILE_DIR:Editor>/player/"
+        COMMAND_EXPAND_LISTS
+        COMMENT "Copying the player's DLLs for game export"
+        VERBATIM
+    )
+endif()
+
+byteforge_deploy_runtime(Editor)

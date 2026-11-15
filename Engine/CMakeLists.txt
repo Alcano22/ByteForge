@@ -189,15 +189,18 @@ if (UNIX AND NOT APPLE)
             "$<TARGET_FILE_DIR:Microsoft::DirectXShaderCompiler>/libdxildll.so"
         COMMENT "Working around broken libdxildll.so SONAME in directx-dxc"
     )
+endif()
 
-    add_custom_command(TARGET Engine POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -DSOURCE_DIR=$<TARGET_FILE_DIR:Microsoft::DirectXShaderCompiler>
-            -DDESTINATION=$<TARGET_FILE_DIR:Engine>
-            -P ${CMAKE_SOURCE_DIR}/cmake/CopyRuntimeLibraries.cmake
-        COMMENT "Copying the shader compiler next to libEngine"
-        VERBATIM
-    )
+add_custom_command(TARGET Engine POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=$<TARGET_FILE_DIR:Microsoft::DirectXShaderCompiler>
+        -DDESTINATION=$<TARGET_FILE_DIR:Engine>
+        -P ${CMAKE_SOURCE_DIR}/cmake/CopyRuntimeLibraries.cmake
+    COMMENT "Copying the shader compiler next to the engine library"
+    VERBATIM
+)
+
+if (UNIX AND NOT APPLE)
     set_target_properties(Engine PROPERTIES BUILD_RPATH "$ORIGIN")
 endif()
 

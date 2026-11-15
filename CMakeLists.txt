@@ -21,9 +21,9 @@ if (BYTEFORGE_WARNINGS_AS_ERRORS)
 endif()
 
 include(cmake/CopyDirectory.cmake)
+include(cmake/RuntimeDeploy.cmake)
 
 add_subdirectory(Engine)
 add_subdirectory(ScriptCore)
 add_subdirectory(Editor)
 add_subdirectory(Player)
-add_subdirectory(Sandbox)

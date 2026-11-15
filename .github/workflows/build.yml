@@ -1,0 +1,138 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_COMMIT: REPLACE_WITH_YOUR_VCPKG_COMMIT
+  DOTNET_VERSION: 10.0.x
+
+jobs:
+  windows:
+    name: Windows (MSVC)
+    runs-on: windows-2025
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Set up vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg "${{ env.VCPKG_ROOT }}"
+          git -C "${{ env.VCPKG_ROOT }}" checkout ${{ env.VCPKG_COMMIT }}
+          & "${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}" | Out-Null
+
+      - name: Restore vcpkg packages
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-windows-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-windows-${{ env.VCPKG_COMMIT }}-
+
+      - name: Configure
+        run: cmake --preset windows-release
+
+      - name: Save vcpkg packages
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-windows-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Build
+        run: cmake --build --preset windows-release
+
+      - name: Upload editor
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Editor-Windows
+          if-no-files-found: error
+          path: |
+            build-windows-release/Editor
+            !build-windows-release/Editor/CMakeFiles
+            !build-windows-release/Editor/*.stamp
+            !build-windows-release/Editor/**/*.obj
+            !build-windows-release/Editor/**/*.lib
+            !build-windows-release/Editor/**/*.exp
+            !build-windows-release/Editor/**/*.ilk
+
+  linux:
+    name: Linux (Clang, Fedora)
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+
+    steps:
+      - name: Install system packages
+        run: >
+          dnf install -y --setopt=install_weak_deps=False
+          git gcc-c++ clang make patch perl pkgconf-pkg-config
+          autoconf autoconf-archive automake libtool bison flex gperf python3
+          zip unzip tar curl which diffutils findutils file libicu kernel-headers
+          libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel mesa-libGLU-devel
+          wayland-devel libxkbcommon-devel wayland-protocols-devel
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Set up vcpkg
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$VCPKG_COMMIT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+
+      - name: Restore vcpkg packages
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-${{ env.VCPKG_COMMIT }}-
+
+      - name: Configure
+        run: cmake --preset release
+
+      - name: Save vcpkg packages
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Build
+        run: cmake --build --preset release

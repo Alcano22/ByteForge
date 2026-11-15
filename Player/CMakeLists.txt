@@ -17,3 +17,5 @@ byteforge_add_engine_resources(Player)
 if(UNIX AND NOT APPLE)
     set_target_properties(Player PROPERTIES BUILD_RPATH "$ORIGIN")
 endif()
+
+byteforge_deploy_runtime(Player)
