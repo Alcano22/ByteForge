@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -58,7 +60,7 @@ jobs:
           cmake --preset windows-release
 
       - name: Save vcpkg packages
-        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: ${{ !cancelled() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
@@ -101,6 +103,8 @@ jobs:
 
       - name: Check out
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -130,7 +134,7 @@ jobs:
         run: cmake --preset release
 
       - name: Save vcpkg packages
-        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: ${{ !cancelled() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
