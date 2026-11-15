@@ -7,6 +7,7 @@
 #include <imgui.h>
 
 #include <chrono>
+#include <ctime>
 #include <format>
 #include <string>
 
@@ -40,17 +41,33 @@ namespace ByteForge
         return ImGui::GetStyleColorVec4(ImGuiCol_Text);
     }
 
+    [[nodiscard]] inline std::tm ToLocalTime(const std::time_t time)
+    {
+        std::tm local{};
+#if defined(_WIN32)
+        localtime_s(&local, &time);
+#else
+        localtime_r(&time, &local);
+#endif
+        return local;
+    }
+
     [[nodiscard]] inline std::string FormatLogTime(const std::chrono::system_clock::time_point time,
                                                    const bool detailed)
     {
-        const std::chrono::time_zone* zone = std::chrono::current_zone();
+        using namespace std::chrono;
+
+        const auto wholeSeconds = floor<seconds>(time);
+        const std::tm local = ToLocalTime(system_clock::to_time_t(wholeSeconds));
 
         if (detailed)
         {
-            return std::format("{:%Y-%m-%d %H:%M:%S}",
-                               zone->to_local(std::chrono::floor<std::chrono::milliseconds>(time)));
+            const auto milliseconds = duration_cast<std::chrono::milliseconds>(time - wholeSeconds).count();
+            return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+                               local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
+                               local.tm_hour, local.tm_min, local.tm_sec, milliseconds);
         }
 
-        return std::format("{:%H:%M:%S}", zone->to_local(std::chrono::floor<std::chrono::seconds>(time)));
+        return std::format("{:02}:{:02}:{:02}", local.tm_hour, local.tm_min, local.tm_sec);
     }
 }
