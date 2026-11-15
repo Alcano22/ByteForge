@@ -5,13 +5,16 @@
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/SceneSerializer.h"
+#include "Engine/Scripting/ScriptField.h"
 #include "Scripting/ScriptValueJson.h"
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <exception>
 #include <format>
 #include <fstream>
+#include <string>
 #include <system_error>
 #include <unordered_map>
 #include <utility>
@@ -38,14 +41,22 @@ namespace ByteForge
             return ComponentRegistry::FindByType(ComponentTypeId<PrefabInstanceComponent>())->Key;
         }
 
+        const char* ScriptKey()
+        {
+            return ComponentRegistry::FindByType(ComponentTypeId<ScriptComponent>())->Key;
+        }
+
+        void SetLink(const Entity entity, PrefabInstanceComponent link)
+        {
+            if (auto* existing = entity.TryGetComponent<PrefabInstanceComponent>())
+                *existing = std::move(link);
+            else
+                entity.AddComponent<PrefabInstanceComponent>(std::move(link));
+        }
+
         void LinkSubtree(const Entity entity, const UUID handle, const bool root)
         {
-            const PrefabInstanceComponent link{ .Prefab = handle, .Source = entity.GetUUID(), .Root = root };
-
-            if (auto* existing = entity.TryGetComponent<PrefabInstanceComponent>())
-                *existing = link;
-            else
-                entity.AddComponent<PrefabInstanceComponent>(link);
+            SetLink(entity, { .Prefab = handle, .Source = entity.GetUUID(), .Root = root });
 
             for (const Entity child : entity.GetChildren())
                 LinkSubtree(child, handle, false);
@@ -139,11 +150,145 @@ namespace ByteForge
                 CollectMembers(child, handle, false, members);
         }
 
+        std::unordered_map<UUID, UUID> MakeToSourceMap(const std::unordered_map<UUID, Entity>& members)
+        {
+            std::unordered_map<UUID, UUID> toSource;
+            for (const auto& [source, entity] : members)
+                toSource.emplace(entity.GetUUID(), source);
+            return toSource;
+        }
+
+        void RemapScriptFields(nlohmann::json& script, const std::unordered_map<UUID, UUID>& remap)
+        {
+            const auto fields = script.find("fields");
+            if (fields == script.end() || !fields->is_object()) return;
+
+            const std::string entityType(ScriptFieldTypeName(ScriptFieldType::Entity));
+
+            for (auto& [name, field] : fields->items())
+            {
+                if (!field.is_object() || field.value("type", std::string()) != entityType || !field.contains("value"))
+                    continue;
+
+                nlohmann::json& value = field.at("value");
+                nlohmann::json& id = value.is_object() ? value["entity"] : value;
+                if (!id.is_number_unsigned()) continue;
+
+                if (const auto it = remap.find(UUID(id.get<u64>())); it != remap.end())
+                    id = static_cast<u64>(it->second);
+            }
+        }
+
+        nlohmann::json MakeComparable(nlohmann::json entity, const std::unordered_map<UUID, UUID>* toSource)
+        {
+            entity.erase("uuid");
+            entity.erase("parent");
+            entity.erase(InstanceKey());
+
+            const auto scripts = entity.find(ScriptKey());
+            if (scripts != entity.end() && scripts->is_array())
+            {
+                nlohmann::json byId = nlohmann::json::object();
+                i64 index = 0;
+
+                for (nlohmann::json& script : *scripts)
+                {
+                    if (!script.is_object()) continue;
+
+                    const std::string id = std::to_string(script.value("id", u64{ 0 }));
+                    script.erase("id");
+                    script["index"] = index++;
+
+                    if (toSource != nullptr)
+                        RemapScriptFields(script, *toSource);
+
+                    byId[id] = std::move(script);
+                }
+
+                *scripts = std::move(byId);
+            }
+
+            return entity;
+        }
+
+        nlohmann::json MakeEntityJson(nlohmann::json comparable)
+        {
+            const auto scripts = comparable.find(ScriptKey());
+            if (scripts != comparable.end() && scripts->is_object())
+            {
+                std::vector<std::pair<i64, nlohmann::json>> ordered;
+
+                for (auto& [id, script] : scripts->items())
+                {
+                    if (!script.is_object()) continue;
+
+                    const i64 index = script.value("index", i64{ 0 });
+                    script.erase("index");
+                    script["id"] = std::stoull(id);
+                    ordered.emplace_back(index, std::move(script));
+                }
+
+                std::ranges::stable_sort(ordered, {}, &std::pair<i64, nlohmann::json>::first);
+
+                nlohmann::json array = nlohmann::json::array();
+                for (auto& [index, script] : ordered)
+                    array.push_back(std::move(script));
+
+                *scripts = std::move(array);
+            }
+
+            return comparable;
+        }
+
+        nlohmann::json MakeMergePatch(const nlohmann::json& base, const nlohmann::json& target)
+        {
+            if (!base.is_object() || !target.is_object())
+                return target;
+
+            nlohmann::json patch = nlohmann::json::object();
+
+            for (const auto& [key, value] : target.items())
+            {
+                const auto it = base.find(key);
+                if (it == base.end())
+                    patch[key] = value;
+                else if (*it != value)
+                    patch[key] = MakeMergePatch(*it, value);
+            }
+
+            for (const auto& [key, value] : base.items())
+            {
+                if (!target.contains(key))
+                    patch[key] = nullptr;
+            }
+
+            return patch;
+        }
+
+        nlohmann::json ComputeOverrides(const Entity source, const Entity instance,
+                                        const std::unordered_map<UUID, UUID>& toSource)
+        {
+            return MakeMergePatch(MakeComparable(SceneSerializer::SerializeEntity(source), nullptr),
+                                  MakeComparable(SceneSerializer::SerializeEntity(instance), &toSource));
+        }
+
+        std::vector<Entity> FindInstanceRoots(Scene& scene, const std::optional<UUID> handle = std::nullopt)
+        {
+            std::vector<Entity> roots;
+            scene.Each<PrefabInstanceComponent>([&](const Entity entity, const PrefabInstanceComponent& link)
+            {
+                if (link.Root && (!handle || link.Prefab == *handle))
+                    roots.push_back(entity);
+            });
+            return roots;
+        }
+
         struct SyncPair
         {
             Entity Source;
             Entity Target;
             i32 SiblingIndex = 0;
+            nlohmann::json Overrides = nlohmann::json::object();
         };
 
         void PairEntities(Scene& scene, const Entity source, const i32 siblingIndex,
@@ -151,10 +296,20 @@ namespace ByteForge
                           std::unordered_map<UUID, UUID>& remap, std::vector<SyncPair>& pairs)
         {
             const auto existing = members.find(source.GetUUID());
-            const Entity target = existing != members.end() ? existing->second : scene.CreateEntity(source.GetTag());
 
-            remap.emplace(source.GetUUID(), target.GetUUID());
-            pairs.push_back({ .Source = source, .Target = target, .SiblingIndex = siblingIndex });
+            SyncPair pair{ .Source = source, .SiblingIndex = siblingIndex };
+            if (existing != members.end())
+            {
+                pair.Target = existing->second;
+
+                const auto* link = pair.Target.TryGetComponent<PrefabInstanceComponent>();
+                if (link != nullptr && link->Overrides.is_object())
+                    pair.Overrides = link->Overrides;
+            } else
+                pair.Target = scene.CreateEntity(source.GetTag());
+
+            remap.emplace(source.GetUUID(), pair.Target.GetUUID());
+            pairs.push_back(std::move(pair));
 
             i32 index = 0;
             for (const Entity child : source.GetChildren())
@@ -165,11 +320,18 @@ namespace ByteForge
         {
             std::unordered_map<UUID, Entity> members;
             CollectMembers(instanceRoot, handle, true, members);
-
-            const TransformComponent rootTransform = instanceRoot.GetComponent<TransformComponent>();
-            const std::string rootName = instanceRoot.GetTag();
-
             members.insert_or_assign(prototype.Root.GetUUID(), instanceRoot);
+
+            const std::unordered_map<UUID, UUID> toSource = MakeToSourceMap(members);
+            for (const auto& [source, entity] : members)
+            {
+                auto& link = entity.GetComponent<PrefabInstanceComponent>();
+                if (!link.Overrides.is_null()) continue;
+
+                const Entity sourceEntity = prototype.Entities->FindEntityByUUID(source);
+                link.Overrides = sourceEntity.IsValid() ? ComputeOverrides(sourceEntity, entity, toSource)
+                                                        : nlohmann::json::object();
+            }
 
             std::unordered_map<UUID, UUID> remap;
             std::vector<SyncPair> pairs;
@@ -177,16 +339,32 @@ namespace ByteForge
 
             for (const SyncPair& pair : pairs)
             {
-                SceneSerializer::ApplyEntity(pair.Target, SceneSerializer::SerializeEntity(pair.Source));
+                nlohmann::json merged = MakeComparable(SceneSerializer::SerializeEntity(pair.Source), nullptr);
+                merged.merge_patch(pair.Overrides);
+
+                try
+                {
+                    SceneSerializer::ApplyEntity(pair.Target, MakeEntityJson(std::move(merged)));
+                } catch (const std::exception& e)
+                {
+                    CORE_WARN("Prefab instance '{}': overrides of '{}' could not be applied ({}), using the prefab's data",
+                              instanceRoot.GetTag(), pair.Source.GetTag(), e.what());
+                    SceneSerializer::ApplyEntity(pair.Target,
+                                                 MakeEntityJson(MakeComparable(SceneSerializer::SerializeEntity(pair.Source), nullptr)));
+                }
+
+                SetLink(pair.Target, {
+                    .Prefab    = handle,
+                    .Source    = pair.Source.GetUUID(),
+                    .Root      = pair.Source == prototype.Root,
+                    .Overrides = pair.Overrides
+                });
 
                 if (pair.Source == prototype.Root) continue;
 
                 const Entity parent = scene.FindEntityByUUID(remap.at(pair.Source.GetParent().GetUUID()));
                 pair.Target.SetParent(parent, false, pair.SiblingIndex);
             }
-
-            instanceRoot.GetComponent<TransformComponent>() = rootTransform;
-            instanceRoot.GetComponent<TagComponent>().Tag = rootName;
 
             for (const auto& [source, entity] : members)
             {
@@ -274,17 +452,71 @@ namespace ByteForge
         if (!prototype)
             return 0;
 
-        std::vector<Entity> roots;
-        scene.Each<PrefabInstanceComponent>([&](const Entity entity, const PrefabInstanceComponent& link)
-        {
-            if (link.Prefab == handle && link.Root)
-                roots.push_back(entity);
-        });
-
+        const std::vector<Entity> roots = FindInstanceRoots(scene, handle);
         for (const Entity root : roots)
             SyncInstance(scene, root, **prototype, handle);
 
         return roots.size();
+    }
+
+    usize Prefab::SyncAllInstances(Scene& scene)
+    {
+        std::vector<UUID> handles;
+        for (const Entity root : FindInstanceRoots(scene))
+        {
+            const UUID handle = root.GetComponent<PrefabInstanceComponent>().Prefab;
+            if (std::ranges::find(handles, handle) == handles.end())
+                handles.push_back(handle);
+        }
+
+        usize updated = 0;
+        for (const UUID handle : handles)
+            updated += SyncInstances(scene, handle);
+        return updated;
+    }
+
+    void Prefab::RecordOverrides(Scene& scene)
+    {
+        for (const Entity root : FindInstanceRoots(scene))
+        {
+            const UUID handle = root.GetComponent<PrefabInstanceComponent>().Prefab;
+
+            const Result<const Prototype*> prototype = LoadPrototype(handle);
+            if (!prototype) continue;
+
+            std::unordered_map<UUID, Entity> members;
+            CollectMembers(root, handle, true, members);
+            const std::unordered_map<UUID, UUID> toSource = MakeToSourceMap(members);
+
+            for (const auto& [source, entity] : members)
+            {
+                const Entity sourceEntity = (*prototype)->Entities->FindEntityByUUID(source);
+                if (!sourceEntity.IsValid()) continue;
+
+                entity.GetComponent<PrefabInstanceComponent>().Overrides =
+                    ComputeOverrides(sourceEntity, entity, toSource);
+            }
+        }
+    }
+
+    nlohmann::json Prefab::GetOverrides(const Entity entity)
+    {
+        const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
+        if (link == nullptr) return nullptr;
+
+        const Entity root = GetInstanceRoot(entity);
+        if (!root.IsValid()) return nullptr;
+
+        const Result<const Prototype*> prototype = LoadPrototype(link->Prefab);
+        if (!prototype) return nullptr;
+
+        const Entity sourceEntity = (*prototype)->Entities->FindEntityByUUID(link->Source);
+        if (!sourceEntity.IsValid()) return nullptr;
+
+        std::unordered_map<UUID, Entity> members;
+        CollectMembers(root, link->Prefab, true, members);
+
+        return ComputeOverrides(sourceEntity, entity, MakeToSourceMap(members));
     }
 
     void Prefab::Link(const Entity root, const UUID handle)

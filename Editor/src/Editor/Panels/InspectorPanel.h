@@ -5,6 +5,8 @@
 
 #include <Engine/Scene/Entity.h>
 
+#include <nlohmann/json_fwd.hpp>
+
 namespace ByteForge
 {
     struct InspectorSection;
@@ -21,7 +23,7 @@ namespace ByteForge
 
     private:
         void DrawEntity(Entity entity) const;
-        void DrawSection(const InspectorSection& section, Entity entity) const;
+        void DrawSection(const InspectorSection& section, Entity entity, const nlohmann::json& overrides) const;
         void DrawPrefabBar(Entity entity) const;
 
         static void DrawHeader(Entity entity);

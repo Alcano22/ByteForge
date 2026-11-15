@@ -1,7 +1,5 @@
 #include "Engine/Scene/Components/PrefabInstanceComponent.h"
 
-#include <nlohmann/json.hpp>
-
 namespace ByteForge
 {
     void PrefabInstanceComponent::Write(const PrefabInstanceComponent& component, nlohmann::json& json)
@@ -11,6 +9,9 @@ namespace ByteForge
 
         if (component.Root)
             json["root"] = true;
+
+        if (!component.Overrides.is_null())
+            json["overrides"] = component.Overrides;
     }
 
     void PrefabInstanceComponent::Read(PrefabInstanceComponent& component, const nlohmann::json& json)
@@ -18,5 +19,8 @@ namespace ByteForge
         component.Prefab = UUID(json.value("prefab", u64{ 0 }));
         component.Source = UUID(json.value("source", u64{ 0 }));
         component.Root = json.value("root", false);
+
+        const auto overrides = json.find("overrides");
+        component.Overrides = overrides != json.end() && overrides->is_object() ? *overrides : nlohmann::json();
     }
 }

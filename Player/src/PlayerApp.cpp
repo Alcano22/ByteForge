@@ -1,4 +1,5 @@
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/Prefab.h>
 #include <Engine/Assets/Pak.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
@@ -217,6 +218,7 @@ namespace ByteForge
                                                      name, data.error()));
 
             SceneSerializer::Deserialize(m_Scene, *data);
+            Prefab::SyncAllInstances(m_Scene);
 
             APP_INFO("Loaded start scene '{}'", name);
         }

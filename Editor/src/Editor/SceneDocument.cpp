@@ -81,6 +81,8 @@ namespace ByteForge
                 APP_ERROR("Could not read scene '{}'", name);
                 return false;
             }
+
+            Prefab::SyncAllInstances(*m_Context.ActiveScene);
         } catch (const std::exception& e)
         {
             APP_ERROR("Scene '{}' is broken: {}", name, e.what());
@@ -156,6 +158,8 @@ namespace ByteForge
         ClosePrefab();
 
         Scene& scene = *m_Context.ActiveScene;
+
+        Prefab::RecordOverrides(scene);
         nlohmann::json snapshot = SceneSerializer::Serialize(scene);
 
         scene.Clear();
@@ -294,6 +298,7 @@ namespace ByteForge
 
         try
         {
+            Prefab::RecordOverrides(*m_Context.ActiveScene);
             SceneSerializer::SerializeToFile(*m_Context.ActiveScene, absolutePath.string());
         } catch (const std::exception& e)
         {

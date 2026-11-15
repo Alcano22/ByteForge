@@ -5,6 +5,7 @@
 #include "Engine/Scene/UUID.h"
 
 #include <glm/glm.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <expected>
 #include <filesystem>
@@ -28,6 +29,11 @@ namespace ByteForge
         [[nodiscard]] static Result<Entity> LoadForEditing(Scene& scene, UUID handle);
 
         static usize SyncInstances(Scene& scene, UUID handle);
+        static usize SyncAllInstances(Scene& scene);
+
+        static void RecordOverrides(Scene& scene);
+
+        [[nodiscard]] static nlohmann::json GetOverrides(Entity entity);
 
         static void Link(Entity root, UUID handle);
         static void Unlink(Entity entity);

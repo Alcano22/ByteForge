@@ -3,7 +3,7 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Scene/UUID.h"
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 namespace ByteForge
 {
@@ -13,6 +13,8 @@ namespace ByteForge
         UUID Source{ 0 };
 
         bool Root = false;
+
+        nlohmann::json Overrides;
 
         static void Write(const PrefabInstanceComponent& component, nlohmann::json& json);
         static void Read(PrefabInstanceComponent& component, const nlohmann::json& json);

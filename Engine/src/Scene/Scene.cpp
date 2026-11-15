@@ -7,6 +7,7 @@
 #include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Assets/AssetRegistry.h"
+#include "Engine/Assets/Prefab.h"
 #include "Engine/Audio/AudioSystem.h"
 #include "Engine/Animation/AnimationSystem.h"
 #include "Scripting/ScriptRuntime.h"
@@ -510,6 +511,7 @@ namespace ByteForge
         try
         {
             SceneSerializer::Deserialize(*this, *data);
+            Prefab::SyncAllInstances(*this);
         } catch (const std::exception& e)
         {
             CORE_ERROR("Scene '{}' could not be loaded completely: {}", name, e.what());

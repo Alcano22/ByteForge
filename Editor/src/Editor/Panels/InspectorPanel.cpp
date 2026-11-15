@@ -10,12 +10,14 @@
 #include "Editor/Inspectors/ScriptInspector.h"
 
 #include <Engine/Scene/Components.h>
+#include <Engine/Scene/ComponentRegistry.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/Prefab.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <array>
@@ -40,6 +42,23 @@ namespace ByteForge
         {
             auto* component = entity.TryGetComponent<ScriptComponent>();
             return component != nullptr ? component->Find(UUID(scriptId)) : nullptr;
+        }
+
+        bool IsSectionOverridden(const InspectorSection& section, const nlohmann::json& overrides)
+        {
+            if (!overrides.is_object())
+                return false;
+
+            if (section.Inspector == nullptr)
+            {
+                const char* scriptKey = ComponentRegistry::FindByType(ComponentTypeId<ScriptComponent>())->Key;
+                const auto scripts = overrides.find(scriptKey);
+                return scripts != overrides.end() && scripts->is_object() &&
+                       scripts->contains(std::to_string(section.Key.ScriptId));
+            }
+
+            const ComponentDescriptor* descriptor = ComponentRegistry::FindByType(section.Key.TypeId);
+            return descriptor != nullptr && overrides.contains(descriptor->Key);
         }
     }
 
@@ -101,13 +120,16 @@ namespace ByteForge
         DrawPrefabBar(entity);
         ImGui::Separator();
 
+        const nlohmann::json overrides = Prefab::GetOverrides(entity);
+
         for (const InspectorSection& section : GetOrderedSections(entity))
-            DrawSection(section, entity);
+            DrawSection(section, entity, overrides);
 
         EditorUI::DrawScriptDropZone(entity);
     }
 
-    void InspectorPanel::DrawSection(const InspectorSection& section, const Entity entity) const
+    void InspectorPanel::DrawSection(const InspectorSection& section, const Entity entity,
+                                     const nlohmann::json& overrides) const
     {
         EditorContext& context = GetContext();
         const ComponentInspector* inspector = section.Inspector;
@@ -135,6 +157,8 @@ namespace ByteForge
             missing = EditorUI::IsScriptMissing(*script);
         }
 
+        const bool overridden = IsSectionOverridden(section, overrides);
+
         constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen
                                            | ImGuiTreeNodeFlags_Framed
                                            | ImGuiTreeNodeFlags_SpanAvailWidth
@@ -149,6 +173,8 @@ namespace ByteForge
         bool open = false;
         {
             const EditorUI::ScopedStyleColor missingColor(ImGuiCol_Text, EditorUI::ErrorColor, missing);
+            ImFont* titleFont = overridden ? context.Fonts.Get(EditorFont::SemiBold) : ImGui::GetFont();
+            const ScopedFont font(titleFont);
             open = ImGui::TreeNodeEx("##header", flags, "%s  %s", EditorIcons::Glyph(icon), title.c_str());
         }
 
@@ -224,6 +250,16 @@ namespace ByteForge
                     EditorUI::DrawScriptEntryInspector(entity, *script, context.SelectionContext);
             }
             ImGui::TreePop();
+        }
+
+        if (overridden)
+        {
+            constexpr f32 BarWidth = 3.0f;
+            const f32 sectionEnd = std::max(headerMax.y, ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y);
+
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                ImVec2(headerMin.x, headerMin.y), ImVec2(headerMin.x + BarWidth, sectionEnd),
+                ImGui::GetColorU32(EditorColors::Get(EditorColor::PrefabInstance)));
         }
 
         if (showLineAfterSection)
