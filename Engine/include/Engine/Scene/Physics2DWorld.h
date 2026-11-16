@@ -38,6 +38,8 @@ namespace ByteForge
     private:
         void CreateBody(Entity entity) const;
 
+        void ApplyScaleChanges(Scene& scene) const;
+
         void SyncTransforms(Scene& scene) const;
 
         void DispatchSensorEvents(const Scene& scene) const;

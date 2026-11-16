@@ -63,5 +63,6 @@ namespace ByteForge
         friend class Physics2DWorld;
 
         u64 m_RuntimeBodyId = 0;
+        glm::vec2 m_RuntimeScale{ 1.0f };
     };
 }

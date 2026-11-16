@@ -1,4 +1,5 @@
 #include "Engine/Scene/Physics2DWorld.h"
+#include "Engine/Scene/ColliderGeometry.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
@@ -7,7 +8,9 @@
 #include <entt/entt.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -69,6 +72,50 @@ namespace ByteForge
             shapeDef.filter.maskBits = rigidbody.CollisionMask;
             return shapeDef;
         }
+
+        b2Polygon MakeBox(const BoxColliderGeometry& geometry)
+        {
+            return b2MakeOffsetBox(geometry.HalfExtents.x, geometry.HalfExtents.y,
+                                   { geometry.Center.x, geometry.Center.y }, b2MakeRot(0.0f));
+        }
+
+        b2Circle MakeCircle(const CircleColliderGeometry& geometry)
+        {
+            return { .center = { geometry.Center.x, geometry.Center.y }, .radius = geometry.Radius };
+        }
+
+        void ResizeShapes(const Entity entity, const b2BodyId body, const glm::vec2 scale)
+        {
+            std::array<b2ShapeId, 4> shapes{};
+            const i32 count = b2Body_GetShapes(body, shapes.data(), static_cast<i32>(shapes.size()));
+
+            for (const b2ShapeId shape : std::span(shapes).first(static_cast<usize>(std::max(count, 0))))
+            {
+                switch (b2Shape_GetType(shape))
+                {
+                    case b2_polygonShape:
+                        if (const auto* box = entity.TryGetComponent<BoxCollider2DComponent>())
+                        {
+                            const b2Polygon polygon = MakeBox(GetColliderGeometry(*box, scale));
+                            b2Shape_SetPolygon(shape, &polygon);
+                        }
+                        break;
+
+                    case b2_circleShape:
+                        if (const auto* circle = entity.TryGetComponent<CircleCollider2DComponent>())
+                        {
+                            const b2Circle circleShape = MakeCircle(GetColliderGeometry(*circle, scale));
+                            b2Shape_SetCircle(shape, &circleShape);
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            b2Body_ApplyMassFromShapes(body);
+        }
     }
 
     Physics2DWorld::Physics2DWorld()
@@ -101,6 +148,7 @@ namespace ByteForge
 
         const b2BodyId body = b2CreateBody(m_World, &bodyDef);
         rigidbody.m_RuntimeBodyId = b2StoreBodyId(body);
+        rigidbody.m_RuntimeScale = transform.Scale;
 
         if (entity.HasComponent<BoxCollider2DComponent>())
         {
@@ -108,8 +156,7 @@ namespace ByteForge
             const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
                                                      ResolveMaterial(collider.Material, rigidbody), rigidbody);
 
-            const b2Polygon box = b2MakeOffsetBox(collider.Size.x * 0.5f, collider.Size.y * 0.5f,
-                                                  { collider.Offset.x, collider.Offset.y }, b2MakeRot(0.0f));
+            const b2Polygon box = MakeBox(GetColliderGeometry(collider, transform.Scale));
             b2CreatePolygonShape(body, &shapeDef, &box);
         }
 
@@ -119,7 +166,7 @@ namespace ByteForge
             const b2ShapeDef shapeDef = MakeShapeDef(collider.Density, collider.IsSensor,
                                                      ResolveMaterial(collider.Material, rigidbody), rigidbody);
 
-            const b2Circle circle{ .center = { collider.Offset.x, collider.Offset.y }, .radius = collider.Radius };
+            const b2Circle circle = MakeCircle(GetColliderGeometry(collider, transform.Scale));
             b2CreateCircleShape(body, &shapeDef, &circle);
         }
     }
@@ -193,8 +240,24 @@ namespace ByteForge
         b2Body_SetAngularVelocity(body, angularVelocity);
     }
 
+    void Physics2DWorld::ApplyScaleChanges(Scene& scene) const
+    {
+        scene.Each<Rigidbody2DComponent>([](const Entity entity, Rigidbody2DComponent& rigidbody)
+        {
+            if (rigidbody.m_RuntimeBodyId == 0) return;
+
+            const glm::vec2 scale = entity.GetWorldTransform().Scale;
+            if (scale == rigidbody.m_RuntimeScale) return;
+
+            rigidbody.m_RuntimeScale = scale;
+            ResizeShapes(entity, b2LoadBodyId(rigidbody.m_RuntimeBodyId), scale);
+        });
+    }
+
     void Physics2DWorld::Step(const f32 ts, Scene& scene)
     {
+        ApplyScaleChanges(scene);
+
         m_Accumulator += ts;
 
         i32 steps = 0;

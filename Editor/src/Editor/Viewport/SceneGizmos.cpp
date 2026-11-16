@@ -3,6 +3,7 @@
 #include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Renderer/LineRenderer.h>
+#include <Engine/Scene/ColliderGeometry.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
@@ -54,6 +55,7 @@ namespace ByteForge::SceneGizmos
         struct BodyFrame
         {
             glm::vec2 Position;
+            glm::vec2 Scale{ 1.0f };
             f32 Cos = 1.0f;
             f32 Sin = 0.0f;
 
@@ -68,6 +70,7 @@ namespace ByteForge::SceneGizmos
             const TransformComponent world = entity.GetWorldTransform();
             return {
                 .Position = glm::vec2(world.Position),
+                .Scale    = world.Scale,
                 .Cos      = std::cos(world.Rotation),
                 .Sin      = std::sin(world.Rotation)
             };
@@ -152,9 +155,11 @@ namespace ByteForge::SceneGizmos
                              const ColliderPass& pass)
         {
             const BodyFrame body = GetBodyFrame(entity);
-            const glm::vec2 half = glm::abs(collider.Size) * 0.5f;
+            const BoxColliderGeometry geometry = GetColliderGeometry(collider, body.Scale);
+            const glm::vec2 center = geometry.Center;
+            const glm::vec2 half = geometry.HalfExtents;
 
-            if (!IsVisible(body.ToWorld(collider.Offset), glm::length(half), pass)) return;
+            if (!IsVisible(body.ToWorld(center), glm::length(half), pass)) return;
 
             const std::array<glm::vec2, 4> corners{
                 body.ToWorld(collider.Offset + glm::vec2(-half.x, -half.y)),
@@ -169,9 +174,12 @@ namespace ByteForge::SceneGizmos
         void DrawCircleCollider(LineRenderer& lines, const Entity entity, const CircleCollider2DComponent& collider,
                                 const ColliderPass& pass)
         {
-            const glm::vec2 center = GetBodyFrame(entity).ToWorld(collider.Offset);
-            const f32 radius = std::abs(collider.Radius);
-            if (radius <= 0.0f || !IsVisible(center, radius, pass)) return;
+            const BodyFrame body = GetBodyFrame(entity);
+            const CircleColliderGeometry geometry = GetColliderGeometry(collider, body.Scale);
+            const glm::vec2 center = body.ToWorld(geometry.Center);
+            const f32 radius = geometry.Radius;
+
+            if (!IsVisible(center, radius, pass)) return;
 
             const f32 circumferencePixels = 2.0f * std::numbers::pi_v<f32> * radius / pass.WorldUnitsPerPixel;
             const auto segments = static_cast<usize>(std::clamp(circumferencePixels / CirclePixelsPerSegment,
