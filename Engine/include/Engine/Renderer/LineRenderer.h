@@ -39,6 +39,8 @@ namespace ByteForge
 
         void DrawRect(const glm::vec3& center, const glm::vec2& size, f32 rotation, const glm::vec4& color);
 
+        [[nodiscard]] u32 GetRemainingLines() const { return m_Spec.MaxLines - m_FrameLines; }
+
     private:
         void Flush();
 

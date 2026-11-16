@@ -14,6 +14,7 @@ namespace ByteForge
             { EditorColor::AxisX,                   "AxisX",                   "X axis",                 "Scene View" },
             { EditorColor::AxisY,                   "AxisY",                   "Y axis",                 "Scene View" },
             { EditorColor::Selection,               "Selection",               "Selection outline",      "Scene View" },
+            { EditorColor::Collider,                "Collider",                "Collider",               "Scene View" },
 
             { EditorColor::GraphBackground,         "GraphBackground",         "Background",             "Node Graph" },
             { EditorColor::GraphGrid,               "GraphGrid",               "Grid",                   "Node Graph" },

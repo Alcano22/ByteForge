@@ -31,6 +31,12 @@ namespace ByteForge
             { .Value = TransformSpace::Local,  .Label = "Local"  }
         }};
 
+        const std::array<EditorUI::ToggleOption<ColliderVisibility>, 3> ColliderOptions{{
+            { .Value = ColliderVisibility::All,      .Label = "Colliders: All"      },
+            { .Value = ColliderVisibility::Selected, .Label = "Colliders: Selected" },
+            { .Value = ColliderVisibility::Off,      .Label = "Colliders: Off"      }
+        }};
+
         struct ToolInfo
         {
             TransformTool Tool;
@@ -83,12 +89,11 @@ namespace ByteForge
 
             scene->Render(sprites, camera);
 
+            lines.BeginScene(camera);
+            SceneGizmos::DrawColliders(lines, *scene, m_Camera, selected, m_Colliders);
             if (selected.IsValid())
-            {
-                lines.BeginScene(camera);
                 SceneGizmos::DrawSelection(lines, selected);
-                lines.EndScene();
-            }
+            lines.EndScene();
         });
     }
 
@@ -232,6 +237,9 @@ namespace ByteForge
         ImGui::BeginDisabled(m_Tool != TransformTool::Move);
         EditorUI::ToggleButton("space", m_Space, SpaceOptions, SpaceToggleKeyName);
         ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        EditorUI::ToggleButton("colliders", m_Colliders, ColliderOptions);
 
         ImGui::NewLine();
     }

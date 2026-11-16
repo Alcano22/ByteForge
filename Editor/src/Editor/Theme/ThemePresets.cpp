@@ -103,6 +103,7 @@ namespace ByteForge
             set(EditorColor::AxisX,                   { 0.86f, 0.33f, 0.33f, 0.7f });
             set(EditorColor::AxisY,                   { 0.45f, 0.78f, 0.35f, 0.7f });
             set(EditorColor::Selection,               { 1.0f, 0.62f, 0.15f, 1.0f });
+            set(EditorColor::Collider,                { 0.35f, 0.95f, 0.45f, 0.9f });
 
             set(EditorColor::GraphBackground,         Rgba8(22, 22, 26));
             set(EditorColor::GraphGrid,               Rgba8(60, 60, 70, 55));
@@ -144,6 +145,8 @@ namespace ByteForge
             set(EditorColor::AxisX,           { 0.86f, 0.33f, 0.33f, 0.7f });
             set(EditorColor::AxisY,           { 0.45f, 0.78f, 0.35f, 0.7f });
             set(EditorColor::Selection,       selection);
+            set(EditorColor::Collider,        dark ? ImVec4(0.35f, 0.95f, 0.45f, 0.9f)
+                                                   : ImVec4(0.05f, 0.55f, 0.15f, 1.0f));
 
             set(EditorColor::GraphBackground,         graphBackground);
             set(EditorColor::GraphGrid,               WithAlpha(palette.Text, 0.08f));

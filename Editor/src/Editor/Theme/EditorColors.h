@@ -21,6 +21,7 @@ namespace ByteForge
         AxisX,
         AxisY,
         Selection,
+        Collider,
 
         GraphBackground,
         GraphGrid,

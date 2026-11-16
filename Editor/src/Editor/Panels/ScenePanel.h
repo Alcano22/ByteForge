@@ -2,6 +2,7 @@
 
 #include "Editor/EditorPanel.h"
 #include "Editor/Viewport/EditorCamera2D.h"
+#include "Editor/Viewport/SceneGizmos.h"
 #include "Editor/Viewport/TransformGizmo.h"
 #include "Editor/Viewport/ViewportCanvas.h"
 
@@ -51,6 +52,7 @@ namespace ByteForge
 
         TransformTool m_Tool = TransformTool::Move;
         TransformSpace m_Space = TransformSpace::Global;
+        ColliderVisibility m_Colliders = ColliderVisibility::All;
         std::optional<TransformDrag> m_Drag;
     };
 }
