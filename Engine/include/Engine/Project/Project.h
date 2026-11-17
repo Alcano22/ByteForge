@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Core/FileLock.h"
 #include "Engine/Project/ProjectSettings.h"
 
 #include <filesystem>
@@ -40,6 +41,10 @@ namespace ByteForge
 
         [[nodiscard]] fs::path GetStateDirectory() const { return m_Root / StateDirectoryName; }
         [[nodiscard]] fs::path GetScriptAssemblyDirectory() const { return GetStateDirectory() / "ScriptAssemblies"; }
+
+        [[nodiscard]] fs::path GetEditorLockFile() const { return GetStateDirectory() / "editor.lock"; }
+
+        [[nodiscard]] Result<Scope<FileLock>> AcquireEditorLock() const;
 
         [[nodiscard]] Result<ProjectSettings> LoadSettings() const;
         [[nodiscard]] Result<> SaveSettings(const ProjectSettings& settings) const;

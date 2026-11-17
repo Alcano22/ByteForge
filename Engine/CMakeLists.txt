@@ -135,12 +135,20 @@ add_library(Engine SHARED
 )
 
 if (WIN32)
-    target_sources(Engine PRIVATE src/Platform/Windows/WindowsPlatform.cpp)
+    target_sources(Engine PRIVATE
+            src/Platform/Windows/WindowsPlatform.cpp
+            src/Platform/Windows/WindowsFileLock.cpp)
     target_link_libraries(Engine PRIVATE shell32)
 elseif (APPLE)
-    target_sources(Engine PRIVATE src/Platform/MacOS/MacOSPlatform.cpp src/Platform/Posix/PosixProcess.cpp)
+    target_sources(Engine PRIVATE
+            src/Platform/MacOS/MacOSPlatform.cpp
+            src/Platform/Posix/PosixProcess.cpp
+            src/Platform/Posix/PosixFileLock.cpp)
 elseif (UNIX)
-    target_sources(Engine PRIVATE src/Platform/Linux/LinuxPlatform.cpp src/Platform/Posix/PosixProcess.cpp)
+    target_sources(Engine PRIVATE
+            src/Platform/Linux/LinuxPlatform.cpp
+            src/Platform/Posix/PosixProcess.cpp
+            src/Platform/Posix/PosixFileLock.cpp)
 else()
     message(FATAL_ERROR "ByteForge: unsupported platform")
 endif()

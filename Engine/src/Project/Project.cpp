@@ -241,6 +241,26 @@ namespace ByteForge
         return settings;
     }
 
+    Result<Scope<FileLock>> Project::AcquireEditorLock() const
+    {
+        std::error_code error;
+        fs::create_directories(GetStateDirectory(), error);
+        if (error)
+        {
+            return std::unexpected(std::format("Cannot create '{}': {}",
+                                               GetStateDirectory().string(), error.message()));
+        }
+
+        std::expected<Scope<FileLock>, FileLockError> lock = FileLock::TryAcquire(GetEditorLockFile());
+        if (lock)
+            return std::move(*lock);
+
+        if (lock.error().HeldElsewhere)
+            return std::unexpected(std::format("'{}' is already open in another editor", m_Name));
+
+        return std::unexpected(std::format("Cannot lock '{}': {}", m_Name, lock.error().Message));
+    }
+
     void Project::SetActive(Project project) { s_Active = std::move(project); }
     bool Project::HasActive() { return s_Active.has_value(); }
 

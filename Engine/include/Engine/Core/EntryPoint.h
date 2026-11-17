@@ -19,6 +19,9 @@ int main()
     {
         const ByteForge::Scope<ByteForge::Application> app(ByteForge::CreateApplication());
 
+        if (!app)
+            return EXIT_SUCCESS;
+
         if (auto* imguiContext = app->GetImGuiContext())
             ImGui::SetCurrentContext(imguiContext);
 
