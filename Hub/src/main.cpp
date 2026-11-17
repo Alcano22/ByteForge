@@ -10,6 +10,11 @@ int main(int argc, char* argv[])
 {
     ByteForge::Log::Init();
 
+#ifdef Q_OS_LINUX
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORMTHEME"))
+        qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
+#endif
+
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ByteForge Hub"));
     QGuiApplication::setOrganizationName(QStringLiteral("ByteForge"));
