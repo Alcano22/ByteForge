@@ -49,3 +49,16 @@ set_target_properties(Hub PROPERTIES
 )
 
 add_dependencies(Hub Editor)
+
+if(WIN32)
+    add_custom_command(TARGET Hub POST_BUILD
+        COMMAND
+            Qt6::windeployqt
+            --no-translations
+            --no-compiler-runtime
+            --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/qml"
+            "$<TARGET_FILE:Hub>"
+        COMMENT "Deploying Qt next to ByteForge Hub"
+        VERBATIM
+    )
+endif()

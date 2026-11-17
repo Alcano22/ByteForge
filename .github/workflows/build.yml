@@ -54,10 +54,17 @@ jobs:
           key: vcpkg-windows-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-${{ env.VCPKG_COMMIT }}-
 
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          arch: win64_msvc2022_64
+          cache: true
+
       - name: Configure
         run: |
           $env:VCPKG_ROOT = "${{ env.BYTEFORGE_VCPKG }}"
-          cmake --preset windows-release
+          cmake --preset windows-release -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
 
       - name: Save vcpkg packages
         if: ${{ !cancelled() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
@@ -100,6 +107,7 @@ jobs:
           zip unzip tar curl which diffutils findutils file libicu kernel-headers
           libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel mesa-libGLU-devel
           wayland-devel libxkbcommon-devel wayland-protocols-devel
+          qt6-qtbase-devel qt6-qtdeclarative-devel
 
       - name: Check out
         uses: actions/checkout@v4
