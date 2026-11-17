@@ -50,14 +50,27 @@ set_target_properties(Hub PROPERTIES
 add_dependencies(Hub Editor)
 
 if(WIN32)
+    set(BYTEFORGE_QT_DIR ${BYTEFORGE_LIB_DIR}/qt)
+
     add_custom_command(TARGET Hub POST_BUILD
-        COMMAND
-            Qt6::windeployqt
+        COMMAND Qt6::windeployqt
             --no-translations
             --no-compiler-runtime
+            --no-opengl-sw
+            --no-system-d3d-compiler
+            --skip-plugin-types qmltooling,generic,networkinformation,tls,iconengines,imageformats
+            --plugindir "${BYTEFORGE_QT_DIR}/plugins"
+            --qml-deploy-dir "${BYTEFORGE_QT_DIR}/qml"
             --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/qml"
             "$<TARGET_FILE:Hub>"
-        COMMENT "Deploying Qt next to ByteForge Hub"
+        COMMAND ${CMAKE_COMMAND}
+            -DBIN_DIR=${BYTEFORGE_BIN_DIR}
+            -DQML_DIR=${BYTEFORGE_QT_DIR}/qml
+            -P ${CMAKE_SOURCE_DIR}/cmake/PruneQtDeployment.cmake
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/deploy/qt.conf"
+            "${BYTEFORGE_BIN_DIR}/qt.conf"
+        COMMENT "Deploying Qt for ByteForge Hub"
         VERBATIM
     )
 endif()

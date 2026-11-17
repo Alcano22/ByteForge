@@ -76,16 +76,15 @@ jobs:
       - name: Build
         run: cmake --build --preset windows-release
 
-      - name: Upload editor
+      - name: Install
+        run: cmake --install build-windows-release
+
+      - name: Upload ByteForge
         uses: actions/upload-artifact@v4
         with:
           name: ByteForge-Windows
           if-no-files-found: error
-          path: |
-            build-windows-release/stage
-            !build-windows-release/stage/lib
-            !build-windows-release/stage/**/*.exp
-            !build-windows-release/stage/**/*.ilk
+          path: install-windows-release
 
   linux:
     name: Linux (Clang, Fedora)
@@ -147,3 +146,16 @@ jobs:
 
       - name: Build
         run: cmake --build --preset release
+
+      - name: Install
+        run: cmake --install build-release
+
+      - name: Package
+        run: tar -czf ByteForge-Linux.tar.gz -C install-release .
+
+      - name: Upload ByteForge
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Linux
+          if-no-files-found: error
+          path: ByteForge-Linux.tar.gz

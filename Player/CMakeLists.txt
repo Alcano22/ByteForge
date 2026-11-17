@@ -17,7 +17,7 @@ byteforge_copy_directory(Player
 byteforge_add_engine_shaders(Player ${BYTEFORGE_PLAYER_DIR})
 
 if(UNIX AND NOT APPLE)
-    set_target_properties(Player PROPERTIES BUILD_RPATH "$ORIGIN")
+    set_target_properties(Player PROPERTIES INSTALL_RPATH "$ORIGIN")
 endif()
 
 if(NOT WIN32)

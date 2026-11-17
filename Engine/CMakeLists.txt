@@ -219,7 +219,7 @@ add_custom_command(TARGET Engine POST_BUILD
 )
 
 if (UNIX AND NOT APPLE)
-    set_target_properties(Engine PROPERTIES BUILD_RPATH "$ORIGIN")
+    set_target_properties(Engine PROPERTIES INSTALL_RPATH "$ORIGIN")
 endif()
 
 set_target_properties(Engine PROPERTIES

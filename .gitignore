@@ -40,3 +40,4 @@ context.txt
 .DS_Store
 Thumbs.dbbuild-*/
 build-*/
+install-*/

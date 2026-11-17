@@ -31,6 +31,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BYTEFORGE_BIN_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BYTEFORGE_LIB_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BYTEFORGE_LIB_DIR})
 
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+
 include(cmake/CopyDirectory.cmake)
 include(cmake/RuntimeDeploy.cmake)
 
@@ -42,3 +45,5 @@ add_subdirectory(Player)
 if(BYTEFORGE_BUILD_HUB)
     add_subdirectory(Hub)
 endif()
+
+include(cmake/Install.cmake)
