@@ -50,7 +50,7 @@ namespace ByteForge
 
         std::array<int, 2> fds{};
         if (::pipe(fds.data()) != 0)
-            throw std::runtime_error(std::format("Platform: cannot create a pipe: {}", Describe(errno)));
+            throw Error("Platform: cannot create a pipe: {}", Describe(errno));
 
         SetCloseOnExec(fds[0]);
         SetCloseOnExec(fds[1]);

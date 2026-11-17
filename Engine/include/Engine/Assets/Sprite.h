@@ -17,7 +17,7 @@ namespace ByteForge
             : m_Texture(std::move(texture)), m_UVMin(uvMin), m_UVMax(uvMax)
         {
             if (!m_Texture)
-                throw std::runtime_error("Sprite: the texture asset must not be null");
+                throw Error("Sprite: the texture asset must not be null");
         }
 
         [[nodiscard]] const Ref<TextureAsset>& GetTextureAsset() const { return m_Texture; }

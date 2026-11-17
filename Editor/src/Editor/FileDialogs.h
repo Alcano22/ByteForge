@@ -16,11 +16,11 @@ namespace ByteForge
     namespace FileDialogs
     {
         [[nodiscard]] std::optional<fs::path> OpenFile(std::span<const FileFilter> filters,
-                                                                    const fs::path& defaultDirectory = {});
+                                                                 const fs::path& defaultDirectory = {});
 
         [[nodiscard]] std::optional<fs::path> SaveFile(std::span<const FileFilter> filters,
-                                                                    const fs::path& defaultDirectory = {},
-                                                                    const std::string& defaultName = {});
+                                                                 const fs::path& defaultDirectory = {},
+                                                                 const std::string& defaultName = {});
 
         [[nodiscard]] std::optional<fs::path> PickFolder(const fs::path& defaultDirectory = {});
     }

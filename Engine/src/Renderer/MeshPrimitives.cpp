@@ -37,7 +37,7 @@ namespace ByteForge::MeshPrimitives
     Ref<Mesh> CreateCube(const f32 size)
     {
         if (size <= 0.0f)
-            throw std::runtime_error("MeshPrimitives::CreateCube: the size must be greater than zero");
+            throw Error("MeshPrimitives::CreateCube: the size must be greater than zero");
 
         const f32 half = size * 0.5f;
 

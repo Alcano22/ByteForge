@@ -15,7 +15,7 @@ namespace ByteForge
 
         const Entity resolved = ActiveScene->FindEntityByUUID(entity.Id);
         if (!resolved.IsValid())
-            throw ScriptError(std::format("Entity {} no longer exists", static_cast<u64>(entity.Id)));
+            throw ScriptError("Entity {} no longer exists", static_cast<u64>(entity.Id));
 
         return resolved;
     }
@@ -46,8 +46,8 @@ namespace ByteForge
     void ValidateArguments(const ScriptFunction& function, const std::span<const ScriptValue> arguments)
     {
         if (arguments.size() != function.Parameters.size())
-            throw ScriptError(std::format("{} expects {} argument(s), got {}",
-                                          function.Id, function.Parameters.size(), arguments.size()));
+            throw ScriptError("{} expects {} argument(s), got {}",
+                                          function.Id, function.Parameters.size(), arguments.size());
 
         for (usize i = 0; i < arguments.size(); ++i)
         {
@@ -58,8 +58,8 @@ namespace ByteForge
                 matches = !asset->IsSet() || asset->Type == parameter.Asset;
 
             if (!matches)
-                throw ScriptError(std::format("{}: argument '{}' must be {}",
-                                              function.Id, parameter.Name, DescribeType(parameter)));
+                throw ScriptError("{}: argument '{}' must be {}",
+                                              function.Id, parameter.Name, DescribeType(parameter));
         }
     }
 
@@ -86,7 +86,7 @@ namespace ByteForge
     const ScriptFunction& ScriptAPI::GetFunction(const u32 index) const
     {
         if (index >= m_Functions.size())
-            throw ScriptError(std::format("Unknown script function index {}", index));
+            throw ScriptError("Unknown script function index {}", index);
         return m_Functions[index];
     }
 
@@ -94,10 +94,10 @@ namespace ByteForge
     {
         const usize dot = function.Id.find('.');
         if (dot == std::string::npos || dot == 0 || dot + 1 == function.Id.size())
-            throw std::logic_error(std::format("Script function id '{}' must look like 'Category.Name'", function.Id));
+            throw LogicError("Script function id '{}' must look like 'Category.Name'", function.Id);
 
         if (m_Indices.contains(function.Id))
-            throw std::logic_error(std::format("Script function '{}' is registered twice", function.Id));
+            throw LogicError("Script function '{}' is registered twice", function.Id);
 
         function.Category = function.Id.substr(0, dot);
         m_Indices.emplace(function.Id, static_cast<u32>(m_Functions.size()));

@@ -75,7 +75,7 @@ namespace ByteForge
                 const std::string name = json.at("event").get<std::string>();
                 const auto event = magic_enum::enum_cast<GraphEvent>(name);
                 if (!event)
-                    throw std::runtime_error(std::format("unknown event '{}'", name));
+                    throw Error("unknown event '{}'", name);
                 return EventNode{ *event };
             }
             if (kind == NodeKindName<CallNode>)
@@ -92,11 +92,11 @@ namespace ByteForge
             {
                 std::optional<ScriptValue> value = JsonValue::ReadScriptValue(json.at("value"));
                 if (!value)
-                    throw std::runtime_error("literal node has an unreadable value");
+                    throw Error("literal node has an unreadable value");
                 return LiteralNode{ std::move(*value) };
             }
 
-            throw std::runtime_error(std::format("unknown node kind '{}'", kind));
+            throw Error("unknown node kind '{}'", kind);
         }
 
         GraphNode ReadNode(const nlohmann::json& json)
@@ -135,7 +135,7 @@ namespace ByteForge
 
             std::optional<ScriptValue> value = JsonValue::ReadScriptValue(json.at("default"));
             if (!value)
-                throw std::runtime_error(std::format("variable '{}' has an unreadable default value", name));
+                throw Error("variable '{}' has an unreadable default value", name);
 
             return {
                 .Id      = UUID(json.at("id").get<u64>()),

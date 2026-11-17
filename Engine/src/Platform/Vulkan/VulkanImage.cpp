@@ -25,8 +25,8 @@ namespace ByteForge
         vkGetPhysicalDeviceFormatProperties(m_Device.GetPhysicalDevice(), spec.Format, &formatProps);
         if ((formatProps.optimalTilingFeatures & requiredFeatures) != requiredFeatures)
         {
-            throw std::runtime_error(std::format("Format {} is not supported for the requested image usage "
-                                                 "on this GPU", VkFormatToString(spec.Format)));
+            throw Error("Format {} is not supported for the requested image usage "
+                                                 "on this GPU", VkFormatToString(spec.Format));
         }
 
         const bool hasAlternateView = spec.AlternateViewFormat != VK_FORMAT_UNDEFINED;

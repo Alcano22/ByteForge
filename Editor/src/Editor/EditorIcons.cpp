@@ -70,7 +70,7 @@ namespace ByteForge
         {
             std::unique_ptr<lunasvg::Document> document = lunasvg::Document::loadFromFile(path.string());
             if (!document)
-                throw std::runtime_error(std::format("Failed to parse SVG '{}'", path.string()));
+                throw Error("Failed to parse SVG '{}'", path.string());
 
             document->applyStyleSheet(std::string(SvgStyleSheet));
             return document;
@@ -80,7 +80,7 @@ namespace ByteForge
         {
             lunasvg::Bitmap bitmap = document.renderToBitmap(SvgResolution, SvgResolution);
             if (bitmap.isNull())
-                throw std::runtime_error(std::format("Failed to render SVG '{}'", path.string()));
+                throw Error("Failed to render SVG '{}'", path.string());
 
             bitmap.convertToRGBA();
 
@@ -139,7 +139,7 @@ namespace ByteForge
     {
         const Ref<Texture2D>& texture = m_Icons.at(static_cast<usize>(icon));
         if (!texture)
-            throw std::runtime_error("EditorIcons::Get: icons are not loaded, call Load first");
+            throw Error("EditorIcons::Get: icons are not loaded, call Load first");
 
         return texture;
     }

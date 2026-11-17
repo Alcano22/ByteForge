@@ -17,7 +17,7 @@ namespace ByteForge
     {
         const auto image = DecodeImage(path);
         if (!image)
-            throw std::runtime_error(std::format("Texture2D::Load: {}", image.error()));
+            throw Error("Texture2D::Load: {}", image.error());
 
         return Create(image->Width, image->Height, image->Pixels, settings);
     }

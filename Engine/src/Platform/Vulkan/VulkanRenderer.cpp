@@ -33,8 +33,8 @@ namespace ByteForge
 
             if (range.First > available)
             {
-                throw std::runtime_error(std::format("Renderer::Submit: the draw range starts at {}, but the "
-                                                     "mesh has only {} {}", range.First, available, unit));
+                throw Error("Renderer::Submit: the draw range starts at {}, but the mesh has only {} {}",
+                            range.First, available, unit);
             }
 
             DrawRange resolved = range;
@@ -42,10 +42,8 @@ namespace ByteForge
                 resolved.Count = available - range.First;
             else if (range.Count > available - range.First)
             {
-                throw std::runtime_error(std::format("Renderer::Submit: the draw range [{}, {}) exceeds the {} {} "
-                                                     "of the mesh", range.First,
-                                                     static_cast<u64>(range.First) + range.Count,
-                                                     available, unit));
+                throw Error("Renderer::Submit: the draw range [{}, {}) exceeds the {} {} of the mesh",
+                            range.First, static_cast<u64>(range.First) + range.Count, available, unit);
             }
 
             return resolved;
@@ -140,9 +138,9 @@ namespace ByteForge
 
         if (pushConstants.size() != pipeline.GetPushConstantSize())
         {
-            throw std::runtime_error(std::format("Renderer::Submit: got {} bytes of push constant data, "
+            throw Error("Renderer::Submit: got {} bytes of push constant data, "
                                                  "but the shader expects {}",
-                                                 pushConstants.size(), pipeline.GetPushConstantSize()));
+                                                 pushConstants.size(), pipeline.GetPushConstantSize());
         }
 
         const auto& vertexBuffer = static_cast<const VulkanVertexBuffer&>(*mesh.GetVertexBuffer());
@@ -173,7 +171,7 @@ namespace ByteForge
             return FrameResult::Ok;
 
         if (m_ActivePass == Pass::Target)
-            throw std::runtime_error("Renderer::EndFrame: EndRenderTarget was not called");
+            throw Error("Renderer::EndFrame: EndRenderTarget was not called");
 
         EndRendering();
         EnsureSwapchainCleared();
@@ -229,10 +227,7 @@ namespace ByteForge
         if (m_FrameSkipped) return;
 
         if (m_ActivePass == Pass::Target)
-        {
-            throw std::runtime_error("Renderer::BeginRenderTarget: render targets cannot be nested, "
-                                     "call EndRenderTarget first");
-        }
+            throw Error("Renderer::BeginRenderTarget: render targets cannot be nested, call EndRenderTarget first");
 
         const auto& target = static_cast<const VulkanRenderTarget&>(renderTarget);
 
@@ -254,7 +249,7 @@ namespace ByteForge
         if (m_FrameSkipped) return;
 
         if (m_ActivePass != Pass::Target)
-            throw std::runtime_error("Renderer::EndRenderTarget: no render target is active");
+            throw Error("Renderer::EndRenderTarget: no render target is active");
 
         EndRendering();
 
@@ -267,7 +262,7 @@ namespace ByteForge
         if (m_FrameSkipped) return;
 
         if (m_ActivePass == Pass::Target)
-            throw std::runtime_error("Renderer: EndRenderTarget must be called before ImGui is rendered");
+            throw Error("Renderer: EndRenderTarget must be called before ImGui is rendered");
 
         EndRendering();
 
@@ -315,11 +310,10 @@ namespace ByteForge
 
         if (pipeline.GetColorFormats() != m_ActiveColorFormats || depthFormat != m_ActiveDepthFormat)
         {
-            throw std::runtime_error(std::format(
-                "Renderer::Submit: the pipeline renders into [{}] / {} (color / depth), but the active pass has "
-                "[{}] / {}; set PipelineSpec::ColorAttachments and DepthFormat to match the render target",
-                FormatList(pipeline.GetColorFormats()), VkFormatToString(depthFormat),
-                FormatList(m_ActiveColorFormats), VkFormatToString(m_ActiveDepthFormat)));
+            throw Error("Renderer::Submit: the pipeline renders into [{}] / {} (color / depth), but the active pass "
+                        "has [{}] / {}; set PipelineSpec::ColorAttachments and DepthFormat to match the render target",
+                        FormatList(pipeline.GetColorFormats()), VkFormatToString(depthFormat),
+                        FormatList(m_ActiveColorFormats), VkFormatToString(m_ActiveDepthFormat));
         }
 
         const VkPipelineLayout pipelineLayout = pipeline.GetLayoutHandle();

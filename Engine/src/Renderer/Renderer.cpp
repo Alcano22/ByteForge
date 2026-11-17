@@ -29,7 +29,7 @@ namespace ByteForge
                              const std::span<const std::byte> pushConstants, const DrawRange& range)
     {
         if (!material || !mesh)
-            throw std::runtime_error("Renderer::Submit: material and mesh must not be null");
+            throw Error("Renderer::Submit: material and mesh must not be null");
 
         RenderBackend::Get().Submit(*material, *mesh, pushConstants, range);
     }
@@ -37,7 +37,7 @@ namespace ByteForge
     void Renderer::BeginRenderTarget(const Ref<RenderTarget>& target)
     {
         if (!target)
-            throw std::runtime_error("Renderer::BeginRenderTarget: the render target must not be null");
+            throw Error("Renderer::BeginRenderTarget: the render target must not be null");
 
         RenderBackend::Get().BeginRenderTarget(*target);
     }

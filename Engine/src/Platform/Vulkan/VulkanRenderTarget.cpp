@@ -21,10 +21,10 @@ namespace ByteForge
         : m_Spec(spec)
     {
         if (spec.Width == 0 || spec.Height == 0)
-            throw std::runtime_error("RenderTargetSpec: width and height must be greater than zero");
+            throw Error("RenderTargetSpec: width and height must be greater than zero");
 
         if (spec.ColorFormats.empty())
-            throw std::runtime_error("RenderTargetSpec: at least one color format is required");
+            throw Error("RenderTargetSpec: at least one color format is required");
 
         VulkanContext& context = VulkanContext::Get();
         const VulkanDevice& device = context.GetDevice();
@@ -33,7 +33,7 @@ namespace ByteForge
         {
             const VkFormat format = ImageFormatToVk(imageFormat);
             if (format == VK_FORMAT_UNDEFINED)
-                throw std::runtime_error("RenderTargetSpec: color formats must not be None");
+                throw Error("RenderTargetSpec: color formats must not be None");
 
             const bool integer = IsIntegerFormat(format);
             const VkFormat unormFormat = ToUnormEquivalent(format);
@@ -81,10 +81,10 @@ namespace ByteForge
     u32 VulkanRenderTarget::ReadPixel(const u32 attachment, const u32 x, const u32 y) const
     {
         if (attachment >= m_Colors.size() || !m_Colors[attachment].IsInteger)
-            throw std::runtime_error("RenderTarget::ReadPixel: only integer color attachments can be read");
+            throw Error("RenderTarget::ReadPixel: only integer color attachments can be read");
 
         if (x >= m_Spec.Width || y >= m_Spec.Height)
-            throw std::runtime_error("RenderTarget::ReadPixel: the pixel is outside the render target");
+            throw Error("RenderTarget::ReadPixel: the pixel is outside the render target");
 
         const VkImage image = m_Colors[attachment].Image->GetHandle();
         const VkBuffer buffer = m_ReadbackBuffer->GetHandle();

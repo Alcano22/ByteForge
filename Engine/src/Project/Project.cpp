@@ -267,7 +267,7 @@ namespace ByteForge
     const Project& Project::GetActive()
     {
         if (!s_Active)
-            throw std::logic_error("Project::GetActive: no project is open");
+            throw LogicError("Project::GetActive: no project is open");
 
         return *s_Active;
     }

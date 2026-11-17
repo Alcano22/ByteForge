@@ -113,7 +113,7 @@ namespace ByteForge
             static void Check(const i32 result)
             {
                 if (result != 0)
-                    throw std::runtime_error(ScriptGlue::TakeManagedException());
+                    throw Error(ScriptGlue::TakeManagedException());
             }
 
         private:
@@ -150,7 +150,7 @@ namespace ByteForge
 
         const NativeAPI api = ScriptGlue::CreateNativeAPI();
         if (const i32 result = initialize(&api); result != 0)
-            throw std::runtime_error(std::format("ScriptCore initialization failed (code {})", result));
+            throw Error("ScriptCore initialization failed (code {})", result);
 
         RefreshClasses();
     }
@@ -192,7 +192,7 @@ namespace ByteForge
 
         void* handle = m_Functions.CreateInstance(name.c_str(), static_cast<u64>(entity.GetUUID()));
         if (handle == nullptr)
-            throw std::runtime_error(ScriptGlue::TakeManagedException());
+            throw Error(ScriptGlue::TakeManagedException());
 
         return MakeScope<CSharpScriptInstance>(m_Functions, handle);
     }

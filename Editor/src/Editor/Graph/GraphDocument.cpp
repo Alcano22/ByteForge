@@ -62,7 +62,7 @@ namespace ByteForge
     {
         Result<ScriptGraph> graph = DeserializeScriptGraph(snapshot);
         if (!graph)
-            throw std::runtime_error(std::format("Cannot restore the graph: {}", graph.error()));
+            throw Error("Cannot restore the graph: {}", graph.error());
 
         m_Graph = std::move(*graph);
         OnGraphChanged();

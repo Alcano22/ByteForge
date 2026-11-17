@@ -18,7 +18,7 @@ namespace ByteForge
         : m_Pipeline(pipeline)
     {
         if (!m_Pipeline)
-            throw std::runtime_error("Material::Create: the pipeline must not be null");
+            throw Error("Material::Create: the pipeline must not be null");
 
         const VulkanPipeline& vulkanPipeline = GetVulkanPipeline();
         const std::vector<ReflectedDescriptorBinding>& bindings = vulkanPipeline.GetMaterialBindings();
@@ -94,12 +94,12 @@ namespace ByteForge
     {
         const auto member = std::ranges::find(m_Members, name, &ReflectedBlockMember::Name);
         if (member == m_Members.end())
-            throw std::runtime_error(std::format("Material has no parameter '{}'", name));
+            throw Error("Material has no parameter '{}'", name);
 
         if (data.size() != member->Size)
         {
-            throw std::runtime_error(std::format("Material parameter '{}' is {} bytes, but {} bytes were given",
-                                                 name, member->Size, data.size()));
+            throw Error("Material parameter '{}' is {} bytes, but {} bytes were given",
+                                                 name, member->Size, data.size());
         }
 
         std::byte* destination = m_Shadow.data() + member->Offset;
@@ -107,8 +107,8 @@ namespace ByteForge
 
         if (m_LastDrawFrame == VulkanContext::Get().GetFrameData().GetFrameNumber())
         {
-            throw std::runtime_error(std::format(
-                "Material parameter '{}' changed after the material was drawn in the same frame", name));
+            throw Error(
+                "Material parameter '{}' changed after the material was drawn in the same frame", name);
         }
 
         std::memcpy(destination, data.data(), data.size());
@@ -128,20 +128,20 @@ namespace ByteForge
                 available += other.Name;
             }
 
-            throw std::runtime_error(std::format(
+            throw Error(std::format(
                 "Material has no texture '{}' (textures of this material: {}); note that the shader compiler "
                 "removes resources the shader does not use", name, available.empty() ? "none" : available));
         }
 
         if (!texture)
-            throw std::runtime_error(std::format("Material texture '{}' must not be null", name));
+            throw Error("Material texture '{}' must not be null", name);
 
         if (slot->Texture == texture) return;
 
         if (WasDrawnThisFrame())
         {
-            throw std::runtime_error(std::format(
-                "Material texture '{}' changed after the material was drawn in the same frame", name));
+            throw Error(
+                "Material texture '{}' changed after the material was drawn in the same frame", name);
         }
 
         slot->Texture = texture;
@@ -153,7 +153,7 @@ namespace ByteForge
         for (const TextureSlot& slot : m_TextureSlots)
         {
             if (!slot.Texture)
-                throw std::runtime_error(std::format("Material texture '{}' was not set before drawing", slot.Name));
+                throw Error("Material texture '{}' was not set before drawing", slot.Name);
         }
 
         m_LastDrawFrame = VulkanContext::Get().GetFrameData().GetFrameNumber();

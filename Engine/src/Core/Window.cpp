@@ -25,7 +25,7 @@ namespace ByteForge
             });
 
             if (!glfwInit())
-                throw std::runtime_error("Failed to initialize GLFW");
+                throw Error("Failed to initialize GLFW");
 
             static i32 s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
@@ -53,7 +53,7 @@ namespace ByteForge
         );
 
         if (!rawWindow)
-            throw std::runtime_error("Failed to create GLFW window");
+            throw Error("Failed to create GLFW window");
 
         m_Window = WrapScope(rawWindow, GlfwWindowDestroyer{});
 

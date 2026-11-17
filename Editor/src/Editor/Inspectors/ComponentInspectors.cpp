@@ -56,8 +56,10 @@ namespace ByteForge
 
             ImGui::DragInt("Sorting Layer", &spriteRenderer.SortingLayer, 0.1f);
             if (ImGui::IsItemHovered())
+            {
                 ImGui::SetItemTooltip("Higher layers are drawn in front of lower ones.\n"
                                       "Within a layer, a higher Z is in front.");
+            }
         }
 
         void DrawCamera(CameraComponent& camera, Entity, EditorContext&)
@@ -266,15 +268,15 @@ namespace ByteForge
             const auto it = std::ranges::find(Inspectors, descriptor.TypeId, &ComponentInspector::TypeId);
             if (it == Inspectors.end())
             {
-                throw std::logic_error(std::format("Component '{}' is registered in the ComponentRegistry but has no"
-                                                   "inspector (add an Inspect<...> entry in ComponentInspectors.cpp)",
-                                                   descriptor.Key));
+                throw LogicError("Component '{}' is registered in the ComponentRegistry but has no"
+                                 "inspector (add an Inspect<...> entry in ComponentInspectors.cpp)",
+                                 descriptor.Key);
             }
 
             if (it->Removable != descriptor.Removable)
             {
-                throw std::logic_error(std::format("Component '{}': the inspector '{}' and the ComponentRegistry "
-                                                   "disagree on 'removable'", descriptor.Key, it->Name));
+                throw LogicError("Component '{}': the inspector '{}' and the ComponentRegistry "
+                                 "disagree on 'removable'", descriptor.Key, it->Name);
             }
         }
 
@@ -282,8 +284,8 @@ namespace ByteForge
         {
             if (ComponentRegistry::FindByType(inspector.TypeId) == nullptr)
             {
-                throw std::logic_error(std::format("Inspector '{}' has no entry in the ComponentRegistry (add a "
-                                                   "Describe<...> line in ComponentRegistry.cpp)", inspector.Name));
+                throw LogicError("Inspector '{}' has no entry in the ComponentRegistry (add a "
+                                 "Describe<...> line in ComponentRegistry.cpp)", inspector.Name);
             }
         }
     }

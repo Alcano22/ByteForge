@@ -10,7 +10,7 @@ namespace ByteForge
     void CommandHistory::Execute(Scope<EditorCommand> command)
     {
         if (!command)
-            throw std::runtime_error("CommandHistory::Execute: the command must not be null");
+            throw Error("CommandHistory::Execute: the command must not be null");
 
         command->Execute();
         Push(std::move(command));
@@ -19,7 +19,7 @@ namespace ByteForge
     void CommandHistory::Record(Scope<EditorCommand> command)
     {
         if (!command)
-            throw std::runtime_error("CommandHistory::Record: the command must not be null");
+            throw Error("CommandHistory::Record: the command must not be null");
 
         Push(std::move(command));
     }

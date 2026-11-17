@@ -31,7 +31,7 @@ namespace ByteForge
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
 
         if (deviceCount == 0)
-            throw std::runtime_error("Failed to find a GPU with Vulkan support");
+            throw Error("Failed to find a GPU with Vulkan support");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
@@ -51,7 +51,7 @@ namespace ByteForge
         }
 
         if (candidates.empty())
-            throw std::runtime_error("Failed to find a suitable GPU");
+            throw Error("Failed to find a suitable GPU");
 
         m_PhysicalDevice = candidates.begin()->second;
         m_QueueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);

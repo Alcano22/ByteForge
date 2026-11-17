@@ -15,6 +15,6 @@ namespace ByteForge
             case RendererAPI::API::None:   break;
         }
 
-        throw std::runtime_error("GraphicsContext::Create: no supported renderer API selected");
+        throw Error("GraphicsContext::Create: no supported renderer API selected");
     }
 }

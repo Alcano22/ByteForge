@@ -20,7 +20,7 @@ namespace ByteForge
                 case ShaderStage::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             }
 
-            throw std::runtime_error("Unknown ShaderStage");
+            throw Error("Unknown ShaderStage");
         }
 
         const char* FormatToString(const VkFormat format)
@@ -43,10 +43,7 @@ namespace ByteForge
         void CheckReflect(const SpvReflectResult result, const char* what)
         {
             if (result != SPV_REFLECT_RESULT_SUCCESS)
-            {
-                throw std::runtime_error(std::format("SPIRV-Reflect failed to {} (SpvReflectResult {})",
-                                                     what, static_cast<i32>(result)));
-            }
+                throw Error("SPIRV-Reflect failed to {} (SpvReflectResult {})", what, static_cast<i32>(result));
         }
 
         template<typename T, typename Fn>
@@ -78,7 +75,7 @@ namespace ByteForge
         for (const SpvReflectDescriptorBinding* binding : bindings)
         {
             if (binding->count != 1)
-                throw std::runtime_error("Descriptor arrays are not supported yet");
+                throw Error("Descriptor arrays are not supported yet");
 
             ReflectedDescriptorBinding reflected{
                 .Name    = binding->name != nullptr ? binding->name : "",
@@ -109,13 +106,13 @@ namespace ByteForge
             }, "enumerate push constant blocks");
 
         if (pushConstantBlocks.size() > 1)
-            throw std::runtime_error("A shader stage may declare at most one push constant block");
+            throw Error("A shader stage may declare at most one push constant block");
 
         if (!pushConstantBlocks.empty())
         {
             const SpvReflectBlockVariable* block = pushConstantBlocks.front();
             if (block->offset != 0)
-                throw std::runtime_error("Push constant blocks must start at offset 0");
+                throw Error("Push constant blocks must start at offset 0");
 
             result.PushConstants = { .Stages = vkStage, .Size = block->size };
         }
@@ -170,9 +167,8 @@ namespace ByteForge
 
             if (existing->Type != binding.Type || existing->Size != binding.Size)
             {
-                throw std::runtime_error(std::format("Descriptor (set {}, binding {}) is declared differently "
-                                                     "in the vertex and fragment shader",
-                                                     binding.Set, binding.Binding));
+                throw Error("Descriptor (set {}, binding {}) is declared differently in the vertex and fragment shader",
+                            binding.Set, binding.Binding);
             }
 
             existing->Stages |= binding.Stages;
@@ -192,9 +188,8 @@ namespace ByteForge
         {
             if (input.Location >= elements.size())
             {
-                throw std::runtime_error(std::format("Vertex shader input '{}' (location {}) has no element "
-                                                     "in the vertex layout ({} elements)",
-                                                     input.Name, input.Location, elements.size()));
+                throw Error("Vertex shader input '{}' (location {}) has no element in the vertex layout ({} elements)",
+                            input.Name, input.Location, elements.size());
             }
 
             const BufferElement& element = elements[input.Location];
@@ -202,10 +197,9 @@ namespace ByteForge
 
             if (input.Format != provided)
             {
-                throw std::runtime_error(std::format("Vertex shader input '{}' (location {}) expects {}, "
-                                                     "but layout element '{}' provides {}",
-                                                     input.Name, input.Location, FormatToString(input.Format),
-                                                     element.Name, FormatToString(provided)));
+                throw Error("Vertex shader input '{}' (location {}) expects {}, but layout element '{}' provides {}",
+                            input.Name, input.Location, FormatToString(input.Format),
+                            element.Name, FormatToString(provided));
             }
         }
     }

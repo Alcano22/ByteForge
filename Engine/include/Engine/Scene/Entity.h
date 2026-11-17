@@ -22,7 +22,7 @@ namespace ByteForge
         T& AddComponent(Args&&... args) const
         {
             if (HasComponent<T>())
-                throw std::runtime_error("Entity::AddComponent: this entity already has this component type");
+                throw Error("Entity::AddComponent: this entity already has this component type");
 
             return m_Scene->m_Registry.emplace<T>(m_Handle, std::forward<Args>(args)...);
         }
@@ -31,7 +31,7 @@ namespace ByteForge
         [[nodiscard]] T& GetComponent() const
         {
             if (!HasComponent<T>())
-                throw std::runtime_error("Entity::GetComponent: this entity does not have this component type");
+                throw Error("Entity::GetComponent: this entity does not have this component type");
 
             return m_Scene->m_Registry.get<T>(m_Handle);
         }
@@ -52,7 +52,7 @@ namespace ByteForge
         void RemoveComponent() const
         {
             if (!HasComponent<T>())
-                throw std::runtime_error("Entity::RemoveComponent: this entity does not have this component type");
+                throw Error("Entity::RemoveComponent: this entity does not have this component type");
 
             m_Scene->m_Registry.remove<T>(m_Handle);
         }
@@ -106,7 +106,7 @@ namespace ByteForge
         void RequireValid(const char* method) const
         {
             if (!IsValid())
-                throw std::runtime_error(std::format("Entity::{}: the entity is not valid", method));
+                throw Error("Entity::{}: the entity is not valid", method);
         }
 
     private:

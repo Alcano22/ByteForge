@@ -10,7 +10,7 @@ namespace ByteForge
     ImGuiRenderer& ImGuiRenderer::Get()
     {
         if (s_Active == nullptr)
-            throw std::runtime_error("ImGuiRenderer: ImGui is not enabled, call Application::EnableImGui() first");
+            throw Error("ImGuiRenderer: ImGui is not enabled, call Application::EnableImGui() first");
 
         return *s_Active;
     }

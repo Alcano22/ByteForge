@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Core/Error.h"
 #include "Engine/Renderer/Buffer.h"
 #include "Engine/Renderer/ImageFormat.h"
 
@@ -10,11 +11,11 @@
 
 namespace ByteForge
 {
-    class VulkanException : public std::runtime_error
+    class VulkanException : public Error
     {
     public:
         VulkanException(const VkResult result, const char* expression, const char* file, const i32 line)
-            : std::runtime_error(BuildMessage(result, expression, file, line)),
+            : Error(BuildMessage(result, expression, file, line)),
               m_Result(result) {}
 
         [[nodiscard]] VkResult GetResult() const { return m_Result; }

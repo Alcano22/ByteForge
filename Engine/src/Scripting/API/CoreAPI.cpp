@@ -125,8 +125,8 @@ namespace ByteForge
             const std::vector<Entity> children = context.Resolve(entity).GetChildren();
             if (index < 0 || static_cast<usize>(index) >= children.size())
             {
-                throw ScriptError(std::format("Child index {} is out of range (the entity has {} children)",
-                                              index, children.size()));
+                throw ScriptError("Child index {} is out of range (the entity has {} children)",
+                                              index, children.size());
             }
 
             return EntityRef{ children[static_cast<usize>(index)].GetUUID() };
@@ -180,7 +180,7 @@ namespace ByteForge
                 return;
             }
 
-            throw ScriptError(std::format("There is no scene named '{}'", name));
+            throw ScriptError("There is no scene named '{}'", name);
         }
 
         void TeleportBodyToTransform(const ScriptCallContext& context, const EntityRef entity)
@@ -387,8 +387,8 @@ namespace ByteForge
         {
             if (!context.Require<AnimatorComponent>(entity).Play(state, restart))
             {
-                throw ScriptError(std::format("Animator.Play: there is no state '{}' (or no controller is assigned)",
-                                              state));
+                throw ScriptError("Animator.Play: there is no state '{}' (or no controller is assigned)",
+                                              state);
             }
         }
 
@@ -425,7 +425,7 @@ namespace ByteForge
         KeyCode ToKeyCode(const i32 key)
         {
             if (key < 0 || key > std::numeric_limits<u16>::max())
-                throw ScriptError(std::format("{} is not a valid key code", key));
+                throw ScriptError("{} is not a valid key code", key);
 
             return static_cast<KeyCode>(key);
         }
@@ -433,7 +433,7 @@ namespace ByteForge
         MouseButton ToMouseButton(const i32 button)
         {
             if (button < 0 || button > static_cast<i32>(MouseButton::ButtonLast))
-                throw ScriptError(std::format("{} is not a valid mouse button", button));
+                throw ScriptError("{} is not a valid mouse button", button);
 
             return static_cast<MouseButton>(button);
         }

@@ -60,8 +60,7 @@ ByteForge::Application* ByteForge::CreateApplication()
 
         if (const Result<> launched = HubLauncher::Launch(); !launched)
         {
-            throw std::runtime_error(std::format("No project given (--project) and the hub cannot be started: {}",
-                                                 launched.error()));
+            throw Error("No project given (--project) and the hub cannot be started: {}", launched.error());
         }
 
         return nullptr;
@@ -69,11 +68,11 @@ ByteForge::Application* ByteForge::CreateApplication()
 
     Result<Project> project = Project::Open(*path);
     if (!project)
-        throw std::runtime_error(std::format("Cannot open the project: {}", project.error()));
+        throw Error("Cannot open the project: {}", project.error());
 
     Result<Scope<FileLock>> lock = project->AcquireEditorLock();
     if (!lock)
-        throw std::runtime_error(lock.error());
+        throw Error(lock.error());
     s_ProjectLock = std::move(*lock);
 
     APP_INFO("Opening project '{}' at '{}'", project->GetName(), project->GetRoot().string());

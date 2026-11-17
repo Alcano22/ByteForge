@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Core/Error.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scripting/ScriptField.h"
@@ -17,10 +18,10 @@
 
 namespace ByteForge
 {
-    class BYTEFORGE_API ScriptError : public std::runtime_error
+    class BYTEFORGE_API ScriptError : public Error
     {
     public:
-        using std::runtime_error::runtime_error;
+        using Error::Error;
     };
 
     template<AssetType Kind>
@@ -46,8 +47,8 @@ namespace ByteForge
         {
             T* component = Resolve(entity).TryGetComponent<T>();
             if (component == nullptr)
-                throw ScriptError(std::format("Entity {} has no {}", static_cast<u64>(entity.Id),
-                                              entt::type_name<T>::value()));
+                throw ScriptError("Entity {} has no {}", static_cast<u64>(entity.Id),
+                                              entt::type_name<T>::value());
             return *component;
         }
     };

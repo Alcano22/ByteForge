@@ -31,7 +31,7 @@ namespace ByteForge
         {
             auto* function = reinterpret_cast<Fn>(library.GetSymbol(name));
             if (function == nullptr)
-                throw std::runtime_error(std::format("DotNetHost: hostfxr has no export '{}'", name));
+                throw Error("DotNetHost: hostfxr has no export '{}'", name);
             return function;
         }
 
@@ -65,9 +65,8 @@ namespace ByteForge
         const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, bundled ? &pathParameters : nullptr);
         if (pathResult != 0)
         {
-            throw std::runtime_error(std::format(
-                "DotNetHost: no .NET runtime found (0x{:08X}). Install the .NET {} Runtime from https://dot.net",
-                static_cast<u32>(pathResult), BYTEFORGE_DOTNET_MAJOR_VERSION));
+            throw Error("DotNetHost: no .NET runtime found (0x{:08X}). Install the .NET {} Runtime from https://dot.net",
+                        static_cast<u32>(pathResult), BYTEFORGE_DOTNET_MAJOR_VERSION);
         }
 
         m_HostFxr = MakeScope<SharedLibrary>(fs::path(hostFxrPath.data()));
@@ -92,8 +91,8 @@ namespace ByteForge
             if (m_Context != nullptr)
                 m_Close(m_Context);
 
-            throw std::runtime_error(std::format("DotNetHost: cannot start the runtime from '{}' (0x{:08X})",
-                                                 runtimeConfig.string(), static_cast<u32>(initResult)));
+            throw Error("DotNetHost: cannot start the runtime from '{}' (0x{:08X})",
+                        runtimeConfig.string(), static_cast<u32>(initResult));
         }
 
         void* loader = nullptr;
@@ -101,8 +100,7 @@ namespace ByteForge
         if (delegateResult != 0 || loader == nullptr)
         {
             m_Close(m_Context);
-            throw std::runtime_error(std::format("DotNetHost: cannot get the assembly loader (0x{:08X})",
-                                                 static_cast<u32>(delegateResult)));
+            throw Error("DotNetHost: cannot get the assembly loader (0x{:08X})", static_cast<u32>(delegateResult));
         }
 
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
@@ -130,9 +128,8 @@ namespace ByteForge
                                                                UNMANAGEDCALLERSONLY_METHOD, nullptr, &function);
         if (result != 0 || function == nullptr)
         {
-            throw std::runtime_error(std::format("DotNetHost: cannot find {}.{} in '{}' (0x{:08X})",
-                                                 typeName, methodName, assembly.string(),
-                                                 static_cast<u32>(result)));
+            throw Error("DotNetHost: cannot find {}.{} in '{}' (0x{:08X})",
+                        typeName, methodName, assembly.string(), static_cast<u32>(result));
         }
 
         return function;

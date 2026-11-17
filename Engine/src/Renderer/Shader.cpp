@@ -24,7 +24,7 @@ namespace ByteForge
 
             Result<ShaderBinaries> binaries = ShaderLibrary::Find(path.filename().string(), source.Defines);
             if (!binaries)
-                throw std::runtime_error(std::format("Shader::Load: {}", binaries.error()));
+                throw Error("Shader::Load: {}", binaries.error());
 
             source.Precompiled = std::move(*binaries);
             return RenderBackend::Get().CreateShader(source);
@@ -32,7 +32,7 @@ namespace ByteForge
 
         std::ifstream file(path, std::ios::binary);
         if (!file.is_open())
-            throw std::runtime_error(std::format("Shader::Load: cannot open '{}'", path.string()));
+            throw Error("Shader::Load: cannot open '{}'", path.string());
 
         const ShaderSource source{
             .Path    = path,
@@ -41,7 +41,7 @@ namespace ByteForge
         };
 
         if (file.bad())
-            throw std::runtime_error(std::format("Shader::Load: cannot read '{}'", path.string()));
+            throw Error("Shader::Load: cannot read '{}'", path.string());
 
         return RenderBackend::Get().CreateShader(source);
     }

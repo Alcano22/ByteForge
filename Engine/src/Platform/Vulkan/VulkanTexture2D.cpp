@@ -18,17 +18,17 @@ namespace ByteForge
         : m_Width(width), m_Height(height), m_Filter(settings.Filter)
     {
         if (width == 0 || height == 0)
-            throw std::runtime_error("Texture2D: width and height must be greater than zero");
+            throw Error("Texture2D: width and height must be greater than zero");
 
         if (settings.Format != ImageFormat::RGBA8_SRGB && settings.Format != ImageFormat::RGBA8_UNORM)
-            throw std::runtime_error("Texture2D: only RGBA8_SRGB and RGBA8_UNORM are supported for now");
+            throw Error("Texture2D: only RGBA8_SRGB and RGBA8_UNORM are supported for now");
 
         constexpr usize bytesPerPixel = 4;
         const usize expectedSize = static_cast<usize>(width) * height * bytesPerPixel;
         if (pixels.size() != expectedSize)
         {
-            throw std::runtime_error(std::format("Texture2D: {}x{} RGBA8 needs {} bytes of pixel data, got {}",
-                                                 width, height, expectedSize, pixels.size()));
+            throw Error("Texture2D: {}x{} RGBA8 needs {} bytes of pixel data, got {}",
+                        width, height, expectedSize, pixels.size());
         }
 
         VulkanContext& context = VulkanContext::Get();
@@ -39,8 +39,8 @@ namespace ByteForge
         const u32 maxDimension = deviceProps.limits.maxImageDimension2D;
         if (width > maxDimension || height > maxDimension)
         {
-            throw std::runtime_error(std::format("Texture2D: {}x{} exceeds the maximum image size of this GPU ({})",
-                                                 width, height, maxDimension));
+            throw Error("Texture2D: {}x{} exceeds the maximum image size of this GPU ({})",
+                        width, height, maxDimension);
         }
 
         m_MipLevels = settings.GenerateMips ? static_cast<u32>(std::bit_width(std::max(width, height))) : 1u;

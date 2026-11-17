@@ -99,7 +99,7 @@ namespace ByteForge
     ImTextureID VulkanImGuiRenderer::GetTextureId(const Ref<Texture2D>& texture)
     {
         if (!texture)
-            throw std::runtime_error("ImGuiRenderer::GetTextureId: the texture must not be null");
+            throw Error("ImGuiRenderer::GetTextureId: the texture must not be null");
 
         return Resolve(texture, static_cast<const VulkanTexture2D&>(*texture).GetDisplayView());
     }
@@ -107,7 +107,7 @@ namespace ByteForge
     ImTextureID VulkanImGuiRenderer::GetTextureId(const Ref<RenderTarget>& target)
     {
         if (!target)
-            throw std::runtime_error("ImGuiRenderer::GetTextureId: the render target must not be null");
+            throw Error("ImGuiRenderer::GetTextureId: the render target must not be null");
 
         return Resolve(target, static_cast<const VulkanRenderTarget&>(*target).GetColorDisplayView());
     }

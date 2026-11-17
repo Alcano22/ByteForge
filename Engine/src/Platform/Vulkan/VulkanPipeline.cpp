@@ -30,7 +30,7 @@ namespace ByteForge
                 case PrimitiveTopology::LineList:      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
             }
 
-            throw std::runtime_error("Unknown PrimitiveTopology");
+            throw Error("Unknown PrimitiveTopology");
         }
 
         VkCullModeFlags ToVk(const CullMode cullMode)
@@ -42,7 +42,7 @@ namespace ByteForge
                 case CullMode::Back:  return VK_CULL_MODE_BACK_BIT;
             }
 
-            throw std::runtime_error("Unknown CullMode");
+            throw Error("Unknown CullMode");
         }
 
         VkFrontFace ToVk(const FrontFace frontFace)
@@ -53,7 +53,7 @@ namespace ByteForge
                 case FrontFace::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
             }
 
-            throw std::runtime_error("Unknown FrontFace");
+            throw Error("Unknown FrontFace");
         }
 
         VkCompareOp ToVk(const CompareOp compareOp)
@@ -65,7 +65,7 @@ namespace ByteForge
                 case CompareOp::Always:      return VK_COMPARE_OP_ALWAYS;
             }
 
-            throw std::runtime_error("Unknown CompareOp");
+            throw Error("Unknown CompareOp");
         }
 
         VkPipelineColorBlendAttachmentState ToVkBlendAttachment(const BlendMode blendMode, const bool writeEnabled)
@@ -93,7 +93,7 @@ namespace ByteForge
                     };
             }
 
-            throw std::runtime_error("Unknown BlendMode");
+            throw Error("Unknown BlendMode");
         }
 
         const char* DescriptorTypeName(const VkDescriptorType type)
@@ -124,16 +124,16 @@ namespace ByteForge
                     {
                         if (binding.Size > sizeof(SceneUniforms))
                         {
-                            throw std::runtime_error(std::format(
+                            throw Error(
                                 "Uniform buffer '{}' (set 0, binding 0) is {} bytes, but the camera data has only {} "
-                                "bytes (see SceneUniforms.h)", binding.Name, binding.Size, sizeof(SceneUniforms)));
+                                "bytes (see SceneUniforms.h)", binding.Name, binding.Size, sizeof(SceneUniforms));
                         }
                         continue;
                     }
 
-                    throw std::runtime_error(std::format(
+                    throw Error(
                         "Unsupported shader resource '{}' ({}, set 0, binding {}): set 0 only holds the scene "
-                        "uniform buffer at binding 0", binding.Name, DescriptorTypeName(binding.Type), binding.Binding));
+                        "uniform buffer at binding 0", binding.Name, DescriptorTypeName(binding.Type), binding.Binding);
                 }
 
                 if (binding.Set == 1)
@@ -144,29 +144,29 @@ namespace ByteForge
                         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:  ++sampledImages;  break;
                         case VK_DESCRIPTOR_TYPE_SAMPLER:        ++samplers;       break;
                         default:
-                            throw std::runtime_error(std::format(
+                            throw Error(
                                 "Unsupported shader resource '{}' ({}, set 1, binding {}): materials support one "
                                 "uniform buffer, Texture2D and SamplerState resources",
-                                binding.Name, DescriptorTypeName(binding.Type), binding.Binding));
+                                binding.Name, DescriptorTypeName(binding.Type), binding.Binding);
                     }
                     continue;
                 }
 
-                throw std::runtime_error(std::format(
+                throw Error(
                     "Unsupported shader resource '{}' (set {}, binding {}): only set 0 (camera) and set 1 (material) "
-                    "are supported", binding.Name, binding.Set, binding.Binding));
+                    "are supported", binding.Name, binding.Set, binding.Binding);
             }
 
             if (uniformBuffers > 1)
-                throw std::runtime_error("A material can have at most one uniform buffer (its parameters) in set 1");
+                throw Error("A material can have at most one uniform buffer (its parameters) in set 1");
 
             if (sampledImages > VulkanDescriptorAllocator::MaxSampledImagesPerSet ||
                 samplers > VulkanDescriptorAllocator::MaxSamplersPerSet)
             {
-                throw std::runtime_error(std::format(
+                throw Error(
                     "A material supports at most {} textures and {} samplers, but the shader declares {} and {}",
                     VulkanDescriptorAllocator::MaxSampledImagesPerSet, VulkanDescriptorAllocator::MaxSamplersPerSet,
-                    sampledImages, samplers));
+                    sampledImages, samplers);
             }
 
             for (const ReflectedDescriptorBinding& sampler : reflection.Bindings)
@@ -183,10 +183,10 @@ namespace ByteForge
 
                 if (!hasTexture)
                 {
-                    throw std::runtime_error(std::format(
+                    throw Error(
                         "Sampler '{}' (set 1, binding {}) does not belong to a texture: name a sampler "
                         "after its texture plus the suffix '{}', e.g. 'u_AlbedoSampler' for 'u_Albedo'",
-                        sampler.Name, sampler.Binding, SamplerNameSuffix));
+                        sampler.Name, sampler.Binding, SamplerNameSuffix);
                 }
             }
         }
@@ -196,7 +196,7 @@ namespace ByteForge
         : m_Device(VulkanContext::Get().GetDevice())
     {
         if (!spec.Shader)
-            throw std::runtime_error("PipelineSpec::Shader must not be null");
+            throw Error("PipelineSpec::Shader must not be null");
 
         const auto& shader = static_cast<const VulkanShaderProgram&>(*spec.Shader);
         const ShaderReflection& reflection = shader.GetReflection();
@@ -249,14 +249,14 @@ namespace ByteForge
     void VulkanPipeline::CreatePipelineLayout(const ReflectedPushConstants& pushConstants)
     {
         if ((pushConstants.Size > 0) != (pushConstants.Stages != 0))
-            throw std::runtime_error("Push constant size and stage flags must be specified together");
+            throw Error("Push constant size and stage flags must be specified together");
 
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(m_Device.GetPhysicalDevice(), &deviceProperties);
         if (pushConstants.Size > deviceProperties.limits.maxPushConstantsSize)
         {
-            throw std::runtime_error(std::format("Push constant block is {} bytes, but the device supports only {}",
-                                                 pushConstants.Size, deviceProperties.limits.maxPushConstantsSize));
+            throw Error("Push constant block is {} bytes, but the device supports only {}",
+                                                 pushConstants.Size, deviceProperties.limits.maxPushConstantsSize);
         }
 
         const bool hasPushConstants = pushConstants.Size > 0;
@@ -289,7 +289,7 @@ namespace ByteForge
     {
         if (spec.ColorAttachments.empty())
         {
-            throw std::runtime_error("PipelineSpec::ColorAttachments must not be empty "
+            throw Error("PipelineSpec::ColorAttachments must not be empty "
                                      "(depth-only pipelines are not supported yet)");
         }
 
@@ -304,10 +304,10 @@ namespace ByteForge
                                   : ImageFormatToVk(attachment.Format);
 
             if (format == VK_FORMAT_UNDEFINED)
-                throw std::runtime_error("PipelineSpec: color attachment formats must not be None");
+                throw Error("PipelineSpec: color attachment formats must not be None");
 
             if (IsIntegerFormat(format) && attachment.Blend != BlendMode::None)
-                throw std::runtime_error("PipelineSpec: integer color attachments cannot be blended");
+                throw Error("PipelineSpec: integer color attachments cannot be blended");
 
             m_ColorFormats.push_back(format);
             blendAttachments.push_back(ToVkBlendAttachment(attachment.Blend, attachment.WriteEnabled));
@@ -316,7 +316,7 @@ namespace ByteForge
         m_DepthFormat = ImageFormatToVk(spec.DepthFormat);
 
         if ((spec.DepthTest || spec.DepthWrite) && m_DepthFormat == VK_FORMAT_UNDEFINED)
-            throw std::runtime_error("PipelineSpec: depth test or depth write requires a DepthFormat");
+            throw Error("PipelineSpec: depth test or depth write requires a DepthFormat");
 
         const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{
             VkPipelineShaderStageCreateInfo{

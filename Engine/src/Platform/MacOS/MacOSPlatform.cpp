@@ -21,8 +21,8 @@ namespace ByteForge
         if (m_Handle == nullptr)
         {
             const char* error = dlerror();
-            throw std::runtime_error(std::format("Platform: cannot load '{}': {}",
-                                                 path.string(), error != nullptr ? error : "unknown error"));
+            throw Error("Platform: cannot load '{}': {}",
+                                                 path.string(), error != nullptr ? error : "unknown error");
         }
     }
 
@@ -47,7 +47,7 @@ namespace ByteForge::Platform::Detail
 
         std::string buffer(size, '\0');
         if (_NSGetExecutablePath(buffer.data(), &size) != 0)
-            throw std::runtime_error("Platform: _NSGetExecutablePath failed");
+            throw Error("Platform: _NSGetExecutablePath failed");
 
         buffer.resize(std::strlen(buffer.c_str()));
 

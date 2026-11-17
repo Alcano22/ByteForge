@@ -134,7 +134,7 @@ namespace ByteForge
                 }
             } catch (const std::exception& e)
             {
-                throw ScriptError(std::format("{} (in '{}')", e.what(), program.Labels[current.Label]));
+                throw ScriptError("{} (in '{}')", e.what(), program.Labels[current.Label]);
             }
         }
 

@@ -45,7 +45,7 @@ namespace ByteForge
     void VulkanFrameData::BeginScene(const SceneUniforms& uniforms)
     {
         if (m_SceneIndex == MaxScenesPerFrame)
-            throw std::runtime_error(std::format("Too many scenes in one frame (maximum is {})", MaxScenesPerFrame));
+            throw Error("Too many scenes in one frame (maximum is {})", MaxScenesPerFrame);
 
         ++m_SceneIndex;
         WriteCurrentScene(uniforms);

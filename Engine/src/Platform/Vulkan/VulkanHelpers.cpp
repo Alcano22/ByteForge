@@ -58,7 +58,7 @@ namespace ByteForge
             case ShaderDataType::None:   break;
         }
 
-        throw std::runtime_error("Unsupported ShaderDataType for vertex attribute");
+        throw Error("Unsupported ShaderDataType for vertex attribute");
     }
 
     const char* VkFormatToString(const VkFormat format)
@@ -88,7 +88,7 @@ namespace ByteForge
             case ImageFormat::Swapchain:   break;
         }
 
-        throw std::runtime_error("ImageFormat::Swapchain is only valid for PipelineSpec::ColorFormat");
+        throw Error("ImageFormat::Swapchain is only valid for PipelineSpec::ColorFormat");
     }
 
     VkFormat ToUnormEquivalent(const VkFormat format)

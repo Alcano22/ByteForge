@@ -19,8 +19,8 @@ namespace ByteForge
         if (m_Handle == nullptr)
         {
             const char* error = dlerror();
-            throw std::runtime_error(std::format("Platform: cannot load '{}': {}",
-                                                 path.string(), error != nullptr ? error : "unknown error"));
+            throw Error("Platform: cannot load '{}': {}",
+                                                 path.string(), error != nullptr ? error : "unknown error");
         }
     }
 
@@ -43,7 +43,7 @@ namespace ByteForge::Platform::Detail
         std::error_code error;
         fs::path path = fs::read_symlink("/proc/self/exe", error);
         if (error)
-            throw std::runtime_error(std::format("Platform: cannot resolve /proc/self/exe: {}", error.message()));
+            throw Error("Platform: cannot resolve /proc/self/exe: {}", error.message());
 
         return path;
     }

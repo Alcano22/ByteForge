@@ -80,7 +80,7 @@ namespace ByteForge
     void SceneSerializer::SerializeToFile(Scene& scene, const std::string& filepath)
     {
         if (const auto written = WriteJsonFile(filepath, Serialize(scene)); !written)
-            throw std::runtime_error(std::format("SceneSerializer::SerializeToFile: {}", written.error()));
+            throw Error("SceneSerializer::SerializeToFile: {}", written.error());
     }
 
     bool SceneSerializer::DeserializeFromFile(Scene& scene, const std::string& filepath)

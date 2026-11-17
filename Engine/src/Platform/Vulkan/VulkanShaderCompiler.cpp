@@ -52,7 +52,7 @@ namespace ByteForge
         {
             T* raw = nullptr;
             if (FAILED(createInstance(clsid, __uuidof(T), reinterpret_cast<void**>(&raw))))
-                throw std::runtime_error("Failed to create DXC instance");
+                throw Error("Failed to create DXC instance");
 
             return ComScope<T>(raw, ComDeleter<T>{});
         }
@@ -93,20 +93,20 @@ namespace ByteForge
             m_Impl->Library = MakeScope<SharedLibrary>(fs::path(DxcLibraryName));
         } catch (const std::exception& e)
         {
-            throw std::runtime_error(std::format("The shader compiler is not available: {}", e.what()));
+            throw Error("The shader compiler is not available: {}", e.what());
         }
 
         const auto createInstance = reinterpret_cast<DxcCreateInstanceProc>(
             m_Impl->Library->GetSymbol("DxcCreateInstance"));
         if (createInstance == nullptr)
-            throw std::runtime_error(std::format("'{}' has no export 'DxcCreateInstance'", DxcLibraryName));
+            throw Error("'{}' has no export 'DxcCreateInstance'", DxcLibraryName);
 
         m_Impl->Utils = CreateDxcInstance<IDxcUtils>(createInstance, CLSID_DxcUtils);
         m_Impl->Compiler = CreateDxcInstance<IDxcCompiler3>(createInstance, CLSID_DxcCompiler);
 
         IDxcIncludeHandler* rawHandler = nullptr;
         if (FAILED(m_Impl->Utils->CreateDefaultIncludeHandler(&rawHandler)))
-            throw std::runtime_error("Failed to create DXC include handler");
+            throw Error("Failed to create DXC include handler");
         m_Impl->IncludeHandler = ComScope<IDxcIncludeHandler>(rawHandler, ComDeleter<IDxcIncludeHandler>{});
 
         CORE_INFO("DXC shader compiler initialized");
@@ -168,7 +168,7 @@ namespace ByteForge
                                              static_cast<UINT32>(arguments.size()),
                                              m_Impl->IncludeHandler.get(),
                                              IID_PPV_ARGS(&rawResult))))
-            throw std::runtime_error("DXC compilation call failed");
+            throw Error("DXC compilation call failed");
 
         const ComScope<IDxcResult> result(rawResult, ComDeleter<IDxcResult>{});
 
@@ -185,8 +185,8 @@ namespace ByteForge
         if (FAILED(compileStatus))
         {
             const std::string name = fromFile ? source.Path.filename().string() : std::string("<inline>");
-            throw std::runtime_error(std::format("Shader '{}' failed to compile its {} stage ({}):\n{}",
-                                                 name, StageName(stage), entryPoint, errorText));
+            throw Error("Shader '{}' failed to compile its {} stage ({}):\n{}",
+                                                 name, StageName(stage), entryPoint, errorText);
         }
 
         if (!errorText.empty())

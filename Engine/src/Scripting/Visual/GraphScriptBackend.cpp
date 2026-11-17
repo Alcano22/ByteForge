@@ -47,11 +47,11 @@ namespace ByteForge
     {
         const GraphClass* graphClass = Find(className);
         if (graphClass == nullptr)
-            throw std::runtime_error(std::format("Script graph '{}' does not exist", className));
+            throw Error("Script graph '{}' does not exist", className);
 
         if (!graphClass->Program)
-            throw std::runtime_error(std::format("Script graph '{}' has errors: {}",
-                                                 graphClass->DisplayName, graphClass->Error));
+            throw Error("Script graph '{}' has errors: {}",
+                                                 graphClass->DisplayName, graphClass->Error);
 
         return MakeScope<GraphScriptInstance>(graphClass->Program, entity);
     }

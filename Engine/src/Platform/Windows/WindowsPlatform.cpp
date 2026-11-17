@@ -86,8 +86,8 @@ namespace ByteForge
     {
         if (m_Handle == nullptr)
         {
-            throw std::runtime_error(std::format("Platform: cannot load '{}' (error {})",
-                                                 path.string(), GetLastError()));
+            throw Error("Platform: cannot load '{}' (error {})",
+                                                 path.string(), GetLastError());
         }
     }
 
@@ -124,7 +124,7 @@ namespace ByteForge
         HANDLE readEnd = nullptr;
         HANDLE writeEnd = nullptr;
         if (!CreatePipe(&readEnd, &writeEnd, &security, 0))
-            throw std::runtime_error(std::format("Platform: cannot create a pipe (error {})", GetLastError()));
+            throw Error("Platform: cannot create a pipe (error {})", GetLastError());
 
         SetHandleInformation(readEnd, HANDLE_FLAG_INHERIT, 0);
 
@@ -230,7 +230,7 @@ namespace ByteForge::Platform::Detail
             const auto length = static_cast<i32>(text.size());
             const i32 size = WideCharToMultiByte(CP_UTF8, 0, text.data(), length, nullptr, 0, nullptr, nullptr);
             if (size <= 0)
-                throw std::runtime_error(std::format("Platform: WideCharToMultiByte failed (error {})", GetLastError()));
+                throw Error("Platform: WideCharToMultiByte failed (error {})", GetLastError());
 
             std::string result(static_cast<usize>(size), '\0');
             WideCharToMultiByte(CP_UTF8, 0, text.data(), length, result.data(), size, nullptr, nullptr);
@@ -246,7 +246,7 @@ namespace ByteForge::Platform::Detail
         {
             const DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
             if (length == 0)
-                throw std::runtime_error(std::format("Platform: GetModuleFileNameW failed (error {})", GetLastError()));
+                throw Error("Platform: GetModuleFileNameW failed (error {})", GetLastError());
 
             if (length < buffer.size())
             {
@@ -263,7 +263,7 @@ namespace ByteForge::Platform::Detail
         i32 count = 0;
         LPWSTR* arguments = CommandLineToArgvW(GetCommandLineW(), &count);
         if (arguments == nullptr)
-            throw std::runtime_error(std::format("Platform: CommandLineToArgvW failed (error {})", GetLastError()));
+            throw Error("Platform: CommandLineToArgvW failed (error {})", GetLastError());
 
         const std::unique_ptr<LPWSTR, decltype(&LocalFree)> owner(arguments, &LocalFree);
 

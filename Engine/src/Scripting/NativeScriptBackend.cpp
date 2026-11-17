@@ -57,11 +57,11 @@ namespace ByteForge
         const NativeScriptFactories& factories = GetNativeScriptFactories();
         const auto it = factories.find(className);
         if (it == factories.end())
-            throw std::runtime_error(std::format("Native script '{}' is not registered", className));
+            throw Error("Native script '{}' is not registered", className);
 
         Scope<ScriptableEntity> script = it->second();
         if (!script)
-            throw std::runtime_error(std::format("The factory of native script '{}' returned null", className));
+            throw Error("The factory of native script '{}' returned null", className);
 
         return MakeScope<NativeScriptInstance>(std::move(script), entity);
     }

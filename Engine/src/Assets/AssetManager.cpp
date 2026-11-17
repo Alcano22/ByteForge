@@ -391,7 +391,7 @@ namespace ByteForge
             try
             {
                 if (!decoded.Error.empty())
-                    throw std::runtime_error(decoded.Error);
+                    throw Error(decoded.Error);
 
                 const DecodedImage& image = decoded.Image;
                 asset.m_Texture = Texture2D::Create(image.Width, image.Height, image.Pixels, decoded.Settings);

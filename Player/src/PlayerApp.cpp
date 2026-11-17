@@ -150,10 +150,7 @@ namespace ByteForge
             }
 
             if (const auto mounted = AssetRegistry::Mount(archive); !mounted)
-            {
-                throw std::runtime_error(std::format("PlayerLayer: cannot mount '{}': {}",
-                                                     archive.generic_string(), mounted.error()));
-            }
+                throw Error("PlayerLayer: cannot mount '{}': {}", archive.generic_string(), mounted.error());
         }
 
         static void LoadGameScripts()
@@ -208,14 +205,13 @@ namespace ByteForge
         {
             AssetMetadata metadata;
             if (!AssetRegistry::TryGetMetadata(m_Settings.StartScene, metadata) || metadata.Type != AssetType::Scene)
-                throw std::runtime_error("PlayerLayer::LoadStartScene: the start scene is not a scene asset in 'assets'");
+                throw Error("PlayerLayer::LoadStartScene: the start scene is not a scene asset in 'assets'");
 
             const std::string name = metadata.Path.generic_string();
 
             const Result<nlohmann::json> data = AssetRegistry::ReadJson(m_Settings.StartScene);
             if (!data)
-                throw std::runtime_error(std::format("PlayerLayer::LoadStartScene: could not read scene '{}': {}",
-                                                     name, data.error()));
+                throw Error("PlayerLayer::LoadStartScene: could not read scene '{}': {}", name, data.error());
 
             SceneSerializer::Deserialize(m_Scene, *data);
             Prefab::SyncAllInstances(m_Scene);
@@ -238,18 +234,17 @@ namespace ByteForge
             fs::exists(shaders))
         {
             if (const auto mounted = ShaderLibrary::Mount(shaders); !mounted)
-                throw std::runtime_error(std::format("Player::CreateApplication: {}", mounted.error()));
+                throw Error("Player::CreateApplication: {}", mounted.error());
         }
 
         const fs::path projectFile = fs::current_path() / ProjectSettings::FileName;
 
         auto settings = ProjectSettings::Load(projectFile);
         if (!settings)
-            throw std::runtime_error(std::format("Player::CreateApplication: {}", settings.error()));
+            throw Error("Player::CreateApplication: {}", settings.error());
 
         if (!settings->StartScene.IsSet())
-            throw std::runtime_error(std::format("Player::CreateApplication: '{}' does not define a start scene",
-                                                 ProjectSettings::FileName));
+            throw Error("Player::CreateApplication: '{}' does not define a start scene", ProjectSettings::FileName);
 
         auto app = MakeScope<Application>(WindowProps{
             .Title  = settings->WindowTitle,

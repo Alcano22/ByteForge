@@ -31,7 +31,7 @@ namespace ByteForge
     void MeshRenderer::BeginScene(const Camera& camera, const SceneLighting& lighting)
     {
         if (m_InScene)
-            throw std::runtime_error("MeshRenderer::BeginScene: the previous scene has not been ended with EndScene");
+            throw Error("MeshRenderer::BeginScene: the previous scene has not been ended with EndScene");
 
         Renderer::BeginScene(camera, lighting);
         m_InScene = true;
@@ -40,7 +40,7 @@ namespace ByteForge
     void MeshRenderer::EndScene()
     {
         if (!m_InScene)
-            throw std::runtime_error("MeshRenderer::EndScene: BeginScene has not been called");
+            throw Error("MeshRenderer::EndScene: BeginScene has not been called");
 
         m_InScene = false;
     }
@@ -48,10 +48,10 @@ namespace ByteForge
     void MeshRenderer::DrawMesh(const Ref<Mesh>& mesh, const glm::mat4& transform, const glm::vec4& color)
     {
         if (!m_InScene)
-            throw std::runtime_error("MeshRenderer: meshes can only be drawn between BeginScene and EndScene");
+            throw Error("MeshRenderer: meshes can only be drawn between BeginScene and EndScene");
 
         if (!mesh)
-            throw std::runtime_error("MeshRenderer::DrawMesh: the mesh must not be null");
+            throw Error("MeshRenderer::DrawMesh: the mesh must not be null");
 
         const DrawData data{
             .Model = transform,
