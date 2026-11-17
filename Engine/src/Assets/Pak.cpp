@@ -140,16 +140,16 @@ namespace ByteForge
             std::string text = normal.generic_string();
 
             if (text.empty() || text == "." || normal.has_root_path() || *normal.begin() == "..")
-                return std::unexpected(std::format("'{}' is not a valid path inside an archive", path));
+                return Unexpected("'{}' is not a valid path inside an archive", path);
             if (text.size() > MaxPathLength)
-                return std::unexpected(std::format("the path '{}' is too long", path));
+                return Unexpected("the path '{}' is too long", path);
 
             return text;
         }
 
         std::unexpected<std::string> Corrupted(const fs::path& file, const std::string_view reason)
         {
-            return std::unexpected(std::format("'{}' is damaged: {}", file.generic_string(), reason));
+            return Unexpected("'{}' is damaged: {}", file.generic_string(), reason);
         }
     }
 
@@ -164,8 +164,7 @@ namespace ByteForge
         if (file.has_parent_path())
             fs::create_directories(file.parent_path(), error);
         if (error)
-            return std::unexpected(std::format("cannot create '{}': {}",
-                                               file.parent_path().generic_string(), error.message()));
+            return Unexpected("cannot create '{}': {}", file.parent_path().generic_string(), error.message());
 
         fs::path temporary = file;
         temporary += ".tmp";
@@ -175,10 +174,10 @@ namespace ByteForge
 
         writer->m_File.open(writer->m_Temporary, std::ios::binary | std::ios::trunc);
         if (!writer->m_File.is_open())
-            return std::unexpected(std::format("cannot create '{}'", writer->m_Temporary.generic_string()));
+            return Unexpected("cannot create '{}'", writer->m_Temporary.generic_string());
 
         if (!WriteBytes(writer->m_File, MakeHeader(0, 0, 0)))
-            return std::unexpected(std::format("cannot write '{}'", writer->m_Temporary.generic_string()));
+            return Unexpected("cannot write '{}'", writer->m_Temporary.generic_string());
 
         writer->m_Offset = HeaderSize;
         return writer;
@@ -196,18 +195,18 @@ namespace ByteForge
     Result<> PakWriter::Add(const std::string_view path, const std::span<const std::byte> data)
     {
         if (m_Finished)
-            return std::unexpected("the archive is already finished");
+            return Unexpected("the archive is already finished");
 
         Result<std::string> normalized = NormalizePath(path);
         if (!normalized)
-            return std::unexpected(normalized.error());
+            return Unexpected(normalized.error());
 
         if (m_Index.contains(*normalized))
-            return std::unexpected(std::format("'{}' is already in the archive", *normalized));
+            return Unexpected("'{}' is already in the archive", *normalized);
         if (data.size() > MaxEntrySize)
-            return std::unexpected(std::format("'{}' is larger than 4 GiB", *normalized));
+            return Unexpected("'{}' is larger than 4 GiB", *normalized);
         if (m_Entries.size() >= std::numeric_limits<u32>::max())
-            return std::unexpected("the archive has too many files");
+            return Unexpected("the archive has too many files");
 
         PakEntry entry{
             .Path   = std::move(*normalized),
@@ -235,7 +234,7 @@ namespace ByteForge
 
         entry.StoredSize = stored.size();
         if (!WriteBytes(m_File, stored))
-            return std::unexpected(std::format("cannot write '{}' into the archive", entry.Path));
+            return Unexpected("cannot write '{}' into the archive", entry.Path);
 
         m_Offset += entry.StoredSize;
 
@@ -252,7 +251,7 @@ namespace ByteForge
     {
         Result<std::vector<std::byte>> data = ReadBinaryFile(source);
         if (!data)
-            return std::unexpected(data.error());
+            return Unexpected(data.error());
 
         return Add(path, *data);
     }
@@ -260,7 +259,7 @@ namespace ByteForge
     Result<PakStats> PakWriter::Finish()
     {
         if (m_Finished)
-            return std::unexpected("the archive is already finished");
+            return Unexpected("the archive is already finished");
 
         ByteWriter toc;
         for (const PakEntry& entry : m_Entries)
@@ -278,21 +277,20 @@ namespace ByteForge
         const std::vector<std::byte>& tocData = toc.GetData();
 
         if (!WriteBytes(m_File, tocData))
-            return std::unexpected("cannot write the table of contents");
+            return Unexpected("cannot write the table of contents");
 
         m_File.seekp(0);
         if (!WriteBytes(m_File, MakeHeader(tocOffset, tocData.size(), static_cast<u32>(m_Entries.size()))))
-            return std::unexpected("cannot write the archive header");
+            return Unexpected("cannot write the archive header");
 
         m_File.close();
         if (m_File.fail())
-            return std::unexpected("writing the archive failed");
+            return Unexpected("writing the archive failed");
 
         std::error_code error;
         fs::rename(m_Temporary, m_Target, error);
         if (error)
-            return std::unexpected(std::format("cannot move the archive to '{}': {}",
-                                               m_Target.generic_string(), error.message()));
+            return Unexpected("cannot move the archive to '{}': {}", m_Target.generic_string(), error.message());
 
         m_Finished = true;
         return m_Stats;
@@ -307,12 +305,12 @@ namespace ByteForge
 
         archive->m_File.open(file, std::ios::binary);
         if (!archive->m_File.is_open())
-            return std::unexpected(std::format("cannot open '{}'", file.generic_string()));
+            return Unexpected("cannot open '{}'", file.generic_string());
 
         std::error_code error;
         const u64 fileSize = fs::file_size(file, error);
         if (error || fileSize < HeaderSize)
-            return std::unexpected(std::format("'{}' is not a ByteForge archive", file.generic_string()));
+            return Unexpected("'{}' is not a ByteForge archive", file.generic_string());
 
         std::array<std::byte, HeaderSize> header{};
         if (!ReadBytes(archive->m_File, header.data(), header.size()))
@@ -326,11 +324,11 @@ namespace ByteForge
         const u32 entryCount = reader.U32();
 
         if (magic != std::string_view(Magic.data(), Magic.size()))
-            return std::unexpected(std::format("'{}' is not a ByteForge archive", file.generic_string()));
+            return Unexpected("'{}' is not a ByteForge archive", file.generic_string());
         if (version != FormatVersion)
         {
-            return std::unexpected(std::format("'{}' has format version {}, this version of ByteForge reads {}",
-                                               file.generic_string(), version, FormatVersion));
+            return Unexpected("'{}' has format version {}, this version of ByteForge reads {}",
+                              file.generic_string(), version, FormatVersion);
         }
 
         if (tocOffset < HeaderSize || tocOffset > fileSize || tocSize > MaxTocSize || tocSize > fileSize - tocOffset)
@@ -386,7 +384,7 @@ namespace ByteForge
     {
         const PakEntry* entry = Find(path);
         if (entry == nullptr)
-            return std::unexpected(std::format("'{}' is not in the archive", path));
+            return Unexpected("'{}' is not in the archive", path);
 
         std::vector<std::byte> stored(entry->StoredSize);
         {
@@ -394,7 +392,7 @@ namespace ByteForge
             m_File.clear();
             m_File.seekg(static_cast<std::streamoff>(entry->Offset));
             if (!ReadBytes(m_File, stored.data(), stored.size()))
-                return std::unexpected(std::format("'{}' cannot be read from '{}'", path, m_Path.generic_string()));
+                return Unexpected("'{}' cannot be read from '{}'", path, m_Path.generic_string());
         }
 
         std::vector<std::byte> data;
@@ -406,13 +404,13 @@ namespace ByteForge
             const usize result = ZSTD_decompress(data.data(), data.size(), stored.data(), stored.size());
             if (ZSTD_isError(result) || result != data.size())
             {
-                return std::unexpected(std::format("'{}' cannot be decompressed: {}", path,
-                                                   ZSTD_isError(result) ? ZSTD_getErrorName(result) : "size mismatch"));
+                return Unexpected("'{}' cannot be decompressed: {}", path,
+                                  ZSTD_isError(result) ? ZSTD_getErrorName(result) : "size mismatch");
             }
         }
 
         if (HashBytes(data) != entry->Hash)
-            return std::unexpected(std::format("'{}' is damaged (checksum mismatch)", path));
+            return Unexpected("'{}' is damaged (checksum mismatch)", path);
 
         return data;
     }

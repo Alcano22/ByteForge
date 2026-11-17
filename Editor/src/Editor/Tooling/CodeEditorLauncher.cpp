@@ -205,11 +205,11 @@ namespace ByteForge
         if (m_Selected == CustomId)
         {
             if (m_CustomExecutable.empty())
-                return std::unexpected(std::string("No program set for the custom editor"));
+                return Unexpected("No program set for the custom editor");
 
             const std::optional<fs::path> found = Platform::FindExecutable(m_CustomExecutable);
             if (!found)
-                return std::unexpected(std::format("'{}' was not found", m_CustomExecutable));
+                return Unexpected("'{}' was not found", m_CustomExecutable);
 
             executable = found->string();
             arguments = m_CustomArguments;
@@ -217,13 +217,13 @@ namespace ByteForge
         {
             const CodeEditorInfo* info = FindInfo(m_Selected);
             if (info == nullptr)
-                return std::unexpected(std::format("Unknown editor '{}'", m_Selected));
+                return Unexpected("Unknown editor '{}'", m_Selected);
 
             const std::optional<fs::path> found = FindInstalled(info->Id);
             if (!found)
             {
-                return std::unexpected(std::format("{} was not found on the PATH. Install it, press Refresh, "
-                                                   "or choose Custom and set its program.", info->Name));
+                return Unexpected("{} was not found on the PATH. Install it, press Refresh, "
+                                  "or choose Custom and set its program.", info->Name);
             }
 
             executable = found->string();

@@ -14,16 +14,16 @@ namespace ByteForge
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file)
-            return std::unexpected(std::format("cannot open '{}'", path.string()));
+            return Unexpected("cannot open '{}'", path.string());
 
         const std::streamsize fileSize = file.tellg();
         if (fileSize <= 0)
-            return std::unexpected(std::format("'{}' is empty", path.string()));
+            return Unexpected("'{}' is empty", path.string());
 
         std::vector<std::byte> encoded(static_cast<usize>(fileSize));
         file.seekg(0, std::ios::beg);
         if (!file.read(reinterpret_cast<char*>(encoded.data()), fileSize))
-            return std::unexpected(std::format("cannot read '{}'", path.string()));
+            return Unexpected("cannot read '{}'", path.string());
 
         return DecodeImage(encoded, path.string());
     }
@@ -31,16 +31,16 @@ namespace ByteForge
     Result<DecodedImage> DecodeImage(const std::span<const std::byte> encoded, const std::string_view name)
     {
         if (encoded.empty())
-            return std::unexpected(std::format("'{}' is empty", name));
+            return Unexpected("'{}' is empty", name);
         if (encoded.size() > static_cast<usize>(std::numeric_limits<i32>::max()))
-            return std::unexpected(std::format("'{}' is too large", name));
+            return Unexpected("'{}' is too large", name);
 
         i32 width = 0, height = 0, channels = 0;
         stbi_uc* decoded = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(encoded.data()),
                                                  static_cast<i32>(encoded.size()),
                                                  &width, &height, &channels, STBI_rgb_alpha);
         if (decoded == nullptr)
-            return std::unexpected(std::format("cannot decode '{}': {}", name, stbi_failure_reason()));
+            return Unexpected("cannot decode '{}': {}", name, stbi_failure_reason());
 
         const Scope<stbi_uc, decltype(&stbi_image_free)> pixels(decoded, &stbi_image_free);
 

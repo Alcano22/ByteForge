@@ -81,10 +81,10 @@ namespace ByteForge
         {
             const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             if (!data->is_object())
-                return std::unexpected("expected a JSON object");
+                return Unexpected("expected a JSON object");
 
             try
             {
@@ -94,7 +94,7 @@ namespace ByteForge
                 return material;
             } catch (const nlohmann::json::exception& e)
             {
-                return std::unexpected(e.what());
+                return Unexpected(e.what());
             }
         }
 
@@ -112,7 +112,7 @@ namespace ByteForge
         {
             const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             return ParseAnimationClip(*data);
         }
@@ -121,7 +121,7 @@ namespace ByteForge
         {
             const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             return ParseAnimatorController(*data);
         }
@@ -203,10 +203,10 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+            return Unexpected("'{}' already exists", relativePath.generic_string());
 
         if (const auto written = WritePhysicsMaterial(path, PhysicsMaterial2D{}); !written)
-            return std::unexpected(written.error());
+            return Unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
     }
@@ -217,14 +217,14 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+            return Unexpected("'{}' already exists", relativePath.generic_string());
 
         ScriptGraph graph;
         graph.AddNode(EventNode{ GraphEvent::OnCreate }, { 0.0f, 0.0f });
         graph.AddNode(EventNode{ GraphEvent::OnUpdate }, { 0.0f, 200.0f });
 
         if (const auto saved = SaveScriptGraph(graph, path); !saved)
-            return std::unexpected(saved.error());
+            return Unexpected(saved.error());
 
         return AssetRegistry::Import(relativePath);
     }
@@ -277,10 +277,10 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+            return Unexpected("'{}' already exists", relativePath.generic_string());
 
         if (const auto written = WriteJsonFile(path, SerializeAnimationClip(AnimationClipData{})); !written)
-            return std::unexpected(written.error());
+            return Unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
     }
@@ -333,10 +333,10 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+            return Unexpected("'{}' already exists", relativePath.generic_string());
 
         if (const auto written = WriteJsonFile(path, SerializeAnimatorController(AnimatorControllerData{})); !written)
-            return std::unexpected(written.error());
+            return Unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
     }

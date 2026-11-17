@@ -33,11 +33,11 @@ namespace ByteForge
     {
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(asset, metadata) || metadata.Type != AssetType::ScriptGraph)
-            return std::unexpected("The asset is not a script graph");
+            return Unexpected("The asset is not a script graph");
 
         Result<ScriptGraph> graph = LoadScriptGraph(AssetRegistry::Resolve(asset));
         if (!graph)
-            return std::unexpected(graph.error());
+            return Unexpected(graph.error());
 
         return MakeScope<GraphDocument>(asset, metadata.Path.stem().string(), std::move(*graph));
     }

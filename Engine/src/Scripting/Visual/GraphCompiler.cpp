@@ -27,7 +27,7 @@ namespace ByteForge
             Result<GraphProgram> Run()
             {
                 if (std::optional<std::string> error = FirstError())
-                    return std::unexpected(std::move(*error));
+                    return Unexpected(std::move(*error));
 
                 AddSlot(EntityRef{}); // SelfSlot, set per instance
 

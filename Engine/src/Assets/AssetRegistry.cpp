@@ -105,7 +105,7 @@ namespace ByteForge
 
         Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
         if (!opened)
-            return std::unexpected(opened.error());
+            return Unexpected(opened.error());
 
         s_AssetRoot = "assets";
 
@@ -187,7 +187,7 @@ namespace ByteForge
     Result<> AssetRegistry::Move(const fs::path& from, const fs::path& to)
     {
         if (IsPacked())
-            return std::unexpected("the assets are packed and read-only");
+            return Unexpected("the assets are packed and read-only");
 
         const fs::path fromNormal = from.lexically_normal();
         const fs::path toNormal = to.lexically_normal();
@@ -197,16 +197,16 @@ namespace ByteForge
 
         std::error_code error;
         if (!fs::exists(source, error))
-            return std::unexpected("it does not exist");
+            return Unexpected("it does not exist");
 
         if (fs::exists(target, error) && !fs::equivalent(source, target, error))
-            return std::unexpected(std::format("'{}' already exists", toNormal.generic_string()));
+            return Unexpected("'{}' already exists", toNormal.generic_string());
 
         const bool isDirectory = fs::is_directory(source, error);
 
         fs::rename(source, target, error);
         if (error)
-            return std::unexpected(error.message());
+            return Unexpected(error.message());
 
         if (!isDirectory && fs::exists(GetMetaPath(source), error))
         {
@@ -215,7 +215,7 @@ namespace ByteForge
             {
                 std::error_code rollbackError;
                 fs::rename(target, source, rollbackError);
-                return std::unexpected(std::format("Could not move the metadata: {}", error.message()));
+                return Unexpected("Could not move the metadata: {}", error.message());
             }
         }
 
@@ -267,7 +267,7 @@ namespace ByteForge
     {
         const auto it = s_Assets.find(handle);
         if (it == s_Assets.end())
-            return std::unexpected(std::format("{} is not a known asset", static_cast<u64>(handle)));
+            return Unexpected("{} is not a known asset", static_cast<u64>(handle));
 
         return ReadFile(it->second.Path);
     }
@@ -281,11 +281,11 @@ namespace ByteForge
     {
         const auto it = s_Assets.find(handle);
         if (it == s_Assets.end())
-            return std::unexpected(std::format("{} is not a known asset", static_cast<u64>(handle)));
+            return Unexpected("{} is not a known asset", static_cast<u64>(handle));
 
         const Result<std::vector<std::byte>> bytes = ReadFile(it->second.Path);
         if (!bytes)
-            return std::unexpected(bytes.error());
+            return Unexpected(bytes.error());
 
         return ParseJson(*bytes, it->second.Path.generic_string());
     }

@@ -103,18 +103,18 @@ namespace ByteForge
         {
             AssetMetadata metadata;
             if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Prefab)
-                return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
+                return Unexpected("{} is not a known prefab", static_cast<u64>(handle));
 
             name = metadata.Path.generic_string();
 
             Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             if (!data->is_object() || !data->contains("entities") || !data->at("entities").is_array() ||
                 data->at("entities").empty())
             {
-                return std::unexpected(std::format("'{}' is not a valid prefab", name));
+                return Unexpected("'{}' is not a valid prefab", name);
             }
 
             return data;
@@ -124,7 +124,7 @@ namespace ByteForge
         {
             Result<nlohmann::json> data = ReadPrefabFile(handle, name);
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             return std::move(data->at("entities"));
         }
@@ -137,7 +137,7 @@ namespace ByteForge
             std::string name;
             const Result<nlohmann::json> entities = ReadEntities(handle, name);
             if (!entities)
-                return std::unexpected(entities.error());
+                return Unexpected(entities.error());
 
             Prototype prototype{ .Entities = MakeScope<Scene>() };
             try
@@ -145,7 +145,7 @@ namespace ByteForge
                 prototype.Root = SceneSerializer::DeserializeSubtree(*prototype.Entities, *entities);
             } catch (const std::exception& e)
             {
-                return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
+                return Unexpected("'{}' cannot be loaded: {}", name, e.what());
             }
 
             LinkSubtree(prototype.Root, handle, true);
@@ -323,15 +323,15 @@ namespace ByteForge
         {
             const auto* link = entity.TryGetComponent<PrefabInstanceComponent>();
             if (link == nullptr)
-                return std::unexpected(std::format("'{}' is not part of a prefab instance", entity.GetTag()));
+                return Unexpected("'{}' is not part of a prefab instance", entity.GetTag());
 
             InstanceContext instance{ .Root = Prefab::GetInstanceRoot(entity), .Handle = link->Prefab };
             if (!instance.Root.IsValid())
-                return std::unexpected(std::format("'{}' is detached from its prefab instance", entity.GetTag()));
+                return Unexpected("'{}' is detached from its prefab instance", entity.GetTag());
 
             const Result<const Prototype*> prototype = LoadPrototype(instance.Handle);
             if (!prototype)
-                return std::unexpected(prototype.error());
+                return Unexpected(prototype.error());
 
             instance.Source = *prototype;
             CollectMembers(instance.Root, instance.Handle, true, instance.Members);
@@ -596,16 +596,16 @@ namespace ByteForge
     Result<UUID> Prefab::Create(const Entity root, const fs::path& relativePath)
     {
         if (!root.IsValid())
-            return std::unexpected("the entity is not valid");
+            return Unexpected("the entity is not valid");
 
         const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
 
         std::error_code error;
         if (fs::exists(path, error))
-            return std::unexpected(std::format("'{}' already exists", relativePath.generic_string()));
+            return Unexpected("'{}' already exists", relativePath.generic_string());
 
         if (const auto written = WriteJsonFile(path, MakePrefabData(root)); !written)
-            return std::unexpected(written.error());
+            return Unexpected(written.error());
 
         return AssetRegistry::Import(relativePath);
     }
@@ -613,7 +613,7 @@ namespace ByteForge
     Result<void> Prefab::Save(const UUID handle, const Entity root)
     {
         if (!root.IsValid())
-            return std::unexpected("the entity is not valid");
+            return Unexpected("the entity is not valid");
 
         return WriteData(handle, MakePrefabData(root));
     }
@@ -627,10 +627,10 @@ namespace ByteForge
     Result<void> Prefab::WriteData(const UUID handle, const nlohmann::json& data)
     {
         if (!Exists(handle))
-            return std::unexpected(std::format("{} is not a known prefab", static_cast<u64>(handle)));
+            return Unexpected("{} is not a known prefab", static_cast<u64>(handle));
 
         if (const auto written = WriteJsonFile(AssetRegistry::Resolve(handle), data); !written)
-            return std::unexpected(written.error());
+            return Unexpected(written.error());
 
         Invalidate(handle);
         return {};
@@ -641,7 +641,7 @@ namespace ByteForge
     {
         const Result<const Prototype*> prototype = LoadPrototype(handle);
         if (!prototype)
-            return std::unexpected(prototype.error());
+            return Unexpected(prototype.error());
 
         const Entity root = scene.CopySubtree((*prototype)->Root);
 
@@ -664,14 +664,14 @@ namespace ByteForge
         std::string name;
         const Result<nlohmann::json> entities = ReadEntities(handle, name);
         if (!entities)
-            return std::unexpected(entities.error());
+            return Unexpected(entities.error());
 
         try
         {
             return SceneSerializer::DeserializeSubtree(scene, *entities);
         } catch (const std::exception& e)
         {
-            return std::unexpected(std::format("'{}' cannot be loaded: {}", name, e.what()));
+            return Unexpected("'{}' cannot be loaded: {}", name, e.what());
         }
     }
 
@@ -749,11 +749,11 @@ namespace ByteForge
     {
         const std::vector<std::string> tokens = SplitPath(path);
         if (scope == PrefabOverrideScope::Path && tokens.empty())
-            return std::unexpected("no override path given");
+            return Unexpected("no override path given");
 
         const Result<InstanceContext> instance = FindInstance(entity);
         if (!instance)
-            return std::unexpected(instance.error());
+            return Unexpected(instance.error());
 
         Scene& scene = entity.GetScene();
         RecordOverrides(scene);
@@ -761,7 +761,7 @@ namespace ByteForge
         std::string name;
         Result<nlohmann::json> data = ReadPrefabFile(instance->Handle, name);
         if (!data)
-            return std::unexpected(data.error());
+            return Unexpected(data.error());
 
         nlohmann::json& fileEntities = data->at("entities");
 
@@ -815,11 +815,11 @@ namespace ByteForge
     {
         const std::vector<std::string> tokens = SplitPath(path);
         if (scope == PrefabOverrideScope::Path && tokens.empty())
-            return std::unexpected("no override path given");
+            return Unexpected("no override path given");
 
         const Result<InstanceContext> instance = FindInstance(entity);
         if (!instance)
-            return std::unexpected(instance.error());
+            return Unexpected(instance.error());
 
         RecordInstance(*instance);
 

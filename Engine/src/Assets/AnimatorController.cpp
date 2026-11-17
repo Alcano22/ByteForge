@@ -57,7 +57,7 @@ namespace ByteForge
     Result<AnimatorControllerData> ParseAnimatorController(const nlohmann::json& data)
     {
         if (!data.is_object())
-            return std::unexpected("expected a JSON object");
+            return Unexpected("expected a JSON object");
 
         try
         {
@@ -67,13 +67,13 @@ namespace ByteForge
             if (const auto it = data.find("states"); it != data.end())
             {
                 if (!it->is_array())
-                    return std::unexpected("'states' must be an array");
+                    return Unexpected("'states' must be an array");
 
                 controller.States.reserve(it->size());
                 for (const nlohmann::json& stateJson : *it)
                 {
                     if (!stateJson.is_object())
-                        return std::unexpected("every state must be a JSON object");
+                        return Unexpected("every state must be a JSON object");
 
                     AnimatorState state;
                     state.Name  = stateJson.value("name", std::string{});
@@ -86,7 +86,7 @@ namespace ByteForge
             return controller;
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(e.what());
+            return Unexpected(e.what());
         }
     }
 

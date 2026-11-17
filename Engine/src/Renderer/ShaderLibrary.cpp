@@ -40,13 +40,13 @@ namespace ByteForge
         Result<std::vector<u32>> ToWords(const std::span<const std::byte> bytes, const std::string& path)
         {
             if (bytes.size() < sizeof(u32) || bytes.size() % sizeof(u32) != 0)
-                return std::unexpected(std::format("'{}' is not valid SPIR-V", path));
+                return Unexpected("'{}' is not valid SPIR-V", path);
 
             std::vector<u32> words(bytes.size() / sizeof(u32));
             std::memcpy(words.data(), bytes.data(), bytes.size());
 
             if (words.front() != SpirvMagic)
-                return std::unexpected(std::format("'{}' is not valid SPIR-V (wrong magic number)", path));
+                return Unexpected("'{}' is not valid SPIR-V (wrong magic number)", path);
 
             return words;
         }
@@ -78,7 +78,7 @@ namespace ByteForge
 
             const Result<std::vector<std::byte>> code = ReadBinaryFile(path);
             if (!code)
-                return std::unexpected(code.error());
+                return Unexpected(code.error());
 
             const ShaderSource source{
                 .Path    = path,
@@ -92,13 +92,13 @@ namespace ByteForge
                 binaries = RenderBackend::Get().CompileShader(source);
             } catch (const std::exception& e)
             {
-                return std::unexpected(std::string(e.what()));
+                return Unexpected(e.what());
             }
 
             if (const auto added = AddStage(writer, variant, ShaderStage::Vertex, binaries.Vertex); !added)
-                return std::unexpected(added.error());
+                return Unexpected(added.error());
             if (const auto added = AddStage(writer, variant, ShaderStage::Fragment, binaries.Fragment); !added)
-                return std::unexpected(added.error());
+                return Unexpected(added.error());
 
             stages += 2;
         }
@@ -109,7 +109,7 @@ namespace ByteForge
     {
         Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
         if (!opened)
-            return std::unexpected(opened.error());
+            return Unexpected(opened.error());
 
         s_Archive = std::move(*opened);
         CORE_INFO("Using {} precompiled shader stage(s) from '{}'",
@@ -124,7 +124,7 @@ namespace ByteForge
     Result<ShaderBinaries> ShaderLibrary::Find(const std::string_view file, const std::span<const std::string> defines)
     {
         if (!s_Archive)
-            return std::unexpected("no precompiled shaders are mounted");
+            return Unexpected("no precompiled shaders are mounted");
 
         ShaderBinaries binaries;
         for (const ShaderStage stage : { ShaderStage::Vertex, ShaderStage::Fragment })
@@ -133,12 +133,12 @@ namespace ByteForge
 
             const Result<std::vector<std::byte>> bytes = s_Archive->Read(path);
             if (!bytes)
-                return std::unexpected(std::format("shader variant '{}' was not precompiled, add it to "
-                                                   "ShaderLibrary::GetBuiltinVariants ({})", path, bytes.error()));
+                return Unexpected("shader variant '{}' was not precompiled, add it to "
+                                  "ShaderLibrary::GetBuiltinVariants ({})", path, bytes.error());
 
             Result<std::vector<u32>> words = ToWords(*bytes, path);
             if (!words)
-                return std::unexpected(words.error());
+                return Unexpected(words.error());
 
             (stage == ShaderStage::Vertex ? binaries.Vertex : binaries.Fragment) = std::move(*words);
         }

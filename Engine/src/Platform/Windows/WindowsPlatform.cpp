@@ -171,7 +171,7 @@ namespace ByteForge
     Result<> Platform::LaunchProcess(const std::vector<std::string>& arguments)
     {
         if (arguments.empty())
-            return std::unexpected(std::string("no program given"));
+            return Unexpected("no program given");
 
         std::wstring commandLine = BuildCommandLine(arguments);
 
@@ -185,7 +185,7 @@ namespace ByteForge
         if (!CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, FALSE,
                             CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP, nullptr, nullptr, &startup, &process))
         {
-            return std::unexpected(std::format("cannot start '{}' (error {})", arguments.front(), GetLastError()));
+            return Unexpected("cannot start '{}' (error {})", arguments.front(), GetLastError());
         }
 
         CloseHandle(process.hThread);

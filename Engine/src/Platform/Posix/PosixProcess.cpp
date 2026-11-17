@@ -110,7 +110,7 @@ namespace ByteForge
     Result<> Platform::LaunchProcess(const std::vector<std::string>& arguments)
     {
         if (arguments.empty())
-            return std::unexpected(std::string("no program given"));
+            return Unexpected("no program given");
 
         posix_spawn_file_actions_t actions;
         posix_spawn_file_actions_init(&actions);
@@ -133,7 +133,7 @@ namespace ByteForge
         posix_spawn_file_actions_destroy(&actions);
 
         if (spawned != 0)
-            return std::unexpected(std::format("cannot start '{}': {}", arguments.front(), Describe(spawned)));
+            return Unexpected("cannot start '{}': {}", arguments.front(), Describe(spawned));
 
         std::thread([pid]
         {

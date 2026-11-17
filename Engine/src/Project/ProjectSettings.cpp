@@ -17,11 +17,11 @@ namespace ByteForge
     {
         const Result<nlohmann::json> loaded = ReadJsonFile(file);
         if (!loaded)
-            return std::unexpected(loaded.error());
+            return Unexpected(loaded.error());
 
         const nlohmann::json& json = *loaded;
         if (!json.is_object())
-            return std::unexpected(std::format("'{}' is not a valid project file", file.string()));
+            return Unexpected("'{}' is not a valid project file", file.string());
 
         const ProjectSettings defaults;
         ProjectSettings settings;
@@ -43,11 +43,11 @@ namespace ByteForge
             }
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(std::format("'{}' has invalid values: {}", file.string(), e.what()));
+            return Unexpected("'{}' has invalid values: {}", file.string(), e.what());
         }
 
         if (settings.WindowWidth == 0 || settings.WindowHeight == 0)
-            return std::unexpected(std::format("'{}' has an empty window size", file.string()));
+            return Unexpected("'{}' has an empty window size", file.string());
 
         return settings;
     }

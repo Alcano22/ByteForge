@@ -73,7 +73,7 @@ namespace ByteForge
     {
         const Result<PinType> type = CanConnect(*this, from, to);
         if (!type)
-            return std::unexpected(type.error());
+            return Unexpected(type.error());
 
         if (type->IsExec)
             std::erase_if(m_Links, [&](const GraphLink& link) { return link.From == from; });
@@ -103,7 +103,7 @@ namespace ByteForge
     Result<UUID> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
     {
         if (auto valid = CheckVariableName(name, UUID(0)); !valid)
-            return std::unexpected(valid.error());
+            return Unexpected(valid.error());
 
         return m_Variables.emplace_back(GraphVariable{
             .Id      = UUID(),
@@ -120,7 +120,7 @@ namespace ByteForge
                                               return static_cast<u64>(variable.Id);
                                           });
         if (it == m_Variables.end())
-            return std::unexpected("The variable does not exist");
+            return Unexpected("The variable does not exist");
 
         if (auto valid = CheckVariableName(name, id); !valid)
             return valid;
@@ -147,11 +147,11 @@ namespace ByteForge
     Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore) const
     {
         if (name.empty())
-            return std::unexpected("A variable needs a name");
+            return Unexpected("A variable needs a name");
 
         const GraphVariable* existing = FindVariable(name);
         if (existing != nullptr && existing->Id != ignore)
-            return std::unexpected(std::format("A variable named '{}' already exists", name));
+            return Unexpected("A variable named '{}' already exists", name);
 
         return {};
     }

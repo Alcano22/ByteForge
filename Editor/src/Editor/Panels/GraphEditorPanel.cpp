@@ -305,7 +305,7 @@ namespace ByteForge
                     if (start->Direction == PinDirection::Input)
                         std::swap(start, end);
 
-                    Result<PinType> type = std::unexpected(std::string("Connect an output to an input"));
+                    Result<PinType> type = Unexpected(std::string("Connect an output to an input"));
                     if (start->Direction != end->Direction)
                         type = CanConnect(m_Document->GetGraph(), start->Ref, end->Ref);
 

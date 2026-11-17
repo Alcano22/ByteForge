@@ -98,16 +98,13 @@ namespace ByteForge
             std::error_code error;
             fs::create_directories(to.parent_path(), error);
             if (error)
-            {
-                return std::unexpected(std::format("cannot create '{}': {}",
-                                                   to.parent_path().generic_string(), error.message()));
-            }
+                return Unexpected("cannot create '{}': {}", to.parent_path().generic_string(), error.message());
 
             fs::copy_file(from, to, fs::copy_options::overwrite_existing, error);
             if (error)
             {
-                return std::unexpected(std::format("cannot copy '{}' to '{}': {}",
-                                                   from.generic_string(), to.generic_string(), error.message()));
+                return Unexpected("cannot copy '{}' to '{}': {}",
+                                  from.generic_string(), to.generic_string(), error.message());
             }
 
             return {};
@@ -130,7 +127,7 @@ namespace ByteForge
             }
 
             if (error)
-                return std::unexpected(std::format("cannot read '{}': {}", directory.generic_string(), error.message()));
+                return Unexpected("cannot read '{}': {}", directory.generic_string(), error.message());
 
             std::ranges::sort(files, {}, [](const fs::path& path) { return path.generic_string(); });
             return files;
@@ -141,7 +138,7 @@ namespace ByteForge
         {
             const Result<std::vector<fs::path>> files = ListFiles(from, std::forward<Filter>(include));
             if (!files)
-                return std::unexpected(files.error());
+                return Unexpected(files.error());
 
             progress.AddWork(files->size());
 
@@ -151,7 +148,7 @@ namespace ByteForge
                     return Cancelled();
 
                 if (const auto result = CopySingleFile(from / relative, to / relative); !result)
-                    return std::unexpected(result.error());
+                    return Unexpected(result.error());
 
                 progress.Advance();
             }
@@ -164,7 +161,7 @@ namespace ByteForge
             std::error_code error;
             fs::directory_iterator it(from, error);
             if (error)
-                return std::unexpected(std::format("cannot read '{}': {}", from.generic_string(), error.message()));
+                return Unexpected("cannot read '{}': {}", from.generic_string(), error.message());
 
             usize copied = 0;
             for (const fs::directory_iterator end; it != end; it.increment(error))
@@ -184,7 +181,7 @@ namespace ByteForge
                     fs::remove(target, entryError);
                     fs::copy_symlink(it->path(), target, entryError);
                     if (entryError)
-                        return std::unexpected(std::format("cannot copy '{}': {}", fileName, entryError.message()));
+                        return Unexpected("cannot copy '{}': {}", fileName, entryError.message());
 
                     ++copied;
                     continue;
@@ -193,13 +190,13 @@ namespace ByteForge
                 if (!it->is_regular_file(entryError)) continue;
 
                 if (const auto result = CopySingleFile(it->path(), target); !result)
-                    return std::unexpected(result.error());
+                    return Unexpected(result.error());
 
                 ++copied;
             }
 
             if (error)
-                return std::unexpected(std::format("cannot read '{}': {}", from.generic_string(), error.message()));
+                return Unexpected("cannot read '{}': {}", from.generic_string(), error.message());
 
             return copied;
         }
@@ -210,13 +207,13 @@ namespace ByteForge
             const Result<std::vector<fs::path>> files = ListFiles(assetsDirectory,
                 [](const fs::path& relative) { return !IsScriptSource(relative); });
             if (!files)
-                return std::unexpected(files.error());
+                return Unexpected(files.error());
 
             progress.AddWork(files->size() + (gameScripts ? 1 : 0));
 
             Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
             if (!writer)
-                return std::unexpected(writer.error());
+                return Unexpected(writer.error());
 
             for (const fs::path& relative : *files)
             {
@@ -224,7 +221,7 @@ namespace ByteForge
                     return Cancelled();
 
                 if (const auto added = (*writer)->AddFile(relative.generic_string(), assetsDirectory / relative); !added)
-                    return std::unexpected(added.error());
+                    return Unexpected(added.error());
 
                 progress.Advance();
             }
@@ -232,7 +229,7 @@ namespace ByteForge
             if (gameScripts)
             {
                 if (const auto added = (*writer)->AddFile(AssetRegistry::GameScriptsEntry, *gameScripts); !added)
-                    return std::unexpected(added.error());
+                    return Unexpected(added.error());
 
                 progress.Advance();
             }
@@ -244,7 +241,7 @@ namespace ByteForge
         {
             const Result<Scope<PakArchive>> opened = PakArchive::Open(archive);
             if (!opened)
-                return std::unexpected(opened.error());
+                return Unexpected(opened.error());
 
             progress.AddWork((*opened)->GetEntries().size());
 
@@ -254,7 +251,7 @@ namespace ByteForge
                     return Cancelled();
 
                 if (const auto data = (*opened)->Read(entry.Path); !data)
-                    return std::unexpected(data.error());
+                    return Unexpected(data.error());
 
                 progress.Advance();
             }
@@ -265,14 +262,14 @@ namespace ByteForge
         {
             Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
             if (!writer)
-                return std::unexpected(writer.error());
+                return Unexpected(writer.error());
 
             const Result<usize> stages = ShaderLibrary::Precompile(**writer);
             if (!stages)
-                return std::unexpected(stages.error());
+                return Unexpected(stages.error());
 
             if (const auto finished = (*writer)->Finish(); !finished)
-                return std::unexpected(finished.error());
+                return Unexpected(finished.error());
 
             return *stages;
         }
@@ -323,7 +320,7 @@ namespace ByteForge
         {
             const Platform::ProcessResult listed = Platform::RunProcess({ "dotnet", "--list-runtimes" });
             if (listed.ExitCode != 0)
-                return std::unexpected(std::format("'dotnet --list-runtimes' failed: {}", listed.Output));
+                return Unexpected("'dotnet --list-runtimes' failed: {}", listed.Output);
 
             constexpr std::string_view Framework = "Microsoft.NETCore.App ";
 
@@ -353,7 +350,7 @@ namespace ByteForge
             }
 
             if (!best)
-                return std::unexpected(std::format("no .NET {} runtime is installed", DotNetMajorVersion));
+                return Unexpected("no .NET {} runtime is installed", DotNetMajorVersion);
 
             return *best;
         }
@@ -364,8 +361,8 @@ namespace ByteForge
             const std::optional<std::string> fxr = FindNewestVersion(runtime.Root / "host" / "fxr", DotNetMajorVersion);
             if (!fxr)
             {
-                return std::unexpected(std::format("'{}' contains no host/fxr for .NET {}",
-                                                   runtime.Root.generic_string(), DotNetMajorVersion));
+                return Unexpected("'{}' contains no host/fxr for .NET {}",
+                                  runtime.Root.generic_string(), DotNetMajorVersion);
             }
 
             usize copied = 0;
@@ -378,7 +375,7 @@ namespace ByteForge
                 const auto result = CopyTree(runtime.Root / relative, target / relative,
                     [](const fs::path&) { return true; }, progress);
                 if (!result)
-                    return std::unexpected(result.error());
+                    return Unexpected(result.error());
                 copied += *result;
             }
 
@@ -388,7 +385,7 @@ namespace ByteForge
                 if (!fs::exists(runtime.Root / notice, error)) continue;
 
                 if (const auto result = CopySingleFile(runtime.Root / notice, target / notice); !result)
-                    return std::unexpected(result.error());
+                    return Unexpected(result.error());
                 ++copied;
             }
 
@@ -423,28 +420,28 @@ namespace ByteForge
 
         const auto settings = ProjectSettings::Load(plan.ProjectFile);
         if (!settings)
-            return std::unexpected(std::format("{} (use File > Set as Startup Scene first)", settings.error()));
+            return Unexpected("{} (use File > Set as Startup Scene first)", settings.error());
 
         AssetMetadata startScene;
         if (!settings->StartScene.IsSet() || !AssetRegistry::TryGetMetadata(settings->StartScene, startScene) ||
             startScene.Type != AssetType::Scene)
         {
-            return std::unexpected("the project has no valid startup scene (File > Set as Startup Scene)");
+            return Unexpected("the project has no valid startup scene (File > Set as Startup Scene)");
         }
 
         if (!fs::exists(plan.PlayerDirectory / PlayerFileName()))
-            return std::unexpected(std::format("'{}' is missing, build the 'Player' target", PlayerFileName()));
+            return Unexpected("'{}' is missing, build the 'Player' target", PlayerFileName());
 
         for (const fs::path& required : { RuntimePaths::GetDataDirectory() / "shaders", plan.ScriptCoreDirectory })
         {
             if (!fs::exists(required))
-                return std::unexpected(std::format("'{}' is missing", required.generic_string()));
+                return Unexpected("'{}' is missing", required.generic_string());
         }
 
         const bool hasScripts = !AssetRegistry::GetAssetsOfType(AssetType::Script).empty();
         const bool hasAssembly = fs::exists(gameScripts);
         if (hasScripts && !hasAssembly)
-            return std::unexpected("the game scripts are not built yet (Scripts > Reload Scripts)");
+            return Unexpected("the game scripts are not built yet (Scripts > Reload Scripts)");
         if (hasAssembly)
             plan.GameScripts = gameScripts;
 
@@ -455,17 +452,13 @@ namespace ByteForge
         plan.Output = outputRoot / gameName;
 
         if (IsInsideOrSame(plan.Output, plan.AssetsDirectory) || IsInsideOrSame(project.GetRoot(), plan.Output))
-        {
-            return std::unexpected(std::format("'{}' would overwrite the project, choose another folder",
-                                               plan.Output.generic_string()));
-        }
+            return Unexpected("'{}' would overwrite the project, choose another folder", plan.Output.generic_string());
 
         std::error_code error;
         if (fs::exists(plan.Output, error) && !fs::is_empty(plan.Output, error) &&
             !fs::exists(plan.Output / ProjectSettings::FileName))
         {
-            return std::unexpected(std::format("'{}' already exists and is not an exported game",
-                                               plan.Output.generic_string()));
+            return Unexpected("'{}' already exists and is not an exported game", plan.Output.generic_string());
         }
 
         return plan;
@@ -492,33 +485,33 @@ namespace ByteForge
 
         fs::create_directories(output, error);
         if (error)
-            return std::unexpected(std::format("cannot create '{}': {}", output.generic_string(), error.message()));
+            return Unexpected("cannot create '{}': {}", output.generic_string(), error.message());
 
         ExportResult result{ .Directory = output };
 
         const auto runtime = CopyRuntime(plan.PlayerDirectory, output, plan.ExecutableName);
         if (!runtime)
-            return std::unexpected(runtime.error());
+            return Unexpected(runtime.error());
         result.FileCount += *runtime;
 
         const auto scriptCore = CopyTree(plan.ScriptCoreDirectory, output / "ScriptCore",
             [](const fs::path& relative) { return IsRuntimeFile(relative); }, progress);
         if (!scriptCore)
-            return std::unexpected(scriptCore.error());
+            return Unexpected(scriptCore.error());
         result.FileCount += *scriptCore;
 
         progress.BeginStep("Bundling the .NET runtime");
 
         const Result<DotNetRuntime> dotnet = FindDotNetRuntime();
         if (!dotnet)
-            return std::unexpected(std::format("cannot bundle the .NET runtime: {}", dotnet.error()));
+            return Unexpected("cannot bundle the .NET runtime: {}", dotnet.error());
 
         const Result<usize> bundledRuntime = BundleDotNetRuntime(*dotnet, output / "dotnet", progress);
         if (!bundledRuntime)
         {
-            return std::unexpected(bundledRuntime.error() == Cancelled().error()
-                                   ? bundledRuntime.error()
-                                   : std::format("cannot bundle the .NET runtime: {}", bundledRuntime.error()));
+            return Unexpected(bundledRuntime.error() == Cancelled().error()
+                              ? bundledRuntime.error()
+                              : std::format("cannot bundle the .NET runtime: {}", bundledRuntime.error()));
         }
 
         result.FileCount += *bundledRuntime;
@@ -532,7 +525,7 @@ namespace ByteForge
 
         const Result<usize> shaders = PackShaders(shaderArchive);
         if (!shaders)
-            return std::unexpected(std::format("cannot precompile the shaders: {}", shaders.error()));
+            return Unexpected("cannot precompile the shaders: {}", shaders.error());
 
         result.ShaderStages = *shaders;
         ++result.FileCount;
@@ -543,7 +536,7 @@ namespace ByteForge
 
         const Result<PakStats> packed = PackAssets(plan.AssetsDirectory, archive, plan.GameScripts, progress);
         if (!packed)
-            return std::unexpected(packed.error());
+            return Unexpected(packed.error());
 
         result.Archive = *packed;
         ++result.FileCount;
@@ -553,11 +546,11 @@ namespace ByteForge
         for (const fs::path& written : { shaderArchive, archive })
         {
             if (const auto verified = VerifyArchive(written, progress); !verified)
-                return std::unexpected(std::format("'{}' is broken: {}", written.filename().string(), verified.error()));
+                return Unexpected("'{}' is broken: {}", written.filename().string(), verified.error());
         }
 
         if (const auto copied = CopySingleFile(plan.ProjectFile, output / ProjectSettings::FileName); !copied)
-            return std::unexpected(copied.error());
+            return Unexpected(copied.error());
         ++result.FileCount;
 
         return result;

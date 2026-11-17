@@ -99,7 +99,7 @@ namespace ByteForge
     Result<AnimationClipData> ParseAnimationClip(const nlohmann::json& data)
     {
         if (!data.is_object())
-            return std::unexpected("expected a JSON object");
+            return Unexpected("expected a JSON object");
 
         try
         {
@@ -112,13 +112,13 @@ namespace ByteForge
             if (const auto it = data.find("frames"); it != data.end())
             {
                 if (!it->is_array())
-                    return std::unexpected("'frames' must be an array");
+                    return Unexpected("'frames' must be an array");
 
                 clip.Frames.reserve(it->size());
                 for (const nlohmann::json& frameJson : *it)
                 {
                     if (!frameJson.is_object())
-                        return std::unexpected("every frame must be a JSON object");
+                        return Unexpected("every frame must be a JSON object");
 
                     AnimationFrame frame;
                     frame.Texture  = UUID(frameJson.value("texture", u64{ 0 }));
@@ -132,7 +132,7 @@ namespace ByteForge
             return clip;
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(e.what());
+            return Unexpected(e.what());
         }
     }
 

@@ -279,25 +279,24 @@ namespace ByteForge
     Result<PinType> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
     {
         if (from.Node == to.Node)
-            return std::unexpected("A node cannot connect to itself");
+            return Unexpected("A node cannot connect to itself");
 
         SignatureCache cache(graph);
         const NodeSignature* source = cache.Find(from.Node);
         const NodeSignature* target = cache.Find(to.Node);
         if (source == nullptr || target == nullptr)
-            return std::unexpected("The node does not exist");
+            return Unexpected("The node does not exist");
 
         const PinInfo* output = FindPin(*source, from.Pin, PinDirection::Output);
         const PinInfo* input = FindPin(*target, to.Pin, PinDirection::Input);
         if (output == nullptr || input == nullptr)
-            return std::unexpected("The pin does not exist");
+            return Unexpected("The pin does not exist");
 
         if (!IsAssignable(output->Type, input->Type))
-            return std::unexpected(std::format("Cannot connect {} to {}", DescribePinType(output->Type),
-                                               DescribePinType(input->Type)));
+            return Unexpected("Cannot connect {} to {}", DescribePinType(output->Type), DescribePinType(input->Type));
 
         if (!output->Type.IsExec && Reaches(CollectDataEdges(graph, cache), to.Node, from.Node))
-            return std::unexpected("This connection would create a loop");
+            return Unexpected("This connection would create a loop");
 
         return output->Type;
     }

@@ -173,15 +173,16 @@ namespace ByteForge
         try
         {
             if (!data.is_object())
-                return std::unexpected("expected a JSON object");
+                return Unexpected("expected a JSON object");
 
             const i32 version = data.value("version", 0);
             if (version < 1)
-                return std::unexpected("the format version is missing");
+                return Unexpected("the format version is missing");
             if (version > ScriptGraph::FormatVersion)
-                return std::unexpected(
-                    std::format("format version {} is newer than this version of ByteForge supports ({})",
-                                version, ScriptGraph::FormatVersion));
+            {
+                return Unexpected("format version {} is newer than this version of ByteForge supports ({})",
+                                  version, ScriptGraph::FormatVersion);
+            }
 
             std::vector<GraphVariable> variables;
             for (const auto& json : data.value("variables", nlohmann::json::array()))
@@ -198,7 +199,7 @@ namespace ByteForge
             return ScriptGraph::FromParts(std::move(nodes), std::move(links), std::move(variables));
         } catch (const std::exception& e)
         {
-            return std::unexpected(e.what());
+            return Unexpected(e.what());
         }
     }
 
@@ -206,14 +207,14 @@ namespace ByteForge
     {
         const Result<nlohmann::json> data = ReadJsonFile(path);
         if (!data)
-            return std::unexpected(data.error());
+            return Unexpected(data.error());
 
         try
         {
             return DeserializeScriptGraph(*data);
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(e.what());
+            return Unexpected(e.what());
         }
     }
 

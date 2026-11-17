@@ -54,11 +54,11 @@ namespace ByteForge::RecentProjects
 
             const Result<nlohmann::json> data = ReadJsonFile(GetFile());
             if (!data)
-                return std::unexpected(data.error());
+                return Unexpected(data.error());
 
             const auto list = data->find("projects");
             if (list == data->end() || !list->is_array())
-                return std::unexpected(std::format("'{}' has no project list", GetFile().string()));
+                return Unexpected("'{}' has no project list", GetFile().string());
 
             std::vector<RecentProject> projects;
             for (const nlohmann::json& entry : *list)
@@ -99,10 +99,7 @@ namespace ByteForge::RecentProjects
             std::error_code error;
             fs::create_directories(GetFile().parent_path(), error);
             if (error)
-            {
-                return std::unexpected(std::format("cannot create '{}': {}",
-                                                   GetFile().parent_path().string(), error.message()));
-            }
+                return Unexpected("cannot create '{}': {}", GetFile().parent_path().string(), error.message());
 
             nlohmann::json list = nlohmann::json::array();
             for (const RecentProject& project : projects)

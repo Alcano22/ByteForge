@@ -291,7 +291,7 @@ namespace ByteForge
     {
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(scriptAsset, metadata) || metadata.Type != AssetType::Script)
-            return std::unexpected("Not a script asset");
+            return Unexpected("Not a script asset");
 
         const std::string fileName = metadata.Path.filename().string();
         const std::string expected = metadata.Path.stem().string();
@@ -308,8 +308,8 @@ namespace ByteForge
 
         if (matches.empty())
         {
-            return std::unexpected(std::format("No script class named '{}' in {} (class and file name must match, "
-                                               "or the scripts need a reload)", expected, fileName));
+            return Unexpected("No script class named '{}' in {} (class and file name must match, "
+                              "or the scripts need a reload)", expected, fileName);
         }
 
         if (matches.size() > 1)
@@ -317,7 +317,7 @@ namespace ByteForge
             std::string list;
             for (const std::string& match : matches)
                 list += (list.empty() ? "" : ", ") + match;
-            return std::unexpected(std::format("'{}' is ambiguous: {}", expected, list));
+            return Unexpected("'{}' is ambiguous: {}", expected, list);
         }
 
         return std::move(matches.front());

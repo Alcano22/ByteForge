@@ -27,10 +27,7 @@ namespace ByteForge::HubLauncher
 
         std::error_code error;
         if (!fs::exists(hub, error))
-        {
-            return std::unexpected(std::format("'{}' was not found (is the Hub built? BYTEFORGE_BUILD_HUB)",
-                                   hub.string()));
-        }
+            return Unexpected("'{}' was not found (is the Hub built? BYTEFORGE_BUILD_HUB)", hub.string());
 
         return Platform::LaunchProcess({ hub.string() });
     }

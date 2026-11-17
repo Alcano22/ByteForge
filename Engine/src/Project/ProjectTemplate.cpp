@@ -18,10 +18,10 @@ namespace ByteForge
 
         const Result<nlohmann::json> data = ReadJsonFile(file);
         if (!data)
-            return std::unexpected(data.error());
+            return Unexpected(data.error());
 
         if (!data->is_object())
-            return std::unexpected(std::format("'{}' is not a valid template file", file.string()));
+            return Unexpected("'{}' is not a valid template file", file.string());
 
         ProjectTemplate result;
         result.Id = directory.filename().string();
@@ -34,7 +34,7 @@ namespace ByteForge
             result.Order = data->value("order", 0);
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(std::format("'{}' has invalid values: {}", file.string(), e.what()));
+            return Unexpected("'{}' has invalid values: {}", file.string(), e.what());
         }
 
         return result;

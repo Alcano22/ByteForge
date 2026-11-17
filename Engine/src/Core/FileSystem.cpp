@@ -13,16 +13,16 @@ namespace ByteForge
     {
         std::ifstream stream(file, std::ios::binary | std::ios::ate);
         if (!stream.is_open())
-            return std::unexpected(std::format("cannot open '{}'", file.generic_string()));
+            return Unexpected("cannot open '{}'", file.generic_string());
 
         const std::streamoff size = stream.tellg();
         if (size < 0)
-            return std::unexpected(std::format("cannot read '{}'", file.generic_string()));
+            return Unexpected("cannot read '{}'", file.generic_string());
 
         std::vector<std::byte> data(static_cast<usize>(size));
         stream.seekg(0);
         if (!stream.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(data.size())))
-            return std::unexpected(std::format("cannot read '{}'", file.generic_string()));
+            return Unexpected("cannot read '{}'", file.generic_string());
 
         return data;
     }
@@ -36,7 +36,7 @@ namespace ByteForge
         {
             std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
             if (!stream.is_open())
-                return std::unexpected(std::format("cannot open '{}' for writing", temporary.generic_string()));
+                return Unexpected("cannot open '{}' for writing", temporary.generic_string());
 
             stream.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
             stream.close();
@@ -44,7 +44,7 @@ namespace ByteForge
             if (stream.fail())
             {
                 fs::remove(temporary, ignored);
-                return std::unexpected(std::format("cannot write '{}'", temporary.generic_string()));
+                return Unexpected("cannot write '{}'", temporary.generic_string());
             }
         }
 
@@ -53,7 +53,7 @@ namespace ByteForge
         if (error)
         {
             fs::remove(temporary, ignored);
-            return std::unexpected(std::format("cannot replace '{}': {}", file.generic_string(), error.message()));
+            return Unexpected("cannot replace '{}': {}", file.generic_string(), error.message());
         }
 
         return {};
@@ -68,7 +68,7 @@ namespace ByteForge
     {
         const Result<std::vector<std::byte>> bytes = ReadBinaryFile(file);
         if (!bytes)
-            return std::unexpected(bytes.error());
+            return Unexpected(bytes.error());
 
         return ParseJson(*bytes, file.generic_string());
     }
@@ -81,7 +81,7 @@ namespace ByteForge
             text = data.dump(4);
         } catch (const nlohmann::json::exception& e)
         {
-            return std::unexpected(std::format("cannot serialize '{}': {}", file.generic_string(), e.what()));
+            return Unexpected("cannot serialize '{}': {}", file.generic_string(), e.what());
         }
 
         return WriteFileAtomic(file, text);
@@ -93,7 +93,7 @@ namespace ByteForge
 
         nlohmann::json json = nlohmann::json::parse(begin, begin + bytes.size(), nullptr, false);
         if (json.is_discarded())
-            return std::unexpected(std::format("'{}' is not valid JSON", source));
+            return Unexpected("'{}' is not valid JSON", source);
 
         return json;
     }
