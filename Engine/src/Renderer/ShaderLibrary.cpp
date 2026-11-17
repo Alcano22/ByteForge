@@ -1,7 +1,7 @@
 #include "Engine/Renderer/ShaderLibrary.h"
 #include "Engine/Assets/Pak.h"
 #include "Engine/Core/Log.h"
-#include "Renderer/BuiltinShaders.h"
+#include "Renderer/BuiltInShaders.h"
 #include "Renderer/RenderBackend.h"
 #include "Renderer/ShaderSource.h"
 
@@ -74,7 +74,7 @@ namespace ByteForge
         usize stages = 0;
         for (const ShaderVariant& variant : GetBuiltinVariants())
         {
-            const fs::path path = GetBuiltinShaderPath(variant.File);
+            const fs::path path = GetBuiltInShaderPath(variant.File);
 
             const Result<std::vector<std::byte>> code = ReadBinaryFile(path);
             if (!code)

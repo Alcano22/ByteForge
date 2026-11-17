@@ -1,7 +1,7 @@
 #include "Engine/Project/ProjectTemplate.h"
 #include "Engine/Core/FileSystem.h"
 #include "Engine/Core/Log.h"
-#include "Engine/Core/Platform.h"
+#include "Engine/Core/RuntimePaths.h"
 
 #include <nlohmann/json.hpp>
 
@@ -69,6 +69,6 @@ namespace ByteForge
 
     fs::path ProjectTemplate::GetBuiltInDirectory()
     {
-        return Platform::GetExecutableDirectory() / "templates";
+        return RuntimePaths::GetDataDirectory() / "templates";
     }
 }

@@ -24,6 +24,7 @@ add_library(Engine SHARED
         src/Core/Platform.cpp
         src/Core/FileSystem.cpp
         src/Core/Version.cpp
+        src/Core/RuntimePaths.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
@@ -230,12 +231,12 @@ set(BYTEFORGE_PCH_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/Engine/Core/PCH.h
         CACHE INTERNAL "Precompiled header of ByteForge")
 target_precompile_headers(Engine PRIVATE ${BYTEFORGE_PCH_HEADER})
 
-set(BYTEFORGE_ENGINE_RESOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources
-        CACHE INTERNAL "${CMAKE_CURRENT_BINARY_DIR}/${target}_${name}.stamp")
+set(BYTEFORGE_ENGINE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders
+        CACHE INTERNAL "The engine's built-in shaders")
 
-function(byteforge_add_engine_resources target)
+function(byteforge_add_engine_shaders target destination)
     byteforge_copy_directory(${target}
-            ${BYTEFORGE_ENGINE_RESOURCE_DIR}
-            ${CMAKE_CURRENT_BINARY_DIR}/engine
+            ${BYTEFORGE_ENGINE_SHADER_DIR}
+            ${destination}/shaders
     )
 endfunction()

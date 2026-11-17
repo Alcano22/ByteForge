@@ -12,6 +12,7 @@
 #include "Editor/Viewport/TransformGizmo.h"
 
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/RuntimePaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Event/ApplicationEvent.h>
@@ -62,7 +63,7 @@ namespace ByteForge
 
         m_Context.Scripts.RequestReload();
 
-        const fs::path resources = Platform::GetExecutableDirectory() / "resources";
+        const fs::path resources = RuntimePaths::GetDataDirectory() / "editor";
         m_Context.Icons.Load(resources / "icons");
         m_Context.Fonts.Load(resources / "fonts", 16.0f);
         m_Context.Icons.AddToFonts(m_Context.Fonts);

@@ -1,7 +1,7 @@
 #include "Engine/Renderer/Renderer2D.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Renderer/ColorSpace.h"
-#include "Renderer/BuiltinShaders.h"
+#include "Renderer/BuiltInShaders.h"
 
 #include <array>
 #include <format>
@@ -55,7 +55,7 @@ namespace ByteForge
             defines.emplace_back("ENTITY_ID");
 
         m_Pipeline = Pipeline::Create({
-            .Shader           = Shader::Load(GetBuiltinShaderPath("Renderer2D.hlsl"), std::move(defines)),
+            .Shader           = Shader::Load(GetBuiltInShaderPath("Renderer2D.hlsl"), std::move(defines)),
             .VertexLayout     = MakeVertexLayout(),
             .ColorAttachments = std::move(attachments),
             .DepthFormat      = spec.DepthFormat,

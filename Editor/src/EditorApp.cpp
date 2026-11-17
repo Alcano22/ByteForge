@@ -1,21 +1,27 @@
 #include "Editor/EditorLayer.h"
+#include "Editor/HubLauncher.h"
 
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
+#include <Engine/Core/FileLock.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/RuntimePaths.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Project/RecentProjects.h>
 
 #include <imgui.h>
 
 #include <format>
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 
 namespace
 {
-    std::filesystem::path FindProjectPath()
+    ByteForge::Scope<ByteForge::FileLock> s_ProjectLock;
+
+    std::optional<std::filesystem::path> FindProjectArgument()
     {
         using namespace ByteForge;
 
@@ -29,19 +35,46 @@ namespace
             if (argument == Option && i + 1 < arguments.size())
                 return Platform::PathFromUtf8(arguments[i + 1]);
 
-            if (argument.starts_with(Option) && arguments.size() > Option.size() && argument[Option.size()] == '=')
+            if (argument.starts_with(Option) && argument.size() > Option.size() && argument[Option.size()] == '=')
                 return Platform::PathFromUtf8(argument.substr(Option.size() + 1));
         }
 
-        return std::filesystem::current_path();
+        return std::nullopt;
     }
 }
 
 ByteForge::Application* ByteForge::CreateApplication()
 {
-    Result<Project> project = Project::Open(FindProjectPath());
+    RuntimePaths::SetLayout(RuntimePaths::Layout::Install);
+
+    std::optional<std::filesystem::path> path = FindProjectArgument();
+
+#ifdef BYTEFORGE_DEBUG
+    if (!path && Project::IsProjectDirectory(std::filesystem::current_path()))
+        path = std::filesystem::current_path();
+#endif
+
+    if (!path)
+    {
+        APP_INFO("No project given, starting ByteForge Hub");
+
+        if (const Result<> launched = HubLauncher::Launch(); !launched)
+        {
+            throw std::runtime_error(std::format("No project given (--project) and the hub cannot be started: {}",
+                                                 launched.error()));
+        }
+
+        return nullptr;
+    }
+
+    Result<Project> project = Project::Open(*path);
     if (!project)
         throw std::runtime_error(std::format("Cannot open the project: {}", project.error()));
+
+    Result<Scope<FileLock>> lock = project->AcquireEditorLock();
+    if (!lock)
+        throw std::runtime_error(lock.error());
+    s_ProjectLock = std::move(*lock);
 
     APP_INFO("Opening project '{}' at '{}'", project->GetName(), project->GetRoot().string());
     Project::SetActive(std::move(*project));

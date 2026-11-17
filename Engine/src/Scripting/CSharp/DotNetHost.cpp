@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Log.h"
 #include "Engine/Core/Platform.h"
+#include "Engine/Core/RuntimePaths.h"
 
 #include <nethost.h>
 
@@ -41,7 +42,7 @@ namespace ByteForge
 
         fs::path FindBundledRuntime()
         {
-            const fs::path root = Platform::GetExecutableDirectory() / "dotnet";
+            const fs::path root = RuntimePaths::GetDataDirectory() / "dotnet";
 
             std::error_code error;
             return fs::is_directory(root / "host" / "fxr", error) ? root : fs::path();

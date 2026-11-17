@@ -7,6 +7,7 @@
 #include <Engine/Core/JobSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/RuntimePaths.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/ShaderLibrary.h>
@@ -413,7 +414,8 @@ namespace ByteForge
     Result<ExportPlan> GameExporter::Prepare(const Project& project, const fs::path& outputRoot)
     {
         ExportPlan plan;
-        plan.EditorDirectory = Platform::GetExecutableDirectory();
+        plan.PlayerDirectory = RuntimePaths::GetRoot() / "player";
+        plan.ScriptCoreDirectory = RuntimePaths::GetDataDirectory() / "ScriptCore";
         plan.AssetsDirectory = project.GetAssetDirectory();
         plan.ProjectFile = project.GetProjectFile();
 
@@ -430,13 +432,13 @@ namespace ByteForge
             return std::unexpected("the project has no valid startup scene (File > Set as Startup Scene)");
         }
 
-        if (!fs::exists(plan.EditorDirectory / "player" / PlayerFileName()))
+        if (!fs::exists(plan.PlayerDirectory / PlayerFileName()))
             return std::unexpected(std::format("'{}' is missing, build the 'Player' target", PlayerFileName()));
 
-        for (const char* folder : { "engine", "ScriptCore" })
+        for (const fs::path& required : { RuntimePaths::GetDataDirectory() / "shaders", plan.ScriptCoreDirectory })
         {
-            if (!fs::exists(plan.EditorDirectory / folder))
-                return std::unexpected(std::format("'{}' is missing next to the editor", folder));
+            if (!fs::exists(required))
+                return std::unexpected(std::format("'{}' is missing", required.generic_string()));
         }
 
         const bool hasScripts = !AssetRegistry::GetAssetsOfType(AssetType::Script).empty();
@@ -476,7 +478,7 @@ namespace ByteForge
         progress.BeginStep("Copying the player");
 
         std::error_code error;
-        for (const char* folder : { "assets", "engine", "ScriptCore", ".byteforge", "dotnet" })
+        for (const char* folder : { "assets", "engine", "shaders", "ScriptCore", ".byteforge", "dotnet" })
             fs::remove_all(output / folder, error);
 
         for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
@@ -494,12 +496,12 @@ namespace ByteForge
 
         ExportResult result{ .Directory = output };
 
-        const auto runtime = CopyRuntime(plan.EditorDirectory / "player", output, plan.ExecutableName);
+        const auto runtime = CopyRuntime(plan.PlayerDirectory, output, plan.ExecutableName);
         if (!runtime)
             return std::unexpected(runtime.error());
         result.FileCount += *runtime;
 
-        const auto scriptCore = CopyTree(plan.EditorDirectory / "ScriptCore", output / "ScriptCore",
+        const auto scriptCore = CopyTree(plan.ScriptCoreDirectory, output / "ScriptCore",
             [](const fs::path& relative) { return IsRuntimeFile(relative); }, progress);
         if (!scriptCore)
             return std::unexpected(scriptCore.error());

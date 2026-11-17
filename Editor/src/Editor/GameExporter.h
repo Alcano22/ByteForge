@@ -29,7 +29,8 @@ namespace ByteForge
 
     struct ExportPlan
     {
-        fs::path EditorDirectory;
+        fs::path PlayerDirectory;
+        fs::path ScriptCoreDirectory;
         fs::path AssetsDirectory;
         fs::path ProjectFile;
         std::optional<fs::path> GameScripts;

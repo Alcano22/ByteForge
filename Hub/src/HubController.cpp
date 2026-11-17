@@ -3,6 +3,7 @@
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Version.h>
+#include <Engine/Core/FileLock.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Project/RecentProjects.h>
 
@@ -79,6 +80,15 @@ namespace ByteForge::Hub
             reportError(QStringLiteral("Cannot open the project: %1").arg(ToQString(project.error())));
             refresh();
             return;
+        }
+
+        {
+            const Result<Scope<FileLock>> lock = project->AcquireEditorLock();
+            if (!lock)
+            {
+                reportError(ToQString(lock.error()));
+                return;
+            }
         }
 
         const QString editor = findEditor();

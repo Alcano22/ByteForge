@@ -2,8 +2,11 @@
 #include "Editor/EditorActions.h"
 #include "Editor/EditorContext.h"
 #include "Editor/GameExporter.h"
+#include "Editor/HubLauncher.h"
 #include "Editor/Panels/SettingsPanel.h"
 #include "Editor/Theme/ThemeManager.h"
+
+#include <Engine/Core/Log.h>
 
 #include <imgui.h>
 
@@ -138,6 +141,12 @@ namespace ByteForge
         {
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("Open Project..."))
+                {
+                    if (const Result<> launched = HubLauncher::Launch(); !launched)
+                        APP_ERROR("Cannot start the hub: {}", launched.error());
+                }
+                ImGui::Separator();
                 ActionMenuItem(context, EditorActions::NewScene);
                 ActionMenuItem(context, EditorActions::OpenScene);
                 ImGui::Separator();

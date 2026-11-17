@@ -44,7 +44,6 @@ target_link_libraries(Hub PRIVATE
 
 set_target_properties(Hub PROPERTIES
         OUTPUT_NAME ByteForgeHub
-        RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:Editor>"
         WIN32_EXECUTABLE ON
 )
 

@@ -82,13 +82,12 @@ jobs:
           name: ByteForge-Editor-Windows
           if-no-files-found: error
           path: |
-            build-windows-release/Editor
-            !build-windows-release/Editor/CMakeFiles
-            !build-windows-release/Editor/*.stamp
-            !build-windows-release/Editor/**/*.obj
-            !build-windows-release/Editor/**/*.lib
-            !build-windows-release/Editor/**/*.exp
-            !build-windows-release/Editor/**/*.ilk
+            build-windows-release/bin
+            build-windows-release/share
+            build-windows-release/player
+            !build-windows-release/**/*.lib
+            !build-windows-release/**/*.exp
+            !build-windows-release/**/*.ilk
 
   linux:
     name: Linux (Clang, Fedora)

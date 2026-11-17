@@ -2,6 +2,7 @@
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/RuntimePaths.h>
 #include <Engine/Core/JobSystem.h>
 #include <Engine/Core/FileSystem.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -141,7 +142,7 @@ namespace ByteForge
 
     void ScriptProject::GenerateProjectFile() const
     {
-        const fs::path scriptCore = Platform::GetExecutableDirectory() / "ScriptCore" / "ScriptCore.dll";
+        const fs::path scriptCore = RuntimePaths::GetDataDirectory() / "ScriptCore" / "ScriptCore.dll";
 
         const std::string content = std::format(R"(
 <Project Sdk="Microsoft.NET.Sdk">
@@ -229,7 +230,7 @@ namespace ByteForge
 
         m_LoadPending = false;
 
-        const fs::path scriptCore = Platform::GetExecutableDirectory() / "ScriptCore" / "ScriptCore.dll";
+        const fs::path scriptCore = RuntimePaths::GetDataDirectory() / "ScriptCore" / "ScriptCore.dll";
         m_PendingFingerprint = ComputeFingerprint(m_Root, scriptCore);
 
         std::error_code error;

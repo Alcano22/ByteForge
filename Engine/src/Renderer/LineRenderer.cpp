@@ -1,7 +1,7 @@
 #include "Engine/Renderer/LineRenderer.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Renderer/ColorSpace.h"
-#include "Renderer/BuiltinShaders.h"
+#include "Renderer/BuiltInShaders.h"
 
 #include <array>
 #include <cmath>
@@ -35,7 +35,7 @@ namespace ByteForge
             attachments.push_back({ .Format = spec.EntityIdFormat, .WriteEnabled = false });
 
         m_Pipeline = Pipeline::Create({
-            .Shader           = Shader::Load(GetBuiltinShaderPath("Line.hlsl")),
+            .Shader           = Shader::Load(GetBuiltInShaderPath("Line.hlsl")),
             .VertexLayout     = layout,
             .Topology         = PrimitiveTopology::LineList,
             .ColorAttachments = std::move(attachments),

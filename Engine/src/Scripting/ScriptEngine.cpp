@@ -1,5 +1,5 @@
 #include "Engine/Scripting/ScriptEngine.h"
-#include "Engine/Core/Platform.h"
+#include "Engine/Core/RuntimePaths.h"
 #include "Engine/Core/Log.h"
 #include "Scripting/NativeScriptBackend.h"
 #include "Scripting/CSharp/CSharpScriptBackend.h"
@@ -128,12 +128,12 @@ namespace ByteForge
 
     void ScriptEngine::TryRegisterCSharpBackend()
     {
-        const fs::path directory = Platform::GetExecutableDirectory() / "ScriptCore";
+        const fs::path directory = RuntimePaths::GetDataDirectory() / "ScriptCore";
 
         std::error_code error;
         if (!fs::is_regular_file(directory / "ScriptCore.dll", error))
         {
-            CORE_INFO("C# scripting unavailable: no ScriptCore next to the executable");
+            CORE_INFO("C# scripting unavailable: no ScriptCore in '{}'", directory.string());
             return;
         }
 

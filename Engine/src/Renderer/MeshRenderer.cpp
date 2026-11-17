@@ -1,7 +1,7 @@
 #include "Engine/Renderer/MeshRenderer.h"
 #include "Engine/Renderer/MeshVertex.h"
 #include "Engine/Renderer/Renderer.h"
-#include "Renderer/BuiltinShaders.h"
+#include "Renderer/BuiltInShaders.h"
 #include "Renderer/ColorSpace.h"
 
 #include <stdexcept>
@@ -16,7 +16,7 @@ namespace ByteForge
         const bool hasDepth = spec.DepthFormat != ImageFormat::None;
 
         m_Pipeline = Pipeline::Create({
-            .Shader           = Shader::Load(GetBuiltinShaderPath("Mesh.hlsl")),
+            .Shader           = Shader::Load(GetBuiltInShaderPath("Mesh.hlsl")),
             .VertexLayout     = MeshVertex::GetLayout(),
             .Cull             = CullMode::Back,
             .Front            = FrontFace::CounterClockwise,

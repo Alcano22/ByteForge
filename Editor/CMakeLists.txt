@@ -31,6 +31,7 @@ add_executable(Editor
         src/Editor/FileDialogs.cpp
         src/Editor/SvgIconFont.cpp
         src/Editor/GameExporter.cpp
+        src/Editor/HubLauncher.cpp
         src/Editor/PopupManager.cpp
         src/Editor/EditorLayouts.cpp
         src/Editor/Tooling/CodeEditorLauncher.cpp
@@ -89,43 +90,18 @@ target_precompile_headers(Editor PRIVATE ${BYTEFORGE_PCH_HEADER})
 
 byteforge_copy_directory(Editor
         ${CMAKE_CURRENT_SOURCE_DIR}/resources
-        ${CMAKE_CURRENT_BINARY_DIR}/resources
+        ${BYTEFORGE_SHARE_DIR}/editor
 )
 
 byteforge_copy_directory(Editor
         ${CMAKE_SOURCE_DIR}/Templates
-        ${CMAKE_CURRENT_BINARY_DIR}/templates
+        ${BYTEFORGE_SHARE_DIR}/templates
 )
 
-byteforge_copy_directory(Editor
-        ${CMAKE_BINARY_DIR}/ScriptCore
-        ${CMAKE_CURRENT_BINARY_DIR}/ScriptCore
-        DEPENDS ScriptCore ${CMAKE_BINARY_DIR}/ScriptCore/ScriptCore.dll
-)
+byteforge_add_engine_shaders(Editor ${BYTEFORGE_SHARE_DIR})
 
-byteforge_add_engine_resources(Editor)
+add_dependencies(Editor ScriptCore)
 
 add_dependencies(Editor Player)
-add_custom_command(TARGET Editor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Editor>/player"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Player>" "$<TARGET_FILE_DIR:Editor>/player/"
-    COMMAND ${CMAKE_COMMAND}
-        -DSOURCE_DIR=$<TARGET_FILE_DIR:Engine>
-        -DDESTINATION=$<TARGET_FILE_DIR:Editor>/player
-        -P ${CMAKE_SOURCE_DIR}/cmake/CopyRuntimeLibraries.cmake
-    COMMENT "Preparing the player runtime for game export"
-    VERBATIM
-)
-
-if (WIN32)
-    add_custom_command(TARGET Editor POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -DSOURCE_DIR=$<TARGET_FILE_DIR:Player>
-            -DDESTINATION=$<TARGET_FILE_DIR:Editor>/player
-            -P ${CMAKE_SOURCE_DIR}/cmake/CopyDllsFromDirectory.cmake
-        COMMENT "Copying the player's DLLs for game export"
-        VERBATIM
-    )
-endif()
 
 byteforge_deploy_runtime(Editor)

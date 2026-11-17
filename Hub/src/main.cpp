@@ -1,4 +1,5 @@
 #include <Engine/Core/Log.h>
+#include <Engine/Core/RuntimePaths.h>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -9,6 +10,8 @@
 int main(int argc, char* argv[])
 {
     ByteForge::Log::Init();
+
+    ByteForge::RuntimePaths::SetLayout(ByteForge::RuntimePaths::Layout::Install);
 
 #ifdef Q_OS_LINUX
     if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORMTHEME"))
