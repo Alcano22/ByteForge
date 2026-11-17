@@ -16,7 +16,7 @@ namespace ByteForge
         if (descriptor < 0)
         {
             return std::unexpected(FileLockError{
-                .Message = std::format("cannot open '{}': {}", file.string(), std::generic_category().message(errno));
+                .Message = std::format("cannot open '{}': {}", file.string(), std::generic_category().message(errno))
             });
         }
 
