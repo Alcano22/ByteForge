@@ -5,6 +5,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Project/Project.h>
+#include <Engine/Project/RecentProjects.h>
 
 #include <imgui.h>
 
@@ -44,6 +45,9 @@ ByteForge::Application* ByteForge::CreateApplication()
 
     APP_INFO("Opening project '{}' at '{}'", project->GetName(), project->GetRoot().string());
     Project::SetActive(std::move(*project));
+
+    if (const Result<> recorded = RecentProjects::Touch(Project::GetActive()); !recorded)
+        APP_WARN("Cannot update the recent projects list: {}", recorded.error());
 
     auto* app = new Application({ .Title = "ByteForge Editor", .Width = 1280, .Height = 720 });
     app->EnableImGui();

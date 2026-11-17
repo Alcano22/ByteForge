@@ -44,6 +44,7 @@ add_library(Engine SHARED
         src/Project/ProjectSettings.cpp
         src/Project/Project.cpp
         src/Project/ProjectTemplate.cpp
+        src/Project/RecentProjects.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
