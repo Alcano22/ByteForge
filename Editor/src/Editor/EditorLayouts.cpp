@@ -36,7 +36,7 @@ namespace ByteForge
 
         constexpr const char* LayoutExtension = ".ini";
 
-        fs::path GetLayoutDirectory() { return GetStateDirectory() / "layouts"; }
+        fs::path GetLayoutDirectory() { return GetUserSettingsDirectory() / "layouts"; }
         fs::path GetLayoutPath(const std::string& name) { return GetLayoutDirectory() / (name + LayoutExtension); }
 
         std::string MakeLayoutName(const std::string_view text)
@@ -152,6 +152,7 @@ namespace ByteForge
     {
         std::error_code error;
         fs::create_directories(GetLayoutDirectory(), error);
+        fs::create_directories(GetStateDirectory(), error);
 
         m_IniPath = (GetStateDirectory() / "imgui.ini").string();
         ImGui::GetIO().IniFilename = m_IniPath.c_str();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Core/Platform.h>
+#include <Engine/Project/Project.h>
 #include <Engine/Scene/UUID.h>
 
 #include <chrono>
@@ -33,7 +34,7 @@ namespace ByteForge
         void LoadAssembly() const;
 
         [[nodiscard]] fs::path GetProjectFile() const { return m_Root / "GameScripts.csproj"; }
-        [[nodiscard]] fs::path GetOutputDirectory() const { return m_Root / ".byteforge" / "ScriptAssemblies"; }
+        [[nodiscard]] fs::path GetOutputDirectory() const { return Project::GetActive().GetScriptAssemblyDirectory(); }
         [[nodiscard]] fs::path GetAssemblyFile() const { return GetOutputDirectory() / "GameScripts.dll"; }
         [[nodiscard]] fs::path GetStampFile() const { return GetOutputDirectory() / "build.stamp"; }
 

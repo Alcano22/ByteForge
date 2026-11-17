@@ -8,6 +8,7 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/FileSystem.h>
+#include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
@@ -226,28 +227,18 @@ namespace ByteForge
         if (!m_Handle)
             return false;
 
-        const fs::path root = fs::current_path();
-        const fs::path file = root / ProjectSettings::FileName;
+        const Project& project = Project::GetActive();
 
-        ProjectSettings settings;
-        if (fs::exists(file))
+        Result<ProjectSettings> settings = project.LoadSettings();
+        if (!settings)
         {
-            auto loaded = ProjectSettings::Load(file);
-            if (!loaded)
-            {
-                APP_ERROR("Could not read project file: {}", loaded.error());
-                return false;
-            }
-            settings = std::move(*loaded);
-        } else
-        {
-            settings.Name = root.filename().string();
-            settings.WindowTitle = settings.Name;
+            APP_ERROR("Could not read project file: {}", settings.error());
+            return false;
         }
 
-        settings.StartScene = *m_Handle;
+        settings->StartScene = *m_Handle;
 
-        if (const auto saved = settings.Save(file); !saved)
+        if (const auto saved = project.SaveSettings(*settings); !saved)
         {
             APP_ERROR("Could not write project file: {}", saved.error());
             return false;
@@ -275,7 +266,8 @@ namespace ByteForge
 
     void SceneDocument::Update() const
     {
-        Application::Get().GetWindow().SetTitle(std::format("{} - {}{}{}", WindowTitle, GetName(),
+        Application::Get().GetWindow().SetTitle(std::format("{} - {} - {}{}{}", WindowTitle,
+                                                            Project::GetActive().GetName(), GetName(),
                                                             IsEditingPrefab() ? " (Prefab)" : "",
                                                             IsDirty() ? "*" : ""));
     }

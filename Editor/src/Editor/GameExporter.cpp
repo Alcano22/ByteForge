@@ -7,6 +7,7 @@
 #include <Engine/Core/JobSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
+#include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/ShaderLibrary.h>
 
@@ -409,14 +410,14 @@ namespace ByteForge
         }
     }
 
-    Result<ExportPlan> GameExporter::Prepare(const fs::path& projectRoot, const fs::path& outputRoot)
+    Result<ExportPlan> GameExporter::Prepare(const Project& project, const fs::path& outputRoot)
     {
         ExportPlan plan;
         plan.EditorDirectory = Platform::GetExecutableDirectory();
-        plan.AssetsDirectory = projectRoot / "assets";
-        plan.ProjectFile = projectRoot / ProjectSettings::FileName;
+        plan.AssetsDirectory = project.GetAssetDirectory();
+        plan.ProjectFile = project.GetProjectFile();
 
-        const fs::path gameScripts = projectRoot / ".byteforge" / "ScriptAssemblies" / "GameScripts.dll";
+        const fs::path gameScripts = project.GetScriptAssemblyDirectory() / "GameScripts.dll";
 
         const auto settings = ProjectSettings::Load(plan.ProjectFile);
         if (!settings)
@@ -451,7 +452,7 @@ namespace ByteForge
 
         plan.Output = outputRoot / gameName;
 
-        if (IsInsideOrSame(plan.Output, plan.AssetsDirectory) || IsInsideOrSame(projectRoot, plan.Output))
+        if (IsInsideOrSame(plan.Output, plan.AssetsDirectory) || IsInsideOrSame(project.GetRoot(), plan.Output))
         {
             return std::unexpected(std::format("'{}' would overwrite the project, choose another folder",
                                                plan.Output.generic_string()));
@@ -633,10 +634,12 @@ namespace ByteForge
                  "export from the Release editor to ship the game");
 #endif
 
-        const std::optional<fs::path> folder = FileDialogs::PickFolder(fs::current_path());
+        const Project& project = Project::GetActive();
+
+        const std::optional<fs::path> folder = FileDialogs::PickFolder(project.GetRoot());
         if (!folder) return;
 
-        Result<ExportPlan> plan = GameExporter::Prepare(fs::current_path(), *folder);
+        Result<ExportPlan> plan = GameExporter::Prepare(project, *folder);
         if (!plan)
         {
             APP_ERROR("Export failed: {}", plan.error());

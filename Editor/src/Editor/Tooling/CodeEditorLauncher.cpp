@@ -5,6 +5,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Core/StringUtils.h>
+#include <Engine/Project/Project.h>
 
 #include <nlohmann/json.hpp>
 
@@ -71,7 +72,7 @@ namespace ByteForge
 
         constexpr std::string_view SystemId = "system";
 
-        fs::path GetSettingsFile() { return GetStateDirectory() / "tooling.json"; }
+        fs::path GetSettingsFile() { return GetUserSettingsDirectory() / "tooling.json"; }
 
         const CodeEditorInfo* FindInfo(const std::string_view id)
         {
@@ -229,7 +230,7 @@ namespace ByteForge
             arguments = file != nullptr ? info->FileArguments : info->ProjectArguments;
         }
 
-        const std::string project = fs::current_path().string();
+        const std::string project = Project::GetActive().GetRoot().string();
         const std::string filePath = file != nullptr ? fs::absolute(*file).string() : project;
         const std::string lineText = std::to_string(std::max(line, 1u));
 

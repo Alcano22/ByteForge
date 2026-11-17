@@ -17,6 +17,7 @@
 
 #include <Engine/Core/Core.h>
 #include <Engine/Core/Timestep.h>
+#include <Engine/Project/Project.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
@@ -184,7 +185,7 @@ namespace ByteForge
         SceneState State = SceneState::Edit;
         EditorIcons Icons;
         EditorFonts Fonts;
-        ScriptProject Scripts{ fs::current_path() };
+        ScriptProject Scripts{ Project::GetActive().GetRoot() };
 
     private:
         std::vector<std::pair<std::type_index, Scope<EditorPanel>>> m_Panels;

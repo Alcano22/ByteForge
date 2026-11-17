@@ -1,4 +1,5 @@
 #include "Editor/EditorLayer.h"
+#include "Editor/EditorPaths.h"
 #include "Editor/Shell/EditorShell.h"
 #include "Editor/Inspectors/ComponentInspectors.h"
 #include "Editor/Panels/AssetsPanel.h"
@@ -11,23 +12,53 @@
 #include "Editor/Viewport/TransformGizmo.h"
 
 #include <Engine/Core/Platform.h>
+#include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Event/ApplicationEvent.h>
 #include <Engine/Event/Event.h>
 
 #include <filesystem>
+#include <system_error>
 
 namespace ByteForge
 {
+    namespace
+    {
+        void MigrateUserSettings()
+        {
+            const fs::path legacy = GetStateDirectory();
+            const fs::path user = GetUserSettingsDirectory();
+
+            for (const char* name : { "themes", "theme.json", "layouts", "tooling.json" })
+            {
+                std::error_code error;
+                const fs::path from = legacy / name;
+                const fs::path to = user / name;
+
+                if (!fs::exists(from, error) || fs::exists(to, error)) continue;
+
+                fs::create_directories(user, error);
+                fs::copy(from, to, fs::copy_options::recursive, error);
+
+                if (error)
+                    APP_WARN("Could not copy '{}' to the user settings: {}", from.string(), error.message());
+                else
+                    APP_INFO("Copied '{}' to the user settings in '{}'", name, user.string());
+            }
+        }
+    }
+
     void EditorLayer::OnAttach()
     {
         ValidateComponentInspectors();
+
+        MigrateUserSettings();
 
         m_Context.Layouts.Init();
         m_Context.Themes.Init();
         m_Context.CodeEditor.Init();
 
-        AssetRegistry::Init("assets");
+        AssetRegistry::Init(Project::GetActive().GetAssetDirectory());
 
         m_Context.Scripts.RequestReload();
 

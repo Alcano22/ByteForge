@@ -16,6 +16,7 @@
 namespace ByteForge
 {
     class EditorContext;
+    class Project;
 
     struct ExportResult
     {
@@ -95,7 +96,7 @@ namespace ByteForge
     class GameExporter
     {
     public:
-        [[nodiscard]] static Result<ExportPlan> Prepare(const fs::path& projectRoot, const fs::path& outputRoot);
+        [[nodiscard]] static Result<ExportPlan> Prepare(const Project& project, const fs::path& outputRoot);
 
         [[nodiscard]] static Result<ExportResult> Run(const ExportPlan& plan, ExportProgress& progress);
     };

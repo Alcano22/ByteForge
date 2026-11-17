@@ -5,6 +5,7 @@
 #include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/StringUtils.h>
+#include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 
 #include <imgui.h>
@@ -84,22 +85,13 @@ namespace ByteForge
     {
         m_Error.clear();
 
-        ProjectSettings settings;
+        const Project& project = Project::GetActive();
+        ProjectSettings settings = project.MakeDefaultSettings();
 
-        const fs::path file = GetFile();
-        if (fs::exists(file))
-        {
-            if (auto loaded = ProjectSettings::Load(file))
-                settings = std::move(*loaded);
-            else
-                m_Error = std::format("{} (applying will replace the file)", loaded.error());
-        }
-
-        if (!fs::exists(file) || !m_Error.empty())
-        {
-            settings.Name = fs::current_path().filename().string();
-            settings.WindowTitle = settings.Name;
-        }
+        if (Result<ProjectSettings> loaded = project.LoadSettings())
+            settings = std::move(*loaded);
+        else
+            m_Error = std::format("{} (applying will replace the file)", loaded.error());
 
         m_Name = settings.Name;
         m_WindowTitle = settings.WindowTitle;
@@ -136,7 +128,7 @@ namespace ByteForge
         m_Dirty = false;
     }
 
-    fs::path ProjectGeneralPage::GetFile() { return fs::current_path() / ProjectSettings::FileName; }
+    fs::path ProjectGeneralPage::GetFile() { return Project::GetActive().GetProjectFile(); }
 
     fs::file_time_type ProjectGeneralPage::ReadFileTime()
     {

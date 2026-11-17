@@ -14,4 +14,21 @@ namespace ByteForge::Platform
         static const fs::path directory = GetExecutablePath().parent_path();
         return directory;
     }
+
+    const std::vector<std::string>& GetCommandLineArguments()
+    {
+        static const std::vector<std::string> arguments = Detail::QueryCommandLineArguments();
+        return arguments;
+    }
+
+    fs::path PathFromUtf8(const std::string_view text)
+    {
+        return fs::path(std::u8string(text.begin(), text.end()));
+    }
+
+    const fs::path& GetUserConfigDirectory()
+    {
+        static const fs::path directory = Detail::QueryUserConfigDirectory() / "ByteForge";
+        return directory;
+    }
 }

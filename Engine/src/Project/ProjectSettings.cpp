@@ -1,5 +1,6 @@
 #include "Engine/Project/ProjectSettings.h"
 #include "Engine/Core/FileSystem.h"
+#include "Engine/Core/Version.h"
 
 #include <nlohmann/json.hpp>
 
@@ -29,6 +30,7 @@ namespace ByteForge
         {
             settings.Name = json.value("name", defaults.Name);
             settings.StartScene = UUID(json.value("startScene", u64{ 0 }));
+            settings.EngineVersion = json.value("engineVersion", std::string());
 
             if (const auto window = json.find("window"); window != json.end() && window->is_object())
             {
@@ -53,9 +55,10 @@ namespace ByteForge
     Result<> ProjectSettings::Save(const fs::path& file) const
     {
         const nlohmann::json json{
-            { "version",    FormatVersion },
-            { "name",       Name          },
-            { "startScene", static_cast<u64>(StartScene) },
+            { "version",       FormatVersion                   },
+            { "engineVersion", std::string(GetEngineVersion()) },
+            { "name",          Name                            },
+            { "startScene",    static_cast<u64>(StartScene)    },
             { "window", {
                 { "title",  WindowTitle  },
                 { "width",  WindowWidth  },

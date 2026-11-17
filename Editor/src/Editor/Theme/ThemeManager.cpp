@@ -16,8 +16,8 @@ namespace ByteForge
     {
         constexpr const char* ThemeExtension = ".json";
 
-        fs::path GetThemeDirectory() { return GetStateDirectory() / "themes"; }
-        fs::path GetActiveThemePath() { return GetStateDirectory() / "theme.json"; }
+        fs::path GetThemeDirectory() { return GetUserSettingsDirectory() / "themes"; }
+        fs::path GetActiveThemePath() { return GetUserSettingsDirectory() / "theme.json"; }
 
         fs::path GetThemeFile(const std::string_view name)
         {

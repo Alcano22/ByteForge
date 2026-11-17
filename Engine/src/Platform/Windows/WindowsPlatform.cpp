@@ -9,11 +9,13 @@
 #   define NOMINMAX
 #endif
 #include <Windows.h>
+#include <shellapi.h>
 
 #include <array>
 #include <cstdio>
 #include <cwchar>
 #include <format>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -217,6 +219,24 @@ namespace ByteForge
 
 namespace ByteForge::Platform::Detail
 {
+    namespace
+    {
+        std::string WideToUtf8(const std::wstring_view text)
+        {
+            if (text.empty())
+                return {};
+
+            const auto length = static_cast<i32>(text.size());
+            const i32 size = WideCharToMultiByte(CP_UTF8, 0, text.data(), length, nullptr, 0, nullptr, nullptr);
+            if (size <= 0)
+                throw std::runtime_error(std::format("Platform: WideCharToMultiByte failed (error {})", GetLastError()));
+
+            std::string result(static_cast<usize>(size), '\0');
+            WideCharToMultiByte(CP_UTF8, 0, text.data(), length, result.data(), size, nullptr, nullptr);
+            return result;
+        }
+    }
+
     fs::path QueryExecutablePath()
     {
         std::wstring buffer(MAX_PATH, L'\0');
@@ -235,5 +255,35 @@ namespace ByteForge::Platform::Detail
 
             buffer.resize(buffer.size() * 2);
         }
+    }
+
+    std::vector<std::string> QueryCommandLineArguments()
+    {
+        i32 count = 0;
+        LPWSTR* arguments = CommandLineToArgvW(GetCommandLineW(), &count);
+        if (arguments == nullptr)
+            throw std::runtime_error(std::format("Platform: CommandLineToArgvW failed (error {})", GetLastError()));
+
+        const std::unique_ptr<LPWSTR, decltype(&LocalFree)> owner(arguments, &LocalFree);
+
+        std::vector<std::string> result;
+        result.reserve(static_cast<usize>(count));
+        for (i32 i = 0; i < count; ++i)
+            result.push_back(WideToUtf8(arguments[i]));
+
+        return result;
+    }
+
+    fs::path QueryUserConfigDirectory()
+    {
+        const DWORD length = GetEnvironmentVariableW(L"APPDATA", nullptr, 0);
+        if (length == 0)
+            return QueryExecutablePath().parent_path() / "UserData";
+
+        std::wstring buffer(length, L'\0');
+        const DWORD written = GetEnvironmentVariableW(L"APPDATA", buffer.data(), length);
+        buffer.resize(written);
+
+        return fs::path(buffer);
     }
 }

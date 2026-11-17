@@ -23,6 +23,7 @@ add_library(Engine SHARED
         src/Core/JobSystem.cpp
         src/Core/Platform.cpp
         src/Core/FileSystem.cpp
+        src/Core/Version.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp
         src/Scene/Scene.cpp
@@ -41,6 +42,7 @@ add_library(Engine SHARED
         src/Scene/Components/ComponentOrderComponent.cpp
         src/Scene/Components/PrefabInstanceComponent.cpp
         src/Project/ProjectSettings.cpp
+        src/Project/Project.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
@@ -132,6 +134,7 @@ add_library(Engine SHARED
 
 if (WIN32)
     target_sources(Engine PRIVATE src/Platform/Windows/WindowsPlatform.cpp)
+    target_link_libraries(Engine PRIVATE shell32)
 elseif (APPLE)
     target_sources(Engine PRIVATE src/Platform/MacOS/MacOSPlatform.cpp src/Platform/Posix/PosixProcess.cpp)
 elseif (UNIX)
@@ -140,7 +143,10 @@ else()
     message(FATAL_ERROR "ByteForge: unsupported platform")
 endif()
 
-target_compile_definitions(Engine PRIVATE BYTEFORGE_BUILD_DLL)
+target_compile_definitions(Engine PRIVATE
+        BYTEFORGE_BUILD_DLL
+        BYTEFORGE_VERSION="${ByteForge_VERSION}"
+)
 
 target_compile_definitions(Engine PUBLIC
         GLM_FORCE_DEPTH_ZERO_TO_ONE

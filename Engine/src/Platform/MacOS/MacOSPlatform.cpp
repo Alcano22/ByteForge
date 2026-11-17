@@ -3,10 +3,13 @@
 
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <format>
 #include <stdexcept>
 #include <string>
+#include <vector>
+#include <crt_externs.h>
 #include <dlfcn.h>
 #include <mach-o/dyld.h>
 
@@ -49,5 +52,20 @@ namespace ByteForge::Platform::Detail
         buffer.resize(std::strlen(buffer.c_str()));
 
         return fs::canonical(buffer);
+    }
+
+    std::vector<std::string> QueryCommandLineArguments()
+    {
+        const i32 count = *_NSGetArgc();
+        char** values = *_NSGetArgv();
+        return std::vector<std::string>(values, values + count);
+    }
+
+    fs::path QueryUserConfigDirectory()
+    {
+        if (const char* home = std::getenv("HOME"); home != nullptr && *home != '\0')
+            return fs::path(home) / "Library" / "Application Support";
+
+        return QueryExecutablePath().parent_path() / "UserData";
     }
 }
