@@ -14,6 +14,7 @@ target_compile_definitions(ByteForgeWarnings INTERFACE GLM_ENABLE_EXPERIMENTAL)
 
 option(BYTEFORGE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(BYTEFORGE_BUILD_HUB "Build ByteForge Hub (needs Qt 6.5 or newer)" ON)
+option(BYTEFORGE_BUILD_TESTS "Build the unit tests" ON)
 if(BYTEFORGE_WARNINGS_AS_ERRORS)
     target_compile_options(ByteForgeWarnings INTERFACE
             $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Werror>
@@ -26,6 +27,7 @@ set(BYTEFORGE_BIN_DIR ${BYTEFORGE_STAGE_DIR}/bin)
 set(BYTEFORGE_LIB_DIR ${BYTEFORGE_STAGE_DIR}/lib)
 set(BYTEFORGE_SHARE_DIR ${BYTEFORGE_STAGE_DIR}/share)
 set(BYTEFORGE_PLAYER_DIR ${BYTEFORGE_STAGE_DIR}/player)
+set(BYTEFORGE_TESTS_DIR ${BYTEFORGE_STAGE_DIR}/tests)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BYTEFORGE_BIN_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BYTEFORGE_LIB_DIR})
@@ -44,6 +46,11 @@ add_subdirectory(Player)
 
 if(BYTEFORGE_BUILD_HUB)
     add_subdirectory(Hub)
+endif()
+
+if(BYTEFORGE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(Tests)
 endif()
 
 include(cmake/Install.cmake)

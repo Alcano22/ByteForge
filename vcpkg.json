@@ -42,6 +42,7 @@
     "nativefiledialog-extended",
     "lunasvg",
     "miniaudio",
-    "zstd"
+    "zstd",
+    "catch2"
   ]
 }

@@ -76,6 +76,9 @@ jobs:
       - name: Build
         run: cmake --build --preset windows-release
 
+      - name: Test
+        run: ctest --preset windows-release
+
       - name: Install
         run: cmake --install build-windows-release
 
@@ -146,6 +149,9 @@ jobs:
 
       - name: Build
         run: cmake --build --preset release
+
+      - name: Test
+        run: ctest --preset release
 
       - name: Install
         run: cmake --install build-release
