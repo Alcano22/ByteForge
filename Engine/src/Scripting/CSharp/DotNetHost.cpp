@@ -65,8 +65,9 @@ namespace ByteForge
         const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, bundled ? &pathParameters : nullptr);
         if (pathResult != 0)
         {
-            throw std::runtime_error(std::format("DotNetHost: no .NET runtime found (0{:08X})",
-                                                 static_cast<u32>(pathResult)));
+            throw std::runtime_error(std::format(
+                "DotNetHost: no .NET runtime found (0x{:08X}). Install the .NET {} Runtime from https://dot.net",
+                static_cast<u32>(pathResult), BYTEFORGE_DOTNET_MAJOR_VERSION));
         }
 
         m_HostFxr = MakeScope<SharedLibrary>(fs::path(hostFxrPath.data()));

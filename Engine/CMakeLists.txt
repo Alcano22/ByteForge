@@ -157,6 +157,7 @@ endif()
 target_compile_definitions(Engine PRIVATE
         BYTEFORGE_BUILD_DLL
         BYTEFORGE_VERSION="${ByteForge_VERSION}"
+        BYTEFORGE_DOTNET_MAJOR_VERSION=10
 )
 
 target_compile_definitions(Engine PUBLIC
