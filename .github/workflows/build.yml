@@ -79,15 +79,13 @@ jobs:
       - name: Upload editor
         uses: actions/upload-artifact@v4
         with:
-          name: ByteForge-Editor-Windows
+          name: ByteForge-Windows
           if-no-files-found: error
           path: |
-            build-windows-release/bin
-            build-windows-release/share
-            build-windows-release/player
-            !build-windows-release/**/*.lib
-            !build-windows-release/**/*.exp
-            !build-windows-release/**/*.ilk
+            build-windows-release/stage
+            !build-windows-release/stage/lib
+            !build-windows-release/stage/**/*.exp
+            !build-windows-release/stage/**/*.ilk
 
   linux:
     name: Linux (Clang, Fedora)
