@@ -22,7 +22,7 @@ namespace ByteForge
         {
             ShaderSource source{ .Path = path, .Defines = std::move(defines) };
 
-            Result<ShaderBinaries> binaries = ShaderLibrary::Find(path.filename().string(), source.Defines);
+            Result<ShaderBinaries> binaries = ShaderLibrary::Find(ToUtf8(path.filename()), source.Defines);
             if (!binaries)
                 throw Error("Shader::Load: {}", binaries.error());
 
@@ -32,7 +32,7 @@ namespace ByteForge
 
         std::ifstream file(path, std::ios::binary);
         if (!file.is_open())
-            throw Error("Shader::Load: cannot open '{}'", path.string());
+            throw Error("Shader::Load: cannot open '{}'", ToUtf8(path));
 
         const ShaderSource source{
             .Path    = path,
@@ -41,7 +41,7 @@ namespace ByteForge
         };
 
         if (file.bad())
-            throw Error("Shader::Load: cannot read '{}'", path.string());
+            throw Error("Shader::Load: cannot read '{}'", ToUtf8(path));
 
         return RenderBackend::Get().CreateShader(source);
     }

@@ -77,15 +77,15 @@ namespace ByteForge
         }
     }
 
-    void SceneSerializer::SerializeToFile(Scene& scene, const std::string& filepath)
+    void SceneSerializer::SerializeToFile(Scene& scene, const fs::path& file)
     {
-        if (const auto written = WriteJsonFile(filepath, Serialize(scene)); !written)
+        if (const auto written = WriteJsonFile(file, Serialize(scene)); !written)
             throw Error("SceneSerializer::SerializeToFile: {}", written.error());
     }
 
-    bool SceneSerializer::DeserializeFromFile(Scene& scene, const std::string& filepath)
+    bool SceneSerializer::DeserializeFromFile(Scene& scene, const fs::path& file)
     {
-        const Result<nlohmann::json> data = ReadJsonFile(filepath);
+        const Result<nlohmann::json> data = ReadJsonFile(file);
         if (!data)
             return false;
 

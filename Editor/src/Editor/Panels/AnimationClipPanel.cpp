@@ -132,7 +132,7 @@ namespace ByteForge
         }
 
         m_Asset = asset;
-        m_Name = metadata.Path.stem().string();
+        m_Name = ToUtf8(metadata.Path.stem());
         m_Working = AssetManager::LoadAnimationClip(asset)->GetData();
 
         m_UndoStack.clear();
@@ -190,7 +190,7 @@ namespace ByteForge
             m_Preview.reset();
             m_Dirty = false;
         } else if (m_Asset)
-            m_Name = metadata.Path.stem().string();
+            m_Name = ToUtf8(metadata.Path.stem());
 
         const std::string title = m_Asset
                                 ? std::format("{}{}{}", m_Name, m_Dirty ? " *" : "", WindowId)
@@ -452,7 +452,7 @@ namespace ByteForge
 
         AssetMetadata metadata;
         const bool known = AssetRegistry::TryGetMetadata(frame.Texture, metadata);
-        ImGui::TextDisabled("Texture: %s", known ? metadata.Path.generic_string().c_str() : "missing");
+        ImGui::TextDisabled("Texture: %s", known ? ToGenericUtf8(metadata.Path).c_str() : "missing");
 
         if (ImGui::DragFloat("Duration", &frame.Duration, 0.05f, 0.05f, 20.0f, "x%.2f", ImGuiSliderFlags_AlwaysClamp))
             OnDataChanged();

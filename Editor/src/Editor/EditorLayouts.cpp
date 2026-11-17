@@ -154,7 +154,7 @@ namespace ByteForge
         fs::create_directories(GetLayoutDirectory(), error);
         fs::create_directories(GetStateDirectory(), error);
 
-        m_IniPath = (GetStateDirectory() / "imgui.ini").string();
+        m_IniPath = ToUtf8(GetStateDirectory() / "imgui.ini");
         ImGui::GetIO().IniFilename = m_IniPath.c_str();
 
         if (!fs::exists(m_IniPath))
@@ -264,7 +264,7 @@ namespace ByteForge
         std::ofstream file(path, std::ios::binary | std::ios::trunc);
         if (!file.is_open())
         {
-            APP_ERROR("Cannot write layout '{}'", path.generic_string());
+            APP_ERROR("Cannot write layout '{}'", ToGenericUtf8(path));
             return false;
         }
 
@@ -295,7 +295,7 @@ namespace ByteForge
         for (fs::directory_iterator it(GetLayoutDirectory(), error), end; !error && it != end; it.increment(error))
         {
             if (it->is_regular_file() && it->path().extension() == LayoutExtension)
-                names.push_back(it->path().stem().string());
+                names.push_back(ToUtf8(it->path().stem()));
         }
 
         std::ranges::sort(names);

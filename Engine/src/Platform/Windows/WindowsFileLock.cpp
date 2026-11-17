@@ -26,12 +26,12 @@ namespace ByteForge
             {
                 return std::unexpected(FileLockError{
                     .HeldElsewhere = true,
-                    .Message       = std::format("'{}' is locked by another process", file.string())
+                    .Message       = std::format("'{}' is locked by another process", ToUtf8(file))
                 });
             }
 
             return std::unexpected(FileLockError{
-                .Message = std::format("cannot open '{}': {}", file.string(),
+                .Message = std::format("cannot open '{}': {}", ToUtf8(file),
                                        std::system_category().message(static_cast<i32>(error)))
             });
         }

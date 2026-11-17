@@ -224,7 +224,7 @@ namespace ByteForge
 #endif
             if (result != MA_SUCCESS)
             {
-                CORE_ERROR("AudioEngine: cannot load '{}': {}", file.string(), ma_result_description(result));
+                CORE_ERROR("AudioEngine: cannot load '{}': {}", ToUtf8(file), ma_result_description(result));
                 return false;
             }
 
@@ -339,7 +339,7 @@ namespace ByteForge
         if (const ma_result result = InitSound(m_Impl->Engine, file, flags, m_Impl->Buses[BusIndex(bus)], oneShot->Sound);
             result != MA_SUCCESS)
         {
-            CORE_ERROR("AudioEngine: cannot play '{}': {}", file.string(), ma_result_description(result));
+            CORE_ERROR("AudioEngine: cannot play '{}': {}", ToUtf8(file), ma_result_description(result));
             return;
         }
 
@@ -392,7 +392,7 @@ namespace ByteForge
         if (const ma_result result = InitSound(m_Impl->Engine, file, flags, m_Impl->Buses[BusIndex(bus)], impl->Handle);
             result != MA_SUCCESS)
         {
-            CORE_ERROR("AudioEngine: cannot load '{}': {}", file.string(), ma_result_description(result));
+            CORE_ERROR("AudioEngine: cannot load '{}': {}", ToUtf8(file), ma_result_description(result));
             return nullptr;
         }
 

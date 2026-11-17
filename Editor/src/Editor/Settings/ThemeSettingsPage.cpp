@@ -91,7 +91,7 @@ namespace ByteForge
         const std::string name = active->Name;
         const bool builtIn = active->BuiltIn;
         const bool modified = active->Modified;
-        const std::string fileName = active->File.filename().string();
+        const std::string fileName = ToUtf8(active->File.filename());
 
         if (builtIn)
             ImGui::TextDisabled("Built-in theme (read-only). Duplicate it to make changes.");

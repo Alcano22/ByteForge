@@ -69,7 +69,7 @@ namespace ByteForge
             {
                 if (!commandLine.empty())
                     commandLine.push_back(L' ');
-                commandLine += QuoteArgument(fs::path(argument).wstring());
+                commandLine += QuoteArgument(PathFromUtf8(argument).wstring());
             }
             return commandLine;
         }
@@ -87,7 +87,7 @@ namespace ByteForge
         if (m_Handle == nullptr)
         {
             throw Error("Platform: cannot load '{}' (error {})",
-                                                 path.string(), GetLastError());
+                                                 ToUtf8(path), GetLastError());
         }
     }
 
@@ -112,7 +112,7 @@ namespace ByteForge
         {
             if (!commandLine.empty())
                 commandLine.push_back(L' ');
-            commandLine += QuoteArgument(fs::path(argument).wstring());
+            commandLine += QuoteArgument(PathFromUtf8(argument).wstring());
         }
 
         SECURITY_ATTRIBUTES security{
@@ -175,7 +175,7 @@ namespace ByteForge
 
         std::wstring commandLine = BuildCommandLine(arguments);
 
-        if (IsBatchFile(fs::path(arguments.front())))
+        if (IsBatchFile(PathFromUtf8(arguments.front())))
             commandLine = L"cmd.exe /s /c \"" + commandLine + L"\"";
 
         STARTUPINFOW startup{};
@@ -198,7 +198,7 @@ namespace ByteForge
         if (name.empty())
             return std::nullopt;
 
-        const fs::path requested{ std::string(name) };
+        const fs::path requested = PathFromUtf8(name);
         if (requested.has_parent_path())
         {
             std::error_code error;

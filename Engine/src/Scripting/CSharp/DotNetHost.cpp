@@ -23,7 +23,7 @@ namespace ByteForge
 
         std::string FromHostString(const char_t* text)
         {
-            return fs::path(text).string();
+            return ToUtf8(fs::path(text));
         }
 
         template<typename Fn>
@@ -92,7 +92,7 @@ namespace ByteForge
                 m_Close(m_Context);
 
             throw Error("DotNetHost: cannot start the runtime from '{}' (0x{:08X})",
-                        runtimeConfig.string(), static_cast<u32>(initResult));
+                        ToUtf8(runtimeConfig), static_cast<u32>(initResult));
         }
 
         void* loader = nullptr;
@@ -106,7 +106,7 @@ namespace ByteForge
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
 
         CORE_INFO(".NET runtime started ({}, {})",
-                  runtimeConfig.filename().string(), bundled ? "bundled" : "installed");
+                  ToUtf8(runtimeConfig.filename()), bundled ? "bundled" : "installed");
     }
 
     DotNetHost::~DotNetHost()
@@ -129,7 +129,7 @@ namespace ByteForge
         if (result != 0 || function == nullptr)
         {
             throw Error("DotNetHost: cannot find {}.{} in '{}' (0x{:08X})",
-                        typeName, methodName, assembly.string(), static_cast<u32>(result));
+                        typeName, methodName, ToUtf8(assembly), static_cast<u32>(result));
         }
 
         return function;

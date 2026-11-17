@@ -211,7 +211,7 @@ namespace ByteForge
             if (!found)
                 return Unexpected("'{}' was not found", m_CustomExecutable);
 
-            executable = found->string();
+            executable = ToUtf8(*found);
             arguments = m_CustomArguments;
         } else
         {
@@ -226,12 +226,12 @@ namespace ByteForge
                                   "or choose Custom and set its program.", info->Name);
             }
 
-            executable = found->string();
+            executable = ToUtf8(*found);
             arguments = file != nullptr ? info->FileArguments : info->ProjectArguments;
         }
 
-        const std::string project = Project::GetActive().GetRoot().string();
-        const std::string filePath = file != nullptr ? fs::absolute(*file).string() : project;
+        const std::string project = ToUtf8(Project::GetActive().GetRoot());
+        const std::string filePath = file != nullptr ? ToUtf8(fs::absolute(*file)) : project;
         const std::string lineText = std::to_string(std::max(line, 1u));
 
         std::vector<std::string> command{ std::move(executable) };
@@ -269,13 +269,13 @@ namespace ByteForge
         const auto command = BuildCommand(&file, line);
         if (!command)
         {
-            APP_ERROR("Cannot open '{}': {}", file.filename().string(), command.error());
+            APP_ERROR("Cannot open '{}': {}", ToUtf8(file.filename()), command.error());
             return false;
         }
 
         if (const auto launched = Platform::LaunchProcess(*command); !launched)
         {
-            APP_ERROR("Cannot open '{}': {}", file.filename().string(), launched.error());
+            APP_ERROR("Cannot open '{}': {}", ToUtf8(file.filename()), launched.error());
             return false;
         }
 

@@ -16,7 +16,7 @@ namespace ByteForge
         if (descriptor < 0)
         {
             return std::unexpected(FileLockError{
-                .Message = std::format("cannot open '{}': {}", file.string(), std::generic_category().message(errno))
+                .Message = std::format("cannot open '{}': {}", ToUtf8(file), std::generic_category().message(errno))
             });
         }
 
@@ -29,12 +29,12 @@ namespace ByteForge
             {
                 return std::unexpected(FileLockError{
                     .HeldElsewhere = true,
-                    .Message       = std::format("'{}' is locked by another process", file.string())
+                    .Message       = std::format("'{}' is locked by another process", ToUtf8(file))
                 });
             }
 
             return std::unexpected(FileLockError{
-                .Message = std::format("cannot lock '{}': {}", file.string(), std::generic_category().message(error))
+                .Message = std::format("cannot lock '{}': {}", ToUtf8(file), std::generic_category().message(error))
             });
         }
 

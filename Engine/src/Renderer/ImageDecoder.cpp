@@ -14,18 +14,18 @@ namespace ByteForge
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file)
-            return Unexpected("cannot open '{}'", path.string());
+            return Unexpected("cannot open '{}'", ToUtf8(path));
 
         const std::streamsize fileSize = file.tellg();
         if (fileSize <= 0)
-            return Unexpected("'{}' is empty", path.string());
+            return Unexpected("'{}' is empty", ToUtf8(path));
 
         std::vector<std::byte> encoded(static_cast<usize>(fileSize));
         file.seekg(0, std::ios::beg);
         if (!file.read(reinterpret_cast<char*>(encoded.data()), fileSize))
-            return Unexpected("cannot read '{}'", path.string());
+            return Unexpected("cannot read '{}'", ToUtf8(path));
 
-        return DecodeImage(encoded, path.string());
+        return DecodeImage(encoded, ToUtf8(path));
     }
 
     Result<DecodedImage> DecodeImage(const std::span<const std::byte> encoded, const std::string_view name)

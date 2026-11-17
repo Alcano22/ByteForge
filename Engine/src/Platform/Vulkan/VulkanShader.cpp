@@ -30,7 +30,7 @@ namespace ByteForge
         VK_CHECK(vkCreateShaderModule(m_Device.GetHandle(), &createInfo, nullptr, &m_Module));
 
         CORE_TRACE("Shader module created for '{}' ({}, {} bytes SPIR-V)",
-                   source.Path.empty() ? std::string("<inline>") : source.Path.filename().string(),
+                   source.Path.empty() ? std::string("<inline>") : ToUtf8(source.Path.filename()),
                    m_EntryPoint, createInfo.codeSize);
     }
 

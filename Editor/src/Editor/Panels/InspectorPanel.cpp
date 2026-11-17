@@ -311,7 +311,7 @@ namespace ByteForge
         {
             const EditorUI::ScopedStyleColor color(ImGuiCol_Text, EditorColors::Get(EditorColor::PrefabInstance));
             ImGui::Text("%s  %s", EditorIcons::Glyph(EditorIcons::ForFile(metadata.Path)),
-                        metadata.Path.stem().string().c_str());
+                        ToUtf8(metadata.Path.stem()).c_str());
         } else
             EditorUI::ErrorText("Missing prefab");
 

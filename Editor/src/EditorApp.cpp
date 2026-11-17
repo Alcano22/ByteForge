@@ -33,10 +33,10 @@ namespace
             const std::string_view argument = arguments[i];
 
             if (argument == Option && i + 1 < arguments.size())
-                return Platform::PathFromUtf8(arguments[i + 1]);
+                return PathFromUtf8(arguments[i + 1]);
 
             if (argument.starts_with(Option) && argument.size() > Option.size() && argument[Option.size()] == '=')
-                return Platform::PathFromUtf8(argument.substr(Option.size() + 1));
+                return PathFromUtf8(argument.substr(Option.size() + 1));
         }
 
         return std::nullopt;
@@ -75,7 +75,7 @@ ByteForge::Application* ByteForge::CreateApplication()
         throw Error(lock.error());
     s_ProjectLock = std::move(*lock);
 
-    APP_INFO("Opening project '{}' at '{}'", project->GetName(), project->GetRoot().string());
+    APP_INFO("Opening project '{}' at '{}'", project->GetName(), ToUtf8(project->GetRoot()));
     Project::SetActive(std::move(*project));
 
     if (const Result<> recorded = RecentProjects::Touch(Project::GetActive()); !recorded)

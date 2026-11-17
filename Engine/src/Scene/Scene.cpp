@@ -492,7 +492,7 @@ namespace ByteForge
             return;
         }
 
-        const std::string name = metadata.Path.generic_string();
+        const std::string name = ToGenericUtf8(metadata.Path);
 
         const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
         if (!data)

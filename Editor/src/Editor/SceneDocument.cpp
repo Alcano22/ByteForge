@@ -73,11 +73,11 @@ namespace ByteForge
             return false;
         }
 
-        const std::string name = metadata.Path.generic_string();
+        const std::string name = ToGenericUtf8(metadata.Path);
 
         try
         {
-            if (!SceneSerializer::DeserializeFromFile(*m_Context.ActiveScene, AssetRegistry::Resolve(scene).string()))
+            if (!SceneSerializer::DeserializeFromFile(*m_Context.ActiveScene, AssetRegistry::Resolve(scene)))
             {
                 APP_ERROR("Could not read scene '{}'", name);
                 return false;
@@ -194,7 +194,7 @@ namespace ByteForge
         m_Context.SelectionContext.ClearEntity();
         m_Context.SelectionContext.Select(*root);
 
-        APP_INFO("Editing prefab '{}'", GetAssetPath(prefab).generic_string());
+        APP_INFO("Editing prefab '{}'", ToGenericUtf8(GetAssetPath(prefab)));
         return true;
     }
 
@@ -216,7 +216,7 @@ namespace ByteForge
         const usize updated = Prefab::SyncInstances(scene, stage.Prefab);
         if (updated == 0) return;
 
-        const std::string name = GetAssetPath(stage.Prefab).stem().string();
+        const std::string name = ToUtf8(GetAssetPath(stage.Prefab).stem());
         m_Context.History.Record(MakeScope<SceneSnapshotCommand>(scene, std::format("Update '{}' instances", name),
                                                                  std::move(stage.SceneSnapshot),
                                                                  SceneSerializer::Serialize(scene)));
@@ -232,7 +232,7 @@ namespace ByteForge
     std::string SceneDocument::GetSceneName() const
     {
         const fs::path path = m_Handle ? GetAssetPath(*m_Handle) : fs::path{};
-        return path.empty() ? "Untitled" : path.stem().string();
+        return path.empty() ? "Untitled" : ToUtf8(path.stem());
     }
 
     bool SceneDocument::SetAsStartupScene() const
@@ -257,7 +257,7 @@ namespace ByteForge
             return false;
         }
 
-        APP_INFO("'{}' is now the startup scene", GetAssetPath(*m_Handle).generic_string());
+        APP_INFO("'{}' is now the startup scene", ToGenericUtf8(GetAssetPath(*m_Handle)));
         return true;
     }
 
@@ -274,7 +274,7 @@ namespace ByteForge
     std::string SceneDocument::GetName() const
     {
         const fs::path path = GetPath();
-        return path.empty() ? "Untitled" : path.stem().string();
+        return path.empty() ? "Untitled" : ToUtf8(path.stem());
     }
 
     void SceneDocument::Update() const
@@ -287,8 +287,8 @@ namespace ByteForge
 
     fs::path SceneDocument::ToScenePath(const std::string_view name)
     {
-        fs::path path(name);
-        if (path.extension().string() != Extension)
+        fs::path path = PathFromUtf8(name);
+        if (path.extension() != Extension)
             path += Extension;
         return path.lexically_normal();
     }
@@ -304,7 +304,7 @@ namespace ByteForge
         try
         {
             Prefab::RecordOverrides(*m_Context.ActiveScene);
-            SceneSerializer::SerializeToFile(*m_Context.ActiveScene, absolutePath.string());
+            SceneSerializer::SerializeToFile(*m_Context.ActiveScene, absolutePath);
         } catch (const std::exception& e)
         {
             APP_ERROR("Could not save scene: {}", e.what());
@@ -312,7 +312,7 @@ namespace ByteForge
         }
 
         m_Context.History.MarkClean();
-        APP_INFO("Scene saved to '{}'", absolutePath.generic_string());
+        APP_INFO("Scene saved to '{}'", ToGenericUtf8(absolutePath));
         return true;
     }
 
@@ -335,7 +335,7 @@ namespace ByteForge
         m_PrefabStage->Saved = true;
         m_Context.History.MarkClean();
 
-        APP_INFO("Prefab saved to '{}'", GetPath().generic_string());
+        APP_INFO("Prefab saved to '{}'", ToGenericUtf8(GetPath()));
         return true;
     }
 

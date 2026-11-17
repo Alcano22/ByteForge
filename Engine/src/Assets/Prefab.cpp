@@ -105,7 +105,7 @@ namespace ByteForge
             if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Prefab)
                 return Unexpected("{} is not a known prefab", static_cast<u64>(handle));
 
-            name = metadata.Path.generic_string();
+            name = ToGenericUtf8(metadata.Path);
 
             Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
             if (!data)
@@ -602,7 +602,7 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return Unexpected("'{}' already exists", relativePath.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
 
         if (const auto written = WriteJsonFile(path, MakePrefabData(root)); !written)
             return Unexpected(written.error());

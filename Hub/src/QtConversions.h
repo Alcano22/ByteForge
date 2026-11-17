@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core/Platform.h>
+#include <Engine/Core/Utf8.h>
 
 #include <QString>
 
@@ -16,11 +16,11 @@ namespace ByteForge::Hub
 
     [[nodiscard]] inline QString PathToQString(const std::filesystem::path& path)
     {
-        return ToQString(Platform::PathToUtf8(path));
+        return ToQString(ToUtf8(path));
     }
 
     [[nodiscard]] inline std::filesystem::path ToPath(const QString& text)
     {
-        return Platform::PathFromUtf8(text.toStdString());
+        return PathFromUtf8(text.toStdString());
     }
 }

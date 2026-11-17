@@ -178,7 +178,7 @@ namespace ByteForge
         const auto reloaded = Theme::FromJson(*json, theme->Name, *Find(DefaultThemeName));
         if (!reloaded)
         {
-            APP_ERROR("Theme file '{}' is not a valid theme", theme->File.filename().generic_string());
+            APP_ERROR("Theme file '{}' is not a valid theme", ToGenericUtf8(theme->File.filename()));
             return false;
         }
 
@@ -202,7 +202,7 @@ namespace ByteForge
         std::filesystem::remove(it->File, error);
         if (error)
         {
-            APP_ERROR("Cannot delete theme file '{}': {}", it->File.filename().generic_string(), error.message());
+            APP_ERROR("Cannot delete theme file '{}': {}", ToGenericUtf8(it->File.filename()), error.message());
             return false;
         }
 
@@ -233,7 +233,7 @@ namespace ByteForge
 
         for (const fs::path& file : files)
         {
-            const std::string fileName = file.filename().generic_string();
+            const std::string fileName = ToGenericUtf8(file.filename());
 
             const Result<nlohmann::json> json = ReadJsonFile(file);
             if (!json)
@@ -242,7 +242,7 @@ namespace ByteForge
                 continue;
             }
 
-            auto theme = Theme::FromJson(*json, file.stem().string(), base);
+            auto theme = Theme::FromJson(*json, ToUtf8(file.stem()), base);
             if (!theme)
             {
                 APP_ERROR("Theme file '{}' is not a valid theme", fileName);

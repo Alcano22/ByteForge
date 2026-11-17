@@ -136,8 +136,8 @@ namespace ByteForge
 
         Result<std::string> NormalizePath(const std::string_view path)
         {
-            const fs::path normal = fs::path(path).lexically_normal();
-            std::string text = normal.generic_string();
+            const fs::path normal = PathFromUtf8(path).lexically_normal();
+            std::string text = ToGenericUtf8(normal);
 
             if (text.empty() || text == "." || normal.has_root_path() || *normal.begin() == "..")
                 return Unexpected("'{}' is not a valid path inside an archive", path);
@@ -149,7 +149,7 @@ namespace ByteForge
 
         std::unexpected<std::string> Corrupted(const fs::path& file, const std::string_view reason)
         {
-            return Unexpected("'{}' is damaged: {}", file.generic_string(), reason);
+            return Unexpected("'{}' is damaged: {}", ToGenericUtf8(file), reason);
         }
     }
 
@@ -164,7 +164,7 @@ namespace ByteForge
         if (file.has_parent_path())
             fs::create_directories(file.parent_path(), error);
         if (error)
-            return Unexpected("cannot create '{}': {}", file.parent_path().generic_string(), error.message());
+            return Unexpected("cannot create '{}': {}", ToGenericUtf8(file.parent_path()), error.message());
 
         fs::path temporary = file;
         temporary += ".tmp";
@@ -174,10 +174,10 @@ namespace ByteForge
 
         writer->m_File.open(writer->m_Temporary, std::ios::binary | std::ios::trunc);
         if (!writer->m_File.is_open())
-            return Unexpected("cannot create '{}'", writer->m_Temporary.generic_string());
+            return Unexpected("cannot create '{}'", ToGenericUtf8(writer->m_Temporary));
 
         if (!WriteBytes(writer->m_File, MakeHeader(0, 0, 0)))
-            return Unexpected("cannot write '{}'", writer->m_Temporary.generic_string());
+            return Unexpected("cannot write '{}'", ToGenericUtf8(writer->m_Temporary));
 
         writer->m_Offset = HeaderSize;
         return writer;
@@ -290,7 +290,7 @@ namespace ByteForge
         std::error_code error;
         fs::rename(m_Temporary, m_Target, error);
         if (error)
-            return Unexpected("cannot move the archive to '{}': {}", m_Target.generic_string(), error.message());
+            return Unexpected("cannot move the archive to '{}': {}", ToGenericUtf8(m_Target), error.message());
 
         m_Finished = true;
         return m_Stats;
@@ -305,12 +305,12 @@ namespace ByteForge
 
         archive->m_File.open(file, std::ios::binary);
         if (!archive->m_File.is_open())
-            return Unexpected("cannot open '{}'", file.generic_string());
+            return Unexpected("cannot open '{}'", ToGenericUtf8(file));
 
         std::error_code error;
         const u64 fileSize = fs::file_size(file, error);
         if (error || fileSize < HeaderSize)
-            return Unexpected("'{}' is not a ByteForge archive", file.generic_string());
+            return Unexpected("'{}' is not a ByteForge archive", ToGenericUtf8(file));
 
         std::array<std::byte, HeaderSize> header{};
         if (!ReadBytes(archive->m_File, header.data(), header.size()))
@@ -324,11 +324,11 @@ namespace ByteForge
         const u32 entryCount = reader.U32();
 
         if (magic != std::string_view(Magic.data(), Magic.size()))
-            return Unexpected("'{}' is not a ByteForge archive", file.generic_string());
+            return Unexpected("'{}' is not a ByteForge archive", ToGenericUtf8(file));
         if (version != FormatVersion)
         {
             return Unexpected("'{}' has format version {}, this version of ByteForge reads {}",
-                              file.generic_string(), version, FormatVersion);
+                              ToGenericUtf8(file), version, FormatVersion);
         }
 
         if (tocOffset < HeaderSize || tocOffset > fileSize || tocSize > MaxTocSize || tocSize > fileSize - tocOffset)
@@ -392,7 +392,7 @@ namespace ByteForge
             m_File.clear();
             m_File.seekg(static_cast<std::streamoff>(entry->Offset));
             if (!ReadBytes(m_File, stored.data(), stored.size()))
-                return Unexpected("'{}' cannot be read from '{}'", path, m_Path.generic_string());
+                return Unexpected("'{}' cannot be read from '{}'", path, ToGenericUtf8(m_Path));
         }
 
         std::vector<std::byte> data;

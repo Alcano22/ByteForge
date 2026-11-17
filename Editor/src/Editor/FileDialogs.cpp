@@ -46,12 +46,6 @@ namespace ByteForge::FileDialogs
             return result;
         }
 
-        std::string ToUtf8(const fs::path& path)
-        {
-            const std::u8string text = path.u8string();
-            return { text.begin(), text.end() };
-        }
-
         void ResetImGuiInput()
         {
             ImGuiIO& io = ImGui::GetIO();

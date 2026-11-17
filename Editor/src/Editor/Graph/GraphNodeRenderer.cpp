@@ -112,7 +112,7 @@ namespace ByteForge
         {
             AssetMetadata metadata;
             const bool known = asset.IsSet() && AssetRegistry::TryGetMetadata(asset.Handle, metadata);
-            const std::string name = !asset.IsSet() ? "None" : known ? metadata.Path.stem().string() : "Missing";
+            const std::string name = !asset.IsSet() ? "None" : known ? ToUtf8(metadata.Path.stem()) : "Missing";
 
             ImGui::Button(std::format("{}##asset", name).c_str(), ImVec2(AssetWidth, 0.0f));
             bool changed = false;

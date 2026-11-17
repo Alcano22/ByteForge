@@ -133,7 +133,7 @@ namespace ByteForge
         std::error_code error;
         if (!fs::is_regular_file(directory / "ScriptCore.dll", error))
         {
-            CORE_INFO("C# scripting unavailable: no ScriptCore in '{}'", directory.string());
+            CORE_INFO("C# scripting unavailable: no ScriptCore in '{}'", ToUtf8(directory));
             return;
         }
 

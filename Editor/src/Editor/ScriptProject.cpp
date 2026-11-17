@@ -86,7 +86,7 @@ namespace ByteForge
             Mix(hash, TargetFramework);
             Mix(hash, Configuration);
 
-            Mix(hash, scriptCore.string());
+            Mix(hash, ToUtf8(scriptCore));
             MixFile(hash, scriptCore);
 
             const fs::path assets = root / "assets";
@@ -105,7 +105,7 @@ namespace ByteForge
 
             for (const fs::path& source : sources)
             {
-                Mix(hash, source.lexically_relative(assets).generic_string());
+                Mix(hash, ToGenericUtf8(source.lexically_relative(assets)));
                 MixFile(hash, source);
             }
 
@@ -169,13 +169,13 @@ namespace ByteForge
     </Reference>
   </ItemGroup>
 </Project>
-)", TargetFramework, scriptCore.string());
+)", TargetFramework, ToUtf8(scriptCore));
 
         const fs::path file = GetProjectFile();
         if (ReadFile(file) == content) return;
 
         std::ofstream(file, std::ios::binary | std::ios::trunc) << content;
-        APP_INFO("Generated {}", file.filename().string());
+        APP_INFO("Generated {}", ToUtf8(file.filename()));
     }
 
     void ScriptProject::RequestReload()
@@ -242,9 +242,9 @@ namespace ByteForge
         }
 
         std::vector<std::string> command{
-            "dotnet", "build", GetProjectFile().string(),
+            "dotnet", "build", ToUtf8(GetProjectFile()),
             "-c", Configuration,
-            "-o", GetOutputDirectory().string(),
+            "-o", ToUtf8(GetOutputDirectory()),
             "--nologo", "-v", "quiet"
         };
 
@@ -293,8 +293,8 @@ namespace ByteForge
         if (!AssetRegistry::TryGetMetadata(scriptAsset, metadata) || metadata.Type != AssetType::Script)
             return Unexpected("Not a script asset");
 
-        const std::string fileName = metadata.Path.filename().string();
-        const std::string expected = metadata.Path.stem().string();
+        const std::string fileName = ToUtf8(metadata.Path.filename());
+        const std::string expected = ToUtf8(metadata.Path.stem());
 
         std::vector<std::string> matches;
         for (const ScriptClassInfo& info : ScriptEngine::Get().GetClasses())

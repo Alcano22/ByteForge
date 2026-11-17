@@ -113,7 +113,7 @@ namespace ByteForge
 
         s_Archive = std::move(*opened);
         CORE_INFO("Using {} precompiled shader stage(s) from '{}'",
-                  s_Archive->GetEntries().size(), archive.generic_string());
+                  s_Archive->GetEntries().size(), ToGenericUtf8(archive));
         return {};
     }
 

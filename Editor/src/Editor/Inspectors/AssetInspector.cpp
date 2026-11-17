@@ -261,7 +261,7 @@ namespace ByteForge::EditorUI
             return;
         }
 
-        ImGui::TextUnformatted(metadata.Path.filename().string().c_str());
+        ImGui::TextUnformatted(ToUtf8(metadata.Path.filename()).c_str());
         ImGui::TextDisabled("%s", AssetTypeToString(metadata.Type));
         ImGui::Separator();
 

@@ -174,7 +174,7 @@ namespace ByteForge
         {
             for (const AssetMetadata& metadata : AssetRegistry::GetAssetsOfType(AssetType::Scene))
             {
-                if (metadata.Path.stem().string() != name && metadata.Path.generic_string() != name) continue;
+                if (ToUtf8(metadata.Path.stem()) != name && ToGenericUtf8(metadata.Path) != name) continue;
 
                 RequireScene(context).RequestSceneLoad(metadata.Handle);
                 return;

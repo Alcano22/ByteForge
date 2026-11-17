@@ -37,5 +37,6 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/Error.h"
+#include "Engine/Core/Utf8.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Core/Types.h"

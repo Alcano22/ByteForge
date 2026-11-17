@@ -42,9 +42,9 @@ namespace ByteForge
                 fs::copy(from, to, fs::copy_options::recursive, error);
 
                 if (error)
-                    APP_WARN("Could not copy '{}' to the user settings: {}", from.string(), error.message());
+                    APP_WARN("Could not copy '{}' to the user settings: {}", ToUtf8(from), error.message());
                 else
-                    APP_INFO("Copied '{}' to the user settings in '{}'", name, user.string());
+                    APP_INFO("Copied '{}' to the user settings in '{}'", name, ToUtf8(user));
             }
         }
     }

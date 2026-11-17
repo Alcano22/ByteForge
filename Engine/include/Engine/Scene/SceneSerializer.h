@@ -17,8 +17,8 @@ namespace ByteForge
         [[nodiscard]] static nlohmann::json Serialize(Scene& scene);
         static void Deserialize(Scene& scene, const nlohmann::json& data);
 
-        static void SerializeToFile(Scene& scene, const std::string& filepath);
-        [[nodiscard]] static bool DeserializeFromFile(Scene& scene, const std::string& filepath);
+        static void SerializeToFile(Scene& scene, const fs::path& file);
+        [[nodiscard]] static bool DeserializeFromFile(Scene& scene, const fs::path& file);
 
         [[nodiscard]] static nlohmann::json SerializeEntity(Entity entity);
         static Entity DeserializeEntity(Scene& scene, const nlohmann::json& data);

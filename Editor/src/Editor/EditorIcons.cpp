@@ -1,6 +1,7 @@
 #include "Editor/EditorIcons.h"
 #include "Editor/EditorFonts.h"
 
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/StringUtils.h>
 
@@ -68,9 +69,14 @@ namespace ByteForge
 
         std::unique_ptr<lunasvg::Document> ParseSvg(const fs::path& path)
         {
-            std::unique_ptr<lunasvg::Document> document = lunasvg::Document::loadFromFile(path.string());
+            const Result<std::vector<std::byte>> data = ReadBinaryFile(path);
+            if (!data)
+                throw Error("Failed to read SVG: {}", data.error());
+
+            std::unique_ptr<lunasvg::Document> document = lunasvg::Document::loadFromData(
+                reinterpret_cast<const char*>(data->data()), data->size());
             if (!document)
-                throw Error("Failed to parse SVG '{}'", path.string());
+                throw Error("Failed to parse SVG '{}'", ToUtf8(path));
 
             document->applyStyleSheet(std::string(SvgStyleSheet));
             return document;
@@ -80,7 +86,7 @@ namespace ByteForge
         {
             lunasvg::Bitmap bitmap = document.renderToBitmap(SvgResolution, SvgResolution);
             if (bitmap.isNull())
-                throw Error("Failed to render SVG '{}'", path.string());
+                throw Error("Failed to render SVG '{}'", ToUtf8(path));
 
             bitmap.convertToRGBA();
 
@@ -176,7 +182,7 @@ namespace ByteForge
             { ".bfanimator", EditorIcon::FileAnimatorController }
         };
 
-        const std::string extension = ToLower(path.extension().string());
+        const std::string extension = ToLower(ToUtf8(path.extension()));
         const auto it = icons.find(extension);
         return it != icons.end() ? it->second : EditorIcon::FileGeneric;
     }

@@ -86,7 +86,7 @@ namespace ByteForge
             {
                 if (const std::optional<fs::path> chosen = FileDialogs::OpenFile({}))
                 {
-                    editors.SetCustomExecutable(chosen->string());
+                    editors.SetCustomExecutable(ToUtf8(*chosen));
                     editors.Save();
                 }
             }

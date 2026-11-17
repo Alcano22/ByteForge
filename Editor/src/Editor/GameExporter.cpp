@@ -77,13 +77,13 @@ namespace ByteForge
 
         bool IsScriptSource(const fs::path& relative)
         {
-            const std::string name = relative.filename().string();
+            const std::string name = ToUtf8(relative.filename());
             return name.ends_with(".cs") || name.ends_with(".cs.meta");
         }
 
         bool IsRuntimeFile(const fs::path& relative)
         {
-            const std::string name = relative.filename().string();
+            const std::string name = ToUtf8(relative.filename());
             return !name.ends_with(".pdb") && name != "cmake_install.cmake";
         }
 
@@ -98,13 +98,13 @@ namespace ByteForge
             std::error_code error;
             fs::create_directories(to.parent_path(), error);
             if (error)
-                return Unexpected("cannot create '{}': {}", to.parent_path().generic_string(), error.message());
+                return Unexpected("cannot create '{}': {}", ToGenericUtf8(to.parent_path()), error.message());
 
             fs::copy_file(from, to, fs::copy_options::overwrite_existing, error);
             if (error)
             {
                 return Unexpected("cannot copy '{}' to '{}': {}",
-                                  from.generic_string(), to.generic_string(), error.message());
+                                  ToGenericUtf8(from), ToGenericUtf8(to), error.message());
             }
 
             return {};
@@ -127,9 +127,9 @@ namespace ByteForge
             }
 
             if (error)
-                return Unexpected("cannot read '{}': {}", directory.generic_string(), error.message());
+                return Unexpected("cannot read '{}': {}", ToGenericUtf8(directory), error.message());
 
-            std::ranges::sort(files, {}, [](const fs::path& path) { return path.generic_string(); });
+            std::ranges::sort(files, {}, [](const fs::path& path) { return ToGenericUtf8(path); });
             return files;
         }
 
@@ -161,18 +161,19 @@ namespace ByteForge
             std::error_code error;
             fs::directory_iterator it(from, error);
             if (error)
-                return Unexpected("cannot read '{}': {}", from.generic_string(), error.message());
+                return Unexpected("cannot read '{}': {}", ToGenericUtf8(from), error.message());
 
             usize copied = 0;
             for (const fs::directory_iterator end; it != end; it.increment(error))
             {
                 if (error) break;
 
-                const std::string fileName = it->path().filename().string();
+                const std::string fileName = ToUtf8(it->path().filename());
                 if (IsShaderCompilerLibrary(fileName)) continue;
 
-                const fs::path target = to / (fileName == PlayerFileName() ? executableName + ExecutableSuffix
-                                                                           : fileName);
+                const std::string targetName = fileName == PlayerFileName() ? executableName + ExecutableSuffix
+                                                                            : fileName;
+                const fs::path target = to / PathFromUtf8(targetName);
 
                 std::error_code entryError;
                 if (it->is_symlink(entryError))
@@ -196,7 +197,7 @@ namespace ByteForge
             }
 
             if (error)
-                return Unexpected("cannot read '{}': {}", from.generic_string(), error.message());
+                return Unexpected("cannot read '{}': {}", ToGenericUtf8(from), error.message());
 
             return copied;
         }
@@ -220,7 +221,7 @@ namespace ByteForge
                 if (progress.IsCancelled())
                     return Cancelled();
 
-                if (const auto added = (*writer)->AddFile(relative.generic_string(), assetsDirectory / relative); !added)
+                if (const auto added = (*writer)->AddFile(ToGenericUtf8(relative), assetsDirectory / relative); !added)
                     return Unexpected(added.error());
 
                 progress.Advance();
@@ -306,7 +307,7 @@ namespace ByteForge
             {
                 if (!it->is_directory()) continue;
 
-                const std::string name = it->path().filename().string();
+                const std::string name = ToUtf8(it->path().filename());
                 const std::vector<i32> version = ParseVersion(name);
                 if (version.empty() || version.front() != major) continue;
 
@@ -362,7 +363,7 @@ namespace ByteForge
             if (!fxr)
             {
                 return Unexpected("'{}' contains no host/fxr for .NET {}",
-                                  runtime.Root.generic_string(), DotNetMajorVersion);
+                                  ToGenericUtf8(runtime.Root), DotNetMajorVersion);
             }
 
             usize copied = 0;
@@ -404,7 +405,7 @@ namespace ByteForge
             APP_INFO("Bundled the .NET {} runtime", result.DotNetVersion);
             APP_INFO("Precompiled {} shader stage(s)", result.ShaderStages);
             APP_INFO("Exported {} file(s) as a {} build to '{}'",
-                     result.FileCount, BuildConfiguration, result.Directory.generic_string());
+                     result.FileCount, BuildConfiguration, ToGenericUtf8(result.Directory));
         }
     }
 
@@ -435,7 +436,7 @@ namespace ByteForge
         for (const fs::path& required : { RuntimePaths::GetDataDirectory() / "shaders", plan.ScriptCoreDirectory })
         {
             if (!fs::exists(required))
-                return Unexpected("'{}' is missing", required.generic_string());
+                return Unexpected("'{}' is missing", ToGenericUtf8(required));
         }
 
         const bool hasScripts = !AssetRegistry::GetAssetsOfType(AssetType::Script).empty();
@@ -449,16 +450,16 @@ namespace ByteForge
         plan.ExecutableName = gameName;
         std::ranges::replace(plan.ExecutableName, ' ', '_');
 
-        plan.Output = outputRoot / gameName;
+        plan.Output = outputRoot / PathFromUtf8(gameName);
 
         if (IsInsideOrSame(plan.Output, plan.AssetsDirectory) || IsInsideOrSame(project.GetRoot(), plan.Output))
-            return Unexpected("'{}' would overwrite the project, choose another folder", plan.Output.generic_string());
+            return Unexpected("'{}' would overwrite the project, choose another folder", ToGenericUtf8(plan.Output));
 
         std::error_code error;
         if (fs::exists(plan.Output, error) && !fs::is_empty(plan.Output, error) &&
             !fs::exists(plan.Output / ProjectSettings::FileName))
         {
-            return Unexpected("'{}' already exists and is not an exported game", plan.Output.generic_string());
+            return Unexpected("'{}' already exists and is not an exported game", ToGenericUtf8(plan.Output));
         }
 
         return plan;
@@ -476,7 +477,7 @@ namespace ByteForge
 
         for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
         {
-            if (!IsShaderCompilerLibrary(it->path().filename().string())) continue;
+            if (!IsShaderCompilerLibrary(ToUtf8(it->path().filename()))) continue;
 
             std::error_code removeError;
             fs::remove(it->path(), removeError);
@@ -485,7 +486,7 @@ namespace ByteForge
 
         fs::create_directories(output, error);
         if (error)
-            return Unexpected("cannot create '{}': {}", output.generic_string(), error.message());
+            return Unexpected("cannot create '{}': {}", ToGenericUtf8(output), error.message());
 
         ExportResult result{ .Directory = output };
 
@@ -546,7 +547,7 @@ namespace ByteForge
         for (const fs::path& written : { shaderArchive, archive })
         {
             if (const auto verified = VerifyArchive(written, progress); !verified)
-                return Unexpected("'{}' is broken: {}", written.filename().string(), verified.error());
+                return Unexpected("'{}' is broken: {}", ToUtf8(written.filename()), verified.error());
         }
 
         if (const auto copied = CopySingleFile(plan.ProjectFile, output / ProjectSettings::FileName); !copied)
@@ -641,7 +642,7 @@ namespace ByteForge
             return;
         }
 
-        APP_INFO("Exporting the game to '{}'...", plan->Output.generic_string());
+        APP_INFO("Exporting the game to '{}'...", ToGenericUtf8(plan->Output));
         context.Export.Start(std::move(*plan), context.Popups);
     }
 }

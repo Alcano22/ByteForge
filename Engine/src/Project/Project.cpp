@@ -93,7 +93,7 @@ namespace ByteForge
         std::error_code error;
         fs::path root = fs::absolute(path, error);
         if (error)
-            return Unexpected("'{}' is not a valid path: {}", path.string(), error.message());
+            return Unexpected("'{}' is not a valid path: {}", ToUtf8(path), error.message());
 
         root = root.lexically_normal();
         if (!root.has_filename())
@@ -102,10 +102,10 @@ namespace ByteForge
         if (fs::is_regular_file(root, error))
         {
             if (root.filename() != ProjectSettings::FileName)
-                return Unexpected("'{}' is not a project file", root.string());
+                return Unexpected("'{}' is not a project file", ToUtf8(root));
             root = root.parent_path();
         } else if (!fs::is_directory(root, error))
-            return Unexpected("'{}' does not exist", root.string());
+            return Unexpected("'{}' does not exist", ToUtf8(root));
 
         if (fs::path canonical = fs::weakly_canonical(root, error); !error)
             root = std::move(canonical);
@@ -113,7 +113,7 @@ namespace ByteForge
         if (!IsProjectDirectory(root))
         {
             return Unexpected("'{}' is not a ByteForge project (no {} and no '{}' folder)",
-                              root.string(), ProjectSettings::FileName, AssetDirectoryName);
+                              ToUtf8(root), ProjectSettings::FileName, AssetDirectoryName);
         }
 
         Project project(std::move(root));
@@ -133,19 +133,19 @@ namespace ByteForge
 
         std::error_code error;
         if (!fs::is_directory(info.Location, error))
-            return Unexpected("The location '{}' does not exist", info.Location.string());
+            return Unexpected("The location '{}' does not exist", ToUtf8(info.Location));
 
         const Result<ProjectTemplate> projectTemplate = ProjectTemplate::Load(info.TemplateDirectory);
         if (!projectTemplate)
             return Unexpected("Cannot read the template: {}", projectTemplate.error());
 
         const fs::path location = fs::absolute(info.Location, error);
-        const fs::path root = location / Platform::PathFromUtf8(info.Name);
+        const fs::path root = location / PathFromUtf8(info.Name);
 
         if (fs::exists(root, error) && !(fs::is_directory(root, error) && fs::is_empty(root, error)))
-            return Unexpected("'{}' already exists and is not empty", root.string());
+            return Unexpected("'{}' already exists and is not empty", ToUtf8(root));
 
-        const fs::path staging = location / Platform::PathFromUtf8("." + info.Name + ".creating");
+        const fs::path staging = location / PathFromUtf8("." + info.Name + ".creating");
         fs::remove_all(staging, error);
 
         const auto fail = [&staging](std::string message) -> Result<Project>
@@ -166,7 +166,7 @@ namespace ByteForge
 
         fs::rename(staging, root, error);
         if (error)
-            return fail(std::format("Cannot move the project info '{}': {}", root.string(), error.message()));
+            return fail(std::format("Cannot move the project info '{}': {}", ToUtf8(root), error.message()));
 
         return Open(root);
     }
@@ -236,7 +236,7 @@ namespace ByteForge
     ProjectSettings Project::MakeDefaultSettings() const
     {
         ProjectSettings settings;
-        settings.Name = m_Root.filename().string();
+        settings.Name = ToUtf8(m_Root.filename());
         settings.WindowTitle = settings.Name;
         return settings;
     }
@@ -246,7 +246,7 @@ namespace ByteForge
         std::error_code error;
         fs::create_directories(GetStateDirectory(), error);
         if (error)
-            return Unexpected("Cannot create '{}': {}", GetStateDirectory().string(), error.message());
+            return Unexpected("Cannot create '{}': {}", ToUtf8(GetStateDirectory()), error.message());
 
         std::expected<Scope<FileLock>, FileLockError> lock = FileLock::TryAcquire(GetEditorLockFile());
         if (lock)

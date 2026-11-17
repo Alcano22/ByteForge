@@ -50,7 +50,7 @@ namespace ByteForge::Hub
         }
 
         if (m_Templates.empty())
-            APP_WARN("No project templates in '{}'", ProjectTemplate::GetBuiltInDirectory().string());
+            APP_WARN("No project templates in '{}'", ToUtf8(ProjectTemplate::GetBuiltInDirectory()));
     }
 
     void HubController::setSearch(const QString& search)
@@ -209,7 +209,7 @@ namespace ByteForge::Hub
         if (!project)
             return ToQString(project.error());
 
-        APP_INFO("Created project '{}' at '{}'", project->GetName(), project->GetRoot().string());
+        APP_INFO("Created project '{}' at '{}'", project->GetName(), ToUtf8(project->GetRoot()));
 
         if (const Result<> added = RecentProjects::Touch(*project); !added)
             reportError(QStringLiteral("Cannot update the project list: %1").arg(ToQString(added.error())));

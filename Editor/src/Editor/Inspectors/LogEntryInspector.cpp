@@ -42,7 +42,7 @@ namespace ByteForge::EditorUI
         else
         {
             const fs::path file(entry.File);
-            row("Source", std::format("{}:{}", file.filename().string(), entry.Line));
+            row("Source", std::format("{}:{}", ToUtf8(file.filename()), entry.Line));
             ImGui::SetItemTooltip("%s", entry.File.c_str());
 
             row("Function", entry.Function);

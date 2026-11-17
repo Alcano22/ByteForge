@@ -31,11 +31,11 @@ namespace ByteForge
             std::error_code error;
             if (fs::is_regular_file(path, error))
             {
-                m_Fonts[i] = io.Fonts->AddFontFromFileTTF(path.string().c_str(), size);
+                m_Fonts[i] = io.Fonts->AddFontFromFileTTF(ToUtf8(path).c_str(), size);
                 if (m_Fonts[i] != nullptr) continue;
             }
 
-            APP_ERROR("EditorFonts: cannot load '{}', using the built-in font", path.string());
+            APP_ERROR("EditorFonts: cannot load '{}', using the built-in font", ToUtf8(path));
 
             if (fallback == nullptr)
                 fallback = io.Fonts->AddFontDefault();

@@ -203,7 +203,7 @@ namespace ByteForge
 
         if (m_Functions.LoadGameAssembly(reinterpret_cast<const char*>(file.c_str())) != 0)
         {
-            CORE_ERROR("Could not load C# assembly '{}': {}", path.string(), ScriptGlue::TakeManagedException());
+            CORE_ERROR("Could not load C# assembly '{}': {}", ToUtf8(path), ScriptGlue::TakeManagedException());
             return false;
         }
 

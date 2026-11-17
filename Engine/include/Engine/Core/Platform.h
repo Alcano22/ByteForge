@@ -16,9 +16,6 @@ namespace ByteForge::Platform
 
     [[nodiscard]] BYTEFORGE_API const std::vector<std::string>& GetCommandLineArguments();
 
-    [[nodiscard]] BYTEFORGE_API fs::path PathFromUtf8(std::string_view text);
-    [[nodiscard]] BYTEFORGE_API std::string PathToUtf8(const fs::path& path);
-
     [[nodiscard]] BYTEFORGE_API const fs::path& GetUserConfigDirectory();
 
     struct ProcessResult

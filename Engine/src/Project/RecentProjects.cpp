@@ -23,7 +23,7 @@ namespace ByteForge::RecentProjects
         nlohmann::json ToJson(const RecentProject& project)
         {
             return {
-                { "path", Platform::PathToUtf8(project.Path) },
+                { "path", ToUtf8(project.Path) },
                 { "name", project.Name },
                 { "lastOpened", std::chrono::duration_cast<std::chrono::seconds>(
                     project.LastOpened.time_since_epoch()).count() }
@@ -40,8 +40,8 @@ namespace ByteForge::RecentProjects
                 return std::nullopt;
 
             RecentProject project;
-            project.Path = Platform::PathFromUtf8(path->get_ref<const std::string&>());
-            project.Name = json.value("name", project.Path.filename().string());
+            project.Path = PathFromUtf8(path->get_ref<const std::string&>());
+            project.Name = json.value("name", ToUtf8(project.Path.filename()));
             project.LastOpened = Clock::time_point(std::chrono::seconds(json.value("lastOpened", i64{ 0 })));
             return project;
         }
@@ -58,7 +58,7 @@ namespace ByteForge::RecentProjects
 
             const auto list = data->find("projects");
             if (list == data->end() || !list->is_array())
-                return Unexpected("'{}' has no project list", GetFile().string());
+                return Unexpected("'{}' has no project list", ToUtf8(GetFile()));
 
             std::vector<RecentProject> projects;
             for (const nlohmann::json& entry : *list)
@@ -89,7 +89,7 @@ namespace ByteForge::RecentProjects
             std::error_code error;
             fs::rename(GetFile(), backup, error);
             CORE_WARN("The recent projects list is broken ({}); it was moved to '{}' and starts empty",
-                      projects.error(), backup.string());
+                      projects.error(), ToUtf8(backup));
 
             return {};
         }
@@ -99,7 +99,7 @@ namespace ByteForge::RecentProjects
             std::error_code error;
             fs::create_directories(GetFile().parent_path(), error);
             if (error)
-                return Unexpected("cannot create '{}': {}", GetFile().parent_path().string(), error.message());
+                return Unexpected("cannot create '{}': {}", ToUtf8(GetFile().parent_path()), error.message());
 
             nlohmann::json list = nlohmann::json::array();
             for (const RecentProject& project : projects)

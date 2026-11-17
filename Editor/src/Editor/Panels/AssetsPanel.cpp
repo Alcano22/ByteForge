@@ -51,7 +51,7 @@ namespace ByteForge
             {
                 const std::string name = index == 0 ? std::format("{}{}", stem, extension)
                                                     : std::format("{} {}{}", stem, index, extension);
-                fs::path candidate = directory / name;
+                fs::path candidate = directory / PathFromUtf8(name);
                 if (!fs::exists(root / candidate, error))
                     return candidate;
             }
@@ -148,7 +148,7 @@ namespace ByteForge
 
         std::string GetDisplayName(const fs::path& path, const bool isDirectory)
         {
-            return isDirectory ? path.filename().string() : path.stem().string();
+            return isDirectory ? ToUtf8(path.filename()) : ToUtf8(path.stem());
         }
 
         const char* ValidateFileName(const std::string_view name)
@@ -202,7 +202,7 @@ namespace ByteForge
 
         if (!m_HasRoot)
         {
-            ImGui::TextDisabled("Asset root '%s' does not exist", AssetRegistry::GetAssetRoot().string().c_str());
+            ImGui::TextDisabled("Asset root '%s' does not exist", ToUtf8(AssetRegistry::GetAssetRoot()).c_str());
             if (ImGui::Button("Retry"))
                 m_RefreshRequested = true;
 
@@ -298,7 +298,7 @@ namespace ByteForge
 
             m_Entries.push_back({
                 .Path             = m_CurrentDirectory / name,
-                .Name             = name.string(),
+                .Name             = ToUtf8(name),
                 .IsDirectory      = isDirectory,
                 .IsDirectoryEmpty = isDirectory && IsEmptyDirectory(item.path())
             });
@@ -315,7 +315,7 @@ namespace ByteForge
         {
             if (entry.IsDirectory) continue;
 
-            entry.Type = AssetTypeFromExtension(entry.Path.extension().string());
+            entry.Type = AssetTypeFromExtension(ToUtf8(entry.Path.extension()));
             if (entry.Type != AssetType::None)
                 entry.Handle = AssetRegistry::Import(entry.Path);
         }
@@ -325,7 +325,7 @@ namespace ByteForge
 
     AssetsPanel::DirectoryNode AssetsPanel::BuildTree(const fs::path& root, const fs::path& relative)
     {
-        DirectoryNode node{ .Path = relative, .Name = relative.filename().string() };
+        DirectoryNode node{ .Path = relative, .Name = ToUtf8(relative.filename()) };
 
         std::error_code ec;
         for (const auto& item : fs::directory_iterator(root / relative, ec))
@@ -345,7 +345,7 @@ namespace ByteForge
             m_RefreshRequested = true;
 
         ImGui::SameLine();
-        ImGui::TextDisabled("Assets/%s", m_CurrentDirectory.generic_string().c_str());
+        ImGui::TextDisabled("Assets/%s", ToGenericUtf8(m_CurrentDirectory).c_str());
 
         ImGui::SameLine(0.0f, 24.0f);
         ImGui::SetNextItemWidth(120.0f);
@@ -522,20 +522,21 @@ namespace ByteForge
 
         std::error_code error;
         const bool isDirectory = fs::is_directory(AssetRegistry::GetAssetRoot() / *from, error);
-        const fs::path newFileName = isDirectory ? fs::path(name)
-                                                 : fs::path(std::string(name) + from->extension().string());
+        fs::path newFileName = PathFromUtf8(name);
+        if (!isDirectory)
+            newFileName += from->extension();
         if (newFileName == from->filename()) return;
 
         if (const char* invalid = ValidateFileName(name))
         {
-            APP_ERROR("Cannot rename '{}': {}", from->filename().string(), invalid);
+            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from->filename()), invalid);
             return;
         }
 
         const fs::path to = from->parent_path() / newFileName;
         if (const Result<> moved = AssetRegistry::Move(*from, to); !moved)
         {
-            APP_ERROR("Cannot rename '{}': {}", from->filename().string(), moved.error());
+            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from->filename()), moved.error());
             return;
         }
 
@@ -626,7 +627,7 @@ namespace ByteForge
         std::error_code error;
         if (!fs::create_directory(AssetRegistry::GetAssetRoot() / path, error))
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), error.message());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), error.message());
             return;
         }
 
@@ -639,7 +640,7 @@ namespace ByteForge
 
         if (const auto created = AssetManager::CreatePhysicsMaterial(path); !created)
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
         }
 
@@ -652,7 +653,7 @@ namespace ByteForge
 
         if (const auto created = AssetManager::CreateAnimationClip(path); !created)
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
         }
 
@@ -665,7 +666,7 @@ namespace ByteForge
 
         if (const auto created = AssetManager::CreateAnimatorController(path); !created)
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
         }
 
@@ -678,7 +679,7 @@ namespace ByteForge
 
         if (const auto created = AssetManager::CreateScriptGraph(path); !created)
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
         }
 
@@ -691,7 +692,7 @@ namespace ByteForge
 
         if (const auto created = GetContext().CreatePrefab(entity, path); !created)
         {
-            APP_ERROR("Cannot create '{}': {}", path.generic_string(), created.error());
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
         }
 

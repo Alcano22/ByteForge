@@ -39,7 +39,7 @@ namespace ByteForge
         if (!graph)
             return Unexpected(graph.error());
 
-        return MakeScope<GraphDocument>(asset, metadata.Path.stem().string(), std::move(*graph));
+        return MakeScope<GraphDocument>(asset, ToUtf8(metadata.Path.stem()), std::move(*graph));
     }
 
     Result<> GraphDocument::Save()

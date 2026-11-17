@@ -20,7 +20,7 @@ namespace ByteForge
         {
             const char* error = dlerror();
             throw Error("Platform: cannot load '{}': {}",
-                                                 path.string(), error != nullptr ? error : "unknown error");
+                                                 ToUtf8(path), error != nullptr ? error : "unknown error");
         }
     }
 

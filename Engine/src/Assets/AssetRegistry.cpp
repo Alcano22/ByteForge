@@ -25,7 +25,9 @@ namespace ByteForge
 
         fs::path GetMetaPath(const fs::path& absolutePath)
         {
-            return absolutePath.string() + AssetRegistry::MetaExtension;
+            fs::path metaPath = absolutePath;
+            metaPath += AssetRegistry::MetaExtension;
+            return metaPath;
         }
 
         bool ParseMeta(const nlohmann::json& data, AssetMetadata& outMetadata)
@@ -55,7 +57,7 @@ namespace ByteForge
 
         bool IsEngineData(const fs::path& path)
         {
-            return !path.empty() && path.begin()->string().starts_with('.');
+            return !path.empty() && ToUtf8(*path.begin()).starts_with('.');
         }
     }
 
@@ -64,7 +66,7 @@ namespace ByteForge
     Result<std::vector<std::byte> > AssetSource::Read(const fs::path& relativePath) const
     {
         if (m_Archive)
-            return m_Archive->Read(relativePath.generic_string());
+            return m_Archive->Read(ToGenericUtf8(relativePath));
 
         return ReadBinaryFile(m_Root / relativePath);
     }
@@ -85,7 +87,7 @@ namespace ByteForge
 
         if (!fs::exists(s_AssetRoot))
         {
-            CORE_WARN("AssetRegistry::Init: asset root '{}' does not exist", s_AssetRoot.string());
+            CORE_WARN("AssetRegistry::Init: asset root '{}' does not exist", ToUtf8(s_AssetRoot));
             return;
         }
 
@@ -96,7 +98,7 @@ namespace ByteForge
             Import(fs::relative(entry.path(), s_AssetRoot));
         }
 
-        CORE_INFO("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), s_AssetRoot.string());
+        CORE_INFO("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), ToUtf8(s_AssetRoot));
     }
 
     Result<> AssetRegistry::Mount(const fs::path& archive)
@@ -112,7 +114,7 @@ namespace ByteForge
         usize skipped = 0;
         for (const PakEntry& entry : (*opened)->GetEntries())
         {
-            const fs::path path(entry.Path);
+            const fs::path path = PathFromUtf8(entry.Path);
             if (IsMetaFile(path) || IsEngineData(path)) continue;
 
             const Result<std::vector<std::byte>> meta = (*opened)->Read(entry.Path + MetaExtension);
@@ -133,14 +135,14 @@ namespace ByteForge
         s_Archive = std::move(*opened);
         ++s_Revision;
 
-        CORE_INFO("AssetRegistry: mounted {} asset(s) from '{}'{}", s_Assets.size(), archive.generic_string(),
+        CORE_INFO("AssetRegistry: mounted {} asset(s) from '{}'{}", s_Assets.size(), ToGenericUtf8(archive),
                   skipped > 0 ? std::format(" ({} skipped)", skipped) : std::string());
         return {};
     }
 
     UUID AssetRegistry::Import(const fs::path& relativePath)
     {
-        const std::string key = relativePath.generic_string();
+        const std::string key = ToGenericUtf8(relativePath);
 
         if (const auto it = s_PathToHandle.find(key); it != s_PathToHandle.end())
             return it->second;
@@ -152,13 +154,13 @@ namespace ByteForge
         }
 
         const fs::path absolutePath = s_AssetRoot / relativePath;
-        const fs::path metaPath = absolutePath.string() + MetaExtension;
+        const fs::path metaPath = GetMetaPath(absolutePath);
 
         AssetMetadata metadata;
         if (!ReadMeta(metaPath, metadata))
         {
             metadata.Handle = UUID();
-            metadata.Type = AssetTypeFromExtension(absolutePath.extension().string());
+            metadata.Type = AssetTypeFromExtension(ToUtf8(absolutePath.extension()));
             metadata.Path = relativePath;
             metadata.Settings = DefaultAssetSettings(metadata.Type);
             WriteMeta(absolutePath, metadata);
@@ -168,7 +170,7 @@ namespace ByteForge
 
             if (metadata.Type == AssetType::None)
             {
-                const AssetType detected = AssetTypeFromExtension(absolutePath.extension().string());
+                const AssetType detected = AssetTypeFromExtension(ToUtf8(absolutePath.extension()));
                 if (detected != AssetType::None)
                 {
                     metadata.Type = detected;
@@ -200,7 +202,7 @@ namespace ByteForge
             return Unexpected("it does not exist");
 
         if (fs::exists(target, error) && !fs::equivalent(source, target, error))
-            return Unexpected("'{}' already exists", toNormal.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(toNormal));
 
         const bool isDirectory = fs::is_directory(source, error);
 
@@ -229,8 +231,8 @@ namespace ByteForge
             else
                 continue;
 
-            s_PathToHandle.erase(metadata.Path.generic_string());
-            s_PathToHandle[newPath.generic_string()] = handle;
+            s_PathToHandle.erase(ToGenericUtf8(metadata.Path));
+            s_PathToHandle[ToGenericUtf8(newPath)] = handle;
             metadata.Path = std::move(newPath);
         }
 
@@ -250,7 +252,7 @@ namespace ByteForge
 
     UUID AssetRegistry::GetHandle(const fs::path& relativePath)
     {
-        const auto it = s_PathToHandle.find(relativePath.generic_string());
+        const auto it = s_PathToHandle.find(ToGenericUtf8(relativePath));
         return it != s_PathToHandle.end() ? it->second : UUID(0);
     }
 
@@ -287,13 +289,13 @@ namespace ByteForge
         if (!bytes)
             return Unexpected(bytes.error());
 
-        return ParseJson(*bytes, it->second.Path.generic_string());
+        return ParseJson(*bytes, ToGenericUtf8(it->second.Path));
     }
 
     bool AssetRegistry::ContainsFile(const fs::path& relativePath)
     {
         if (s_Archive)
-            return s_Archive->Contains(relativePath.generic_string());
+            return s_Archive->Contains(ToGenericUtf8(relativePath));
 
         std::error_code error;
         return fs::is_regular_file(s_AssetRoot / relativePath, error);
@@ -328,7 +330,7 @@ namespace ByteForge
 
         if (settings.index() != DefaultAssetSettings(it->second.Type).index())
         {
-            CORE_ERROR("AssetRegistry::SetSettings: wrong settings type for '{}'", it->second.Path.string());
+            CORE_ERROR("AssetRegistry::SetSettings: wrong settings type for '{}'", ToUtf8(it->second.Path));
             return false;
         }
 
@@ -355,7 +357,7 @@ namespace ByteForge
         data["type"] = AssetTypeToString(metadata.Type);
         data["settings"] = SerializeAssetSettings(metadata.Settings);
 
-        if (const auto written = WriteJsonFile(absolutePath.string() + MetaExtension, data); !written)
+        if (const auto written = WriteJsonFile(GetMetaPath(absolutePath), data); !written)
             CORE_ERROR("AssetRegistry: {}", written.error());
     }
 

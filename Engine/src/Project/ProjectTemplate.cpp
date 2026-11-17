@@ -21,10 +21,10 @@ namespace ByteForge
             return Unexpected(data.error());
 
         if (!data->is_object())
-            return Unexpected("'{}' is not a valid template file", file.string());
+            return Unexpected("'{}' is not a valid template file", ToUtf8(file));
 
         ProjectTemplate result;
-        result.Id = directory.filename().string();
+        result.Id = ToUtf8(directory.filename());
         result.Directory = directory;
 
         try
@@ -34,7 +34,7 @@ namespace ByteForge
             result.Order = data->value("order", 0);
         } catch (const nlohmann::json::exception& e)
         {
-            return Unexpected("'{}' has invalid values: {}", file.string(), e.what());
+            return Unexpected("'{}' has invalid values: {}", ToUtf8(file), e.what());
         }
 
         return result;
@@ -53,11 +53,11 @@ namespace ByteForge
             if (Result<ProjectTemplate> loaded = Load(it->path()))
                 templates.push_back(std::move(*loaded));
             else
-                CORE_WARN("Skipping project template '{}': {}", it->path().string(), loaded.error());
+                CORE_WARN("Skipping project template '{}': {}", ToUtf8(it->path()), loaded.error());
         }
 
         if (error)
-            CORE_WARN("Cannot list project templates in '{}': {}", directory.string(), error.message());
+            CORE_WARN("Cannot list project templates in '{}': {}", ToUtf8(directory), error.message());
 
         std::ranges::sort(templates, [](const ProjectTemplate& a, const ProjectTemplate& b)
         {

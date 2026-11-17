@@ -27,7 +27,7 @@ namespace ByteForge
             const fs::path relative =
                 fs::weakly_canonical(absolutePath, error).lexically_relative(root);
 
-            if (relative.empty() || relative.begin()->string() == "..")
+            if (relative.empty() || *relative.begin() == "..")
                 return std::nullopt;
             return relative;
         }
@@ -77,7 +77,7 @@ namespace ByteForge
         const std::optional<fs::path> relative = ToAssetPath(*chosen);
         if (!relative)
         {
-            APP_ERROR("Scenes must be inside the asset folder: '{}'", chosen->string());
+            APP_ERROR("Scenes must be inside the asset folder: '{}'", ToUtf8(*chosen));
             return;
         }
 
@@ -135,11 +135,11 @@ namespace ByteForge
         const std::optional<fs::path> relative = ToAssetPath(*chosen);
         if (!relative)
         {
-            APP_ERROR("Scenes must be saved inside the asset folder: '{}'", chosen->string());
+            APP_ERROR("Scenes must be saved inside the asset folder: '{}'", ToUtf8(*chosen));
             return false;
         }
 
-        return m_Context.Document.SaveAs(SceneDocument::ToScenePath(relative->generic_string()));
+        return m_Context.Document.SaveAs(SceneDocument::ToScenePath(ToGenericUtf8(*relative)));
     }
 
     bool SceneDialogs::RequestQuit()

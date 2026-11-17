@@ -69,7 +69,7 @@ namespace ByteForge
                     return result;
                 }
 
-                if (auto image = DecodeImage(*encoded, path.generic_string()))
+                if (auto image = DecodeImage(*encoded, ToGenericUtf8(path)))
                     result.Image = std::move(*image);
                 else
                     result.Error = std::move(image.error());
@@ -170,7 +170,7 @@ namespace ByteForge
         if (auto material = ReadPhysicsMaterial(handle))
             asset->m_Material = *material;
         else
-            CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), material.error());
+            CORE_ERROR("AssetManager: cannot load '{}': {}", ToGenericUtf8(metadata.Path), material.error());
 
         return asset;
     }
@@ -190,7 +190,7 @@ namespace ByteForge
         const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
         if (const auto written = WritePhysicsMaterial(path, it->second->m_Material); !written)
         {
-            CORE_ERROR("AssetManager: cannot save '{}': {}", metadata.Path.generic_string(), written.error());
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), written.error());
             return false;
         }
 
@@ -203,7 +203,7 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return Unexpected("'{}' already exists", relativePath.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
 
         if (const auto written = WritePhysicsMaterial(path, PhysicsMaterial2D{}); !written)
             return Unexpected(written.error());
@@ -217,7 +217,7 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return Unexpected("'{}' already exists", relativePath.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
 
         ScriptGraph graph;
         graph.AddNode(EventNode{ GraphEvent::OnCreate }, { 0.0f, 0.0f });
@@ -242,7 +242,7 @@ namespace ByteForge
         else if (auto parsed = ReadAnimationClip(handle))
             data = std::move(*parsed);
         else
-            CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), parsed.error());
+            CORE_ERROR("AssetManager: cannot load '{}': {}", ToGenericUtf8(metadata.Path), parsed.error());
 
         auto asset = MakeRef<AnimationClipAsset>(handle, std::move(data));
         s_AnimationClips.emplace(handle, asset);
@@ -264,7 +264,7 @@ namespace ByteForge
         const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
         if (const auto written = WriteJsonFile(path, SerializeAnimationClip(it->second->GetData())); !written)
         {
-            CORE_ERROR("AssetManager: cannot save '{}': {}", metadata.Path.generic_string(), written.error());
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), written.error());
             return false;
         }
 
@@ -277,7 +277,7 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return Unexpected("'{}' already exists", relativePath.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
 
         if (const auto written = WriteJsonFile(path, SerializeAnimationClip(AnimationClipData{})); !written)
             return Unexpected(written.error());
@@ -298,7 +298,7 @@ namespace ByteForge
         else if (auto parsed = ReadAnimatorController(handle))
             data = std::move(*parsed);
         else
-            CORE_ERROR("AssetManager: cannot load '{}': {}", metadata.Path.generic_string(), parsed.error());
+            CORE_ERROR("AssetManager: cannot load '{}': {}", ToGenericUtf8(metadata.Path), parsed.error());
 
         auto asset = MakeRef<AnimatorControllerAsset>(handle, std::move(data));
         s_AnimatorControllers.emplace(handle, asset);
@@ -320,7 +320,7 @@ namespace ByteForge
         const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
         if (const auto written = WriteJsonFile(path, SerializeAnimatorController(it->second->GetData())); !written)
         {
-            CORE_ERROR("AssetManager: cannot save '{}': {}", metadata.Path.generic_string(), written.error());
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), written.error());
             return false;
         }
 
@@ -333,7 +333,7 @@ namespace ByteForge
 
         std::error_code error;
         if (fs::exists(path, error))
-            return Unexpected("'{}' already exists", relativePath.generic_string());
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
 
         if (const auto written = WriteJsonFile(path, SerializeAnimatorController(AnimatorControllerData{})); !written)
             return Unexpected(written.error());
@@ -354,7 +354,7 @@ namespace ByteForge
             if (auto material = ReadPhysicsMaterial(handle))
                 it->second->m_Material = *material;
             else
-                CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), material.error());
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), material.error());
         }
 
         if (const auto it = s_AnimationClips.find(handle); it != s_AnimationClips.end())
@@ -362,7 +362,7 @@ namespace ByteForge
             if (auto clip = ReadAnimationClip(handle))
                 it->second->SetData(std::move(*clip));
             else
-                CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), clip.error());
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), clip.error());
         }
 
         if (const auto it = s_AnimatorControllers.find(handle); it != s_AnimatorControllers.end())
@@ -370,7 +370,7 @@ namespace ByteForge
             if (auto controller = ReadAnimatorController(handle))
                 it->second->SetData(std::move(*controller));
             else
-                CORE_ERROR("AssetManager: cannot reload '{}': {}", metadata.Path.generic_string(), controller.error());
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), controller.error());
         }
     }
 

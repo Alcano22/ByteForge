@@ -150,7 +150,7 @@ namespace ByteForge
             }
 
             if (const auto mounted = AssetRegistry::Mount(archive); !mounted)
-                throw Error("PlayerLayer: cannot mount '{}': {}", archive.generic_string(), mounted.error());
+                throw Error("PlayerLayer: cannot mount '{}': {}", ToGenericUtf8(archive), mounted.error());
         }
 
         static void LoadGameScripts()
@@ -187,7 +187,7 @@ namespace ByteForge
 
                 APP_WARN("Game scripts not found at '{}', script components will not work "
                          "(build the scripts in the editor first)",
-                         (error ? assembly : absolute).generic_string());
+                         ToGenericUtf8(error ? assembly : absolute));
                 return;
             }
 
@@ -198,7 +198,7 @@ namespace ByteForge
             }
 
             if (!backend->LoadModule(assembly))
-                APP_ERROR("Could not load '{}'", assembly.generic_string());
+                APP_ERROR("Could not load '{}'", ToGenericUtf8(assembly));
         }
 
         void LoadStartScene()
@@ -207,7 +207,7 @@ namespace ByteForge
             if (!AssetRegistry::TryGetMetadata(m_Settings.StartScene, metadata) || metadata.Type != AssetType::Scene)
                 throw Error("PlayerLayer::LoadStartScene: the start scene is not a scene asset in 'assets'");
 
-            const std::string name = metadata.Path.generic_string();
+            const std::string name = ToGenericUtf8(metadata.Path);
 
             const Result<nlohmann::json> data = AssetRegistry::ReadJson(m_Settings.StartScene);
             if (!data)

@@ -68,7 +68,7 @@ namespace ByteForge
         for (const AssetMetadata& metadata : AssetRegistry::GetAssetsOfType(AssetType::ScriptGraph))
         {
             GraphClass graphClass{
-                .DisplayName = fs::path(metadata.Path).replace_extension().generic_string()
+                .DisplayName = ToGenericUtf8(fs::path(metadata.Path).replace_extension())
             };
 
             if (auto data = AssetRegistry::ReadJson(metadata.Handle); !data)

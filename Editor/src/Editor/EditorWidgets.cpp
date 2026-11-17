@@ -132,7 +132,7 @@ namespace ByteForge::EditorUI
                 return;
             }
 
-            ImGui::TextUnformatted(metadata.Path.filename().string().c_str());
+            ImGui::TextUnformatted(ToUtf8(metadata.Path.filename()).c_str());
 
             switch (asset->GetState())
             {
@@ -211,9 +211,9 @@ namespace ByteForge::EditorUI
             DrawAssetPreview(drawList, candidate.get(), thumbnailMin,
                              ImVec2(PickerThumbnailSize, PickerThumbnailSize));
 
-            const std::string name = metadata.Path.filename().string();
+            const std::string name = ToUtf8(metadata.Path.filename());
             const std::string folder = metadata.Path.has_parent_path()
-                                     ? "Assets/" + metadata.Path.parent_path().generic_string() : "Assets";
+                                     ? "Assets/" + ToGenericUtf8(metadata.Path.parent_path()) : "Assets";
 
             const f32 lineHeight = ImGui::GetTextLineHeight();
             const ImVec2 textPos{ thumbnailMin.x + PickerThumbnailSize + ImGui::GetStyle().ItemSpacing.x,
@@ -254,7 +254,7 @@ namespace ByteForge::EditorUI
 
             for (const AssetMetadata& metadata : s_Candidates)
             {
-                const std::string path = metadata.Path.generic_string();
+                const std::string path = ToGenericUtf8(metadata.Path);
                 if (!ContainsIgnoreCase(path, query)) continue;
 
                 const bool firstMatch = !anyMatch;
@@ -291,7 +291,7 @@ namespace ByteForge::EditorUI
         std::string AssetLabel(const AssetMetadata& metadata)
         {
             return std::format("{}  {}", EditorIcons::Glyph(EditorIcons::ForFile(metadata.Path)),
-                               metadata.Path.stem().string());
+                               ToUtf8(metadata.Path.stem()));
         }
 
         bool DrawAssetPicker(const AssetType type, UUID& handle)
@@ -325,7 +325,7 @@ namespace ByteForge::EditorUI
 
             for (const AssetMetadata& metadata : s_Candidates)
             {
-                const std::string path = metadata.Path.generic_string();
+                const std::string path = ToGenericUtf8(metadata.Path);
                 if (!ContainsIgnoreCase(path, query)) continue;
 
                 const bool pickedByEnter = submitted && !anyMatch;
@@ -480,7 +480,7 @@ namespace ByteForge::EditorUI
         ImGui::PopStyleVar();
 
         if (known)
-            ImGui::SetItemTooltip("Assets/%s", metadata.Path.generic_string().c_str());
+            ImGui::SetItemTooltip("Assets/%s", ToGenericUtf8(metadata.Path).c_str());
 
         if (ImGui::BeginDragDropTarget())
         {

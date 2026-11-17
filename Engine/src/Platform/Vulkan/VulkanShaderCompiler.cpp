@@ -184,7 +184,7 @@ namespace ByteForge
         result->GetStatus(&compileStatus);
         if (FAILED(compileStatus))
         {
-            const std::string name = fromFile ? source.Path.filename().string() : std::string("<inline>");
+            const std::string name = fromFile ? ToUtf8(source.Path.filename()) : std::string("<inline>");
             throw Error("Shader '{}' failed to compile its {} stage ({}):\n{}",
                                                  name, StageName(stage), entryPoint, errorText);
         }
