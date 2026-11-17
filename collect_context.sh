@@ -1,13 +1,15 @@
 #!/bin/bash
 
 OUT="context.txt"
+MAX_BYTES=$((256 * 1024))
+
 > "$OUT"
 
 PRUNE_EXPR=(
     \( -path "*/build*" \
        -o -path "*/cmake-build-*" \
        -o -path "*/_deps*" \
-       -o -path "*/.git*" \
+       -o -path "./.git" \
        -o -path "*/.idea*" \
        -o -path "*/.vscode*" \
        -o -path "*/vendor*" \
@@ -26,11 +28,18 @@ echo "" >> "$OUT"
 echo "=== FILE CONTENTS ===" >> "$OUT"
 
 find . "${PRUNE_EXPR[@]}" -type f -print \
-  | grep -E '\.(hpp|h|cpp|cmake|cs|csproj|sln|props|targets)$|CMakeLists\.txt$' \
+  | grep -E '\.(hpp|h|cpp|cmake|cs|csproj|sln|props|targets|qml|json|yml|yaml)$|CMakeLists\.txt$' \
   | sort \
   | while read -r file; do
       echo "" >> "$OUT"
       echo "--- FILE: ${file#./} ---" >> "$OUT"
+
+      size=$(stat -c %s "$file")
+      if (( size > MAX_BYTES )); then
+          echo "(skipped: $((size / 1024)) KB)" >> "$OUT"
+          continue
+      fi
+
       cat "$file" >> "$OUT"
     done
 

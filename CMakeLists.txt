@@ -13,7 +13,8 @@ target_compile_options(ByteForgeWarnings INTERFACE
 target_compile_definitions(ByteForgeWarnings INTERFACE GLM_ENABLE_EXPERIMENTAL)
 
 option(BYTEFORGE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
-if (BYTEFORGE_WARNINGS_AS_ERRORS)
+option(BYTEFORGE_BUILD_HUB "Build ByteForge Hub (needs Qt 6.5 or newer)" ON)
+if(BYTEFORGE_WARNINGS_AS_ERRORS)
     target_compile_options(ByteForgeWarnings INTERFACE
             $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Werror>
             $<$<CXX_COMPILER_ID:MSVC>:/WX>
@@ -27,3 +28,7 @@ add_subdirectory(Engine)
 add_subdirectory(ScriptCore)
 add_subdirectory(Editor)
 add_subdirectory(Player)
+
+if(BYTEFORGE_BUILD_HUB)
+    add_subdirectory(Hub)
+endif()
