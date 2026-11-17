@@ -12,6 +12,15 @@ QtObject {
     readonly property color accent: "#4f8cff"
     readonly property color error: "#d9534f"
 
+    readonly property color hover: "#33333b"
+    readonly property color pressed: "#3d3d46"
+    readonly property color accentHover: "#6a9eff"
+    readonly property color accentPressed: "#3f74d9"
+    readonly property color textDisabled: "#5c5c66"
+
+    readonly property int controlHeight: 32
+    readonly property int radius: 6
+
     function plural(count, unit) {
         return count + " " + unit + (count === 1 ? "" : "s") + " ago"
     }

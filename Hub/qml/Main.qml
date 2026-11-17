@@ -24,9 +24,12 @@ ApplicationWindow {
         text: Theme.text
         button: Theme.surfaceRaised
         buttonText: Theme.text
+        brightText: "white"
         highlight: Theme.accent
         highlightedText: "white"
         placeholderText: Theme.textDim
+        toolTipBase: Theme.surfaceRaised
+        toolTipText: Theme.text
         mid: Theme.border
         dark: Theme.border
         light: Theme.surfaceRaised
@@ -38,20 +41,31 @@ ApplicationWindow {
     }
 
     header: ToolBar {
+        implicitHeight: 56
+
         background: Rectangle {
             color: Theme.surface
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: Theme.border
+            }
         }
 
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 16
             anchors.rightMargin: 16
-            spacing: 12
+            spacing: 10
 
             Label {
                 text: "ByteForge Hub"
                 font.pixelSize: 18
                 font.bold: true
+                color: Theme.text
             }
 
             Label {
@@ -63,20 +77,21 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            TextField {
+            HubTextField {
                 Layout.preferredWidth: 240
                 placeholderText: "Search projects"
                 onTextChanged: HubController.search = text
             }
 
-            Button {
+            HubButton {
                 text: "Add..."
                 onClicked: addDialog.open()
             }
 
-            Button {
+            HubButton {
                 text: "New Project"
-                enabled: false
+                accent: true
+                onClicked: newProjectDialog.openFresh()
             }
         }
     }
@@ -86,6 +101,10 @@ ApplicationWindow {
 
         title: "Add an existing project"
         onAccepted: HubController.addExistingProject(selectedFolder)
+    }
+
+    NewProjectDialog {
+        id: newProjectDialog
     }
 
     ListView {
@@ -126,7 +145,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.margins: 12
         height: errorText.implicitHeight + 20
-        radius: 6
+        radius: Theme.radius
         color: Theme.error
 
         Label {

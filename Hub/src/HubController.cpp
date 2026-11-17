@@ -11,6 +11,12 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QStandardPaths>
+#include <QVariantMap>
+
+#include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 namespace ByteForge::Hub
 {
@@ -21,14 +27,29 @@ namespace ByteForge::Hub
 #else
         constexpr const char* EditorFileName = "Editor";
 #endif
+
+        constexpr i32 MaxNameSuggestions = 1000;
     }
 
     HubController::HubController(QObject* parent)
-        : QObject(parent)
+        : QObject(parent),
+          m_Templates(ProjectTemplate::FindAll(ProjectTemplate::GetBuiltInDirectory()))
     {
         m_Filtered.setSourceModel(&m_Projects);
         m_Filtered.setFilterRole(ProjectListModel::NameRole);
         m_Filtered.setFilterCaseSensitivity(Qt::CaseInsensitive);
+
+        for (const ProjectTemplate& projectTemplate : m_Templates)
+        {
+            m_TemplateItems.append(QVariantMap{
+                { QStringLiteral("id"),          ToQString(projectTemplate.Id)          },
+                { QStringLiteral("name"),        ToQString(projectTemplate.Name)        },
+                { QStringLiteral("description"), ToQString(projectTemplate.Description) }
+            });
+        }
+
+        if (m_Templates.empty())
+            APP_WARN("No project templates in '{}'", ProjectTemplate::GetBuiltInDirectory().string());
     }
 
     void HubController::setSearch(const QString& search)
@@ -98,6 +119,104 @@ namespace ByteForge::Hub
     {
         if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path)))
             reportError(QStringLiteral("Cannot open %1").arg(path));
+    }
+
+    QString HubController::suggestLocation() const
+    {
+        for (const RecentProject& project : RecentProjects::Load())
+        {
+            std::error_code error;
+            if (const fs::path parent = project.Path.parent_path(); fs::is_directory(parent, error))
+                return QDir::toNativeSeparators(PathToQString(parent));
+        }
+
+        return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+    }
+
+    QString HubController::suggestProjectName(const QString& location) const
+    {
+        const QString base = QStringLiteral("New Project");
+        const fs::path folder = ToPath(location);
+
+        for (i32 number = 1; number <= MaxNameSuggestions; ++number)
+        {
+            const QString name = number == 1 ? base : QStringLiteral("%1 %2").arg(base).arg(number);
+
+            std::error_code error;
+            if (!fs::exists(folder / ToPath(name), error))
+                return name;
+        }
+
+        return base;
+    }
+
+    QString HubController::validateNewProject(const QString& name, const QString& location) const
+    {
+        if (const std::optional<std::string> invalid = Project::ValidateName(name.toStdString()))
+            return ToQString(*invalid);
+
+        if (location.trimmed().isEmpty())
+            return QStringLiteral("Choose a location");
+
+        const fs::path folder = ToPath(location);
+        if (!folder.is_absolute())
+            return QStringLiteral("The location must be a full path");
+
+        std::error_code error;
+        if (!fs::is_directory(folder, error))
+            return QStringLiteral("The location does not exist");
+
+        const fs::path target = folder / ToPath(name);
+        if (fs::exists(target, error) && !(fs::is_directory(target, error) && fs::is_empty(target, error)))
+            return QStringLiteral("'%1' already exists in this location").arg(name);
+
+        if (m_Templates.empty())
+            return QStringLiteral("No project templates were found next to the hub");
+
+        return {};
+    }
+
+    QString HubController::projectPath(const QString& location, const QString& name) const
+    {
+        return QDir::toNativeSeparators(PathToQString(ToPath(location) / ToPath(name)));
+    }
+
+    QString HubController::createProject(const QString& name, const QString& location, const QString& templateId)
+    {
+        if (QString problem = validateNewProject(name, location); !problem.isEmpty())
+            return problem;
+
+        const auto projectTemplate = std::ranges::find(m_Templates, templateId.toStdString(), &ProjectTemplate::Id);
+        if (projectTemplate == m_Templates.end())
+            return QStringLiteral("Choose a template");
+
+        const Result<Project> project = Project::Create({
+            .Name              = name.toStdString(),
+            .Location          = ToPath(location),
+            .TemplateDirectory = projectTemplate->Directory
+        });
+
+        if (!project)
+            return ToQString(project.error());
+
+        APP_INFO("Created project '{}' at '{}'", project->GetName(), project->GetRoot().string());
+
+        if (const Result<> added = RecentProjects::Touch(*project); !added)
+            reportError(QStringLiteral("Cannot update the project list: %1").arg(ToQString(added.error())));
+
+        refresh();
+        openProject(PathToQString(project->GetRoot()));
+        return {};
+    }
+
+    QUrl HubController::pathToUrl(const QString& path) const
+    {
+        return QUrl::fromLocalFile(path);
+    }
+
+    QString HubController::urlToPath(const QUrl& url) const
+    {
+        return QDir::toNativeSeparators(url.toLocalFile());
     }
 
     void HubController::reportError(const QString& message)

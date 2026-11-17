@@ -17,8 +17,12 @@ qt_add_qml_module(Hub
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/NewProjectDialog.qml
         qml/ProjectDelegate.qml
         qml/Theme.qml
+        qml/HubButton.qml
+        qml/HubTextField.qml
+        qml/HubMenuItem.qml
     SOURCES
         src/QtConversions.h
         src/ProjectListModel.h

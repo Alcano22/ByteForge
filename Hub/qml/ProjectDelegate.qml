@@ -15,9 +15,11 @@ ItemDelegate {
 
     height: 64
     hoverEnabled: true
+    leftPadding: 16
+    rightPadding: 16
 
     background: Rectangle {
-        color: root.hovered ? Theme.surfaceRaised : "transparent"
+        color: root.down ? Theme.pressed : root.hovered ? Theme.surfaceRaised : "transparent"
 
         Rectangle {
             anchors.left: parent.left
@@ -78,21 +80,38 @@ ItemDelegate {
     Menu {
         id: contextMenu
 
-        MenuItem {
+        padding: 4
+
+        background: Rectangle {
+            implicitWidth: 188
+            color: Theme.surfaceRaised
+            border.color: Theme.border
+            radius: Theme.radius
+        }
+
+        HubMenuItem {
             text: "Open"
             enabled: !root.missing
             onTriggered: HubController.openProject(root.path)
         }
 
-        MenuItem {
+        HubMenuItem {
             text: "Show in Folder"
             enabled: !root.missing
             onTriggered: HubController.showInFolder(root.path)
         }
 
-        MenuSeparator {}
+        MenuSeparator {
+            topPadding: 4
+            bottomPadding: 4
 
-        MenuItem {
+            contentItem: Rectangle {
+                implicitHeight: 1
+                color: Theme.border
+            }
+        }
+
+        HubMenuItem {
             text: "Remove from List"
             onTriggered: HubController.removeFromList(root.path)
         }
