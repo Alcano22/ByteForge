@@ -74,3 +74,5 @@ if(WIN32)
         VERBATIM
     )
 endif()
+
+byteforge_deploy_runtime(Hub)
