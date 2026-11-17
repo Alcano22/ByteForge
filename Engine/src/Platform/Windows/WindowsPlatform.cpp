@@ -87,7 +87,7 @@ namespace ByteForge
         if (m_Handle == nullptr)
         {
             throw Error("Platform: cannot load '{}' (error {})",
-                                                 ToUtf8(path), GetLastError());
+                        ToUtf8(path), GetLastError());
         }
     }
 

@@ -21,8 +21,8 @@ namespace ByteForge
     {
         if (!m_StreamingBuffer)
         {
-            throw Error("VertexBuffer::SetData: this buffer was created with initial data and is "
-                                     "immutable, use VertexBuffer::Create(size) for per-frame data");
+            throw LogicError("VertexBuffer::SetData: this buffer was created with initial data and is "
+                             "immutable, use VertexBuffer::Create(size) for per-frame data");
         }
 
         m_StreamingBuffer->SetData(data, size, offset);
@@ -36,9 +36,9 @@ namespace ByteForge
 
         if (m_LastWriteFrame != VulkanContext::Get().GetFrameData().GetFrameNumber())
         {
-            throw Error("VertexBuffer: a per-frame buffer was drawn in a frame in which SetData was "
-                                     "not called; upload its data every frame, or create it with initial data "
-                                     "for static geometry");
+            throw LogicError("VertexBuffer: a per-frame buffer was drawn in a frame in which SetData was "
+                             "not called; upload its data every frame, or create it with initial data "
+                             "for static geometry");
         }
 
         return m_StreamingBuffer->GetCurrentHandle();

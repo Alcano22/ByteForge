@@ -63,10 +63,10 @@ namespace ByteForge
     void VulkanBuffer::SetData(const void* data, const usize size, const usize offset) const
     {
         if (m_MappedData == nullptr)
-            throw Error("VulkanBuffer::SetData: buffer is not host-visible, use VulkanUploader");
+            throw LogicError("VulkanBuffer::SetData: buffer is not host-visible, use VulkanUploader");
 
         if (offset > m_Size || size > m_Size - offset)
-            throw Error("VulkanBuffer::SetData: write exceeds buffer bounds");
+            throw LogicError("VulkanBuffer::SetData: write exceeds buffer bounds");
 
         std::memcpy(static_cast<char*>(m_MappedData) + offset, data, size);
 
@@ -76,10 +76,10 @@ namespace ByteForge
     void VulkanBuffer::GetData(void* data, const usize size, const usize offset) const
     {
         if (m_MappedData == nullptr)
-            throw Error("VulkanBuffer::GetData: buffer is not host-visible");
+            throw LogicError("VulkanBuffer::GetData: buffer is not host-visible");
 
         if (offset > m_Size || size > m_Size - offset)
-            throw Error("VulkanBuffer::GetData: read exceeds buffer bounds");
+            throw LogicError("VulkanBuffer::GetData: read exceeds buffer bounds");
 
         VK_CHECK(vmaInvalidateAllocation(m_Allocator.GetHandle(), m_Allocation, offset, size));
         std::memcpy(data, static_cast<const char*>(m_MappedData) + offset, size);

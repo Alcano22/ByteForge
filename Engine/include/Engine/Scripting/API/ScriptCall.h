@@ -48,7 +48,7 @@ namespace ByteForge
             T* component = Resolve(entity).TryGetComponent<T>();
             if (component == nullptr)
                 throw ScriptError("Entity {} has no {}", static_cast<u64>(entity.Id),
-                                              entt::type_name<T>::value());
+                                  entt::type_name<T>::value());
             return *component;
         }
     };

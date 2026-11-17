@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Engine/Assets/TextureAsset.h"
+#include "Engine/Core/Error.h"
 
 #include <glm/glm.hpp>
 
-#include <stdexcept>
 #include <utility>
 
 namespace ByteForge
@@ -17,7 +17,7 @@ namespace ByteForge
             : m_Texture(std::move(texture)), m_UVMin(uvMin), m_UVMax(uvMax)
         {
             if (!m_Texture)
-                throw Error("Sprite: the texture asset must not be null");
+                throw LogicError("Sprite: the texture asset must not be null");
         }
 
         [[nodiscard]] const Ref<TextureAsset>& GetTextureAsset() const { return m_Texture; }

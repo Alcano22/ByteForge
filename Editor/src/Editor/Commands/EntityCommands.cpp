@@ -30,7 +30,7 @@ namespace ByteForge
         {
             const Entity entity = scene.FindEntityByUUID(id);
             if (!entity.IsValid())
-                throw Error("Entity {} no longer exists", static_cast<u64>(id));
+                throw LogicError("Entity {} no longer exists", static_cast<u64>(id));
 
             return entity;
         }
@@ -39,8 +39,8 @@ namespace ByteForge
         {
             if (scene.FindEntityByUUID(RootUuidOf(subtree)).IsValid())
             {
-                throw Error("Entity {} already exists",
-                                                     static_cast<u64>(RootUuidOf(subtree)));
+                throw LogicError("Entity {} already exists",
+                                 static_cast<u64>(RootUuidOf(subtree)));
             }
 
             SceneSerializer::DeserializeSubtree(scene, subtree);

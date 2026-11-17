@@ -145,7 +145,7 @@ namespace ByteForge
     {
         const Ref<Texture2D>& texture = m_Icons.at(static_cast<usize>(icon));
         if (!texture)
-            throw Error("EditorIcons::Get: icons are not loaded, call Load first");
+            throw LogicError("EditorIcons::Get: icons are not loaded, call Load first");
 
         return texture;
     }

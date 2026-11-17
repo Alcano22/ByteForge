@@ -11,11 +11,11 @@ namespace ByteForge
                                           const f32 nearPlane, const f32 farPlane)
     {
         if (verticalFov <= 0.0f || verticalFov >= glm::pi<f32>())
-            throw Error("PerspectiveCamera: the field of view must be between 0 and pi radians");
+            throw LogicError("PerspectiveCamera: the field of view must be between 0 and pi radians");
         if (aspectRatio <= 0.0f)
-            throw Error("PerspectiveCamera: the aspect ratio must be greater than zero");
+            throw LogicError("PerspectiveCamera: the aspect ratio must be greater than zero");
         if (nearPlane <= 0.0f || farPlane <= nearPlane)
-            throw Error("PerspectiveCamera: expected 0 < near plane < far plane");
+            throw LogicError("PerspectiveCamera: expected 0 < near plane < far plane");
 
         m_VerticalFov = verticalFov;
         m_AspectRatio = aspectRatio;

@@ -82,7 +82,7 @@ namespace ByteForge
                 const ScriptFunction& function = ScriptAPI::Get().GetFunction(index);
                 if (argumentCount < 0 || static_cast<usize>(argumentCount) != function.Parameters.size())
                     throw ScriptError("{} expects {} argument(s), got {}",
-                                                  function.Id, function.Parameters.size(), argumentCount);
+                                      function.Id, function.Parameters.size(), argumentCount);
 
                 const auto* slots = static_cast<const std::byte*>(arguments);
                 std::vector<ScriptValue> values;

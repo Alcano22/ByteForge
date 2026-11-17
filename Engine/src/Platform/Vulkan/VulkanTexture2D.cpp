@@ -18,17 +18,17 @@ namespace ByteForge
         : m_Width(width), m_Height(height), m_Filter(settings.Filter)
     {
         if (width == 0 || height == 0)
-            throw Error("Texture2D: width and height must be greater than zero");
+            throw LogicError("Texture2D: width and height must be greater than zero");
 
         if (settings.Format != ImageFormat::RGBA8_SRGB && settings.Format != ImageFormat::RGBA8_UNORM)
-            throw Error("Texture2D: only RGBA8_SRGB and RGBA8_UNORM are supported for now");
+            throw LogicError("Texture2D: only RGBA8_SRGB and RGBA8_UNORM are supported for now");
 
         constexpr usize bytesPerPixel = 4;
         const usize expectedSize = static_cast<usize>(width) * height * bytesPerPixel;
         if (pixels.size() != expectedSize)
         {
-            throw Error("Texture2D: {}x{} RGBA8 needs {} bytes of pixel data, got {}",
-                        width, height, expectedSize, pixels.size());
+            throw LogicError("Texture2D: {}x{} RGBA8 needs {} bytes of pixel data, got {}",
+                             width, height, expectedSize, pixels.size());
         }
 
         VulkanContext& context = VulkanContext::Get();

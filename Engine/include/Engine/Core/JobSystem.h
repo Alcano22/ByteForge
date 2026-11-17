@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Core/Error.h"
 
 #include <condition_variable>
 #include <functional>
@@ -8,7 +9,6 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <stdexcept>
 #include <thread>
 #include <type_traits>
 #include <vector>
@@ -32,7 +32,7 @@ namespace ByteForge
             {
                 std::scoped_lock lock(s_Mutex);
                 if (s_Stop || s_Workers.empty())
-                    throw Error("JobSystem: cannot submit, the pool is not running");
+                    throw LogicError("JobSystem: cannot submit, the pool is not running");
 
                 s_Tasks.emplace([task] { (*task)(); });
             }

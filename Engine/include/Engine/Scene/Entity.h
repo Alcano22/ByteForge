@@ -1,11 +1,11 @@
 #pragma once
 
+#include "Engine/Core/Error.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Scene.h"
 
 #include <entt/entt.hpp>
 
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -22,7 +22,7 @@ namespace ByteForge
         T& AddComponent(Args&&... args) const
         {
             if (HasComponent<T>())
-                throw Error("Entity::AddComponent: this entity already has this component type");
+                throw LogicError("Entity::AddComponent: this entity already has this component type");
 
             return m_Scene->m_Registry.emplace<T>(m_Handle, std::forward<Args>(args)...);
         }
@@ -31,7 +31,7 @@ namespace ByteForge
         [[nodiscard]] T& GetComponent() const
         {
             if (!HasComponent<T>())
-                throw Error("Entity::GetComponent: this entity does not have this component type");
+                throw LogicError("Entity::GetComponent: this entity does not have this component type");
 
             return m_Scene->m_Registry.get<T>(m_Handle);
         }
@@ -52,7 +52,7 @@ namespace ByteForge
         void RemoveComponent() const
         {
             if (!HasComponent<T>())
-                throw Error("Entity::RemoveComponent: this entity does not have this component type");
+                throw LogicError("Entity::RemoveComponent: this entity does not have this component type");
 
             m_Scene->m_Registry.remove<T>(m_Handle);
         }
@@ -106,7 +106,7 @@ namespace ByteForge
         void RequireValid(const char* method) const
         {
             if (!IsValid())
-                throw Error("Entity::{}: the entity is not valid", method);
+                throw LogicError("Entity::{}: the entity is not valid", method);
         }
 
     private:

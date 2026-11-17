@@ -49,7 +49,7 @@ namespace ByteForge
     {
         ImFont* result = m_Fonts.at(static_cast<usize>(font));
         if (result == nullptr)
-            throw Error("EditorFonts::Get: fonts are not loaded, call Load first");
+            throw LogicError("EditorFonts::Get: fonts are not loaded, call Load first");
 
         return result;
     }

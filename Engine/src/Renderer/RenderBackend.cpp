@@ -9,7 +9,7 @@ namespace ByteForge
     RenderBackend& RenderBackend::Get()
     {
         if (s_Active == nullptr)
-            throw Error("RenderBackend: no graphics context is initialized");
+            throw LogicError("RenderBackend: no graphics context is initialized");
 
         return *s_Active;
     }

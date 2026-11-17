@@ -15,7 +15,7 @@ namespace ByteForge
     void NativeScripts::RegisterFactory(std::string className, Factory factory)
     {
         if (className.empty() || !factory)
-            throw Error("NativeScripts::Register: the class name and factory must not be empty");
+            throw LogicError("NativeScripts::Register: the class name and factory must not be empty");
 
         NativeScriptFactories& factories = GetNativeScriptFactories();
         if (factories.contains(className))

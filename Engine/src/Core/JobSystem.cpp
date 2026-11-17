@@ -15,7 +15,7 @@ namespace ByteForge
     void JobSystem::Init(u32 threadCount)
     {
         if (!s_Workers.empty())
-            throw Error("JobSystem: already initialized");
+            throw LogicError("JobSystem: already initialized");
 
         if (threadCount == 0)
             threadCount = std::max(2u, std::thread::hardware_concurrency()) - 1;

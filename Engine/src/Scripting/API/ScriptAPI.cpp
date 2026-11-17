@@ -47,7 +47,7 @@ namespace ByteForge
     {
         if (arguments.size() != function.Parameters.size())
             throw ScriptError("{} expects {} argument(s), got {}",
-                                          function.Id, function.Parameters.size(), arguments.size());
+                              function.Id, function.Parameters.size(), arguments.size());
 
         for (usize i = 0; i < arguments.size(); ++i)
         {
@@ -59,7 +59,7 @@ namespace ByteForge
 
             if (!matches)
                 throw ScriptError("{}: argument '{}' must be {}",
-                                              function.Id, parameter.Name, DescribeType(parameter));
+                                  function.Id, parameter.Name, DescribeType(parameter));
         }
     }
 

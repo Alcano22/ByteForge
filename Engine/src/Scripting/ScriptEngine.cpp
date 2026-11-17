@@ -18,7 +18,7 @@ namespace ByteForge
     ScriptEngine::ScriptEngine()
     {
         if (s_Instance != nullptr)
-            throw Error("ScriptEngine: only one instance may exist");
+            throw LogicError("ScriptEngine: only one instance may exist");
 
         s_Instance = this;
         RegisterBackend(MakeScope<NativeScriptBackend>());
@@ -35,7 +35,7 @@ namespace ByteForge
     ScriptEngine& ScriptEngine::Get()
     {
         if (s_Instance == nullptr)
-            throw Error("ScriptEngine: no instance exists, it is created by the Application");
+            throw LogicError("ScriptEngine: no instance exists, it is created by the Application");
 
         return *s_Instance;
     }
@@ -43,7 +43,7 @@ namespace ByteForge
     void ScriptEngine::RegisterBackend(Scope<ScriptBackend> backend)
     {
         if (!backend)
-            throw Error("ScriptEngine::RegisterBackend: the backend must not be null");
+            throw LogicError("ScriptEngine::RegisterBackend: the backend must not be null");
 
         CORE_INFO("Script backend '{}' registered", backend->GetName());
         m_Backends.push_back(std::move(backend));

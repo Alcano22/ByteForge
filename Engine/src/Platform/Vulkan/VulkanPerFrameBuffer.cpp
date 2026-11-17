@@ -19,8 +19,8 @@ namespace ByteForge
         const VulkanContext& context = VulkanContext::Get();
         if (!context.IsInFrame())
         {
-            throw Error("Per-frame buffers can only be written between Renderer::BeginFrame and "
-                                     "Renderer::EndFrame (e.g. in Layer::OnUpdate)");
+            throw LogicError("Per-frame buffers can only be written between Renderer::BeginFrame and "
+                             "Renderer::EndFrame (e.g. in Layer::OnUpdate)");
         }
 
         m_Buffers[context.GetCurrentFrameIndex()]->SetData(data, size, offset);

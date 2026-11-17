@@ -63,7 +63,7 @@ namespace ByteForge::ManagedValue
                 return text != nullptr && length > 0 ? std::string(text, static_cast<usize>(length)) : std::string();
             }
         }
-        throw Error("Unknown script value type");
+        throw LogicError("Unknown script value type");
     }
 
     ScriptValue ReadField(const ScriptFieldType type, const void* slot)

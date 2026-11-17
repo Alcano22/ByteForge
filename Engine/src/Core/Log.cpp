@@ -130,7 +130,7 @@ namespace ByteForge
     LogSubscription Log::Subscribe(LogCallback callback, const bool replayHistory)
     {
         if (!callback)
-            throw Error("Log::Subscribe: the callback must not be empty");
+            throw LogicError("Log::Subscribe: the callback must not be empty");
 
         LogState& state = GetState();
         const std::lock_guard lock(state.Mutex);

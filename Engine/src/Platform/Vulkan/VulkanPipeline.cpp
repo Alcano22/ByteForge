@@ -30,7 +30,7 @@ namespace ByteForge
                 case PrimitiveTopology::LineList:      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
             }
 
-            throw Error("Unknown PrimitiveTopology");
+            throw LogicError("Unknown PrimitiveTopology");
         }
 
         VkCullModeFlags ToVk(const CullMode cullMode)
@@ -42,7 +42,7 @@ namespace ByteForge
                 case CullMode::Back:  return VK_CULL_MODE_BACK_BIT;
             }
 
-            throw Error("Unknown CullMode");
+            throw LogicError("Unknown CullMode");
         }
 
         VkFrontFace ToVk(const FrontFace frontFace)
@@ -53,7 +53,7 @@ namespace ByteForge
                 case FrontFace::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
             }
 
-            throw Error("Unknown FrontFace");
+            throw LogicError("Unknown FrontFace");
         }
 
         VkCompareOp ToVk(const CompareOp compareOp)
@@ -65,7 +65,7 @@ namespace ByteForge
                 case CompareOp::Always:      return VK_COMPARE_OP_ALWAYS;
             }
 
-            throw Error("Unknown CompareOp");
+            throw LogicError("Unknown CompareOp");
         }
 
         VkPipelineColorBlendAttachmentState ToVkBlendAttachment(const BlendMode blendMode, const bool writeEnabled)
@@ -93,7 +93,7 @@ namespace ByteForge
                     };
             }
 
-            throw Error("Unknown BlendMode");
+            throw LogicError("Unknown BlendMode");
         }
 
         const char* DescriptorTypeName(const VkDescriptorType type)
@@ -196,7 +196,7 @@ namespace ByteForge
         : m_Device(VulkanContext::Get().GetDevice())
     {
         if (!spec.Shader)
-            throw Error("PipelineSpec::Shader must not be null");
+            throw LogicError("PipelineSpec::Shader must not be null");
 
         const auto& shader = static_cast<const VulkanShaderProgram&>(*spec.Shader);
         const ShaderReflection& reflection = shader.GetReflection();
@@ -249,14 +249,14 @@ namespace ByteForge
     void VulkanPipeline::CreatePipelineLayout(const ReflectedPushConstants& pushConstants)
     {
         if ((pushConstants.Size > 0) != (pushConstants.Stages != 0))
-            throw Error("Push constant size and stage flags must be specified together");
+            throw LogicError("Push constant size and stage flags must be specified together");
 
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(m_Device.GetPhysicalDevice(), &deviceProperties);
         if (pushConstants.Size > deviceProperties.limits.maxPushConstantsSize)
         {
             throw Error("Push constant block is {} bytes, but the device supports only {}",
-                                                 pushConstants.Size, deviceProperties.limits.maxPushConstantsSize);
+                        pushConstants.Size, deviceProperties.limits.maxPushConstantsSize);
         }
 
         const bool hasPushConstants = pushConstants.Size > 0;
@@ -289,8 +289,8 @@ namespace ByteForge
     {
         if (spec.ColorAttachments.empty())
         {
-            throw Error("PipelineSpec::ColorAttachments must not be empty "
-                                     "(depth-only pipelines are not supported yet)");
+            throw LogicError("PipelineSpec::ColorAttachments must not be empty "
+                             "(depth-only pipelines are not supported yet)");
         }
 
         m_ColorFormats.clear();
@@ -304,10 +304,10 @@ namespace ByteForge
                                   : ImageFormatToVk(attachment.Format);
 
             if (format == VK_FORMAT_UNDEFINED)
-                throw Error("PipelineSpec: color attachment formats must not be None");
+                throw LogicError("PipelineSpec: color attachment formats must not be None");
 
             if (IsIntegerFormat(format) && attachment.Blend != BlendMode::None)
-                throw Error("PipelineSpec: integer color attachments cannot be blended");
+                throw LogicError("PipelineSpec: integer color attachments cannot be blended");
 
             m_ColorFormats.push_back(format);
             blendAttachments.push_back(ToVkBlendAttachment(attachment.Blend, attachment.WriteEnabled));
@@ -316,7 +316,7 @@ namespace ByteForge
         m_DepthFormat = ImageFormatToVk(spec.DepthFormat);
 
         if ((spec.DepthTest || spec.DepthWrite) && m_DepthFormat == VK_FORMAT_UNDEFINED)
-            throw Error("PipelineSpec: depth test or depth write requires a DepthFormat");
+            throw LogicError("PipelineSpec: depth test or depth write requires a DepthFormat");
 
         const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{
             VkPipelineShaderStageCreateInfo{

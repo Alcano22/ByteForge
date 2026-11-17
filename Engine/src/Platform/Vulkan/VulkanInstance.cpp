@@ -167,7 +167,7 @@ namespace ByteForge
 
         if (!glfwExtensions)
             throw Error("GLFW reports no Vulkan surface support - "
-                                     "check the Vulkan loader's WSI extensions");
+                        "check the Vulkan loader's WSI extensions");
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 

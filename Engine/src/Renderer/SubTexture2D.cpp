@@ -9,12 +9,12 @@ namespace ByteForge
         : m_Texture(std::move(texture)), m_UVMin(uvMin), m_UVMax(uvMax)
     {
         if (!m_Texture)
-            throw Error("SubTexture2D: the texture must not be null");
+            throw LogicError("SubTexture2D: the texture must not be null");
 
         if (uvMin.x >= uvMax.x || uvMin.y >= uvMax.y)
         {
-            throw Error("SubTexture2D: the UV rect [{}, {}] x [{}, {}] is empty or inverted",
-                        uvMin.x, uvMax.x, uvMin.y, uvMax.y);
+            throw LogicError("SubTexture2D: the UV rect [{}, {}] x [{}, {}] is empty or inverted",
+                             uvMin.x, uvMax.x, uvMin.y, uvMax.y);
         }
     }
 
@@ -27,15 +27,15 @@ namespace ByteForge
                                                      const glm::vec2& pixelMin, const glm::vec2& pixelMax)
     {
         if (!texture)
-            throw Error("SubTexture2D::CreateFromPixels: the texture must not be null");
+            throw LogicError("SubTexture2D::CreateFromPixels: the texture must not be null");
 
         const auto width = static_cast<f32>(texture->GetWidth());
         const auto height = static_cast<f32>(texture->GetHeight());
 
         if (pixelMin.x < 0.0f || pixelMin.y < 0.0f || pixelMax.x > width || pixelMax.y > height)
         {
-            throw Error("SubTexture2D::CreateFromPixels: the rect [{}, {}] x [{}, {}] exceeds the {}x{} texture",
-                        pixelMin.x, pixelMax.x, pixelMin.y, pixelMax.y, texture->GetWidth(), texture->GetHeight());
+            throw LogicError("SubTexture2D::CreateFromPixels: the rect [{}, {}] x [{}, {}] exceeds the {}x{} texture",
+                             pixelMin.x, pixelMax.x, pixelMin.y, pixelMax.y, texture->GetWidth(), texture->GetHeight());
         }
 
         return MakeRef<SubTexture2D>(texture, pixelMin / glm::vec2(width, height),
@@ -45,14 +45,17 @@ namespace ByteForge
     Ref<SubTexture2D> SubTexture2D::CreateFromGrid(const Ref<Texture2D>& texture, const glm::vec2& cellSize,
                                                    const glm::vec2& coords, const glm::vec2& spriteSize)
     {
+        if (!texture)
+            throw LogicError("SubTexture2D::CreateFromGrid: the texture must not be null");
+
         if (cellSize.x <= 0.0f || cellSize.y <= 0.0f)
-            throw Error("SubTexture2D::CreateFromGrid: cellSize must be greater than zero");
+            throw LogicError("SubTexture2D::CreateFromGrid: cellSize must be greater than zero");
 
         if (coords.x < 0.0f || coords.y < 0.0f)
-            throw Error("SubTexture2D::CreateFromGrid: coords must not be negative");
+            throw LogicError("SubTexture2D::CreateFromGrid: coords must not be negative");
 
         if (spriteSize.x <= 0.0f || spriteSize.y <= 0.0f)
-            throw Error("SubTexture2D::CreateFromGrid: spriteSize must be greater than zero");
+            throw LogicError("SubTexture2D::CreateFromGrid: spriteSize must be greater than zero");
 
         const glm::vec2 pixelMin = coords * cellSize;
         const glm::vec2 pixelMax = pixelMin + spriteSize * cellSize;
@@ -60,11 +63,11 @@ namespace ByteForge
         try
         {
             return CreateFromPixels(texture, pixelMin, pixelMax);
-        } catch (const std::runtime_error&)
+        } catch (const LogicError&)
         {
-            throw Error("SubTexture2D::CreateFromGrid: cell ({}, {}) with size ({}, {}) "
-                        "cells exceeds the {}x{} texture", coords.x, coords.y,
-                        spriteSize.x, spriteSize.y, texture->GetWidth(), texture->GetHeight());
+            throw LogicError("SubTexture2D::CreateFromGrid: cell ({}, {}) with size ({}, {}) "
+                             "cells exceeds the {}x{} texture", coords.x, coords.y,
+                             spriteSize.x, spriteSize.y, texture->GetWidth(), texture->GetHeight());
         }
     }
 }

@@ -26,7 +26,7 @@ namespace ByteForge
         if ((formatProps.optimalTilingFeatures & requiredFeatures) != requiredFeatures)
         {
             throw Error("Format {} is not supported for the requested image usage "
-                                                 "on this GPU", VkFormatToString(spec.Format));
+                        "on this GPU", VkFormatToString(spec.Format));
         }
 
         const bool hasAlternateView = spec.AlternateViewFormat != VK_FORMAT_UNDEFINED;

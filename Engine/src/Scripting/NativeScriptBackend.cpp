@@ -61,7 +61,7 @@ namespace ByteForge
 
         Scope<ScriptableEntity> script = it->second();
         if (!script)
-            throw Error("The factory of native script '{}' returned null", className);
+            throw LogicError("The factory of native script '{}' returned null", className);
 
         return MakeScope<NativeScriptInstance>(std::move(script), entity);
     }

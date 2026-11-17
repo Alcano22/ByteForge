@@ -23,8 +23,8 @@ namespace ByteForge
     {
         if (count == 0 || count > SetsPerPool)
         {
-            throw Error("Cannot allocate {} descriptor sets at once (maximum is {})",
-                                                 count, SetsPerPool);
+            throw LogicError("Cannot allocate {} descriptor sets at once (maximum is {})",
+                             count, SetsPerPool);
         }
 
         std::vector<VkDescriptorSet> sets(count);

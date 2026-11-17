@@ -126,7 +126,7 @@ namespace ByteForge
         if (m_EntityByUUID.contains(uuid))
         {
             throw Error("Scene::CreateEntityWithUUID: an entity with UUID {} already exists",
-                                                 static_cast<u64>(uuid));
+                        static_cast<u64>(uuid));
         }
 
         const Entity entity(m_Registry.create(), this);
@@ -174,7 +174,7 @@ namespace ByteForge
     Entity Scene::DuplicateEntity(const Entity source)
     {
         if (!source.IsValid() || source.m_Scene != this)
-            throw Error("Scene::DuplicateEntity: the entity does not belong to this scene");
+            throw LogicError("Scene::DuplicateEntity: the entity does not belong to this scene");
 
         const Entity copy = CopySubtree(source);
         if (const Entity parent = GetParent(source); parent.IsValid())
@@ -186,7 +186,7 @@ namespace ByteForge
     Entity Scene::CopySubtree(const Entity source)
     {
         if (!source.IsValid())
-            throw Error("Scene::CopySubtree: the source entity is not valid");
+            throw LogicError("Scene::CopySubtree: the source entity is not valid");
 
         std::unordered_map<UUID, UUID> remap;
         const Entity copy = CopyEntityTree(source, remap);
@@ -243,15 +243,15 @@ namespace ByteForge
     void Scene::SetParent(const Entity child, const Entity parent, const bool keepWorldTransform, const i32 index)
     {
         if (!child.IsValid() || child.m_Scene != this)
-            throw Error("Scene::SetParent: the child does not belong to this scene");
+            throw LogicError("Scene::SetParent: the child does not belong to this scene");
 
         if (parent.IsValid())
         {
             if (parent.m_Scene != this)
-                throw Error("Scene::SetParent: the parent does not belong to this scene");
+                throw LogicError("Scene::SetParent: the parent does not belong to this scene");
 
             if (parent == child || IsDescendantOf(parent, child))
-                throw Error("Scene::SetParent: the new parent is the entity itself or one of its descendants");
+                throw LogicError("Scene::SetParent: the new parent is the entity itself or one of its descendants");
         }
 
         const TransformComponent world = GetWorldTransform(child);

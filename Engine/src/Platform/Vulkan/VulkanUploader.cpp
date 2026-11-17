@@ -49,7 +49,7 @@ namespace ByteForge
         if (size == 0) return;
 
         if (offset > destination.GetSize() || size > destination.GetSize() - offset)
-            throw Error("VulkanUploader::UploadBuffer: write exceeds buffer bounds");
+            throw LogicError("VulkanUploader::UploadBuffer: write exceeds buffer bounds");
 
         const VulkanBuffer staging(m_Allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
         staging.SetData(data, size);

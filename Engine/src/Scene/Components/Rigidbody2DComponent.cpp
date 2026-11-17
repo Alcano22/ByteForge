@@ -36,8 +36,8 @@ namespace ByteForge
     {
         if (m_RuntimeBodyId != 0) return;
 
-        throw Error("Rigidbody2DComponent::{}: the physics body does not exist yet "
-                                             "(it is created the first time the entity's Scene runs OnUpdate)", method);
+        throw LogicError("Rigidbody2DComponent::{}: the physics body does not exist yet "
+                         "(it is created the first time the entity's Scene runs OnUpdate)", method);
     }
 
     glm::vec2 Rigidbody2DComponent::GetLinearVelocity() const

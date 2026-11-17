@@ -126,7 +126,7 @@ namespace ByteForge
             if (index < 0 || static_cast<usize>(index) >= children.size())
             {
                 throw ScriptError("Child index {} is out of range (the entity has {} children)",
-                                              index, children.size());
+                                  index, children.size());
             }
 
             return EntityRef{ children[static_cast<usize>(index)].GetUUID() };
@@ -388,7 +388,7 @@ namespace ByteForge
             if (!context.Require<AnimatorComponent>(entity).Play(state, restart))
             {
                 throw ScriptError("Animator.Play: there is no state '{}' (or no controller is assigned)",
-                                              state);
+                                  state);
             }
         }
 

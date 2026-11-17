@@ -252,7 +252,7 @@ namespace ByteForge
     AudioEngine::AudioEngine()
     {
         if (s_Instance != nullptr)
-            throw Error("AudioEngine: only one instance may exist");
+            throw LogicError("AudioEngine: only one instance may exist");
 
         auto impl = MakeScope<Impl>();
 
@@ -308,7 +308,7 @@ namespace ByteForge
     AudioEngine& AudioEngine::Get()
     {
         if (s_Instance == nullptr)
-            throw Error("AudioEngine: no instance exists, it is created by the Application");
+            throw LogicError("AudioEngine: no instance exists, it is created by the Application");
 
         return *s_Instance;
     }

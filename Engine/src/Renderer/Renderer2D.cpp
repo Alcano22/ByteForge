@@ -36,8 +36,8 @@ namespace ByteForge
 
         if (spec.MaxQuads == 0 || spec.MaxQuads > MaxSupportedQuads)
         {
-            throw Error("Renderer2DSpec::MaxQuads must be between 1 and {}",
-                                                 MaxSupportedQuads);
+            throw LogicError("Renderer2DSpec::MaxQuads must be between 1 and {}",
+                             MaxSupportedQuads);
         }
 
         m_LinearizeColors = Renderer::IsSrgb(spec.ColorFormat);
@@ -71,7 +71,7 @@ namespace ByteForge
     void Renderer2D::BeginScene(const Camera& camera)
     {
         if (m_InScene)
-            throw Error("Renderer2D::BeginScene: the previous scene has not been ended with EndScene");
+            throw LogicError("Renderer2D::BeginScene: the previous scene has not been ended with EndScene");
 
         const u64 frame = Renderer::GetFrameNumber();
         if (frame != m_Frame)
@@ -92,7 +92,7 @@ namespace ByteForge
     void Renderer2D::EndScene()
     {
         if (!m_InScene)
-            throw Error("Renderer2D::EndScene: BeginScene has not been called");
+            throw LogicError("Renderer2D::EndScene: BeginScene has not been called");
 
         Flush();
 
@@ -115,7 +115,7 @@ namespace ByteForge
                               const Ref<SubTexture2D>& subTexture, const glm::vec4& tint)
     {
         if (!subTexture)
-            throw Error("Renderer2D::DrawQuad: the sub-texture must not be null");
+            throw LogicError("Renderer2D::DrawQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, 0.0f, subTexture->GetTexture(),
                    subTexture->GetUVMin(), subTexture->GetUVMax(), tint, 0);
@@ -144,7 +144,7 @@ namespace ByteForge
                                      const u32 entityId)
     {
         if (!subTexture)
-            throw Error("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
+            throw LogicError("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, rotation, subTexture->GetTexture(),
                    subTexture->GetUVMin(), subTexture->GetUVMax(), tint, entityId);
@@ -162,10 +162,10 @@ namespace ByteForge
                                 const glm::vec4& color, const u32 entityId)
     {
         if (!m_InScene)
-            throw Error("Renderer2D: quads can only be drawn between BeginScene and EndScene");
+            throw LogicError("Renderer2D: quads can only be drawn between BeginScene and EndScene");
 
         if (!texture)
-            throw Error("Renderer2D: the texture of a quad must not be null");
+            throw LogicError("Renderer2D: the texture of a quad must not be null");
 
         if (texture != m_CurrentTexture)
         {

@@ -20,7 +20,7 @@ namespace ByteForge
                 case ShaderStage::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             }
 
-            throw Error("Unknown ShaderStage");
+            throw LogicError("Unknown ShaderStage");
         }
 
         const char* FormatToString(const VkFormat format)

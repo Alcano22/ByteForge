@@ -16,7 +16,7 @@ namespace ByteForge
         static_assert(sizeof(Vertex) == 7 * sizeof(f32), "Vertex must be tightly packed to match the buffer layout");
 
         if (spec.MaxLines == 0)
-            throw Error("LineRendererSpec::MaxLines must be at least 1");
+            throw LogicError("LineRendererSpec::MaxLines must be at least 1");
 
         m_LinearizeColors = Renderer::IsSrgb(spec.ColorFormat);
 
@@ -51,7 +51,7 @@ namespace ByteForge
     void LineRenderer::BeginScene(const Camera& camera)
     {
         if (m_InScene)
-            throw Error("LineRenderer::BeginScene: the previous scene has not been ended with EndScene");
+            throw LogicError("LineRenderer::BeginScene: the previous scene has not been ended with EndScene");
 
         const u64 frame = Renderer::GetFrameNumber();
         if (frame != m_Frame)
@@ -68,7 +68,7 @@ namespace ByteForge
     void LineRenderer::EndScene()
     {
         if (!m_InScene)
-            throw Error("LineRenderer::EndScene: BeginScene has not been called");
+            throw LogicError("LineRenderer::EndScene: BeginScene has not been called");
 
         Flush();
         m_InScene = false;
@@ -77,12 +77,12 @@ namespace ByteForge
     void LineRenderer::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
     {
         if (!m_InScene)
-            throw Error("LineRenderer: lines can only be drawn between BeginScene and EndScene");
+            throw LogicError("LineRenderer: lines can only be drawn between BeginScene and EndScene");
 
         if (m_FrameLines == m_Spec.MaxLines)
         {
-            throw Error(std::format("LineRenderer: the budget of {} lines per frame is used up; "
-                                                 "raise LineRendererSpec::MaxLines", m_Spec.MaxLines));
+            throw Error("LineRenderer: the budget of {} lines per frame is used up; "
+                        "raise LineRendererSpec::MaxLines", m_Spec.MaxLines);
         }
 
         const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(color) : color;

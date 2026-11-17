@@ -12,12 +12,12 @@ namespace ByteForge
         const glm::vec3 offset = target - m_Position;
         const f32 distance = glm::length(offset);
         if (distance <= 0.0f)
-            throw Error("Camera::LookAt: the target must differ from the camera position");
+            throw LogicError("Camera::LookAt: the target must differ from the camera position");
 
         const glm::vec3 direction = offset / distance;
         const glm::vec3 upDirection = glm::normalize(up);
         if (std::abs(glm::dot(direction, upDirection)) > 0.9999f)
-            throw Error("Camera::LookAt: the view direction must not be parallel to the up vector");
+            throw LogicError("Camera::LookAt: the view direction must not be parallel to the up vector");
 
         SetOrientation(glm::quatLookAt(direction, upDirection));
     }

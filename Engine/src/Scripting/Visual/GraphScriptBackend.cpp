@@ -51,7 +51,7 @@ namespace ByteForge
 
         if (!graphClass->Program)
             throw Error("Script graph '{}' has errors: {}",
-                                                 graphClass->DisplayName, graphClass->Error);
+                        graphClass->DisplayName, graphClass->Error);
 
         return MakeScope<GraphScriptInstance>(graphClass->Program, entity);
     }

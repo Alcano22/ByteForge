@@ -186,7 +186,7 @@ namespace ByteForge
         {
             const std::string name = fromFile ? ToUtf8(source.Path.filename()) : std::string("<inline>");
             throw Error("Shader '{}' failed to compile its {} stage ({}):\n{}",
-                                                 name, StageName(stage), entryPoint, errorText);
+                        name, StageName(stage), entryPoint, errorText);
         }
 
         if (!errorText.empty())
