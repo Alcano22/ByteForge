@@ -4,10 +4,19 @@
 #include "Engine/Project/ProjectSettings.h"
 
 #include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace ByteForge
 {
+    struct ProjectCreateInfo
+    {
+        std::string Name;
+        fs::path Location;
+        fs::path TemplateDirectory;
+    };
+
     class BYTEFORGE_API Project
     {
     public:
@@ -15,6 +24,10 @@ namespace ByteForge
         static constexpr const char* StateDirectoryName = ".byteforge";
 
         [[nodiscard]] static Result<Project> Open(const fs::path& path);
+
+        [[nodiscard]] static Result<Project> Create(const ProjectCreateInfo& info);
+
+        [[nodiscard]] static std::optional<std::string> ValidateName(std::string_view name);
 
         [[nodiscard]] static bool IsProjectDirectory(const fs::path& directory);
 

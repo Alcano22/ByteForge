@@ -113,6 +113,19 @@ namespace ByteForge
         return Open(scene);
     }
 
+    bool SceneDocument::OpenStartScene()
+    {
+        const Result<ProjectSettings> settings = Project::GetActive().LoadSettings();
+        if (!settings || !settings->StartScene.IsSet())
+            return false;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(settings->StartScene, metadata))
+            return false;
+
+        return Open(settings->StartScene);
+    }
+
     bool SceneDocument::Save()
     {
         if (m_PrefabStage)

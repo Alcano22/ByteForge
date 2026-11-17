@@ -43,6 +43,7 @@ add_library(Engine SHARED
         src/Scene/Components/PrefabInstanceComponent.cpp
         src/Project/ProjectSettings.cpp
         src/Project/Project.cpp
+        src/Project/ProjectTemplate.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp

@@ -69,7 +69,7 @@ namespace ByteForge
 
         m_Context.ActiveScene = &m_Scene;
 
-        if (!m_Context.Document.OpenLast())
+        if (!m_Context.Document.OpenLast() && !m_Context.Document.OpenStartScene())
             m_Context.Document.New();
 
         m_Context.Open<GamePanel>();

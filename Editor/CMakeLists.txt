@@ -93,6 +93,11 @@ byteforge_copy_directory(Editor
 )
 
 byteforge_copy_directory(Editor
+        ${CMAKE_SOURCE_DIR}/Templates
+        ${CMAKE_CURRENT_BINARY_DIR}/templates
+)
+
+byteforge_copy_directory(Editor
         ${CMAKE_BINARY_DIR}/ScriptCore
         ${CMAKE_CURRENT_BINARY_DIR}/ScriptCore
         DEPENDS ScriptCore ${CMAKE_BINARY_DIR}/ScriptCore/ScriptCore.dll

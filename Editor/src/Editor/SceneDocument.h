@@ -22,9 +22,10 @@ namespace ByteForge
             : m_Context(context) {}
 
         void New();
-        bool Open(UUID scene);
 
+        bool Open(UUID scene);
         bool OpenLast();
+        bool OpenStartScene();
 
         bool Save();
         bool SaveAs(const fs::path& relativePath);
