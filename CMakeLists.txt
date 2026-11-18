@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 4.1)
-project(ByteForge VERSION 0.1.0 LANGUAGES CXX)
+project(ByteForge VERSION 0.2.0 LANGUAGES CXX)
+
+set(BYTEFORGE_VERSION_STRING ${PROJECT_VERSION})
+if(DEFINED ENV{BYTEFORGE_RELEASE_VERSION})
+    set(release_version "$ENV{BYTEFORGE_RELEASE_VERSION}")
+    string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" release_number "${release_version}")
+
+    if(NOT release_number STREQUAL PROJECT_VERSION)
+        message(FATAL_ERROR "The release is tagged ${release_version}, but CMakeLists.txt declares version "
+                            "${PROJECT_VERSION}. Update project(ByteForge VERSION ...) before tagging.")
+    endif()
+
+    set(BYTEFORGE_VERSION_STRING ${release_version})
+endif()
+message(STATUS "ByteForge ${BYTEFORGE_VERSION_STRING}")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
 
@@ -27,6 +28,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Read the release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: echo "BYTEFORGE_RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -89,6 +95,21 @@ jobs:
           if-no-files-found: error
           path: install-windows-release
 
+      - name: Package the editor
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          cmake --install build-windows-release --component Editor --prefix package-editor
+          7z a -tzip "ByteForge-Editor-${BYTEFORGE_RELEASE_VERSION}-windows-x64.zip" ./package-editor/*
+
+      - name: Upload the editor package
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Editor-windows-x64
+          if-no-files-found: error
+          path: ByteForge-Editor-*.zip
+
   linux:
     name: Linux (Clang, Fedora)
     runs-on: ubuntu-24.04
@@ -112,6 +133,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Read the release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: echo "BYTEFORGE_RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -165,3 +191,53 @@ jobs:
           name: ByteForge-Linux
           if-no-files-found: error
           path: ByteForge-Linux.tar.gz
+
+      - name: Package the editor
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          cmake --install build-release --component Editor --prefix package-editor
+          tar -czf "ByteForge-Editor-${BYTEFORGE_RELEASE_VERSION}-linux-x64.tar.gz" -C package-editor .
+
+      - name: Upload the editor package
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Editor-linux-x64
+          if-no-files-found: error
+          path: ByteForge-Editor-*.tar.gz
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ windows, linux ]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Download the editor packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ByteForge-Editor-*
+          path: dist
+          merge-multiple: true
+
+      - name: Write the manifest
+        run: python3 .github/scripts/make_manifest.py "${GITHUB_REF_NAME#v}" dist/manifest.json dist/ByteForge-Editor-*
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease="--prerelease"; fi
+
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "ByteForge ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            --verify-tag \
+            $prerelease
