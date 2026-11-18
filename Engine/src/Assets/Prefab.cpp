@@ -62,7 +62,12 @@ namespace ByteForge
 
         void LinkSubtree(const Entity entity, const UUID handle, const bool root)
         {
-            SetLink(entity, { .Prefab = handle, .Source = entity.GetUUID(), .Root = root });
+            SetLink(entity, {
+                .Prefab    = handle,
+                .Source    = entity.GetUUID(),
+                .Root      = root,
+                .Overrides = nlohmann::json::object()
+            });
 
             for (const Entity child : entity.GetChildren())
                 LinkSubtree(child, handle, false);

@@ -6,7 +6,9 @@ add_executable(ByteForgeTests
         src/Core/ErrorTests.cpp
         src/Core/Utf8Tests.cpp
         src/Scene/UUIDTests.cpp
+        src/Scene/SceneTests.cpp
         src/Assets/PakTests.cpp
+        src/Assets/PrefabTests.cpp
         src/Project/ProjectTests.cpp
         src/Project/RecentProjectsTests.cpp
 )
