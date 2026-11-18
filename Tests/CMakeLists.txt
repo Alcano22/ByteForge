@@ -4,6 +4,7 @@ add_executable(ByteForgeTests
         src/Main.cpp
         src/TestUtilities.cpp
         src/Core/ErrorTests.cpp
+        src/Core/SemanticVersionTests.cpp
         src/Core/Utf8Tests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
@@ -11,12 +12,14 @@ add_executable(ByteForgeTests
         src/Assets/PrefabTests.cpp
         src/Project/ProjectTests.cpp
         src/Project/RecentProjectsTests.cpp
+        src/Hub/EditorInstallsTests.cpp
 )
 
 target_include_directories(ByteForgeTests PRIVATE src)
 
 target_link_libraries(ByteForgeTests PRIVATE
         Engine
+        HubCore
         Catch2::Catch2
         ByteForgeWarnings
 )

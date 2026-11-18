@@ -1,8 +1,10 @@
 #pragma once
 
+#include "EditorListModel.h"
 #include "ProjectListModel.h"
 
 #include <Engine/Project/ProjectTemplate.h>
+#include <HubCore/EditorInstalls.h>
 
 #include <QObject>
 #include <QSortFilterProxyModel>
@@ -25,6 +27,8 @@ namespace ByteForge::Hub
         Q_PROPERTY(QString search READ search WRITE setSearch NOTIFY searchChanged)
         Q_PROPERTY(QString engineVersion READ engineVersion CONSTANT)
         Q_PROPERTY(QVariantList templates READ templates CONSTANT)
+        Q_PROPERTY(QAbstractItemModel* editors READ editors CONSTANT)
+        Q_PROPERTY(QString installsDirectory READ installsDirectory CONSTANT)
 
     public:
         explicit HubController(QObject* parent = nullptr);
@@ -38,6 +42,9 @@ namespace ByteForge::Hub
 
         [[nodiscard]] QVariantList templates() const { return m_TemplateItems; }
 
+        [[nodiscard]] QAbstractItemModel* editors() { return &m_EditorModel; }
+        [[nodiscard]] QString installsDirectory() const;
+
         Q_INVOKABLE void refresh();
 
         Q_INVOKABLE void openProject(const QString& path);
@@ -45,6 +52,9 @@ namespace ByteForge::Hub
         Q_INVOKABLE void addExistingProject(const QUrl& folder);
         Q_INVOKABLE void removeFromList(const QString& path);
         Q_INVOKABLE void showInFolder(const QString& path);
+
+        Q_INVOKABLE void removeEditor(const QString& path);
+        Q_INVOKABLE void openInstallsFolder();
 
         [[nodiscard]] Q_INVOKABLE QString suggestLocation() const;
         [[nodiscard]] Q_INVOKABLE QString suggestProjectName(const QString& location) const;
@@ -66,7 +76,8 @@ namespace ByteForge::Hub
     private:
         void reportError(const QString& message);
 
-        [[nodiscard]] static QString findEditor();
+        void reloadEditors();
+        [[nodiscard]] const EditorInstall* pickEditor() const;
 
     private:
         ProjectListModel m_Projects;
@@ -75,5 +86,9 @@ namespace ByteForge::Hub
 
         std::vector<ProjectTemplate> m_Templates;
         QVariantList m_TemplateItems;
+
+        fs::path m_InstallsDirectory;
+        std::vector<EditorInstall> m_Editors;
+        EditorListModel m_EditorModel;
     };
 }

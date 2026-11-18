@@ -24,6 +24,7 @@ add_library(Engine SHARED
         src/Core/Platform.cpp
         src/Core/FileSystem.cpp
         src/Core/Version.cpp
+        src/Core/SemanticVersion.cpp
         src/Core/RuntimePaths.cpp
         src/Input/Input.cpp
         src/Scene/UUID.cpp

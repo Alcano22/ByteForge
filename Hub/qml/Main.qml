@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import QtQuick.Layouts
 
 import ByteForge.Hub
@@ -73,61 +72,36 @@ ApplicationWindow {
                 color: Theme.textDim
             }
 
+            TabBar {
+                id: tabs
+
+                Layout.leftMargin: 24
+                Layout.fillHeight: true
+                spacing: 4
+                background: null
+
+                HubTab {
+                    text: "Projects"
+                }
+
+                HubTab {
+                    text: "Installs"
+                }
+            }
+
             Item {
                 Layout.fillWidth: true
             }
-
-            HubTextField {
-                Layout.preferredWidth: 240
-                placeholderText: "Search projects"
-                onTextChanged: HubController.search = text
-            }
-
-            HubButton {
-                text: "Add..."
-                onClicked: addDialog.open()
-            }
-
-            HubButton {
-                text: "New Project"
-                accent: true
-                onClicked: newProjectDialog.openFresh()
-            }
         }
     }
 
-    FolderDialog {
-        id: addDialog
-
-        title: "Add an existing project"
-        onAccepted: HubController.addExistingProject(selectedFolder)
-    }
-
-    NewProjectDialog {
-        id: newProjectDialog
-    }
-
-    ListView {
-        id: projectList
-
+    StackLayout {
         anchors.fill: parent
-        clip: true
-        model: HubController.projects
+        currentIndex: tabs.currentIndex
 
-        delegate: ProjectDelegate {
-            width: ListView.view.width
-        }
+        ProjectsPage {}
 
-        ScrollBar.vertical: ScrollBar {}
-    }
-
-    Label {
-        anchors.centerIn: parent
-        visible: projectList.count === 0
-        color: Theme.textDim
-        text: HubController.search !== ""
-            ? "No project matches \"" + HubController.search + "\""
-            : "No projects yet. Add an existing one or create a new project."
+        InstallsPage {}
     }
 
     Rectangle {

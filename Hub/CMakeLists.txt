@@ -17,16 +17,23 @@ qt_add_qml_module(Hub
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/ProjectsPage.qml
+        qml/InstallsPage.qml
         qml/NewProjectDialog.qml
+        qml/ConfirmDialog.qml
         qml/ProjectDelegate.qml
+        qml/EditorDelegate.qml
         qml/Theme.qml
         qml/HubButton.qml
         qml/HubTextField.qml
         qml/HubMenuItem.qml
+        qml/HubTab.qml
     SOURCES
         src/QtConversions.h
         src/ProjectListModel.h
         src/ProjectListModel.cpp
+        src/EditorListModel.h
+        src/EditorListModel.cpp
         src/HubController.h
         src/HubController.cpp
 )
@@ -37,6 +44,7 @@ target_compile_definitions(Hub PRIVATE QT_NO_KEYWORDS)
 
 target_link_libraries(Hub PRIVATE
         Engine
+        HubCore
         Qt6::Quick
         Qt6::QuickControls2
         ByteForgeWarnings

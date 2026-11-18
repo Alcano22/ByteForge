@@ -57,6 +57,7 @@ add_subdirectory(Engine)
 add_subdirectory(ScriptCore)
 add_subdirectory(Editor)
 add_subdirectory(Player)
+add_subdirectory(Hub/Core)
 
 if(BYTEFORGE_BUILD_HUB)
     add_subdirectory(Hub)
