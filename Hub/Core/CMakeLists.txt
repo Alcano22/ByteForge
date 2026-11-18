@@ -5,6 +5,7 @@ add_library(HubCore STATIC
         src/EditorReleases.cpp
         src/EditorManifest.cpp
         src/Archive.cpp
+        src/EditorChoice.cpp
 )
 
 target_include_directories(HubCore PUBLIC include)

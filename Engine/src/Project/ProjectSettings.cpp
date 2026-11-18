@@ -54,9 +54,11 @@ namespace ByteForge
 
     Result<> ProjectSettings::Save(const fs::path& file) const
     {
+        const std::string engineVersion = EngineVersion.empty() ? std::string(GetEngineVersion()) : EngineVersion;
+
         const nlohmann::json json{
             { "version",       FormatVersion                   },
-            { "engineVersion", std::string(GetEngineVersion()) },
+            { "engineVersion", engineVersion                   },
             { "name",          Name                            },
             { "startScene",    static_cast<u64>(StartScene)    },
             { "window", {

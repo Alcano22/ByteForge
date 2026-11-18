@@ -28,7 +28,7 @@ namespace ByteForge::Hub
             case VersionRole:     return ToQString(install.Version.ToString());
             case PathRole:        return QDir::toNativeSeparators(PathToQString(install.Directory));
             case DevelopmentRole: return install.Development;
-            case PreReleaseRole:  return install.Version.IsPreRelease();
+            case PreReleaseRole:  return install.Version.IsPreRelease() && !install.Development;
             default:              return {};
         }
     }

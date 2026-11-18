@@ -2,11 +2,14 @@
 #include "QtConversions.h"
 
 #include <Engine/Core/Log.h>
-#include <Engine/Core/Version.h>
 #include <Engine/Core/SemanticVersion.h>
+#include <Engine/Core/Version.h>
 #include <Engine/Core/FileLock.h>
 #include <Engine/Project/Project.h>
+#include <Engine/Project/ProjectSettings.h>
+#include <Engine/Project/ProjectTemplate.h>
 #include <Engine/Project/RecentProjects.h>
+#include <HubCore/EditorChoice.h>
 
 #include <QCoreApplication>
 #include <QDesktopServices>
@@ -20,7 +23,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <iterator>
+#include <optional>
 #include <system_error>
+#include <utility>
 
 namespace ByteForge::Hub
 {
@@ -33,29 +38,22 @@ namespace ByteForge::Hub
             return ToPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)) /
                    "ByteForge" / "Editors";
         }
+
+        std::string ReadProjectVersion(const Project& project)
+        {
+            const Result<ProjectSettings> settings = project.LoadSettings();
+            return settings ? settings->EngineVersion : std::string();
+        }
     }
 
     HubController::HubController(QObject* parent)
         : QObject(parent),
-          m_Templates(ProjectTemplate::FindAll(ProjectTemplate::GetBuiltInDirectory())),
           m_InstallsDirectory(QueryInstallsDirectory()),
           m_ReleaseFeed(QStringLiteral(BYTEFORGE_RELEASE_REPOSITORY))
     {
         m_Filtered.setSourceModel(&m_Projects);
         m_Filtered.setFilterRole(ProjectListModel::NameRole);
         m_Filtered.setFilterCaseSensitivity(Qt::CaseInsensitive);
-
-        for (const ProjectTemplate& projectTemplate : m_Templates)
-        {
-            m_TemplateItems.append(QVariantMap{
-                { QStringLiteral("id"),          ToQString(projectTemplate.Id)          },
-                { QStringLiteral("name"),        ToQString(projectTemplate.Name)        },
-                { QStringLiteral("description"), ToQString(projectTemplate.Description) }
-            });
-        }
-
-        if (m_Templates.empty())
-            APP_WARN("No project templates in '{}'", ToUtf8(ProjectTemplate::GetBuiltInDirectory()));
 
         EditorInstalls::RemoveLeftovers(m_InstallsDirectory);
 
@@ -168,6 +166,28 @@ namespace ByteForge::Hub
             m_Download->cancel();
     }
 
+    void HubController::installAndOpen(const QString& version, const QString& projectPath)
+    {
+        if (m_Download != nullptr)
+        {
+            reportError(QStringLiteral("ByteForge %1 is being installed, wait until it is done")
+                            .arg(installingVersion()));
+            return;
+        }
+
+        installEditor(version);
+
+        if (m_Download != nullptr)
+            m_OpenAfterInstall = projectPath;
+    }
+
+    bool HubController::isPublished(const QString& version) const
+    {
+        const std::optional<SemanticVersion> wanted = SemanticVersion::Parse(version.toStdString());
+        return wanted && std::ranges::find(m_ReleaseFeed.releases(), *wanted, &EditorRelease::Version) !=
+                         m_ReleaseFeed.releases().end();
+    }
+
     void HubController::openProject(const QString& path)
     {
         const Result<Project> project = Project::Open(ToPath(path));
@@ -178,32 +198,73 @@ namespace ByteForge::Hub
             return;
         }
 
+        if (!ensureNotOpen(*project))
+            return;
+
+        const std::optional<SemanticVersion> version = SemanticVersion::Parse(ReadProjectVersion(*project));
+
+        const EditorInstall* editor = version ? FindEditorFor(m_Editors, *version) : FindDefaultEditor(m_Editors);
+        if (editor != nullptr)
         {
-            const Result<Scope<FileLock>> lock = project->AcquireEditorLock();
-            if (!lock)
-            {
-                reportError(ToQString(lock.error()));
-                return;
-            }
+            launchEditor(*project, *editor);
+            return;
         }
 
-        const EditorInstall* editor = pickEditor();
-        if (editor == nullptr)
+        if (!version)
         {
             reportError(QStringLiteral("No editor is installed. Install one on the Installs page."));
             return;
         }
 
-        const QString executable = PathToQString(editor->GetExecutable());
-        if (!QFileInfo::exists(executable))
+        Q_EMIT editorMissing(path, ToQString(project->GetName()), ToQString(version->ToString()));
+    }
+
+    void HubController::openProjectWith(const QString& path, const QString& editorPath)
+    {
+        const Result<Project> project = Project::Open(ToPath(path));
+        if (!project)
         {
-            reportError(QStringLiteral("The editor was not found at %1").arg(QDir::toNativeSeparators(executable)));
+            reportError(QStringLiteral("Cannot open the project: %1").arg(ToQString(project.error())));
+            refresh();
+            return;
+        }
+
+        const EditorInstall* editor = findEditor(editorPath);
+        if (editor == nullptr)
+        {
+            reportError(QStringLiteral("%1 is not an installed editor").arg(editorPath));
             reloadEditors();
             return;
         }
 
-        if (!QProcess::startDetached(executable, { QStringLiteral("--project"), PathToQString(project->GetRoot()) }))
-            reportError(QStringLiteral("Cannot start the editor for '%1'").arg(ToQString(project->GetName())));
+        const std::string projectVersion = ReadProjectVersion(*project);
+        if (GetVersionChange(projectVersion, editor->Version) == VersionChange::Downgrade)
+        {
+            reportError(QStringLiteral("'%1' belongs to ByteForge %2 and cannot be opened with the older %3")
+                            .arg(ToQString(project->GetName()), ToQString(projectVersion),
+                                 ToQString(editor->Version.ToString())));
+            return;
+        }
+
+        if (!ensureNotOpen(*project)) return;
+
+        launchEditor(*project, *editor);
+    }
+
+    QString HubController::versionChange(const QString& projectVersion, const QString& editorVersion) const
+    {
+        const std::optional<SemanticVersion> editor = SemanticVersion::Parse(editorVersion.toStdString());
+        if (!editor)
+            return QStringLiteral("unknown");
+
+        switch (GetVersionChange(projectVersion.toStdString(), *editor))
+        {
+            case VersionChange::Same:      return QStringLiteral("same");
+            case VersionChange::Upgrade:   return QStringLiteral("upgrade");
+            case VersionChange::Downgrade: return QStringLiteral("downgrade");
+            case VersionChange::Unknown:   return QStringLiteral("unknown");
+        }
+        return QStringLiteral("unknown");
     }
 
     void HubController::addExistingProject(const QUrl& folder)
@@ -293,6 +354,8 @@ namespace ByteForge::Hub
         return base;
     }
 
+
+
     QString HubController::validateNewProject(const QString& name, const QString& location) const
     {
         if (const std::optional<std::string> invalid = Project::ValidateName(name.toStdString()))
@@ -313,9 +376,6 @@ namespace ByteForge::Hub
         if (fs::exists(target, error) && !(fs::is_directory(target, error) && fs::is_empty(target, error)))
             return QStringLiteral("'%1' already exists in this location").arg(name);
 
-        if (m_Templates.empty())
-            return QStringLiteral("No project templates were found next to the hub");
-
         return {};
     }
 
@@ -324,31 +384,62 @@ namespace ByteForge::Hub
         return QDir::toNativeSeparators(PathToQString(ToPath(location) / ToPath(name)));
     }
 
-    QString HubController::createProject(const QString& name, const QString& location, const QString& templateId)
+    QVariantList HubController::templatesFor(const QString& editorPath) const
+    {
+        QVariantList items;
+
+        const EditorInstall* editor = findEditor(editorPath);
+        if (editor == nullptr)
+            return items;
+
+        for (const ProjectTemplate& projectTemplate : ProjectTemplate::FindAll(editor->GetTemplateDirectory()))
+        {
+            items.append(QVariantMap{
+                { QStringLiteral("id"),          ToQString(projectTemplate.Id)          },
+                { QStringLiteral("name"),        ToQString(projectTemplate.Name)        },
+                { QStringLiteral("description"), ToQString(projectTemplate.Description) }
+            });
+        }
+
+        return items;
+    }
+
+    QString HubController::createProject(const QString& name, const QString& location,
+                                         const QString& templateId, const QString& editorPath)
     {
         if (QString problem = validateNewProject(name, location); !problem.isEmpty())
             return problem;
 
-        const auto projectTemplate = std::ranges::find(m_Templates, templateId.toStdString(), &ProjectTemplate::Id);
-        if (projectTemplate == m_Templates.end())
+        const EditorInstall* found = findEditor(editorPath);
+        if (found == nullptr)
+            return QStringLiteral("Choose an editor version");
+
+        const EditorInstall editor = *found;
+
+        const std::vector<ProjectTemplate> templates = ProjectTemplate::FindAll(editor.GetTemplateDirectory());
+        const auto projectTemplate = std::ranges::find(templates, templateId.toStdString(), &ProjectTemplate::Id);
+        if (projectTemplate == templates.end())
             return QStringLiteral("Choose a template");
 
         const Result<Project> project = Project::Create({
             .Name              = name.toStdString(),
             .Location          = ToPath(location),
-            .TemplateDirectory = projectTemplate->Directory
+            .TemplateDirectory = projectTemplate->Directory,
+            .EngineVersion     = editor.Version.ToString()
         });
 
         if (!project)
             return ToQString(project.error());
 
-        APP_INFO("Created project '{}' at '{}'", project->GetName(), ToUtf8(project->GetRoot()));
+        APP_INFO("Created project '{}' for ByteForge {} at '{}'", project->GetName(), editor.Version.ToString(),
+                 ToUtf8(project->GetRoot()));
 
         if (const Result<> added = RecentProjects::Touch(*project); !added)
             reportError(QStringLiteral("Cannot update the project list: %1").arg(ToQString(added.error())));
 
         refresh();
-        openProject(PathToQString(project->GetRoot()));
+
+        launchEditor(*project, editor);
         return {};
     }
 
@@ -385,19 +476,40 @@ namespace ByteForge::Hub
         updateReleaseModel();
     }
 
-    const EditorInstall* HubController::pickEditor() const
+    const EditorInstall* HubController::findEditor(const QString& path) const
     {
-        if (m_Editors.empty())
+        if (path.isEmpty())
             return nullptr;
 
-        if (m_Editors.front().Development)
-            return &m_Editors.front();
+        const auto editor = std::ranges::find(m_Editors, ToPath(path), &EditorInstall::Directory);
+        return editor != m_Editors.end() ? &*editor : nullptr;
+    }
 
-        const auto release = std::ranges::find_if(m_Editors, [](const EditorInstall& install)
+    bool HubController::ensureNotOpen(const Project& project)
+    {
+        const Result<Scope<FileLock>> lock = project.AcquireEditorLock();
+        if (lock)
+            return true;
+
+        reportError(ToQString(lock.error()));
+        return false;
+    }
+
+    void HubController::launchEditor(const Project& project, const EditorInstall& editor)
+    {
+        const QString executable = PathToQString(editor.GetExecutable());
+        if (!QFileInfo::exists(executable))
         {
-            return !install.Version.IsPreRelease();
-        });
-        return release != m_Editors.end() ? &*release : &m_Editors.front();
+            reportError(QStringLiteral("The editor was not found at %1").arg(QDir::toNativeSeparators(executable)));
+            reloadEditors();
+            return;
+        }
+
+        APP_INFO("Opening '{}' with ByteForge {}{}",
+                 project.GetName(), editor.Version.ToString(), editor.Development ? " (development)" : "");
+
+        if (!QProcess::startDetached(executable, { QStringLiteral("--project"), PathToQString(project.GetRoot()) }))
+            reportError(QStringLiteral("Cannot start the editor for '%1'").arg(ToQString(project.GetName())));
     }
 
     void HubController::updateReleaseModel()
@@ -437,6 +549,9 @@ namespace ByteForge::Hub
 
         download->deleteLater();
 
+        const QString openAfterwards = std::exchange(m_OpenAfterInstall, QString());
+        const bool installed = error.isEmpty() && !download->wasCancelled();
+
         if (download->wasCancelled())
             APP_INFO("Installing ByteForge {} was cancelled", download->version().ToString());
         else if (!error.isEmpty())
@@ -447,5 +562,8 @@ namespace ByteForge::Hub
 
         reloadEditors();
         Q_EMIT installChanged();
+
+        if (installed && !openAfterwards.isEmpty())
+            openProject(openAfterwards);
     }
 }

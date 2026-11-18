@@ -41,6 +41,34 @@ Item {
             }
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: 16
+            Layout.rightMargin: 16
+            Layout.bottomMargin: 10
+            visible: HubController.installingVersion !== ""
+            spacing: 12
+
+            Label {
+                Layout.fillWidth: true
+                text: "Installing ByteForge " + HubController.installingVersion + ": " + HubController.installStatus
+                color: Theme.textDim
+                elide: Text.ElideRight
+            }
+
+            HubProgressBar {
+                Layout.preferredWidth: 200
+                indeterminate: HubController.installProgress < 0
+                value: Math.max(0, HubController.installProgress)
+            }
+
+            HubButton {
+                text: "Cancel"
+                enabled: HubController.canCancelInstall
+                onClicked: HubController.cancelInstall()
+            }
+        }
+
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: 1
@@ -56,7 +84,11 @@ Item {
             model: HubController.projects
 
             delegate: ProjectDelegate {
+                id: projectItem
+
                 width: ListView.view.width
+                onOpenWithRequested: openWithDialog.openFor(projectItem.path, projectItem.name,
+                    projectItem.engineVersion)
             }
 
             ScrollBar.vertical: ScrollBar {}
@@ -81,5 +113,45 @@ Item {
 
     NewProjectDialog {
         id: newProjectDialog
+    }
+
+    OpenWithDialog {
+        id: openWithDialog
+
+        onEditorChosen: (editorPath, editorVersion, change) => {
+            if (change === "upgrade") {
+                upgradeDialog.editorPath = editorPath
+                upgradeDialog.title = "Upgrade " + projectName + " to ByteForge " + editorVersion + "?"
+                upgradeDialog.message = "The project belongs to ByteForge " + projectVersion + ". ByteForge "
+                    + editorVersion + " takes it over: afterwards it opens with " + editorVersion
+                    + " or newer, not with " + projectVersion + " anymore. Commit or back up the project first."
+                upgradeDialog.open()
+            } else {
+                HubController.openProjectWith(projectPath, editorPath)
+            }
+        }
+    }
+
+    ConfirmDialog {
+        id: upgradeDialog
+
+        property string editorPath: ""
+
+        confirmText: "Upgrade and Open"
+        onConfirmed: HubController.openProjectWith(openWithDialog.projectPath, editorPath)
+    }
+
+    MissingEditorDialog {
+        id: missingDialog
+
+        onOpenWithRequested: openWithDialog.openFor(projectPath, projectName, version)
+    }
+
+    Connections {
+        target: HubController
+
+        function onEditorMissing(projectPath, projectName, version) {
+            missingDialog.openFor(projectPath, projectName, version)
+        }
     }
 }

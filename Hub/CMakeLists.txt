@@ -24,6 +24,8 @@ qt_add_qml_module(Hub
         qml/InstallsPage.qml
         qml/NewProjectDialog.qml
         qml/ConfirmDialog.qml
+        qml/OpenWithDialog.qml
+        qml/MissingEditorDialog.qml
         qml/ProjectDelegate.qml
         qml/EditorDelegate.qml
         qml/ReleaseDelegate.qml

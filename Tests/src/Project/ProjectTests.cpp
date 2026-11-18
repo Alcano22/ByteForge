@@ -1,6 +1,7 @@
 #include "TestUtilities.h"
 
 #include <Engine/Core/Utf8.h>
+#include <Engine/Core/Version.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Project/ProjectTemplate.h>
@@ -30,9 +31,29 @@ namespace
 
         ProjectFixture() { fs::create_directories(Location); }
 
-        [[nodiscard]] Result<Project> Create(const std::string& name) const
+        [[nodiscard]] Result<Project> Create(const std::string& name, const std::string& engineVersion = {}) const
         {
-            return Project::Create({ .Name = name, .Location = Location, .TemplateDirectory = Template });
+            return Project::Create({
+                .Name              = name,
+                .Location          = Location,
+                .TemplateDirectory = Template,
+                .EngineVersion     = engineVersion
+            });
+        }
+
+        [[nodiscard]] std::string VersionOf(const Project& project) const
+        {
+            const Result<ProjectSettings> settings = project.LoadSettings();
+            Tests::RequireSuccess(settings);
+            return settings->EngineVersion;
+        }
+
+        void SetVersion(const Project& project, const std::string& version) const
+        {
+            Result<ProjectSettings> settings = project.LoadSettings();
+            Tests::RequireSuccess(settings);
+            settings->EngineVersion = version;
+            Tests::RequireSuccess(project.SaveSettings(*settings));
         }
     };
 }
@@ -82,6 +103,31 @@ TEST_CASE_METHOD(ProjectFixture, "A new project's settings carry its name", "[pr
     Tests::RequireSuccess(settings);
     CHECK(settings->Name == "My Game");
     CHECK(settings->WindowTitle == "My Game");
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A new project belongs to this engine's version by default", "[project]")
+{
+    const Result<Project> project = Create("My Game");
+    Tests::RequireSuccess(project);
+
+    CHECK(VersionOf(*project) == GetEngineVersion());
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A new project can be made for another editor version", "[project]")
+{
+    const Result<Project> project = Create("My Game", "0.1.0");
+    Tests::RequireSuccess(project);
+
+    CHECK(VersionOf(*project) == "0.1.0");
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A project is not made for an invalid version", "[project]")
+{
+    const Result<Project> project = Create("My Game", "latest");
+
+    REQUIRE_FALSE(project.has_value());
+    CHECK_THAT(project.error(), ContainsSubstring("no valid ByteForge version"));
+    CHECK(CountEntries(Location) == 0);
 }
 
 TEST_CASE_METHOD(ProjectFixture, "Creating a project leaves only the project folder behind", "[project]")
@@ -153,6 +199,65 @@ TEST_CASE_METHOD(ProjectFixture, "A project opens from its folder and from its p
     Tests::RequireSuccess(fromFile);
     CHECK(fs::equivalent(fromFile->GetRoot(), root));
     CHECK(fromFile->GetName() == "My Game");
+}
+
+TEST_CASE_METHOD(ProjectFixture, "An older project is upgraded to this engine's version", "[project]")
+{
+    const Result<Project> project = Create("My Game", "0.0.1");
+    Tests::RequireSuccess(project);
+
+    Tests::RequireSuccess(project->AdoptEngineVersion());
+
+    CHECK(VersionOf(*project) == GetEngineVersion());
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A newer project is refused and stays as it is", "[project]")
+{
+    const Result<Project> project = Create("My Game", "999.0.0");
+    Tests::RequireSuccess(project);
+
+    const Result<> adopted = project->AdoptEngineVersion();
+
+    REQUIRE_FALSE(adopted.has_value());
+    CHECK_THAT(adopted.error(), ContainsSubstring("newer than this editor"));
+    CHECK(VersionOf(*project) == "999.0.0");
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A project of this engine's version stays as it is", "[project]")
+{
+    const Result<Project> project = Create("My Game");
+    Tests::RequireSuccess(project);
+
+    const fs::file_time_type before = fs::last_write_time(project->GetProjectFile());
+    Tests::RequireSuccess(project->AdoptEngineVersion());
+
+    CHECK(fs::last_write_time(project->GetProjectFile()) == before);
+}
+
+TEST_CASE_METHOD(ProjectFixture, "A project that names no version gets this engine's", "[project]")
+{
+    const Result<Project> project = Create("My Game");
+    Tests::RequireSuccess(project);
+
+    Tests::WriteTextFile(project->GetProjectFile(), R"({ "version": 1, "name": "My Game" })");
+
+    Tests::RequireSuccess(project->AdoptEngineVersion());
+    CHECK(VersionOf(*project) == GetEngineVersion());
+}
+
+TEST_CASE_METHOD(ProjectFixture, "Saving settings keeps the project's version", "[project]")
+{
+    const Result<Project> project = Create("My Game");
+    Tests::RequireSuccess(project);
+
+    SetVersion(*project, "0.1.0");
+
+    Result<ProjectSettings> settings = project->LoadSettings();
+    Tests::RequireSuccess(settings);
+    settings->WindowWidth = 1920;
+    Tests::RequireSuccess(project->SaveSettings(*settings));
+
+    CHECK(VersionOf(*project) == "0.1.0");
 }
 
 TEST_CASE("A folder that is no project does not open", "[project]")

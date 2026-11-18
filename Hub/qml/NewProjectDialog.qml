@@ -11,13 +11,24 @@ Dialog {
     property string templateId: ""
     property string createError: ""
 
+    readonly property string editorPath: editorBox.currentIndex >= 0 ? (editorBox.currentValue ?? "") : ""
+    readonly property var templates: HubController.templatesFor(editorPath)
+
     readonly property string problem: HubController.validateNewProject(nameField.text, locationField.text)
-    readonly property bool canCreate: problem === "" && templateId !== ""
+    readonly property string editorProblem: editorBox.count === 0 ? "Install an editor on the Installs page first"
+        : templates.length === 0 ? "This editor version has no project templates"
+            : ""
+    readonly property bool canCreate: problem === "" && editorProblem === "" && templateId !== ""
+
+    function selectFirstTemplate() {
+        templateId = templates.length > 0 ? templates[0].id : ""
+    }
 
     function openFresh() {
         locationField.text = HubController.suggestLocation()
         nameField.text = HubController.suggestProjectName(locationField.text)
-        templateId = HubController.templates.length > 0 ? HubController.templates[0].id : ""
+        editorBox.currentIndex = editorBox.count > 0 ? 0 : -1
+        selectFirstTemplate()
         createError = ""
 
         open()
@@ -29,10 +40,12 @@ Dialog {
         if (!canCreate)
             return
 
-        createError = HubController.createProject(nameField.text, locationField.text, templateId)
+        createError = HubController.createProject(nameField.text, locationField.text, templateId, editorPath)
         if (createError === "")
             close()
     }
+
+    onTemplatesChanged: selectFirstTemplate()
 
     modal: true
     closePolicy: Popup.CloseOnEscape
@@ -105,6 +118,37 @@ Dialog {
 
         Label {
             Layout.topMargin: 8
+            text: "Editor Version"
+            color: Theme.textDim
+        }
+
+        ComboBox {
+            id: editorBox
+
+            Layout.fillWidth: true
+            model: HubController.editors
+            textRole: "version"
+            valueRole: "path"
+            displayText: currentIndex < 0 ? "No editor installed" : "ByteForge " + currentText
+
+            delegate: ItemDelegate {
+                id: editorItem
+
+                required property int index
+                required property string version
+                required property bool development
+                required property bool preRelease
+
+                width: editorBox.width
+                highlighted: editorBox.highlightedIndex === index
+                text: "ByteForge " + version + (development ? "  (development)" : preRelease ? "  (pre-release)" : "")
+            }
+
+            onActivated: root.createError = ""
+        }
+
+        Label {
+            Layout.topMargin: 8
             text: "Template"
             color: Theme.textDim
         }
@@ -116,7 +160,7 @@ Dialog {
             Layout.preferredHeight: Math.min(contentHeight, 220)
             clip: true
             spacing: 6
-            model: HubController.templates
+            model: root.templates
 
             delegate: ItemDelegate {
                 id: templateItem
@@ -167,10 +211,12 @@ Dialog {
             Layout.fillWidth: true
             Layout.topMargin: 8
             wrapMode: Text.Wrap
-            color: root.createError !== "" || root.problem !== "" ? Theme.error : Theme.textDim
+            color: root.createError !== "" || root.problem !== "" || root.editorProblem !== "" ? Theme.error
+                : Theme.textDim
             text: root.createError !== "" ? root.createError
                 : root.problem !== "" ? root.problem
-                    : "Creates " + HubController.projectPath(locationField.text, nameField.text)
+                    : root.editorProblem !== "" ? root.editorProblem
+                        : "Creates " + HubController.projectPath(locationField.text, nameField.text)
         }
     }
 

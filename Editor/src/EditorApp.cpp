@@ -75,6 +75,9 @@ ByteForge::Application* ByteForge::CreateApplication()
         throw Error(lock.error());
     s_ProjectLock = std::move(*lock);
 
+    if (const Result<> adopted = project->AdoptEngineVersion(); !adopted)
+        throw Error(adopted.error());
+
     APP_INFO("Opening project '{}' at '{}'", project->GetName(), ToUtf8(project->GetRoot()));
     Project::SetActive(std::move(*project));
 

@@ -17,6 +17,8 @@ namespace ByteForge::Hub
         bool Development = false;
 
         [[nodiscard]] fs::path GetExecutable() const;
+
+        [[nodiscard]] fs::path GetTemplateDirectory() const { return Directory / "share" / "templates"; }
     };
 
     namespace EditorInstalls

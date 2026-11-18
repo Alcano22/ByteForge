@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 4.1)
-project(ByteForge VERSION 0.2.0 LANGUAGES CXX)
 
-set(BYTEFORGE_VERSION_STRING ${PROJECT_VERSION})
+project(ByteForge VERSION 0.3.0 LANGUAGES CXX)
+
+set(BYTEFORGE_VERSION_STRING ${PROJECT_VERSION}-dev)
 if(DEFINED ENV{BYTEFORGE_RELEASE_VERSION})
     set(release_version "$ENV{BYTEFORGE_RELEASE_VERSION}")
     string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" release_number "${release_version}")

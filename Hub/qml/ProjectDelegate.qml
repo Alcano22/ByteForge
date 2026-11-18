@@ -13,6 +13,8 @@ ItemDelegate {
     required property bool missing
     required property string engineVersion
 
+    signal openWithRequested()
+
     height: 64
     hoverEnabled: true
     leftPadding: 16
@@ -93,6 +95,12 @@ ItemDelegate {
             text: "Open"
             enabled: !root.missing
             onTriggered: HubController.openProject(root.path)
+        }
+
+        HubMenuItem {
+            text: "Open With..."
+            enabled: !root.missing
+            onTriggered: root.openWithRequested()
         }
 
         HubMenuItem {

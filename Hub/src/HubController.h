@@ -6,7 +6,7 @@
 #include "ReleaseFeed.h"
 #include "ReleaseListModel.h"
 
-#include <Engine/Project/ProjectTemplate.h>
+#include <Engine/Project/Project.h>
 #include <HubCore/EditorInstalls.h>
 
 #include <QObject>
@@ -29,7 +29,6 @@ namespace ByteForge::Hub
         Q_PROPERTY(QAbstractItemModel* projects READ projects CONSTANT)
         Q_PROPERTY(QString search READ search WRITE setSearch NOTIFY searchChanged)
         Q_PROPERTY(QString engineVersion READ engineVersion CONSTANT)
-        Q_PROPERTY(QVariantList templates READ templates CONSTANT)
         Q_PROPERTY(QAbstractItemModel* editors READ editors CONSTANT)
         Q_PROPERTY(QString installsDirectory READ installsDirectory CONSTANT)
         Q_PROPERTY(QAbstractItemModel* releases READ releases CONSTANT)
@@ -51,8 +50,6 @@ namespace ByteForge::Hub
         void setSearch(const QString& search);
 
         [[nodiscard]] QString engineVersion() const;
-
-        [[nodiscard]] QVariantList templates() const { return m_TemplateItems; }
 
         [[nodiscard]] QAbstractItemModel* editors() { return &m_EditorModel; }
         [[nodiscard]] QString installsDirectory() const;
@@ -77,7 +74,15 @@ namespace ByteForge::Hub
         Q_INVOKABLE void installEditor(const QString& version);
         Q_INVOKABLE void cancelInstall();
 
+        Q_INVOKABLE void installAndOpen(const QString& version, const QString& projectPath);
+
+        [[nodiscard]] Q_INVOKABLE bool isPublished(const QString& version) const;
+
         Q_INVOKABLE void openProject(const QString& path);
+        Q_INVOKABLE void openProjectWith(const QString& path, const QString& editorPath);
+
+        [[nodiscard]] Q_INVOKABLE QString versionChange(const QString& projectVersion,
+                                                        const QString& editorVersion) const;
 
         Q_INVOKABLE void addExistingProject(const QUrl& folder);
         Q_INVOKABLE void removeFromList(const QString& path);
@@ -93,8 +98,10 @@ namespace ByteForge::Hub
 
         [[nodiscard]] Q_INVOKABLE QString projectPath(const QString& location, const QString& name) const;
 
+        [[nodiscard]] Q_INVOKABLE QVariantList templatesFor(const QString& editorPath) const;
+
         [[nodiscard]] Q_INVOKABLE QString createProject(const QString& name, const QString& location,
-                                                        const QString& templateId);
+                                                        const QString& templateId, const QString& editorPath);
 
         [[nodiscard]] Q_INVOKABLE QUrl pathToUrl(const QString& path) const;
         [[nodiscard]] Q_INVOKABLE QString urlToPath(const QUrl& url) const;
@@ -107,11 +114,16 @@ namespace ByteForge::Hub
         void releasesUpdated();
         void installChanged();
 
+        void editorMissing(const QString& projectPath, const QString& projectName, const QString& version);
+
     private:
         void reportError(const QString& message);
 
         void reloadEditors();
-        [[nodiscard]] const EditorInstall* pickEditor() const;
+        [[nodiscard]] const EditorInstall* findEditor(const QString& path) const;
+
+        [[nodiscard]] bool ensureNotOpen(const Project& project);
+        void launchEditor(const Project& project, const EditorInstall& editor);
 
         void updateReleaseModel();
 
@@ -121,9 +133,6 @@ namespace ByteForge::Hub
         ProjectListModel m_Projects;
         QSortFilterProxyModel m_Filtered;
         QString m_Search;
-
-        std::vector<ProjectTemplate> m_Templates;
-        QVariantList m_TemplateItems;
 
         fs::path m_InstallsDirectory;
         std::vector<EditorInstall> m_Editors;
@@ -136,5 +145,7 @@ namespace ByteForge::Hub
         int m_HiddenPreReleaseCount = 0;
 
         EditorDownload* m_Download = nullptr;
+
+        QString m_OpenAfterInstall;
     };
 }

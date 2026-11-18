@@ -16,6 +16,8 @@ namespace ByteForge
         std::string Name;
         fs::path Location;
         fs::path TemplateDirectory;
+
+        std::string EngineVersion;
     };
 
     class BYTEFORGE_API Project
@@ -50,6 +52,8 @@ namespace ByteForge
         [[nodiscard]] Result<> SaveSettings(const ProjectSettings& settings) const;
 
         [[nodiscard]] ProjectSettings MakeDefaultSettings() const;
+
+        [[nodiscard]] Result<> AdoptEngineVersion() const;
 
         static void SetActive(Project project);
         [[nodiscard]] static bool HasActive();

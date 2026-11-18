@@ -15,6 +15,7 @@ add_executable(ByteForgeTests
         src/Project/RecentProjectsTests.cpp
         src/Hub/TestArchives.cpp
         src/Hub/ArchiveTests.cpp
+        src/Hub/EditorChoiceTests.cpp
         src/Hub/EditorInstallsTests.cpp
         src/Hub/EditorManifestTests.cpp
         src/Hub/EditorReleasesTests.cpp

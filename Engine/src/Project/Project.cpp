@@ -1,7 +1,10 @@
 #include "Engine/Project/Project.h"
 #include "Engine/Project/ProjectTemplate.h"
 #include "Engine/Core/FileSystem.h"
+#include "Engine/Core/Log.h"
 #include "Engine/Core/Platform.h"
+#include "Engine/Core/SemanticVersion.h"
+#include "Engine/Core/Version.h"
 
 #include <algorithm>
 #include <array>
@@ -54,7 +57,7 @@ namespace ByteForge
             return {};
         }
 
-        Result<> PrepareProject(const fs::path& staging, const std::string& name)
+        Result<> PrepareProject(const fs::path& staging, const std::string& name, const std::string& engineVersion)
         {
             std::error_code error;
 
@@ -81,6 +84,7 @@ namespace ByteForge
 
             settings.Name = name;
             settings.WindowTitle = name;
+            settings.EngineVersion = engineVersion.empty() ? std::string(GetEngineVersion()) : engineVersion;
             return settings.Save(file);
         }
     }
@@ -131,6 +135,9 @@ namespace ByteForge
         if (const std::optional<std::string> invalid = ValidateName(info.Name))
             return Unexpected(*invalid);
 
+        if (!info.EngineVersion.empty() && !SemanticVersion::Parse(info.EngineVersion))
+            return Unexpected("'{}' is no valid ByteForge version", info.EngineVersion);
+
         std::error_code error;
         if (!fs::is_directory(info.Location, error))
             return Unexpected("The location '{}' does not exist", ToUtf8(info.Location));
@@ -158,7 +165,7 @@ namespace ByteForge
         if (const Result<> copied = CopyTemplate(projectTemplate->Directory, staging); !copied)
             return fail(copied.error());
 
-        if (const Result<> prepared = PrepareProject(staging, info.Name); !prepared)
+        if (const Result<> prepared = PrepareProject(staging, info.Name, info.EngineVersion); !prepared)
             return fail(prepared.error());
 
         if (fs::exists(root, error))
@@ -239,6 +246,36 @@ namespace ByteForge
         settings.Name = ToUtf8(m_Root.filename());
         settings.WindowTitle = settings.Name;
         return settings;
+    }
+
+    Result<> Project::AdoptEngineVersion() const
+    {
+        const std::optional<SemanticVersion> engine = SemanticVersion::Parse(GetEngineVersion());
+        if (!engine)
+            return {};
+
+        Result<ProjectSettings> settings = LoadSettings();
+        if (!settings)
+            return Unexpected(settings.error());
+
+        const std::optional<SemanticVersion> project = SemanticVersion::Parse(settings->EngineVersion);
+        if (project && *project == *engine)
+            return {};
+
+        if (project && *project > *engine)
+        {
+            return Unexpected("'{}' belongs to ByteForge {}, which is newer than this editor ({});"
+                              "open it with ByteForge {} or newer",
+                              m_Name, project->ToString(), engine->ToString(), project->ToString());
+        }
+
+        settings->EngineVersion = engine->ToString();
+        if (Result<> saved = SaveSettings(*settings); !saved)
+            return Unexpected("Cannot upgrade '{}' to ByteForge {}: {}", m_Name, engine->ToString(), saved.error());
+
+        CORE_INFO("Upgraded '{}' from ByteForge {} to {}",
+                  m_Name, project ? project->ToString() : "(no version)", engine->ToString());
+        return {};
     }
 
     Result<Scope<FileLock>> Project::AcquireEditorLock() const
