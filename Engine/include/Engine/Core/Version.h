@@ -6,5 +6,5 @@
 
 namespace ByteForge
 {
-    [[nodiscard]] BYTEFORGE_API std::string_view GetEngineVersion();
+    [[nodiscard]] BYTEFORGE_CORE_API std::string_view GetEngineVersion();
 }

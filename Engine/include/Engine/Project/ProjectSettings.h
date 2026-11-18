@@ -10,7 +10,7 @@
 
 namespace ByteForge
 {
-    struct BYTEFORGE_API ProjectSettings
+    struct BYTEFORGE_CORE_API ProjectSettings
     {
         static constexpr const char* FileName = "project.bfproject";
 

@@ -9,7 +9,7 @@
 
 namespace ByteForge
 {
-    class BYTEFORGE_API Error : public std::runtime_error
+    class BYTEFORGE_CORE_API Error : public std::runtime_error
     {
     public:
         explicit Error(const std::string& message)
@@ -23,7 +23,7 @@ namespace ByteForge
             : std::runtime_error(std::format(format, std::forward<Args>(args)...)) {}
     };
 
-    class BYTEFORGE_API LogicError : public std::logic_error
+    class BYTEFORGE_CORE_API LogicError : public std::logic_error
     {
     public:
         explicit LogicError(const std::string& message)

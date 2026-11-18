@@ -16,7 +16,7 @@ namespace ByteForge
         std::string Message;
     };
 
-    class BYTEFORGE_API FileLock : NonCopyable
+    class BYTEFORGE_CORE_API FileLock : NonCopyable
     {
     public:
         [[nodiscard]] static std::expected<Scope<FileLock>, FileLockError> TryAcquire(const fs::path& file);
@@ -24,7 +24,7 @@ namespace ByteForge
         ~FileLock();
 
     private:
-        explicit FileLock(std::intptr_t handle)
+        explicit FileLock(const std::intptr_t handle)
             : m_Handle(handle) {}
 
     private:

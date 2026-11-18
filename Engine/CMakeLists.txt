@@ -15,19 +15,80 @@ find_package(unofficial-nethost CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h" REQUIRED)
 
-add_library(Engine SHARED
+add_library(ByteForgeCore SHARED
         src/Core/Log.cpp
-        src/Core/Application.cpp
-        src/Core/Window.cpp
-        src/Core/LayerStack.cpp
-        src/Core/JobSystem.cpp
         src/Core/Platform.cpp
         src/Core/FileSystem.cpp
         src/Core/Version.cpp
         src/Core/SemanticVersion.cpp
         src/Core/RuntimePaths.cpp
-        src/Input/Input.cpp
         src/Scene/UUID.cpp
+        src/Project/ProjectSettings.cpp
+        src/Project/Project.cpp
+        src/Project/ProjectTemplate.cpp
+        src/Project/RecentProjects.cpp
+)
+
+if (WIN32)
+    target_sources(ByteForgeCore PRIVATE
+            src/Platform/Windows/WindowsPlatform.cpp
+            src/Platform/Windows/WindowsFileLock.cpp)
+    target_link_libraries(ByteForgeCore PRIVATE shell32)
+elseif (APPLE)
+    target_sources(ByteForgeCore PRIVATE
+            src/Platform/MacOS/MacOSPlatform.cpp
+            src/Platform/Posix/PosixProcess.cpp
+            src/Platform/Posix/PosixFileLock.cpp)
+elseif (UNIX)
+    target_sources(ByteForgeCore PRIVATE
+            src/Platform/Linux/LinuxPlatform.cpp
+            src/Platform/Posix/PosixProcess.cpp
+            src/Platform/Posix/PosixFileLock.cpp)
+else()
+    message(FATAL_ERROR "ByteForge: unsupported platform")
+endif()
+
+target_compile_definitions(ByteForgeCore
+    PRIVATE
+        BYTEFORGE_BUILD_CORE
+        BYTEFORGE_VERSION="${BYTEFORGE_VERSION_STRING}"
+    PUBLIC
+        $<$<CONFIG:Debug>:BYTEFORGE_DEBUG>
+)
+
+target_include_directories(ByteForgeCore
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(ByteForgeCore
+    PUBLIC
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
+    PRIVATE
+        ByteForgeWarnings
+        ${CMAKE_DL_LIBS}
+)
+
+set_target_properties(ByteForgeCore PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+)
+
+if (UNIX AND NOT APPLE)
+    set_target_properties(ByteForgeCore PROPERTIES INSTALL_RPATH "$ORIGIN")
+endif()
+
+target_precompile_headers(ByteForgeCore PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/Engine/Core/CorePCH.h)
+
+add_library(Engine SHARED
+        src/Core/Application.cpp
+        src/Core/Window.cpp
+        src/Core/LayerStack.cpp
+        src/Core/JobSystem.cpp
+        src/Input/Input.cpp
         src/Scene/Scene.cpp
         src/Scene/SceneSerializer.cpp
         src/Scene/Physics2DWorld.cpp
@@ -43,10 +104,6 @@ add_library(Engine SHARED
         src/Scene/Components/ScriptComponent.cpp
         src/Scene/Components/ComponentOrderComponent.cpp
         src/Scene/Components/PrefabInstanceComponent.cpp
-        src/Project/ProjectSettings.cpp
-        src/Project/Project.cpp
-        src/Project/ProjectTemplate.cpp
-        src/Project/RecentProjects.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
@@ -136,50 +193,28 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanBackend.cpp
 )
 
-if (WIN32)
-    target_sources(Engine PRIVATE
-            src/Platform/Windows/WindowsPlatform.cpp
-            src/Platform/Windows/WindowsFileLock.cpp)
-    target_link_libraries(Engine PRIVATE shell32)
-elseif (APPLE)
-    target_sources(Engine PRIVATE
-            src/Platform/MacOS/MacOSPlatform.cpp
-            src/Platform/Posix/PosixProcess.cpp
-            src/Platform/Posix/PosixFileLock.cpp)
-elseif (UNIX)
-    target_sources(Engine PRIVATE
-            src/Platform/Linux/LinuxPlatform.cpp
-            src/Platform/Posix/PosixProcess.cpp
-            src/Platform/Posix/PosixFileLock.cpp)
-else()
-    message(FATAL_ERROR "ByteForge: unsupported platform")
-endif()
-
 target_compile_definitions(Engine PRIVATE
         BYTEFORGE_BUILD_DLL
-        BYTEFORGE_VERSION="${BYTEFORGE_VERSION_STRING}"
         BYTEFORGE_DOTNET_MAJOR_VERSION=10
 )
 
 target_compile_definitions(Engine PUBLIC
         GLM_FORCE_DEPTH_ZERO_TO_ONE
-        $<$<CONFIG:Debug>:BYTEFORGE_DEBUG>
 )
 
 target_include_directories(Engine
-        PUBLIC
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(Engine PUBLIC
+        ByteForgeCore
         glfw
         glm::glm
-        spdlog::spdlog
         imgui::imgui
         EnTT::EnTT
-        nlohmann_json::nlohmann_json
         magic_enum::magic_enum
 )
 

@@ -7,7 +7,7 @@ if(QT_KNOWN_POLICY_QTP0004)
 endif()
 
 set(BYTEFORGE_RELEASE_REPOSITORY "Alcano22/ByteForge" CACHE STRING
-    "GitHub repository whose releases ByteForge Hub offers as editor versions")
+        "GitHub repository whose releases ByteForge Hub offers as editor versions")
 
 qt_add_executable(Hub
         src/main.cpp
@@ -61,7 +61,7 @@ target_compile_definitions(Hub PRIVATE
 )
 
 target_link_libraries(Hub PRIVATE
-        Engine
+        ByteForgeCore
         HubCore
         Qt6::Quick
         Qt6::QuickControls2

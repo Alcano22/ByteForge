@@ -1,19 +1,29 @@
 #pragma once
 
 #if defined(_WIN32)
-#   if defined(BYTEFORGE_BUILD_DLL)
-#       define BYTEFORGE_API __declspec(dllexport)
-#   else
-#       define BYTEFORGE_API __declspec(dllimport)
-#   endif
+    #if defined(BYTEFORGE_BUILD_DLL)
+        #define BYTEFORGE_API __declspec(dllexport)
+    #else
+        #define BYTEFORGE_API __declspec(dllimport)
+    #endif
+    #if defined(BYTEFORGE_BUILD_CORE)
+        #define(BYTEFORGE_CORE_API __declspec(dllexport))
+    #else
+        #define(BYTEFORGE_CORE_API __declspec(dllimport))
+    #endif
 #elif defined(__GNUC__) || defined(__clang__)
-#   if defined(BYTEFORGE_BUILD_DLL)
-#       define BYTEFORGE_API __attribute__((visibility("default")))
-#   else
-#       define BYTEFORGE_API
-#   endif
+    #if defined(BYTEFORGE_BUILD_DLL)
+        #define BYTEFORGE_API __attribute__((visibility("default")))
+    #else
+        #define BYTEFORGE_API
+    #endif
+    #if defined(BYTEFORGE_BUILD_CORE)
+        #define BYTEFORGE_CORE_API __attribute__((visibility("default")))
+    #else
+        #define BYTEFORGE_CORE_API
+    #endif
 #else
-#   error "ByteForge only supports Windows and GCC/Clang-based platforms currently"
+    #error "ByteForge only supports Windows and GCC/Clang-based platforms currently"
 #endif
 
 #include "Engine/Core/Types.h"

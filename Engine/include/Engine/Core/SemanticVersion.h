@@ -9,7 +9,7 @@
 
 namespace ByteForge
 {
-    struct BYTEFORGE_API SemanticVersion
+    struct BYTEFORGE_CORE_API SemanticVersion
     {
         u32 Major = 0;
         u32 Minor = 0;

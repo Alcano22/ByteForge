@@ -31,7 +31,7 @@ namespace ByteForge
 
     using LogCallback = std::function<void(const LogEntry&)>;
 
-    class BYTEFORGE_API LogSubscription
+    class BYTEFORGE_CORE_API LogSubscription
     {
     public:
         LogSubscription() = default;
@@ -65,7 +65,7 @@ namespace ByteForge
         u64 m_Id = 0;
     };
 
-    class BYTEFORGE_API Log
+    class BYTEFORGE_CORE_API Log
     {
     public:
         static void Init();

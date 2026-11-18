@@ -20,12 +20,12 @@ namespace ByteForge
 
     namespace RecentProjects
     {
-        [[nodiscard]] BYTEFORGE_API fs::path GetFile();
+        [[nodiscard]] BYTEFORGE_CORE_API fs::path GetFile();
 
-        [[nodiscard]] BYTEFORGE_API std::vector<RecentProject> Load();
+        [[nodiscard]] BYTEFORGE_CORE_API std::vector<RecentProject> Load();
 
-        [[nodiscard]] BYTEFORGE_API Result<> Touch(const Project& project);
+        [[nodiscard]] BYTEFORGE_CORE_API Result<> Touch(const Project& project);
 
-        [[nodiscard]] BYTEFORGE_API Result<> Remove(const fs::path& path);
+        [[nodiscard]] BYTEFORGE_CORE_API Result<> Remove(const fs::path& path);
     }
 }

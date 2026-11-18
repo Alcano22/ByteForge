@@ -20,7 +20,7 @@ namespace ByteForge
         std::string EngineVersion;
     };
 
-    class BYTEFORGE_API Project
+    class BYTEFORGE_CORE_API Project
     {
     public:
         static constexpr const char* AssetDirectoryName = "assets";

@@ -7,7 +7,7 @@
 
 namespace ByteForge
 {
-    class BYTEFORGE_API UUID
+    class BYTEFORGE_CORE_API UUID
     {
     public:
         UUID();

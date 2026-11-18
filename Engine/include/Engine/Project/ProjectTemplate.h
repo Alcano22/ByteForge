@@ -8,7 +8,7 @@
 
 namespace ByteForge
 {
-    struct BYTEFORGE_API ProjectTemplate
+    struct BYTEFORGE_CORE_API ProjectTemplate
     {
         static constexpr const char* FileName = "template.json";
 

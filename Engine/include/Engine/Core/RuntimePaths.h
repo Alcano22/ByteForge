@@ -12,9 +12,9 @@ namespace ByteForge::RuntimePaths
         Install
     };
 
-    [[nodiscard]] BYTEFORGE_API Layout GetLayout();
-    BYTEFORGE_API void SetLayout(Layout layout);
+    [[nodiscard]] BYTEFORGE_CORE_API Layout GetLayout();
+    BYTEFORGE_CORE_API void SetLayout(Layout layout);
 
-    [[nodiscard]] BYTEFORGE_API fs::path GetRoot();
-    [[nodiscard]] BYTEFORGE_API fs::path GetDataDirectory();
+    [[nodiscard]] BYTEFORGE_CORE_API fs::path GetRoot();
+    [[nodiscard]] BYTEFORGE_CORE_API fs::path GetDataDirectory();
 }
