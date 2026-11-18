@@ -11,12 +11,6 @@ set(BYTEFORGE_INSTALL_EXCLUDES
         PATTERN "*.a"   EXCLUDE
 )
 
-set(BYTEFORGE_HUB_FILES
-        PATTERN "ByteForgeHub*"
-        PATTERN "Qt6*"
-        PATTERN "qt.conf"
-)
-
 set(BYTEFORGE_HUB_EXCLUDES
         PATTERN "ByteForgeHub*" EXCLUDE
         PATTERN "Qt6*" EXCLUDE
@@ -30,17 +24,6 @@ install(DIRECTORY ${BYTEFORGE_BIN_DIR}/
         ${BYTEFORGE_INSTALL_EXCLUDES}
         ${BYTEFORGE_HUB_EXCLUDES}
 )
-
-if(BYTEFORGE_BUILD_HUB)
-    install(DIRECTORY ${BYTEFORGE_BIN_DIR}/
-            DESTINATION bin
-            COMPONENT Hub
-            USE_SOURCE_PERMISSIONS
-            FILES_MATCHING
-            ${BYTEFORGE_HUB_FILES}
-            ${BYTEFORGE_INSTALL_EXCLUDES}
-    )
-endif()
 
 if(WIN32)
     if(BYTEFORGE_BUILD_HUB)
@@ -73,3 +56,40 @@ install(DIRECTORY ${BYTEFORGE_PLAYER_DIR}/
         PATTERN "ScriptCore" EXCLUDE
         PATTERN "shaders" EXCLUDE
 )
+
+if(BYTEFORGE_BUILD_HUB)
+    if(WIN32)
+        install(TARGETS Hub
+                RUNTIME_DEPENDENCY_SET ByteForgeHubLibraries
+                RUNTIME DESTINATION bin COMPONENT Hub
+        )
+
+        install(RUNTIME_DEPENDENCY_SET ByteForgeHubLibraries
+                DESTINATION bin
+                COMPONENT Hub
+                DIRECTORIES ${BYTEFORGE_BIN_DIR}
+                PRE_EXCLUDE_REGEXES "^api-ms-.*" "^ext-ms-.*"
+                POST_EXCLUDE_REGEXES "^[A-Za-z]:[/\\\\][Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\]"
+        )
+
+        install(DIRECTORY ${BYTEFORGE_BIN_DIR}/
+                DESTINATION bin
+                COMPONENT Hub
+                FILES_MATCHING
+                PATTERN "Qt6*.dll"
+                PATTERN "qt.conf"
+        )
+    else()
+        install(TARGETS Hub
+                RUNTIME DESTINATION bin COMPONENT Hub
+        )
+
+        install(DIRECTORY ${BYTEFORGE_LIB_DIR}/
+                DESTINATION lib
+                COMPONENT Hub
+                USE_SOURCE_PERMISSIONS
+                FILES_MATCHING
+                PATTERN "libByteForgeCore.so*"
+        )
+    endif()
+endif()

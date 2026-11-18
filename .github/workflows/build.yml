@@ -34,6 +34,10 @@ jobs:
         shell: bash
         run: echo "BYTEFORGE_RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
+      - name: Name the packages
+        shell: bash
+        run: echo "BYTEFORGE_PACKAGE_VERSION=${BYTEFORGE_RELEASE_VERSION:-dev-${GITHUB_SHA::7}}" >> "$GITHUB_ENV"
+
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
 
@@ -110,6 +114,19 @@ jobs:
           if-no-files-found: error
           path: ByteForge-Editor-*.zip
 
+      - name: Package the hub
+        shell: bash
+        run: |
+          cmake --install build-windows-release --component Hub --prefix package-hub
+          7z a -tzip "ByteForge-Hub-${BYTEFORGE_PACKAGE_VERSION}-windows-x64.zip" ./package-hub/*
+
+      - name: Upload the hub package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Hub-windows-x64
+          if-no-files-found: error
+          path: ByteForge-Hub-*.zip
+
   linux:
     name: Linux (Clang, Fedora)
     runs-on: ubuntu-24.04
@@ -127,7 +144,8 @@ jobs:
           zip unzip tar curl which diffutils findutils file libicu kernel-headers
           libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel mesa-libGLU-devel
           wayland-devel libxkbcommon-devel wayland-protocols-devel
-          qt6-qtbase-devel qt6-qtdeclarative-devel
+          qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland
+          patchelf librsvg2-tools
 
       - name: Check out
         uses: actions/checkout@v4
@@ -138,6 +156,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: echo "BYTEFORGE_RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Name the packages
+        shell: bash
+        run: echo "BYTEFORGE_PACKAGE_VERSION=${BYTEFORGE_RELEASE_VERSION:-dev-${GITHUB_SHA::7}}" >> "$GITHUB_ENV"
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -207,6 +229,19 @@ jobs:
           if-no-files-found: error
           path: ByteForge-Editor-*.tar.gz
 
+      - name: Package the hub
+        shell: bash
+        run: >
+          bash .github/scripts/make_hub_appimage.sh build-release "$BYTEFORGE_PACKAGE_VERSION"
+          "ByteForge-Hub-${BYTEFORGE_PACKAGE_VERSION}-linux-x64.AppImage"
+
+      - name: Upload the hub package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Hub-linux-x64
+          if-no-files-found: error
+          path: ByteForge-Hub-*.AppImage
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
@@ -223,6 +258,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: ByteForge-Editor-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download the hub packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ByteForge-Hub-*
           path: dist
           merge-multiple: true
 
