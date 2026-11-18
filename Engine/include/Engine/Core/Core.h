@@ -7,9 +7,9 @@
         #define BYTEFORGE_API __declspec(dllimport)
     #endif
     #if defined(BYTEFORGE_BUILD_CORE)
-        #define(BYTEFORGE_CORE_API __declspec(dllexport))
+        #define BYTEFORGE_CORE_API __declspec(dllexport)
     #else
-        #define(BYTEFORGE_CORE_API __declspec(dllimport))
+        #define BYTEFORGE_CORE_API __declspec(dllimport)
     #endif
 #elif defined(__GNUC__) || defined(__clang__)
     #if defined(BYTEFORGE_BUILD_DLL)

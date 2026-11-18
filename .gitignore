@@ -1,6 +1,8 @@
-# Build-Ausgaben
+# Build
 build/
 build-test/
+build-*/
+install-*/
 cmake-build-*/
 out/
 ScriptCore/bin/
@@ -8,6 +10,12 @@ ScriptCore/obj/
 /GameScripts.csproj
 /obj/
 /.byteforge/
+
+# Packaging
+/.appimage-tools/
+/package-*/
+/dist/
+*.AppImage
 
 # CMake
 CMakeCache.txt
@@ -18,11 +26,11 @@ compile_commands.json
 CTestTestfile.cmake
 _deps/
 
-# vcpkg (lokal installierte Packages, nie committen — nur vcpkg.json gehört ins Repo)
+# vcpkg
 vcpkg_installed/
 vcpkg_installed.json
 
-# CMake User-Presets (persönliche, nicht geteilte Presets, z.B. lokale Pfade)
+# CMake User-Presets
 CMakeUserPresets.json
 
 # IDE
@@ -30,7 +38,6 @@ CMakeUserPresets.json
 .vscode/
 *.iml
 
-# Generierte Kontext-Datei deines Scripts
 context.txt
 
 # Logs
@@ -38,6 +45,4 @@ context.txt
 
 # OS
 .DS_Store
-Thumbs.dbbuild-*/
-build-*/
-install-*/
+Thumbs.db
