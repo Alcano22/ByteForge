@@ -1,19 +1,13 @@
+#include "TestUtilities.h"
+
 #include <Engine/Core/Utf8.h>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
-#include <string_view>
 
 using namespace ByteForge;
-
-namespace
-{
-    std::string Text(const std::u8string_view text)
-    {
-        return { text.begin(), text.end() };
-    }
-}
+using Tests::Text;
 
 TEST_CASE("A path survives the round trip through UTF-8", "[core][utf8]")
 {
