@@ -2,6 +2,8 @@
 
 #include "EditorListModel.h"
 #include "ProjectListModel.h"
+#include "ReleaseFeed.h"
+#include "ReleaseListModel.h"
 
 #include <Engine/Project/ProjectTemplate.h>
 #include <HubCore/EditorInstalls.h>
@@ -29,6 +31,11 @@ namespace ByteForge::Hub
         Q_PROPERTY(QVariantList templates READ templates CONSTANT)
         Q_PROPERTY(QAbstractItemModel* editors READ editors CONSTANT)
         Q_PROPERTY(QString installsDirectory READ installsDirectory CONSTANT)
+        Q_PROPERTY(QAbstractItemModel* releases READ releases CONSTANT)
+        Q_PROPERTY(bool checkingReleases READ checkingReleases NOTIFY releaseStateChanged)
+        Q_PROPERTY(bool releasesChecked READ releasesChecked NOTIFY releaseStateChanged)
+        Q_PROPERTY(QString releaseError READ releaseError NOTIFY releaseStateChanged)
+        Q_PROPERTY(bool showPreReleases READ showPreReleases WRITE setShowPreReleases NOTIFY showPreReleasesChanged)
 
     public:
         explicit HubController(QObject* parent = nullptr);
@@ -45,7 +52,17 @@ namespace ByteForge::Hub
         [[nodiscard]] QAbstractItemModel* editors() { return &m_EditorModel; }
         [[nodiscard]] QString installsDirectory() const;
 
+        [[nodiscard]] QAbstractItemModel* releases() { return &m_ReleaseModel; }
+        [[nodiscard]] bool checkingReleases() const { return m_ReleaseFeed.isLoading(); }
+        [[nodiscard]] bool releasesChecked() const { return m_ReleaseFeed.hasChecked(); }
+        [[nodiscard]] QString releaseError() const { return m_ReleaseFeed.errorMessage(); }
+
+        [[nodiscard]] bool showPreReleases() const { return m_ShowPreReleases; }
+        void setShowPreReleases(bool show);
+
         Q_INVOKABLE void refresh();
+
+        Q_INVOKABLE void checkForReleases();
 
         Q_INVOKABLE void openProject(const QString& path);
 
@@ -72,12 +89,16 @@ namespace ByteForge::Hub
     Q_SIGNALS:
         void searchChanged();
         void errorOccurred(const QString& message);
+        void releaseStateChanged();
+        void showPreReleasesChanged();
 
     private:
         void reportError(const QString& message);
 
         void reloadEditors();
         [[nodiscard]] const EditorInstall* pickEditor() const;
+
+        void updateReleaseModel();
 
     private:
         ProjectListModel m_Projects;
@@ -90,5 +111,9 @@ namespace ByteForge::Hub
         fs::path m_InstallsDirectory;
         std::vector<EditorInstall> m_Editors;
         EditorListModel m_EditorModel;
+
+        ReleaseFeed m_ReleaseFeed;
+        ReleaseListModel m_ReleaseModel;
+        bool m_ShowPreReleases = false;
     };
 }

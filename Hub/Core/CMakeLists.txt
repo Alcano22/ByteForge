@@ -1,5 +1,6 @@
 add_library(HubCore STATIC
         src/EditorInstalls.cpp
+        src/EditorReleases.cpp
 )
 
 target_include_directories(HubCore PUBLIC include)

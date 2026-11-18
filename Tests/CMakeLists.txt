@@ -13,6 +13,7 @@ add_executable(ByteForgeTests
         src/Project/ProjectTests.cpp
         src/Project/RecentProjectsTests.cpp
         src/Hub/EditorInstallsTests.cpp
+        src/Hub/EditorReleasesTests.cpp
 )
 
 target_include_directories(ByteForgeTests PRIVATE src)

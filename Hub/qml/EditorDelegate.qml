@@ -14,24 +14,6 @@ ItemDelegate {
 
     signal removeRequested()
 
-    component Badge: Rectangle {
-        property alias text: badgeText.text
-
-        implicitWidth: badgeText.implicitWidth + 12
-        implicitHeight: badgeText.implicitHeight + 4
-        radius: 4
-        color: Theme.surfaceRaised
-        border.color: Theme.border
-
-        Label {
-            id: badgeText
-
-            anchors.centerIn: parent
-            font.pixelSize: 11
-            color: Theme.textDim
-        }
-    }
-
     height: 64
     hoverEnabled: true
     leftPadding: 16
@@ -66,12 +48,12 @@ ItemDelegate {
                     color: Theme.text
                 }
 
-                Badge {
+                HubBadge {
                     visible: root.development
                     text: "Development build"
                 }
 
-                Badge {
+                HubBadge {
                     visible: root.preRelease
                     text: "Pre-release"
                 }

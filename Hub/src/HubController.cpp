@@ -36,7 +36,8 @@ namespace ByteForge::Hub
     HubController::HubController(QObject* parent)
         : QObject(parent),
           m_Templates(ProjectTemplate::FindAll(ProjectTemplate::GetBuiltInDirectory())),
-          m_InstallsDirectory(QueryInstallsDirectory())
+          m_InstallsDirectory(QueryInstallsDirectory()),
+          m_ReleaseFeed(QStringLiteral(BYTEFORGE_RELEASE_REPOSITORY))
     {
         m_Filtered.setSourceModel(&m_Projects);
         m_Filtered.setFilterRole(ProjectListModel::NameRole);
@@ -55,6 +56,10 @@ namespace ByteForge::Hub
             APP_WARN("No project templates in '{}'", ToUtf8(ProjectTemplate::GetBuiltInDirectory()));
 
         reloadEditors();
+
+        connect(&m_ReleaseFeed, &ReleaseFeed::stateChanged, this, &HubController::releaseStateChanged);
+        connect(&m_ReleaseFeed, &ReleaseFeed::releasesChanged, this, &HubController::updateReleaseModel);
+        m_ReleaseFeed.refresh();
     }
 
     void HubController::setSearch(const QString& search)
@@ -76,11 +81,22 @@ namespace ByteForge::Hub
         return QDir::toNativeSeparators(PathToQString(m_InstallsDirectory));
     }
 
+    void HubController::setShowPreReleases(const bool show)
+    {
+        if (show == m_ShowPreReleases) return;
+
+        m_ShowPreReleases = show;
+        updateReleaseModel();
+        Q_EMIT showPreReleasesChanged();
+    }
+
     void HubController::refresh()
     {
         m_Projects.reload();
         reloadEditors();
     }
+
+    void HubController::checkForReleases() { m_ReleaseFeed.refresh(); }
 
     void HubController::openProject(const QString& path)
     {
@@ -295,6 +311,8 @@ namespace ByteForge::Hub
         std::ranges::move(EditorInstalls::FindInstalled(m_InstallsDirectory), std::back_inserter(m_Editors));
 
         m_EditorModel.setInstalls(m_Editors);
+
+        updateReleaseModel();
     }
 
     const EditorInstall* HubController::pickEditor() const
@@ -310,5 +328,26 @@ namespace ByteForge::Hub
             return !install.Version.IsPreRelease();
         });
         return release != m_Editors.end() ? &*release : &m_Editors.front();
+    }
+
+    void HubController::updateReleaseModel()
+    {
+        std::vector<EditorRelease> available;
+
+        for (const EditorRelease& release : m_ReleaseFeed.releases())
+        {
+            if (release.PreRelease && !m_ShowPreReleases)
+                continue;
+
+            const bool installed = std::ranges::any_of(m_Editors, [&](const EditorInstall& install)
+            {
+                return !install.Development && install.Version == release.Version;
+            });
+
+            if (!installed)
+                available.push_back(release);
+        }
+
+        m_ReleaseModel.setReleases(std::move(available));
     }
 }
