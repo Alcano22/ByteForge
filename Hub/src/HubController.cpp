@@ -12,12 +12,14 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
+#include <QLocale>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QVariantMap>
 
 #include <algorithm>
 #include <filesystem>
+#include <iterator>
 #include <system_error>
 
 namespace ByteForge::Hub
@@ -55,6 +57,8 @@ namespace ByteForge::Hub
         if (m_Templates.empty())
             APP_WARN("No project templates in '{}'", ToUtf8(ProjectTemplate::GetBuiltInDirectory()));
 
+        EditorInstalls::RemoveLeftovers(m_InstallsDirectory);
+
         reloadEditors();
 
         connect(&m_ReleaseFeed, &ReleaseFeed::stateChanged, this, &HubController::releaseStateChanged);
@@ -90,6 +94,39 @@ namespace ByteForge::Hub
         Q_EMIT showPreReleasesChanged();
     }
 
+    QString HubController::installingVersion() const
+    {
+        return m_Download != nullptr ? ToQString(m_Download->version().ToString()) : QString();
+    }
+
+    double HubController::installProgress() const
+    {
+        if (m_Download == nullptr || m_Download->stage() != EditorDownload::Stage::Package || m_Download->total() <= 0)
+            return -1.0;
+
+        return static_cast<double>(m_Download->received()) / static_cast<double>(m_Download->total());
+    }
+
+    QString HubController::installStatus() const
+    {
+        if (m_Download == nullptr)
+            return {};
+
+        switch (m_Download->stage())
+        {
+            case EditorDownload::Stage::Manifest:
+                return QStringLiteral("Preparing...");
+            case EditorDownload::Stage::Package:
+                return QStringLiteral("Downloading %1 of %2").arg(QLocale().formattedDataSize(m_Download->received()),
+                                                                  QLocale().formattedDataSize(m_Download->total()));
+            case EditorDownload::Stage::Unpacking:
+                return QStringLiteral("Unpacking...");
+            case EditorDownload::Stage::Done:
+                return QStringLiteral("Installed");
+        }
+        return {};
+    }
+
     void HubController::refresh()
     {
         m_Projects.reload();
@@ -97,6 +134,39 @@ namespace ByteForge::Hub
     }
 
     void HubController::checkForReleases() { m_ReleaseFeed.refresh(); }
+
+    void HubController::installEditor(const QString& version)
+    {
+        if (m_Download != nullptr)
+        {
+            reportError(QStringLiteral("ByteForge %1 is being installed, wait until it is done")
+                            .arg(installingVersion()));
+            return;
+        }
+
+        const std::optional<SemanticVersion> wanted = SemanticVersion::Parse(version.toStdString());
+        const auto release = wanted ? std::ranges::find(m_ReleaseFeed.releases(), *wanted, &EditorRelease::Version)
+                                    : m_ReleaseFeed.releases().end();
+        if (release == m_ReleaseFeed.releases().end())
+        {
+            reportError(QStringLiteral("ByteForge %1 is not published on GitHub").arg(version));
+            return;
+        }
+
+        m_Download = new EditorDownload(*release, m_InstallsDirectory, this);
+        connect(m_Download, &EditorDownload::progressChanged, this, &HubController::installChanged);
+        connect(m_Download, &EditorDownload::finished, this, &HubController::onInstallFinished);
+
+        APP_INFO("Installing ByteForge {}", release->Version.ToString());
+        m_Download->start();
+        Q_EMIT installChanged();
+    }
+
+    void HubController::cancelInstall()
+    {
+        if (m_Download != nullptr)
+            m_Download->cancel();
+    }
 
     void HubController::openProject(const QString& path)
     {
@@ -334,10 +404,18 @@ namespace ByteForge::Hub
     {
         std::vector<EditorRelease> available;
 
+        m_PublishedReleaseCount = 0;
+        m_HiddenPreReleaseCount = 0;
+
         for (const EditorRelease& release : m_ReleaseFeed.releases())
         {
             if (release.PreRelease && !m_ShowPreReleases)
+            {
+                ++m_HiddenPreReleaseCount;
                 continue;
+            }
+
+            ++m_PublishedReleaseCount;
 
             const bool installed = std::ranges::any_of(m_Editors, [&](const EditorInstall& install)
             {
@@ -349,5 +427,25 @@ namespace ByteForge::Hub
         }
 
         m_ReleaseModel.setReleases(std::move(available));
+        Q_EMIT releasesUpdated();
+    }
+
+    void HubController::onInstallFinished(const QString& error)
+    {
+        EditorDownload* download = m_Download;
+        m_Download = nullptr;
+
+        download->deleteLater();
+
+        if (download->wasCancelled())
+            APP_INFO("Installing ByteForge {} was cancelled", download->version().ToString());
+        else if (!error.isEmpty())
+        {
+            reportError(QStringLiteral("Cannot install ByteForge %1: %2")
+                            .arg(ToQString(download->version().ToString()), error));
+        }
+
+        reloadEditors();
+        Q_EMIT installChanged();
     }
 }

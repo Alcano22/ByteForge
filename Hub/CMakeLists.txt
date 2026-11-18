@@ -1,4 +1,4 @@
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick QuickControls2 Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Quick QuickControls2 Network Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -34,6 +34,7 @@ qt_add_qml_module(Hub
         qml/HubTab.qml
         qml/HubBadge.qml
         qml/HubCheckBox.qml
+        qml/HubProgressBar.qml
     SOURCES
         src/QtConversions.h
         src/ProjectListModel.h
@@ -44,6 +45,8 @@ qt_add_qml_module(Hub
         src/ReleaseFeed.cpp
         src/ReleaseListModel.h
         src/ReleaseListModel.cpp
+        src/EditorDownload.h
+        src/EditorDownload.cpp
         src/HubController.h
         src/HubController.cpp
 )
@@ -61,6 +64,7 @@ target_link_libraries(Hub PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Network
+        Qt6::Concurrent
         ByteForgeWarnings
 )
 

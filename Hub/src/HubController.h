@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorDownload.h"
 #include "EditorListModel.h"
 #include "ProjectListModel.h"
 #include "ReleaseFeed.h"
@@ -36,6 +37,10 @@ namespace ByteForge::Hub
         Q_PROPERTY(bool releasesChecked READ releasesChecked NOTIFY releaseStateChanged)
         Q_PROPERTY(QString releaseError READ releaseError NOTIFY releaseStateChanged)
         Q_PROPERTY(bool showPreReleases READ showPreReleases WRITE setShowPreReleases NOTIFY showPreReleasesChanged)
+        Q_PROPERTY(QString installingVersion READ installingVersion NOTIFY installChanged)
+        Q_PROPERTY(double installProgress READ installProgress NOTIFY installChanged)
+        Q_PROPERTY(QString installStatus READ installStatus NOTIFY installChanged)
+        Q_PROPERTY(bool canCancelInstall READ canCancelInstall NOTIFY installChanged)
 
     public:
         explicit HubController(QObject* parent = nullptr);
@@ -60,9 +65,17 @@ namespace ByteForge::Hub
         [[nodiscard]] bool showPreReleases() const { return m_ShowPreReleases; }
         void setShowPreReleases(bool show);
 
+        [[nodiscard]] QString installingVersion() const;
+        [[nodiscard]] double installProgress() const;
+        [[nodiscard]] QString installStatus() const;
+        [[nodiscard]] bool canCancelInstall() const { return m_Download != nullptr && m_Download->canCancel(); }
+
         Q_INVOKABLE void refresh();
 
         Q_INVOKABLE void checkForReleases();
+
+        Q_INVOKABLE void installEditor(const QString& version);
+        Q_INVOKABLE void cancelInstall();
 
         Q_INVOKABLE void openProject(const QString& path);
 
@@ -91,6 +104,8 @@ namespace ByteForge::Hub
         void errorOccurred(const QString& message);
         void releaseStateChanged();
         void showPreReleasesChanged();
+        void releasesUpdated();
+        void installChanged();
 
     private:
         void reportError(const QString& message);
@@ -99,6 +114,8 @@ namespace ByteForge::Hub
         [[nodiscard]] const EditorInstall* pickEditor() const;
 
         void updateReleaseModel();
+
+        void onInstallFinished(const QString& error);
 
     private:
         ProjectListModel m_Projects;
@@ -115,5 +132,9 @@ namespace ByteForge::Hub
         ReleaseFeed m_ReleaseFeed;
         ReleaseListModel m_ReleaseModel;
         bool m_ShowPreReleases = false;
+        int m_PublishedReleaseCount = 0;
+        int m_HiddenPreReleaseCount = 0;
+
+        EditorDownload* m_Download = nullptr;
     };
 }

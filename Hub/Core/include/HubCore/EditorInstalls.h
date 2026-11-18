@@ -28,6 +28,13 @@ namespace ByteForge::Hub
         [[nodiscard]] std::optional<EditorInstall> FindDevelopment(const fs::path& hubDirectory,
                                                                    const SemanticVersion& version);
 
+        [[nodiscard]] Result<EditorInstall> Install(const fs::path& archive, const SemanticVersion& version,
+                                                    const fs::path& installsDirectory);
+
+        [[nodiscard]] fs::path GetDownloadPath(const SemanticVersion& version, const fs::path& installsDirectory);
+
+        void RemoveLeftovers(const fs::path& installsDirectory);
+
         [[nodiscard]] Result<> Remove(const EditorInstall& install, const fs::path& installsDirectory);
     }
 }

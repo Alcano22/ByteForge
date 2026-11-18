@@ -11,6 +11,9 @@ ItemDelegate {
     required property bool preRelease
     required property string pageUrl
 
+    readonly property bool installing: HubController.installingVersion === root.version
+    readonly property bool busy: HubController.installingVersion !== ""
+
     height: 56
     hoverEnabled: true
     leftPadding: 16
@@ -47,10 +50,45 @@ ItemDelegate {
             Layout.fillWidth: true
         }
 
+        ColumnLayout {
+            Layout.preferredWidth: 240
+            visible: root.installing
+            spacing: 4
+
+            Label {
+                Layout.fillWidth: true
+                text: HubController.installStatus
+                font.pixelSize: 12
+                color: Theme.textDim
+                elide: Text.ElideRight
+            }
+
+            HubProgressBar {
+                Layout.fillWidth: true
+                indeterminate: HubController.installProgress < 0
+                value: Math.max(0, HubController.installProgress)
+            }
+        }
+
         HubButton {
-            visible: root.pageUrl !== ""
+            visible: root.installing
+            text: "Cancel"
+            enabled: HubController.canCancelInstall
+            onClicked: HubController.cancelInstall()
+        }
+
+        HubButton {
+            visible: !root.installing && root.pageUrl !== ""
             text: "Release Notes"
             onClicked: Qt.openUrlExternally(root.pageUrl)
+        }
+
+        HubButton {
+            visible: !root.installing
+            text: "Install"
+            accent: true
+            enabled: !root.busy
+            onClicked: HubController.installEditor(root.version)
         }
     }
 }

@@ -43,6 +43,10 @@
     "lunasvg",
     "miniaudio",
     "zstd",
-    "catch2"
+    "catch2",
+    {
+      "name": "libarchive",
+      "default-features": false
+    }
   ]
 }
