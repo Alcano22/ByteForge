@@ -5,9 +5,11 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <functional>
+#include <vector>
 
 namespace ByteForge
 {
@@ -19,6 +21,8 @@ namespace ByteForge
         std::string Title = "ByteForge Application";
         u32 Width = 1280;
         u32 Height = 720;
+
+        std::vector<fs::path> Icons;
     };
 
     class BYTEFORGE_API Window
@@ -35,6 +39,8 @@ namespace ByteForge
         void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
 
         void SetTitle(const std::string& title);
+
+        void SetIcon(const std::vector<fs::path>& files);
 
         void CancelClose() const { glfwSetWindowShouldClose(m_Window.get(), GLFW_FALSE); }
 

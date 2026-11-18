@@ -12,10 +12,11 @@ version=$2
 output=$(realpath -m "$3")
 source_dir=$(realpath "$(dirname "$0")/../..")
 deploy_dir="$source_dir/Hub/deploy/linux"
+branding_dir="$source_dir/Branding"
 
-for tool in patchelf rsvg-convert readelf; do
+for tool in patchelf readelf; do
     if ! command -v "$tool" >/dev/null; then
-        echo "$0 needs '$tool' (Fedora: dnf install patchelf librsvg2-tools binutils)" >&2
+        echo "$0 needs '$tool' (Fedora: dnf install patchelf binutils)" >&2
         exit 1
     fi
 done
@@ -44,8 +45,6 @@ appdir="$work/AppDir"
 built="$work/ByteForge-Hub.AppImage"
 
 cmake --install "$build_dir" --component Hub --prefix "$appdir/usr"
-
-rsvg-convert -w 256 -h 256 "$deploy_dir/byteforge-hub.svg" -o "$work/byteforge-hub.png"
 
 export PATH="$tools:$PATH"
 
@@ -83,8 +82,8 @@ linuxdeploy-x86_64.AppImage \
     --appdir "$appdir" \
     --executable "$appdir/usr/bin/ByteForgeHub" \
     --desktop-file "$deploy_dir/byteforge-hub.desktop" \
-    --icon-file "$deploy_dir/byteforge-hub.svg" \
-    --icon-file "$work/byteforge-hub.png" \
+    --icon-file "$branding_dir/byteforge.svg" \
+    --icon-file "$branding_dir/icons/256/byteforge.png" \
     --plugin qt
 
 if [ -n "$wayland_plugin" ]; then
@@ -138,7 +137,7 @@ while true; do
     echo "Removed $removed unused libraries"
 done
 
-cp "$work/byteforge-hub.png" "$appdir/byteforge-hub.png"
+cp "$branding_dir/icons/256/byteforge.png" "$appdir/byteforge.png"
 
 export LINUXDEPLOY_OUTPUT_VERSION="$version"
 export LDAI_OUTPUT="$built"

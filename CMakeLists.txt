@@ -53,6 +53,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 
 include(cmake/CopyDirectory.cmake)
 include(cmake/RuntimeDeploy.cmake)
+include(cmake/Branding.cmake)
 
 add_subdirectory(Engine)
 add_subdirectory(ScriptCore)

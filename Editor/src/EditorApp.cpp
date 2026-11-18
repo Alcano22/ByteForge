@@ -12,10 +12,13 @@
 
 #include <imgui.h>
 
+#include <array>
 #include <format>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
+#include <system_error>
+#include <vector>
 
 namespace
 {
@@ -40,6 +43,29 @@ namespace
         }
 
         return std::nullopt;
+    }
+
+    std::vector<std::filesystem::path> FindWindowIcons()
+    {
+        using namespace ByteForge;
+
+        constexpr std::array<u32, 7> Sizes{ 16, 24, 32, 48, 64, 128, 256 };
+        const std::filesystem::path directory = RuntimePaths::GetDataDirectory() / "icons";
+
+        std::vector<std::filesystem::path> icons;
+        for (const u32 size : Sizes)
+        {
+            std::filesystem::path file = directory / std::to_string(size) / "byteforge.png";
+
+            std::error_code error;
+            if (std::filesystem::is_regular_file(file, error))
+                icons.push_back(std::move(file));
+        }
+
+        if (icons.empty())
+            APP_WARN("No window icons in '{}'", ToUtf8(directory));
+
+        return icons;
     }
 }
 
@@ -84,7 +110,12 @@ ByteForge::Application* ByteForge::CreateApplication()
     if (const Result<> recorded = RecentProjects::Touch(Project::GetActive()); !recorded)
         APP_WARN("Cannot update the recent projects list: {}", recorded.error());
 
-    auto* app = new Application({ .Title = "ByteForge Editor", .Width = 1280, .Height = 720 });
+    auto* app = new Application({
+        .Title  = "ByteForge Editor",
+        .Width  = 1280,
+        .Height = 720,
+        .Icons  = FindWindowIcons()
+    });
     app->EnableImGui();
 
     ImGui::SetCurrentContext(app->GetImGuiContext());

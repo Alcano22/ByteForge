@@ -2,10 +2,25 @@
 #include <Engine/Core/RuntimePaths.h>
 
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 
+#include <array>
 #include <cstdlib>
+
+namespace
+{
+    QIcon MakeWindowIcon()
+    {
+        constexpr std::array Sizes{ 16, 24, 32, 48, 64, 128, 256 };
+
+        QIcon icon;
+        for (const int size : Sizes)
+            icon.addFile(QStringLiteral(":/branding/%1/byteforge.png").arg(size), QSize(size, size));
+        return icon;
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -21,6 +36,9 @@ int main(int argc, char* argv[])
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ByteForge Hub"));
     QGuiApplication::setOrganizationName(QStringLiteral("ByteForge"));
+
+    QGuiApplication::setWindowIcon(MakeWindowIcon());
+    QGuiApplication::setDesktopFileName(QStringLiteral("byteforge-hub"));
 
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 

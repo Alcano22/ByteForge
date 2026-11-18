@@ -88,6 +88,9 @@ target_link_libraries(Editor PRIVATE
 
 target_precompile_headers(Editor PRIVATE ${BYTEFORGE_PCH_HEADER})
 
+byteforge_add_app_icon(Editor)
+byteforge_copy_window_icons(Editor)
+
 byteforge_copy_directory(Editor
         ${CMAKE_CURRENT_SOURCE_DIR}/resources
         ${BYTEFORGE_SHARE_DIR}/editor

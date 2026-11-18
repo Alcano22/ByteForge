@@ -4,8 +4,11 @@
 #include "Engine/Event/KeyEvent.h"
 #include "Engine/Event/MouseEvent.h"
 #include "Engine/Renderer/GraphicsContext.h"
+#include "Engine/Renderer/ImageDecoder.h"
 
 #include <GLFW/glfw3.h>
+
+#include <vector>
 
 namespace ByteForge
 {
@@ -57,6 +60,8 @@ namespace ByteForge
 
         m_Window = WrapScope(rawWindow, GlfwWindowDestroyer{});
 
+        SetIcon(props.Icons);
+
         i32 framebufferWidth = 0, framebufferHeight = 0;
         glfwGetFramebufferSize(m_Window.get(), &framebufferWidth, &framebufferHeight);
         m_Data.FramebufferWidth = static_cast<u32>(framebufferWidth);
@@ -82,6 +87,43 @@ namespace ByteForge
 
         m_Data.Title = title;
         glfwSetWindowTitle(m_Window.get(), title.c_str());
+    }
+
+    void Window::SetIcon(const std::vector<fs::path>& files)
+    {
+        if (files.empty()) return;
+
+        const i32 platform = glfwGetPlatform();
+        if (platform == GLFW_PLATFORM_WAYLAND || platform == GLFW_PLATFORM_COCOA) return;
+
+        std::vector<DecodedImage> decoded;
+        decoded.reserve(files.size());
+
+        for (const fs::path& file : files)
+        {
+            Result<DecodedImage> image = DecodeImage(file);
+            if (!image)
+            {
+                CORE_WARN("Cannot load the window icon '{}': {}", ToUtf8(file), image.error());
+                continue;
+            }
+            decoded.push_back(std::move(*image));
+        }
+
+        std::vector<GLFWimage> images;
+        images.reserve(decoded.size());
+
+        for (DecodedImage& image : decoded)
+        {
+            images.push_back({
+                .width  = static_cast<i32>(image.Width),
+                .height = static_cast<i32>(image.Height),
+                .pixels = reinterpret_cast<unsigned char*>(image.Pixels.data())
+            });
+        }
+
+        if (!images.empty())
+            glfwSetWindowIcon(m_Window.get(), static_cast<i32>(images.size()), images.data());
     }
 
     void Window::SetupCallbacks() const

@@ -53,6 +53,19 @@ qt_add_qml_module(Hub
         src/HubController.cpp
 )
 
+set(hub_icons)
+foreach(size IN LISTS BYTEFORGE_ICON_SIZES)
+    list(APPEND hub_icons ${BYTEFORGE_BRANDING_DIR}/icons/${size}/byteforge.png)
+endforeach()
+
+qt_add_resources(Hub "branding"
+        PREFIX "/branding"
+        BASE "${BYTEFORGE_BRANDING_DIR}/icons"
+        FILES ${hub_icons}
+)
+
+byteforge_add_app_icon(Hub)
+
 target_include_directories(Hub PRIVATE src)
 
 target_compile_definitions(Hub PRIVATE
