@@ -12,7 +12,7 @@ namespace ByteForge::Platform
         std::optional<fs::path> QueryConfigDirectoryOverride()
         {
 #ifdef _WIN32
-            wchat_t* value = nullptr;
+            wchar_t* value = nullptr;
             usize length = 0;
             if (_wdupenv_s(&value, &length, L"BYTEFORGE_CONFIG_DIR") != 0 || value == nullptr)
                 return std::nullopt;
