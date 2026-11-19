@@ -10,6 +10,7 @@ add_executable(ByteForgeTests
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
         src/UI/GameUITests.cpp
+        src/Text/FontAtlasTests.cpp
         src/Assets/PakTests.cpp
         src/Assets/PrefabTests.cpp
         src/Project/ProjectTests.cpp
@@ -23,6 +24,10 @@ add_executable(ByteForgeTests
 )
 
 target_include_directories(ByteForgeTests PRIVATE src)
+
+target_compile_definitions(ByteForgeTests PRIVATE
+        BYTEFORGE_TEST_FONT="${CMAKE_SOURCE_DIR}/Engine/resources/fonts/inter_regular.ttf"
+)
 
 target_link_libraries(ByteForgeTests PRIVATE
         Engine

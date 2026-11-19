@@ -13,6 +13,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-nethost CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+find_package(msdfgen CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h" REQUIRED)
 
 add_library(ByteForgeCore SHARED
@@ -143,6 +144,8 @@ add_library(Engine SHARED
         src/Renderer/MeshPrimitives.cpp
         src/Renderer/MeshRenderer.cpp
         src/Renderer/ShaderLibrary.cpp
+        src/Text/FontAtlas.cpp
+        src/Text/Font.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp
@@ -232,6 +235,8 @@ target_link_libraries(Engine PRIVATE
         GPUOpen::VulkanMemoryAllocator
         unofficial::spirv-reflect
         box2d::box2d
+        msdfgen::msdfgen-core
+        msdfgen::msdfgen-ext
         unofficial::nethost::nethost
         $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
         ${CMAKE_DL_LIBS}
@@ -281,5 +286,15 @@ function(byteforge_add_engine_shaders target destination)
     byteforge_copy_directory(${target}
             ${BYTEFORGE_ENGINE_SHADER_DIR}
             ${destination}/shaders
+    )
+endfunction()
+
+set(BYTEFORGE_ENGINE_FONT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts
+        CACHE INTERNAL "The engine's built-in fonts")
+
+function(byteforge_add_engine_fonts target destination)
+    byteforge_copy_directory(${target}
+            ${BYTEFORGE_ENGINE_FONT_DIR}
+            ${destination}/fonts
     )
 endfunction()

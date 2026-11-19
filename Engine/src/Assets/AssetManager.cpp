@@ -4,6 +4,7 @@
 #include "Engine/Core/JobSystem.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Core/FileSystem.h"
+#include "Engine/Core/RuntimePaths.h"
 #include "Engine/Renderer/ImageDecoder.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
@@ -37,7 +38,16 @@ namespace ByteForge
         std::unordered_map<UUID, Ref<PhysicsMaterialAsset>> s_PhysicsMaterials;
         std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
         std::unordered_map<UUID, Ref<AnimatorControllerAsset>> s_AnimatorControllers;
+        std::unordered_map<UUID, Ref<FontAsset>> s_Fonts;
+        std::unordered_map<UUID, std::future<Result<FontAtlasData>>> s_PendingFonts;
         Ref<Texture2D> s_Fallback;
+
+        const UUID BuiltInFont{ 0 };
+
+        fs::path GetBuiltInFontPath()
+        {
+            return RuntimePaths::GetDataDirectory() / "fonts" / "inter_regular.ttf";
+        }
 
         const Ref<Texture2D>& Fallback()
         {
@@ -150,6 +160,86 @@ namespace ByteForge
     Ref<TextureAsset> AssetManager::LoadTexture2D(const fs::path& relativePath)
     {
         return LoadTexture2D(AssetRegistry::Import(relativePath));
+    }
+
+    void AssetManager::RequestFontLoad(const UUID handle)
+    {
+        if (handle == BuiltInFont)
+        {
+            s_PendingFonts.insert_or_assign(handle, JobSystem::Submit([path = GetBuiltInFontPath()]()
+                -> Result<FontAtlasData>
+            {
+                const Result<std::vector<std::byte>> file = ReadBinaryFile(path);
+                if (!file)
+                    return Unexpected(file.error());
+                return BuildFontAtlas(*file);
+            }));
+            return;
+        }
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Font)
+        {
+            CORE_ERROR("AssetManager: {} is not a known font", static_cast<u64>(handle));
+            s_Fonts.at(handle)->m_State = AssetLoadState::Failed;
+            return;
+        }
+
+        s_PendingFonts.insert_or_assign(handle, JobSystem::Submit(
+            [path = metadata.Path, source = AssetRegistry::GetSource()]() -> Result<FontAtlasData>
+        {
+            const Result<std::vector<std::byte>> file = source.Read(path);
+            if (!file)
+                return Unexpected(file.error());
+            return BuildFontAtlas(*file);
+        }));
+    }
+
+    void AssetManager::FinishFontLoads()
+    {
+        for (auto it = s_PendingFonts.begin(); it != s_PendingFonts.end();)
+        {
+            if (it->second.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            {
+                ++it;
+                continue;
+            }
+
+            FontAsset& asset = *s_Fonts.at(it->first);
+            Result<FontAtlasData> atlas = it->second.get();
+            it = s_PendingFonts.erase(it);
+
+            const u64 handle = static_cast<u64>(asset.GetHandle());
+            try
+            {
+                if (!atlas)
+                    throw Error(atlas.error());
+
+                asset.m_Font = MakeRef<Font>(std::move(*atlas));
+                asset.m_State = AssetLoadState::Loaded;
+            } catch (const std::exception& e)
+            {
+                if (handle == 0)
+                    CORE_ERROR("AssetManager: cannot load the built-in font: {}", e.what());
+                else
+                    CORE_ERROR("AssetManager: failed to load font {}: {}", handle, e.what());
+
+                if (asset.m_State != AssetLoadState::Loaded)
+                    asset.m_State = AssetLoadState::Failed;
+            }
+        }
+    }
+
+    Ref<FontAsset> AssetManager::LoadFont(const UUID handle)
+    {
+        if (const auto it = s_Fonts.find(handle); it != s_Fonts.end())
+            return it->second;
+
+        auto asset = MakeRef<FontAsset>(handle);
+        s_Fonts.emplace(handle, asset);
+
+        RequestFontLoad(handle);
+        return asset;
     }
 
     Ref<PhysicsMaterialAsset> AssetManager::LoadPhysicsMaterial(const UUID handle)
@@ -349,6 +439,9 @@ namespace ByteForge
         if (s_Assets.contains(handle))
             RequestLoad(handle, metadata);
 
+        if (s_Fonts.contains(handle))
+            RequestFontLoad(handle);
+
         if (const auto it = s_PhysicsMaterials.find(handle); it != s_PhysicsMaterials.end())
         {
             if (auto material = ReadPhysicsMaterial(handle))
@@ -376,6 +469,8 @@ namespace ByteForge
 
     void AssetManager::Update()
     {
+        FinishFontLoads();
+
         for (auto it = s_Pending.begin(); it != s_Pending.end();)
         {
             if (it->second.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
@@ -414,6 +509,8 @@ namespace ByteForge
         s_PhysicsMaterials.clear();
         s_AnimationClips.clear();
         s_AnimatorControllers.clear();
+        s_PendingFonts.clear();
+        s_Fonts.clear();
         s_Fallback.reset();
         Prefab::Clear();
     }

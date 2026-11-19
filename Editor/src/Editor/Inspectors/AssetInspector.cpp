@@ -10,6 +10,7 @@
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Audio/AudioEngine.h>
+#include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/GraphSchema.h>
 #include <Engine/Scripting/Visual/ScriptGraphSerializer.h>
 
@@ -33,6 +34,41 @@ namespace ByteForge::EditorUI
 
             if (EditTextureSettings(settings))
                 EditorContext::ApplyTextureSettings(metadata.Handle, settings);
+        }
+
+        void DrawFontInspector(const AssetMetadata& metadata)
+        {
+            const Ref<FontAsset> asset = AssetManager::LoadFont(metadata.Handle);
+
+            switch (asset->GetState())
+            {
+                case AssetLoadState::Loading:
+                    ImGui::TextDisabled("Generating the glyph atlas...");
+                    return;
+                case AssetLoadState::Failed:
+                    ErrorTextWrapped("This font could not be loaded, see the console");
+                    return;
+                case AssetLoadState::Loaded:
+                    break;
+            }
+
+            const Font& font = *asset->GetFont();
+            const FontMetrics& metrics = font.GetMetrics();
+            const Ref<Texture2D>& atlas = font.GetAtlas();
+
+            ImGui::Text("%zu glyphs, %zu kerning pairs", font.GetGlyphCount(), font.GetKerningPairCount());
+            ImGui::Text("Atlas %u x %u, %.0f px per em, range %.0f px", atlas->GetWidth(), atlas->GetHeight(),
+                        font.GetGlyphSize(), font.GetDistanceRange());
+            ImGui::Text("Ascender %.3f, descender %.3f, line height %.3f em",
+                        metrics.Ascender, metrics.Descender, metrics.LineHeight);
+
+            if (!ImGui::TreeNodeEx("Atlas", ImGuiTreeNodeFlags_DefaultOpen)) return;
+
+            const f32 width = ImGui::GetContentRegionAvail().x;
+            const f32 height = width * static_cast<f32>(atlas->GetHeight()) / static_cast<f32>(atlas->GetWidth());
+            UI::Image(atlas, ImVec2(width, height));
+
+            ImGui::TreePop();
         }
 
         void DrawPhysicsMaterialInspector(const AssetMetadata& metadata)
@@ -284,6 +320,7 @@ namespace ByteForge::EditorUI
                     context.InstantiatePrefab(handle);
                 ImGui::TextDisabled("or drag it into the Scene or the Hierarchy");
                 break;
+            case AssetType::Font:      DrawFontInspector(metadata); break;
             case AssetType::None:      break;
         }
     }

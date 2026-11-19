@@ -42,6 +42,8 @@ namespace ByteForge
             return AssetType::AnimationClip;
         if (ext == AnimatorControllerExtension)
             return AssetType::AnimatorController;
+        if (ext == ".ttf" || ext == ".otf")
+            return AssetType::Font;
 
         return AssetType::None;
     }

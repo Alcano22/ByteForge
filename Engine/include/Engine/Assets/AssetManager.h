@@ -5,6 +5,7 @@
 #include "Engine/Assets/TextureAsset.h"
 #include "Engine/Assets/AnimationClip.h"
 #include "Engine/Assets/AnimatorController.h"
+#include "Engine/Assets/FontAsset.h"
 #include "Engine/Scene/UUID.h"
 
 #include <expected>
@@ -45,6 +46,12 @@ namespace ByteForge
 
         [[nodiscard]] static Result<UUID> CreateAnimatorController(const fs::path& relativePath);
 
+        [[nodiscard]] static Ref<FontAsset> LoadFont(UUID handle);
+
         static void Reload(UUID handle);
+
+    private:
+        static void RequestFontLoad(UUID handle);
+        static void FinishFontLoads();
     };
 }

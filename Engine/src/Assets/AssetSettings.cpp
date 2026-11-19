@@ -43,6 +43,7 @@ namespace ByteForge
             case AssetType::Prefab:             return std::monostate{};
             case AssetType::AnimationClip:      return std::monostate{};
             case AssetType::AnimatorController: return std::monostate{};
+            case AssetType::Font:               return std::monostate{};
             case AssetType::None:               break;
         }
         return std::monostate{};
@@ -102,6 +103,7 @@ namespace ByteForge
             case AssetType::Prefab:             return std::monostate{};
             case AssetType::AnimationClip:      return std::monostate{};
             case AssetType::AnimatorController: return std::monostate{};
+            case AssetType::Font:               return std::monostate{};
             case AssetType::None:               break;
         }
 

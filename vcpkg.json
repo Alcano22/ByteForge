@@ -43,6 +43,11 @@
     "lunasvg",
     "miniaudio",
     "zstd",
+    {
+      "name": "msdfgen",
+      "default-features": false,
+      "features": [ "extensions" ]
+    },
     "catch2",
     {
       "name": "libarchive",
