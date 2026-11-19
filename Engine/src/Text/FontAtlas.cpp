@@ -28,6 +28,8 @@ namespace ByteForge
 
         constexpr u32 GlyphSpacing = 1;
 
+        constexpr f32 EdgeValue = 0.5f;
+
         class FontFile
         {
         public:
@@ -105,7 +107,16 @@ namespace ByteForge
                 msdfgen::DistanceMapping(msdfgen::Range(options.DistanceRange / scale)));
 
             out.Field = msdfgen::Bitmap<float, 3>(width, height);
-            msdfgen::generateMSDF(out.Field, shape, transformation);
+
+            msdfgen::MSDFGeneratorConfig config;
+            config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::DISABLED;
+            msdfgen::generateMSDF(out.Field, shape, transformation, config);
+
+            msdfgen::distanceSignCorrection(out.Field, shape, transformation, EdgeValue, msdfgen::FILL_NONZERO);
+
+            config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::EDGE_PRIORITY;
+            config.errorCorrection.distanceCheckMode = msdfgen::ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
+            msdfgen::msdfErrorCorrection(out.Field, shape, transformation, config);
 
             out.Info.PlaneMin = glm::vec2(static_cast<f32>(-translate.x), static_cast<f32>(-translate.y));
             out.Info.PlaneMax = out.Info.PlaneMin + glm::vec2(static_cast<f32>(width / scale),
