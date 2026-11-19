@@ -40,6 +40,10 @@ namespace ByteForge
             bool Space = false;
             bool LineBreak = false;
             u32 Style = 0;
+
+            f32 Advance = 0.0f;
+            f32 Offset = 0.0f;
+            bool Italic = false;
         };
 
         struct Line
@@ -70,11 +74,17 @@ namespace ByteForge
                 const Glyph* glyph = font.GetGlyph(character);
                 if (glyph == nullptr) continue;
 
+                const TextStyle& style = text.Styles[text.CharacterStyles[index]];
+                const f32 dilation = style.Bold ? BoldDilation : 0.0f;
+
                 characters.push_back({
                     .Data    = glyph,
                     .Kerning = previous != 0 ? font.GetKerning(previous, character) : 0.0f,
                     .Space   = character == U' ',
-                    .Style   = text.CharacterStyles[index]
+                    .Style   = text.CharacterStyles[index],
+                    .Advance = glyph->Advance + 2.0f * dilation,
+                    .Offset  = dilation,
+                    .Italic  = style.Italic
                 });
                 previous = character;
             }
@@ -86,7 +96,7 @@ namespace ByteForge
         {
             f32 x = 0.0f;
             for (usize i = begin; i < end; ++i)
-                x += (i > begin ? characters[i].Kerning : 0.0f) + characters[i].Data->Advance;
+                x += (i > begin ? characters[i].Kerning : 0.0f) + characters[i].Advance;
             return x;
         }
 
@@ -119,7 +129,7 @@ namespace ByteForge
                 }
 
                 const f32 kerning = i > lineStart ? character.Kerning : 0.0f;
-                if (!character.Space && i > lineStart && x + kerning + character.Data->Advance > maxWidth)
+                if (!character.Space && i > lineStart && x + kerning + character.Advance > maxWidth)
                 {
                     const usize breakAt = wordStart > lineStart ? wordStart : i;
                     lines.push_back({ lineStart, breakAt });
@@ -127,7 +137,7 @@ namespace ByteForge
                     x = Measure(characters, lineStart, i);
                 }
 
-                x += (i > lineStart ? character.Kerning : 0.0f) + character.Data->Advance;
+                x += (i > lineStart ? character.Kerning : 0.0f) + character.Advance;
 
                 if (character.Space)
                     wordStart = i + 1;
@@ -224,17 +234,25 @@ namespace ByteForge
                 const Glyph& glyph = *character.Data;
                 if (glyph.IsVisible())
                 {
-                    layout.Glyphs.push_back({
-                        .Min   = pen + glyph.PlaneMin * fontSize,
-                        .Max   = pen + glyph.PlaneMax * fontSize,
+                    const glm::vec2 offset{ character.Offset, 0.0f };
+                    PlacedGlyph placed{
+                        .Min   = pen + (glyph.PlaneMin + offset) * fontSize,
+                        .Max   = pen + (glyph.PlaneMax + offset) * fontSize,
                         .UVMin = glyph.UVMin,
                         .UVMax = glyph.UVMax,
-                        // CHANGED
                         .Style = character.Style
-                    });
+                    };
+
+                    if (character.Italic)
+                    {
+                        placed.BottomShift = (placed.Min.y - pen.y) * ItalicSlant;
+                        placed.TopShift = (placed.Max.y - pen.y) * ItalicSlant;
+                    }
+
+                    layout.Glyphs.push_back(placed);
                 }
 
-                pen.x += glyph.Advance * fontSize;
+                pen.x += character.Advance * fontSize;
             }
         }
 

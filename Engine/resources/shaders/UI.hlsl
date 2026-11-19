@@ -15,6 +15,7 @@ struct VSInput
     uint   Mode          : MODE;
     uint   EntityId      : ENTITYID;
     float  DistanceRange : DISTANCERANGE;
+    float  Weight        : WEIGHT;
 };
 
 struct VSOutput
@@ -27,6 +28,7 @@ struct VSOutput
     nointerpolation uint   Mode          : MODE;
     nointerpolation uint   EntityId      : ENTITYID;
     nointerpolation float  DistanceRange : DISTANCERANGE;
+    nointerpolation float  Weight        : WEIGHT;
 };
 
 VSOutput VSMain(VSInput input)
@@ -40,6 +42,7 @@ VSOutput VSMain(VSInput input)
     output.Mode          = input.Mode;
     output.EntityId      = input.EntityId;
     output.DistanceRange = input.DistanceRange;
+    output.Weight        = input.Weight;
     return output;
 }
 
@@ -70,7 +73,8 @@ float4 ShadeQuad(VSOutput input)
 
     if (input.Mode == UI_MODE_TEXT)
     {
-        const float distance = ScreenPixelRange(uvPerPixel, input.DistanceRange) * (Median(texel.rgb) - 0.5);
+        const float field = Median(texel.rgb) - 0.5 + input.Weight;
+        const float distance = ScreenPixelRange(uvPerPixel, input.DistanceRange) * field;
         const float coverage = saturate(distance + 0.5);
         return float4(input.Color.rgb, input.Color.a * coverage);
     }

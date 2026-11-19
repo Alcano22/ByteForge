@@ -33,6 +33,24 @@ namespace ByteForge
         u32 DroppedQuads = 0;
     };
 
+    struct UIGlyph
+    {
+        glm::vec2 Min{ 0.0f };
+        glm::vec2 Max{ 0.0f };
+
+        f32 BottomShift = 0.0f;
+        f32 TopShift = 0.0f;
+
+        glm::vec2 UVMin{ 0.0f };
+        glm::vec2 UVMax{ 0.0f };
+
+        f32 DistanceRange = 0.0f;
+
+        f32 Weight = 0.0f;
+
+        glm::vec4 Color{ 1.0f };
+    };
+
     class BYTEFORGE_API UIRenderer : NonCopyable
     {
     public:
@@ -48,9 +66,7 @@ namespace ByteForge
                       const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint = glm::vec4(1.0f),
                       u32 entityId = 0);
 
-        void DrawGlyph(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& atlas,
-                       const glm::vec2& uvMin, const glm::vec2& uvMax, f32 distanceRange,
-                       const glm::vec4& color, u32 entityId = 0);
+        void DrawGlyph(const UIGlyph& glyph, const Ref<Texture2D>& atlas, u32 entityId = 0);
 
         void PushClipRect(const glm::vec2& min, const glm::vec2& max);
         void PopClipRect();
@@ -67,9 +83,25 @@ namespace ByteForge
             Text  = 1
         };
 
-        void SubmitQuad(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& texture,
-                        const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& color,
-                        QuadMode mode, u32 entityId, f32 distanceRange = 0.0f);
+        struct Quad
+        {
+            glm::vec2 Min{ 0.0f };
+            glm::vec2 Max{ 0.0f };
+            f32 BottomShift = 0.0f;
+            f32 TopShift = 0.0f;
+
+            glm::vec2 UVMin{ 0.0f };
+            glm::vec2 UVMax{ 1.0f };
+            glm::vec4 Color{ 1.0f };
+
+            QuadMode Mode = QuadMode::Image;
+            u32 EntityId = 0;
+
+            f32 DistanceRange = 0.0f;
+            f32 Weight = 0.0f;
+        };
+
+        void SubmitQuad(const Quad& quad, const Ref<Texture2D>& texture);
         void Flush();
 
         void CreateBuffers(u32 capacity);
@@ -88,6 +120,7 @@ namespace ByteForge
             u32 Mode;
             u32 EntityId;
             f32 DistanceRange;
+            f32 Weight;
         };
 
         struct MaterialEntry

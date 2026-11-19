@@ -254,3 +254,33 @@ TEST_CASE("Glyphs keep the style of their characters", "[text][richtext]")
     CHECK(text.Styles[layout.Glyphs[1].Style].Color.has_value());
     CHECK(layout.Glyphs[2].Style == 0);
 }
+
+TEST_CASE("Bold glyphs take more room and sit in the middle of it", "[text][richtext]")
+{
+    const TextLayout plain = LayoutText(GetInter(), U"HH", { .FontSize = TestFontSize });
+    const TextLayout bold = LayoutText(GetInter(), ParseRichText(U"<b>H</b>H"), { .FontSize = TestFontSize });
+
+    REQUIRE(plain.Glyphs.size() == 2);
+    REQUIRE(bold.Glyphs.size() == 2);
+
+    const f32 dilation = BoldDilation * TestFontSize;
+    CHECK(bold.Glyphs[0].Min.x == Approx(plain.Glyphs[0].Min.x + dilation));
+    CHECK(bold.Glyphs[1].Min.x == Approx(plain.Glyphs[1].Min.x + 2.0f * dilation));
+    CHECK(bold.Size.x == Approx(plain.Size.x + 2.0f * dilation));
+}
+
+TEST_CASE("Italic glyphs lean around the baseline", "[text][richtext]")
+{
+    const f32 baseline = -GetInter().GetMetrics().Ascender * TestFontSize;
+    const TextLayout layout = LayoutText(GetInter(), ParseRichText(U"<i>H</i>H"), { .FontSize = TestFontSize });
+
+    REQUIRE(layout.Glyphs.size() == 2);
+    const PlacedGlyph& italic = layout.Glyphs[0];
+
+    CHECK(italic.TopShift == Approx((italic.Max.y - baseline) * ItalicSlant));
+    CHECK(italic.BottomShift == Approx((italic.Min.y - baseline) * ItalicSlant));
+    CHECK(italic.TopShift > 0.0f);
+
+    CHECK(layout.Glyphs[1].TopShift == 0.0f);
+    CHECK(layout.Glyphs[1].BottomShift == 0.0f);
+}

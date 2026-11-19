@@ -147,6 +147,13 @@ namespace ByteForge::GameUI
             return { style.Color->r, style.Color->g, style.Color->b, style.Color->a * textColor.a };
         }
 
+        constexpr f32 MaxWeight = 0.45f;
+
+        f32 BoldWeight(const Font& font)
+        {
+            return std::min(BoldDilation * font.GetGlyphSize() / font.GetDistanceRange(), MaxWeight);
+        }
+
         void DrawTextElement(UIRenderer& renderer, const TextComponent& text, const Rect& bounds, const f32 scale)
         {
             if (text.Text.empty()) return;
@@ -173,11 +180,23 @@ namespace ByteForge::GameUI
             if (clip)
                 renderer.PushClipRect(bounds.Min, bounds.Max);
 
+            const f32 boldWeight = BoldWeight(*font);
+
             for (const PlacedGlyph& glyph : layout.Glyphs)
             {
-                const glm::vec4 color = StyleColor(styled.Styles[glyph.Style], text.Color);
-                renderer.DrawGlyph(origin + glyph.Min, origin + glyph.Max, font->GetAtlas(),
-                                   glyph.UVMin, glyph.UVMax, font->GetDistanceRange(), color);
+                const TextStyle& style = styled.Styles[glyph.Style];
+
+                renderer.DrawGlyph({
+                    .Min           = origin + glyph.Min,
+                    .Max           = origin + glyph.Max,
+                    .BottomShift   = glyph.BottomShift,
+                    .TopShift      = glyph.TopShift,
+                    .UVMin         = glyph.UVMin,
+                    .UVMax         = glyph.UVMax,
+                    .DistanceRange = font->GetDistanceRange(),
+                    .Weight        = style.Bold ? boldWeight : 0.0f,
+                    .Color         = StyleColor(style, text.Color)
+                }, font->GetAtlas());
             }
 
             if (clip)

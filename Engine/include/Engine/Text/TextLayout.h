@@ -12,6 +12,10 @@
 
 namespace ByteForge
 {
+    inline constexpr f32 BoldDilation = 0.02f;
+
+    inline constexpr f32 ItalicSlant = 0.2f;
+
     struct TextLayoutSettings
     {
         f32 FontSize = 32.0f;
@@ -35,6 +39,9 @@ namespace ByteForge
         glm::vec2 UVMax{ 0.0f };
 
         u32 Style = 0;
+
+        f32 BottomShift = 0.0f;
+        f32 TopShift = 0.0f;
     };
 
     struct TextLayout

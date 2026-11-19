@@ -6,6 +6,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <array>
 #include <string>
 #include <vector>
@@ -26,7 +27,8 @@ namespace ByteForge
                 { ShaderDataType::Float4, "ClipRect"      },
                 { ShaderDataType::UInt,   "Mode"          },
                 { ShaderDataType::UInt,   "EntityId"      },
-                { ShaderDataType::Float,  "DistanceRange" }
+                { ShaderDataType::Float,  "DistanceRange" },
+                { ShaderDataType::Float,  "Weight"        }
             };
         }
 
@@ -44,7 +46,7 @@ namespace ByteForge
     UIRenderer::UIRenderer(const UIRendererSpec& spec)
         : m_Spec(spec)
     {
-        static_assert(sizeof(Vertex) == 13 * sizeof(f32) + 2 * sizeof(u32),
+        static_assert(sizeof(Vertex) == 14 * sizeof(f32) + 2 * sizeof(u32),
                       "Vertex must be tightly packed to match the buffer layout");
 
         if (spec.MaxQuads == 0 || spec.MaxQuads > MaxSupportedQuads)
@@ -131,21 +133,45 @@ namespace ByteForge
 
     void UIRenderer::DrawRect(const glm::vec2& min, const glm::vec2& max, const glm::vec4& color, const u32 entityId)
     {
-        SubmitQuad(min, max, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, QuadMode::Image, entityId);
+        SubmitQuad({
+            .Min      = min,
+            .Max      = max,
+            .UVMin    = WholeTextureUVMin,
+            .UVMax    = WholeTextureUVMax,
+            .Color    = color,
+            .EntityId = entityId
+        }, m_WhiteTexture);
     }
 
     void UIRenderer::DrawRect(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& texture,
                               const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint,
                               const u32 entityId)
     {
-        SubmitQuad(min, max, texture, uvMin, uvMax, tint, QuadMode::Image, entityId);
+        SubmitQuad({
+            .Min      = min,
+            .Max      = max,
+            .UVMin    = uvMin,
+            .UVMax    = uvMax,
+            .Color    = tint,
+            .EntityId = entityId
+        }, texture);
     }
 
-    void UIRenderer::DrawGlyph(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& atlas,
-                               const glm::vec2& uvMin, const glm::vec2& uvMax, const f32 distanceRange,
-                               const glm::vec4& color, const u32 entityId)
+    void UIRenderer::DrawGlyph(const UIGlyph& glyph, const Ref<Texture2D>& atlas, const u32 entityId)
     {
-        SubmitQuad(min, max, atlas, uvMin, uvMax, color, QuadMode::Text, entityId, distanceRange);
+        SubmitQuad({
+            .Min           = glyph.Min,
+            .Max           = glyph.Max,
+            .BottomShift   = glyph.BottomShift,
+            .TopShift      = glyph.TopShift,
+            .UVMin         = glyph.UVMin,
+            .UVMax         = glyph.UVMax,
+            .Color         = glyph.Color,
+            .Mode          = QuadMode::Text,
+            .EntityId      = entityId,
+            .DistanceRange = glyph.DistanceRange,
+            .Weight        = glyph.Weight
+        }, atlas);
     }
 
     void UIRenderer::PushClipRect(const glm::vec2& min, const glm::vec2& max)
@@ -167,18 +193,24 @@ namespace ByteForge
         m_ClipStack.pop_back();
     }
 
-    void UIRenderer::SubmitQuad(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& texture,
-                                const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& color,
-                                const QuadMode mode, const u32 entityId, const f32 distanceRange)
+    void UIRenderer::SubmitQuad(const Quad& quad, const Ref<Texture2D>& texture)
     {
+        const glm::vec2& min = quad.Min;
+        const glm::vec2& max = quad.Max;
+        const glm::vec2& uvMin = quad.UVMin;
+        const glm::vec2& uvMax = quad.UVMax;
+
         if (!m_Active)
             throw LogicError("UIRenderer: rectangles can only be drawn between Begin and End");
 
         if (!texture)
             throw LogicError("UIRenderer: the texture of a rectangle must not be null");
 
+        const f32 left = min.x + std::min(quad.BottomShift, quad.TopShift);
+        const f32 right = max.x + std::max(quad.BottomShift, quad.TopShift);
+
         const glm::vec4& clip = m_ClipStack.back();
-        if (max.x <= clip.x || max.y <= clip.y || min.x >= clip.z || min.y >= clip.w ||
+        if (right <= clip.x || max.y <= clip.y || left >= clip.z || min.y >= clip.w ||
             max.x <= min.x || max.y <= min.y) return;
 
         if (texture != m_CurrentTexture)
@@ -198,13 +230,13 @@ namespace ByteForge
             return;
         }
 
-        const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(color) : color;
+        const glm::vec4 vertexColor = m_LinearizeColors ? SrgbToLinear(quad.Color) : quad.Color;
 
         const std::array<Vertex, VerticesPerQuad> corners{{
-            { .Position = { min.x, min.y }, .UV = { uvMin.x, uvMax.y } },
-            { .Position = { max.x, min.y }, .UV = { uvMax.x, uvMax.y } },
-            { .Position = { max.x, max.y }, .UV = { uvMax.x, uvMin.y } },
-            { .Position = { min.x, max.y }, .UV = { uvMin.x, uvMin.y } }
+            { .Position = { min.x + quad.BottomShift, min.y }, .UV = { uvMin.x, uvMax.y } },
+            { .Position = { max.x + quad.BottomShift, min.y }, .UV = { uvMax.x, uvMax.y } },
+            { .Position = { max.x + quad.TopShift,    max.y }, .UV = { uvMax.x, uvMin.y } },
+            { .Position = { min.x + quad.TopShift,    max.y }, .UV = { uvMin.x, uvMin.y } }
         }};
 
         Vertex* vertices = &m_Vertices[static_cast<usize>(m_FrameQuads) * VerticesPerQuad];
@@ -215,9 +247,10 @@ namespace ByteForge
                 .UV            = corners[i].UV,
                 .Color         = vertexColor,
                 .ClipRect      = clip,
-                .Mode          = static_cast<u32>(mode),
-                .EntityId      = entityId,
-                .DistanceRange = distanceRange
+                .Mode          = static_cast<u32>(quad.Mode),
+                .EntityId      = quad.EntityId,
+                .DistanceRange = quad.DistanceRange,
+                .Weight        = quad.Weight
             };
         }
 
