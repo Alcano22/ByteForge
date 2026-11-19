@@ -36,6 +36,14 @@ internal static unsafe class ScriptAPI
     private static uint s_SpriteRendererGetSortingLayer;
     private static uint s_SpriteRendererSetSortingLayer;
 
+    private static uint s_TextExists;
+    private static uint s_TextGetValue;
+    private static uint s_TextSetValue;
+    private static uint s_TextGetColor;
+    private static uint s_TextSetColor;
+    private static uint s_TextGetFontSize;
+    private static uint s_TextSetFontSize;
+
     private static uint s_Rigidbody2DExists;
     private static uint s_Rigidbody2DGetLinearVelocity;
     private static uint s_Rigidbody2DSetLinearVelocity;
@@ -111,6 +119,14 @@ internal static unsafe class ScriptAPI
         s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                       ref complete);
         s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                        ref complete);
         s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                   ref complete);
+
+        s_TextExists                    = Resolve("Text.Exists",                    "(Entity)->Bool",                       ref complete);
+        s_TextGetValue                  = Resolve("Text.GetValue",                  "(Entity)->String",                     ref complete);
+        s_TextSetValue                  = Resolve("Text.SetValue",                  "(Entity,String)->Void",                ref complete);
+        s_TextGetColor                  = Resolve("Text.GetColor",                  "(Entity)->Vector4",                    ref complete);
+        s_TextSetColor                  = Resolve("Text.SetColor",                  "(Entity,Vector4)->Void",               ref complete);
+        s_TextGetFontSize               = Resolve("Text.GetFontSize",               "(Entity)->Float",                      ref complete);
+        s_TextSetFontSize               = Resolve("Text.SetFontSize",               "(Entity,Float)->Void",                 ref complete);
 
         s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",             "(Entity)->Bool",                       ref complete);
         s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity",  "(Entity)->Vector2",                    ref complete);
@@ -240,6 +256,35 @@ internal static unsafe class ScriptAPI
 
     public static void SpriteRenderer_SetSortingLayer(ulong entity, int layer) =>
         Call(s_SpriteRendererSetSortingLayer, new APIValue { Handle = entity }, new APIValue { Int = layer });
+
+    // Text
+
+    public static bool Text_Exists(ulong entity) =>
+        Call(s_TextExists, new APIValue { Handle = entity }).Bool != 0;
+
+    public static string Text_GetValue(ulong entity) =>
+        Call(s_TextGetValue, new APIValue { Handle = entity }).ReadText();
+
+    public static void Text_SetValue(ulong entity, string value)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        fixed (byte* data = bytes)
+        {
+            Call(s_TextSetValue, new APIValue { Handle = entity }, new APIValue { Text = data, TextLength = bytes.Length });
+        }
+    }
+
+    public static Vector4 Text_GetColor(ulong entity) =>
+        Call(s_TextGetColor, new APIValue { Handle = entity }).Vector4;
+
+    public static void Text_SetColor(ulong entity, Vector4 color) =>
+        Call(s_TextSetColor, new APIValue { Handle = entity }, new APIValue { Vector4 = color });
+
+    public static float Text_GetFontSize(ulong entity) =>
+        Call(s_TextGetFontSize, new APIValue { Handle = entity }).Float;
+
+    public static void Text_SetFontSize(ulong entity, float size) =>
+        Call(s_TextSetFontSize, new APIValue { Handle = entity }, new APIValue { Float = size });
 
     // Rigidbody2D
 

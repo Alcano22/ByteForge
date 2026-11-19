@@ -14,7 +14,8 @@ internal static class BuiltInComponents
         [typeof(SpriteRenderer)] = new(ScriptAPI.SpriteRenderer_Exists, static entity => new SpriteRenderer(entity)),
         [typeof(Rigidbody2D)]    = new(ScriptAPI.Rigidbody2D_Exists,    static entity => new Rigidbody2D(entity)),
         [typeof(AudioSource)]    = new(ScriptAPI.AudioSource_Exists,    static entity => new AudioSource(entity)),
-        [typeof(Animator)]       = new(ScriptAPI.Animator_Exists,       static entity => new Animator(entity))
+        [typeof(Animator)]       = new(ScriptAPI.Animator_Exists,       static entity => new Animator(entity)),
+        [typeof(Text)]           = new(ScriptAPI.Text_Exists,           static entity => new Text(entity))
     };
 
     internal static bool Contains(Type type) => s_Types.ContainsKey(type);

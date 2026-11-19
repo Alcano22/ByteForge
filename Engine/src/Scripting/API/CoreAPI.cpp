@@ -36,6 +36,17 @@ namespace ByteForge
 
         void DebugLog(const ScriptCallContext&, const std::string& message) { APP_INFO("{}", message); }
 
+        constexpr i32 MaxDecimals = 9;
+
+        std::string StringFromInt(const ScriptCallContext&, const i32 value) { return std::to_string(value); }
+
+        std::string StringFromFloat(const ScriptCallContext&, const f32 value, const i32 decimals)
+        {
+            return std::format("{:.{}f}", value, std::clamp(decimals, 0, MaxDecimals));
+        }
+
+        std::string StringAppend(const ScriptCallContext&, const std::string& a, const std::string& b) { return a + b; }
+
         Scene& RequireScene(const ScriptCallContext& context)
         {
             if (context.ActiveScene == nullptr)
@@ -274,6 +285,43 @@ namespace ByteForge
             context.Require<SpriteRendererComponent>(entity).SortingLayer = layer;
         }
 
+        constexpr f32 SmallestFontSize = 1.0f;
+
+        bool TextExists(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Resolve(entity).HasComponent<TextComponent>();
+        }
+
+        std::string TextGetValue(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TextComponent>(entity).Text;
+        }
+
+        void TextSetValue(const ScriptCallContext& context, const EntityRef entity, const std::string& value)
+        {
+            context.Require<TextComponent>(entity).Text = value;
+        }
+
+        glm::vec4 TextGetColor(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TextComponent>(entity).Color;
+        }
+
+        void TextSetColor(const ScriptCallContext& context, const EntityRef entity, const glm::vec4& color)
+        {
+            context.Require<TextComponent>(entity).Color = color;
+        }
+
+        f32 TextGetFontSize(const ScriptCallContext& context, const EntityRef entity)
+        {
+            return context.Require<TextComponent>(entity).FontSize;
+        }
+
+        void TextSetFontSize(const ScriptCallContext& context, const EntityRef entity, const f32 size)
+        {
+            context.Require<TextComponent>(entity).FontSize = std::max(size, SmallestFontSize);
+        }
+
         bool Rigidbody2DExists(const ScriptCallContext& context, const EntityRef entity)
         {
             return context.Resolve(entity).HasComponent<Rigidbody2DComponent>();
@@ -496,6 +544,10 @@ namespace ByteForge
 
         api.Register<&DebugLog>("Debug.Log", "Log", Impure, { "Message" });
 
+        api.Register<&StringFromInt>("String.FromInt", "Int To Text", Pure, { "Value" });
+        api.Register<&StringFromFloat>("String.FromFloat", "Float To Text", Pure, { "Value", "Decimals" });
+        api.Register<&StringAppend>("String.Append", "Append Text", Pure, { "A", "B" });
+
         api.Register<&EntityIsValid>("Entity.IsValid", "Is Valid", Pure, { "Entity" });
         api.Register<&EntityGetName>("Entity.GetName", "Get Name", Pure, { "Entity" });
         api.Register<&EntityCreate>("Entity.Create", "Create Entity", Impure, { "Name" });
@@ -523,6 +575,14 @@ namespace ByteForge
         api.Register<&SpriteRendererExists>("SpriteRenderer.Exists", "Has Sprite Renderer", Pure, { "Entity" });
         api.Register<&SpriteRendererGetSortingLayer>("SpriteRenderer.GetSortingLayer", "Get Sorting Layer", Pure, { "Entity" });
         api.Register<&SpriteRendererSetSortingLayer>("SpriteRenderer.SetSortingLayer", "Set Sorting Layer", Impure, { "Entity", "Layer" });
+
+        api.Register<&TextExists>("Text.Exists", "Has Text", Pure, { "Entity" });
+        api.Register<&TextGetValue>("Text.GetValue", "Get Text", Pure, { "Entity" });
+        api.Register<&TextSetValue>("Text.SetValue", "Set Text", Impure, { "Entity", "Text" });
+        api.Register<&TextGetColor>("Text.GetColor", "Get Text Color", Pure, { "Entity" });
+        api.Register<&TextSetColor>("Text.SetColor", "Set Text Color", Impure, { "Entity", "Color" });
+        api.Register<&TextGetFontSize>("Text.GetFontSize", "Get Font Size", Pure, { "Entity" });
+        api.Register<&TextSetFontSize>("Text.SetFontSize", "Set Font Size", Impure, { "Entity", "Size" });
 
         api.Register<&Rigidbody2DExists>("Rigidbody2D.Exists", "Has Rigidbody 2D", Pure, { "Entity" });
         api.Register<&Rigidbody2DGetLinearVelocity>("Rigidbody2D.GetLinearVelocity", "Get Linear Velocity", Pure, { "Entity" });
