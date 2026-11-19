@@ -1,6 +1,5 @@
 #include "Engine/UI/GameUI.h"
 #include "Engine/Assets/AssetManager.h"
-#include "Engine/Core/Utf8.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/UIRenderer.h"
 #include "Engine/Scene/Components.h"
@@ -171,7 +170,7 @@ namespace ByteForge::GameUI
             renderer.DrawRect(min, max, color);
         }
 
-        void DrawTextElement(UIRenderer& renderer, const TextComponent& text, const Rect& bounds, const f32 scale)
+        void DrawTextElement(UIRenderer& renderer, TextComponent& text, const Rect& bounds, const f32 scale)
         {
             if (text.Text.empty()) return;
 
@@ -187,9 +186,12 @@ namespace ByteForge::GameUI
                 .Overflow    = text.Overflow,
                 .MinFontSize = text.MinFontSize * scale
             };
-            std::u32string characters = DecodeUtf8(text.Text);
-            const StyledText styled = text.RichText ? ParseRichText(characters) : MakePlainText(std::move(characters));
-            const TextLayout layout = LayoutText(font->GetGlyphs(), styled, settings);
+
+            const std::shared_ptr<const FontGlyphs> glyphs(font, &font->GetGlyphs());
+
+            const LaidOutText& laidOut = text.Layout.Get(glyphs, text.Text, text.RichText, settings);
+            const StyledText& styled = laidOut.Text;
+            const TextLayout& layout = laidOut.Layout;
 
             const glm::vec2 origin{ bounds.Min.x, bounds.Max.y };
 
@@ -390,7 +392,7 @@ namespace ByteForge::GameUI
                 if (const auto* image = element.Handle.TryGetComponent<ImageComponent>())
                     DrawImage(renderer, element.Handle, *image, element.Bounds, canvas.Scale);
 
-                if (const auto* text = element.Handle.TryGetComponent<TextComponent>())
+                if (auto* text = element.Handle.TryGetComponent<TextComponent>())
                     DrawTextElement(renderer, *text, element.Bounds, canvas.Scale);
             }
         }

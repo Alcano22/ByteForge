@@ -148,6 +148,7 @@ add_library(Engine SHARED
         src/Text/FontAtlas.cpp
         src/Text/Font.cpp
         src/Text/TextLayout.cpp
+        src/Text/TextLayoutCache.cpp
         src/Text/RichText.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp

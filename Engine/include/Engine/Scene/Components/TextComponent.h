@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Scene/UUID.h"
+#include "Engine/Text/TextLayoutCache.h"
 #include "Engine/Text/TextOptions.h"
 
 #include <glm/glm.hpp>
@@ -29,6 +30,8 @@ namespace ByteForge
         f32 MinFontSize = 8.0f;
 
         bool RichText = true;
+
+        TextLayoutCache Layout;
 
         static void Write(const TextComponent& component, nlohmann::json& json);
         static void Read(TextComponent& component, const nlohmann::json& json);

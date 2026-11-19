@@ -28,6 +28,8 @@ namespace ByteForge
 
         TextOverflow Overflow = TextOverflow::Overflow;
         f32 MinFontSize = 1.0f;
+
+        [[nodiscard]] bool operator==(const TextLayoutSettings&) const = default;
     };
 
     struct PlacedGlyph
@@ -61,6 +63,12 @@ namespace ByteForge
         u32 LineCount = 0;
 
         f32 FontSize = 0.0f;
+    };
+
+    struct LaidOutText
+    {
+        StyledText Text;
+        TextLayout Layout;
     };
 
     [[nodiscard]] BYTEFORGE_API TextLayout LayoutText(const FontGlyphs& font, const StyledText& text,
