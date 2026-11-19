@@ -19,7 +19,7 @@
 
 namespace ByteForge
 {
-    void VulkanImGuiRenderer::Init(GLFWwindow* windowHandle)
+    void VulkanImGuiRenderer::Init(GLFWwindow* windowHandle, const ImGuiOptions& options)
     {
         const auto& context = VulkanContext::Get();
         const auto& device = context.GetDevice();
@@ -29,9 +29,16 @@ namespace ByteForge
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+        if (options.DetachableWindows)
+        {
+            io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+            io.ConfigViewportsNoTaskBarIcon = true;
+        }
+
         ImGui::StyleColorsDark();
 
         ImGui_ImplGlfw_InitForVulkan(windowHandle, true);
+        ImGui_ImplGlfw_SetCallbacksChainForAllWindows(true);
 
         m_ColorFormat = context.GetSwapchain().GetImGuiImageFormat();
 
@@ -64,7 +71,21 @@ namespace ByteForge
 
         ImGui_ImplVulkan_Init(&initInfo);
 
-        CORE_INFO("ImGui Vulkan backend initialized");
+        if (options.DetachableWindows)
+        {
+            constexpr ImGuiBackendFlags Needed = ImGuiBackendFlags_PlatformHasViewports
+                                               | ImGuiBackendFlags_RendererHasViewports;
+
+            if ((io.BackendFlags & Needed) != Needed)
+            {
+                io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+                CORE_WARN("Windows cannot leave the main window on this platform (Wayland cannot place windows); "
+                          "on Linux the editor uses X11 for them");
+            }
+        }
+
+        CORE_INFO("ImGui Vulkan backend initialized{}",
+                  (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) ? " with detachable windows" : "");
     }
 
     void VulkanImGuiRenderer::Shutdown()

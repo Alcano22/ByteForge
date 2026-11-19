@@ -87,6 +87,9 @@ namespace ByteForge
 
             Renderer::EndFrame();
 
+            if (m_ImGuiLayer)
+                m_ImGuiLayer->RenderPlatformWindows();
+
             Input::EndFrame();
         }
     }
@@ -94,9 +97,9 @@ namespace ByteForge
     void Application::PushLayer(Scope<Layer> layer) { m_LayerStack.PushLayer(std::move(layer)); }
     void Application::PushOverlay(Scope<Layer> overlay) { m_LayerStack.PushOverlay(std::move(overlay)); }
 
-    void Application::EnableImGui()
+    void Application::EnableImGui(const ImGuiOptions& options)
     {
-        m_ImGuiLayer = MakeScope<ImGuiLayer>();
+        m_ImGuiLayer = MakeScope<ImGuiLayer>(options);
         m_ImGuiLayer->OnAttach();
     }
 

@@ -10,12 +10,17 @@ struct GLFWwindow;
 
 namespace ByteForge
 {
+    struct ImGuiOptions
+    {
+        bool DetachableWindows = false;
+    };
+
     class ImGuiRenderer
     {
     public:
         virtual ~ImGuiRenderer() = default;
 
-        virtual void Init(GLFWwindow* windowHandle) = 0;
+        virtual void Init(GLFWwindow* windowHandle, const ImGuiOptions& options) = 0;
         virtual void Shutdown() = 0;
 
         virtual void NewFrame() = 0;

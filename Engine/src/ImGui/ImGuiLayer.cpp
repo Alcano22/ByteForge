@@ -8,7 +8,7 @@ namespace ByteForge
     void ImGuiLayer::OnAttach()
     {
         m_Renderer = ImGuiRenderer::Create();
-        m_Renderer->Init(Application::Get().GetWindow().GetNativeWindow());
+        m_Renderer->Init(Application::Get().GetWindow().GetNativeWindow(), m_Options);
         ImGuiRenderer::s_Active = m_Renderer.get();
     }
 
@@ -30,5 +30,19 @@ namespace ByteForge
     {
         ImGui::Render();
         m_Renderer->RenderDrawData();
+    }
+
+    void ImGuiLayer::RenderPlatformWindows() const
+    {
+        if (!HasDetachableWindows()) return;
+
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
+
+    bool ImGuiLayer::HasDetachableWindows()
+    {
+        return ImGui::GetCurrentContext() != nullptr &&
+               (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
     }
 }

@@ -54,6 +54,8 @@ add_executable(Editor
         src/Editor/Settings/ProjectGeneralPage.cpp
         src/Editor/Settings/ThemeSettingsPage.cpp
         src/Editor/Settings/ToolingSettingsPage.cpp
+        src/Editor/Settings/WindowSettings.cpp
+        src/Editor/Settings/WindowSettingsPage.cpp
         src/Editor/Commands/CommandHistory.cpp
         src/Editor/Commands/EntityCommands.cpp
         src/Editor/Commands/EntityEditTracker.cpp

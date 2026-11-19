@@ -1,5 +1,6 @@
 #include "Editor/EditorLayer.h"
 #include "Editor/HubLauncher.h"
+#include "Editor/Settings/WindowSettings.h"
 
 #include <Engine/Core/Application.h>
 #include <Engine/Core/EntryPoint.h>
@@ -110,13 +111,17 @@ ByteForge::Application* ByteForge::CreateApplication()
     if (const Result<> recorded = RecentProjects::Touch(Project::GetActive()); !recorded)
         APP_WARN("Cannot update the recent projects list: {}", recorded.error());
 
+    const WindowSettings windowSettings = WindowSettings::Load();
+
     auto* app = new Application({
-        .Title  = "ByteForge Editor",
-        .Width  = 1280,
-        .Height = 720,
-        .Icons  = FindWindowIcons()
+        .Title     = "ByteForge Editor",
+        .Width     = 1280,
+        .Height    = 720,
+        .Icons     = FindWindowIcons(),
+        .PreferX11 = windowSettings.DetachableWindows
     });
-    app->EnableImGui();
+
+    app->EnableImGui({ .DetachableWindows = windowSettings.DetachableWindows });
 
     ImGui::SetCurrentContext(app->GetImGuiContext());
 

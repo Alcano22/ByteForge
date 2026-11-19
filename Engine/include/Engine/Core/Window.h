@@ -23,6 +23,8 @@ namespace ByteForge
         u32 Height = 720;
 
         std::vector<fs::path> Icons;
+
+        bool PreferX11 = false;
     };
 
     class BYTEFORGE_API Window

@@ -16,7 +16,22 @@ namespace ByteForge
     {
         WeakRef<void> s_GlfwContext;
 
-        Ref<void> AcquireGlfwContext()
+        GLFWwindow* s_PrimaryWindow = nullptr;
+        void* s_PrimaryData = nullptr;
+
+        const char* GetPlatformName()
+        {
+            switch (glfwGetPlatform())
+            {
+                case GLFW_PLATFORM_WIN32:   return "Win32";
+                case GLFW_PLATFORM_COCOA:   return "Cocoa";
+                case GLFW_PLATFORM_X11:     return "X11";
+                case GLFW_PLATFORM_WAYLAND: return "Wayland";
+                default:                    return "an unknown platform";
+            }
+        }
+
+        Ref<void> AcquireGlfwContext(const bool preferX11)
         {
             Ref<void> context = s_GlfwContext.lock();
             if (context)
@@ -27,8 +42,17 @@ namespace ByteForge
                 CORE_ERROR("GLFW error {}: {}", code, description);
             });
 
+#if defined(__linux__)
+            if (preferX11 && glfwPlatformSupported(GLFW_PLATFORM_X11))
+                glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#else
+            (void)preferX11;
+#endif
+
             if (!glfwInit())
                 throw Error("Failed to initialize GLFW");
+
+            CORE_INFO("GLFW runs on {}", GetPlatformName());
 
             static i32 s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
@@ -43,7 +67,7 @@ namespace ByteForge
         m_Data.Width = props.Width;
         m_Data.Height = props.Height;
 
-        m_GlfwContext = AcquireGlfwContext();
+        m_GlfwContext = AcquireGlfwContext(props.PreferX11);
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -68,6 +92,10 @@ namespace ByteForge
         m_Data.FramebufferHeight = static_cast<u32>(framebufferHeight);
 
         glfwSetWindowUserPointer(m_Window.get(), &m_Data);
+
+        s_PrimaryWindow = m_Window.get();
+        s_PrimaryData = &m_Data;
+
         SetupCallbacks();
 
         CORE_INFO("Created window '{}' ({}x{})", m_Data.Title, m_Data.Width, m_Data.Height);
@@ -76,7 +104,13 @@ namespace ByteForge
         m_Context->Init();
     }
 
-    Window::~Window() = default;
+    Window::~Window()
+    {
+        if (s_PrimaryData != &m_Data) return;
+
+        s_PrimaryWindow = nullptr;
+        s_PrimaryData = nullptr;
+    }
 
     void Window::PollEvents() const { glfwPollEvents(); }
     bool Window::ShouldClose() const { return glfwWindowShouldClose(m_Window.get()); }
@@ -155,9 +189,11 @@ namespace ByteForge
             data.EventCallback(event);
         });
 
-        glfwSetKeyCallback(m_Window.get(), [](GLFWwindow* window, const i32 key, i32, const i32 action, i32)
+        glfwSetKeyCallback(m_Window.get(), [](GLFWwindow*, const i32 key, i32, const i32 action, i32)
         {
-            const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            if (s_PrimaryData == nullptr) return;
+
+            const auto& data = *static_cast<WindowData*>(s_PrimaryData);
 
             switch (action)
             {
@@ -183,16 +219,20 @@ namespace ByteForge
             }
         });
 
-        glfwSetCharCallback(m_Window.get(), [](GLFWwindow* window, const u32 codepoint)
+        glfwSetCharCallback(m_Window.get(), [](GLFWwindow*, const u32 codepoint)
         {
-            const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            if (s_PrimaryData == nullptr) return;
+
+            const auto& data = *static_cast<WindowData*>(s_PrimaryData);
             KeyTypedEvent event(codepoint);
             data.EventCallback(event);
         });
 
-        glfwSetMouseButtonCallback(m_Window.get(), [](GLFWwindow* window, const i32 button, const i32 action, i32)
+        glfwSetMouseButtonCallback(m_Window.get(), [](GLFWwindow*, const i32 button, const i32 action, i32)
         {
-            const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            if (s_PrimaryData == nullptr) return;
+
+            const auto& data = *static_cast<WindowData*>(s_PrimaryData);
 
             switch (action)
             {
@@ -212,16 +252,20 @@ namespace ByteForge
             }
         });
 
-        glfwSetScrollCallback(m_Window.get(), [](GLFWwindow* window, const f64 offsetX, const f64 offsetY)
+        glfwSetScrollCallback(m_Window.get(), [](GLFWwindow*, const f64 offsetX, const f64 offsetY)
         {
-            const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            if (s_PrimaryData == nullptr) return;
+
+            const auto& data = *static_cast<WindowData*>(s_PrimaryData);
             MouseScrolledEvent event(static_cast<f32>(offsetX), static_cast<f32>(offsetY));
             data.EventCallback(event);
         });
 
         glfwSetCursorPosCallback(m_Window.get(), [](GLFWwindow* window, const f64 posX, const f64 posY)
         {
-            const auto& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            if (window != s_PrimaryWindow || s_PrimaryData == nullptr) return;
+
+            const auto& data = *static_cast<WindowData*>(s_PrimaryData);
             MouseMovedEvent event(static_cast<f32>(posX), static_cast<f32>(posY));
             data.EventCallback(event);
         });

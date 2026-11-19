@@ -27,7 +27,7 @@ namespace ByteForge
         void PushLayer(Scope<Layer> layer);
         void PushOverlay(Scope<Layer> overlay);
 
-        void EnableImGui();
+        void EnableImGui(const ImGuiOptions& options = {});
 
         void Close() { m_IsRunning = false; }
 

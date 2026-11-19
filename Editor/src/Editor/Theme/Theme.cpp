@@ -46,6 +46,9 @@ namespace ByteForge
         for (i32 i = 0; i < ImGuiCol_COUNT; ++i)
             style.Colors[i] = Colors[static_cast<usize>(i)];
 
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+
         EditorColors::Set(Editor);
     }
 

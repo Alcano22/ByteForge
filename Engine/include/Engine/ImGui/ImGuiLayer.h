@@ -8,8 +8,8 @@ namespace ByteForge
     class BYTEFORGE_API ImGuiLayer : public Layer
     {
     public:
-        ImGuiLayer()
-            : Layer("ImGuiLayer") {}
+        explicit ImGuiLayer(const ImGuiOptions& options = {})
+            : Layer("ImGuiLayer"), m_Options(options) {}
 
         void OnAttach() override;
         void OnDetach() override;
@@ -17,7 +17,12 @@ namespace ByteForge
         void Begin() const;
         void End() const;
 
+        void RenderPlatformWindows() const;
+
+        [[nodiscard]] static bool HasDetachableWindows();
+
     private:
+        ImGuiOptions m_Options;
         Scope<ImGuiRenderer> m_Renderer;
     };
 }
