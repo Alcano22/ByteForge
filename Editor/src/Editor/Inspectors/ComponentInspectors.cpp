@@ -450,6 +450,20 @@ namespace ByteForge
             SegmentedEnum("Horizontal", text.Horizontal, magic_enum::enum_values<HorizontalAlignment>());
             SegmentedEnum("Vertical", text.Vertical, magic_enum::enum_values<VerticalAlignment>());
 
+            ImGui::Checkbox("Word Wrap", &text.WordWrap);
+            ImGui::SetItemTooltip("Break lines at spaces to stay within the rectangle's width");
+
+            SegmentedEnum("Overflow", text.Overflow, magic_enum::enum_values<TextOverflow>());
+            ImGui::SetItemTooltip("Overflow: drawn past the edges\nClip: cut off at the edges\n"
+                                  "Shrink: made smaller until it fits");
+
+            if (text.Overflow == TextOverflow::Shrink)
+            {
+                ImGui::DragFloat("Min Size", &text.MinFontSize, 0.25f, 1.0f, text.FontSize, "%.1f",
+                                 ImGuiSliderFlags_AlwaysClamp);
+                ImGui::SetItemTooltip("Shrink stops here, the text overflows below it");
+            }
+
             if (text.Font.IsSet() && AssetManager::LoadFont(text.Font)->GetState() == AssetLoadState::Failed)
                 EditorUI::ErrorTextWrapped("This font cannot be loaded, the built-in one is shown instead");
         }

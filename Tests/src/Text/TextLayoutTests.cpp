@@ -162,3 +162,84 @@ TEST_CASE("Trailing spaces do not shift aligned text", "[text]")
     const f32 plain = LayoutText(GetInter(), U"H", settings).Glyphs.front().Min.x;
     CHECK(LayoutText(GetInter(), U"H   ", settings).Glyphs.front().Min.x == Approx(plain));
 }
+
+TEST_CASE("Word wrap breaks at the last space that fits", "[text]")
+{
+    const f32 width = 2.0f * Advance(U'H') + Advance(U' ') + Advance(U'H') * 1.5f;
+    const TextLayoutSettings settings{ .FontSize = TestFontSize, .BoxSize = { width, 1000.0f }, .WordWrap = true };
+
+    const TextLayout layout = LayoutText(GetInter(), U"HH HH", settings);
+
+    REQUIRE(layout.Glyphs.size() == 4);
+    CHECK(layout.LineCount == 2);
+
+    const f32 lineHeight = GetInter().GetMetrics().LineHeight * TestFontSize;
+    CHECK(layout.Glyphs[2].Min.x == Approx(layout.Glyphs[0].Min.x));
+    CHECK(layout.Glyphs[0].Min.y - layout.Glyphs[2].Min.y == Approx(lineHeight));
+}
+
+TEST_CASE("A word longer than the line is broken inside", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize = TestFontSize,
+        .BoxSize  = { 2.5f * Advance(U'H'), 1000.0f },
+        .WordWrap = true
+    };
+
+    CHECK(LayoutText(GetInter(), U"HHHHHH", settings).LineCount == 3);
+}
+
+TEST_CASE("Without word wrap a line runs past the box", "[text]")
+{
+    const TextLayoutSettings settings{ .FontSize = TestFontSize, .BoxSize = { Advance(U'H'), 1000.0f } };
+
+    const TextLayout layout = LayoutText(GetInter(), U"HH HH", settings);
+    CHECK(layout.LineCount == 1);
+    CHECK(layout.Size.x > settings.BoxSize.x);
+}
+
+TEST_CASE("Line breaks still start new lines with word wrap", "[text]")
+{
+    const TextLayoutSettings settings{ .FontSize = TestFontSize, .BoxSize = { 1000.0f, 1000.0f }, .WordWrap = true };
+    CHECK(LayoutText(GetInter(), U"H\nH\nH", settings).LineCount == 3);
+}
+
+TEST_CASE("Shrink makes text small enough to fit the box", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize    = TestFontSize,
+        .BoxSize     = { 300.0f, 100.0f },
+        .WordWrap    = true,
+        .Overflow    = TextOverflow::Shrink,
+        .MinFontSize = 1.0f
+    };
+
+    const TextLayout layout = LayoutText(GetInter(), U"Hello wrapping world", settings);
+
+    CHECK(layout.FontSize < TestFontSize);
+    CHECK(layout.Size.x <= settings.BoxSize.x + 0.01f);
+    CHECK(layout.Size.y <= settings.BoxSize.y + 0.01f);
+}
+
+TEST_CASE("Shrink keeps the size when the text fits", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize = TestFontSize,
+        .BoxSize  = { 1000.0f, 1000.0f },
+        .Overflow = TextOverflow::Shrink
+    };
+
+    CHECK(LayoutText(GetInter(), U"H", settings).FontSize == Approx(TestFontSize));
+}
+
+TEST_CASE("Shrink stops at the minimum size", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize    = TestFontSize,
+        .BoxSize     = { 10.0f, 10.0f },
+        .Overflow    = TextOverflow::Shrink,
+        .MinFontSize = 40.0f
+    };
+
+    CHECK(LayoutText(GetInter(), U"Far too long", settings).FontSize == Approx(40.0f));
+}

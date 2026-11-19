@@ -2,7 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Scene/UUID.h"
-#include "Engine/Text/TextAlignment.h"
+#include "Engine/Text/TextOptions.h"
 
 #include <glm/glm.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -22,6 +22,11 @@ namespace ByteForge
 
         HorizontalAlignment Horizontal = HorizontalAlignment::Left;
         VerticalAlignment Vertical = VerticalAlignment::Top;
+
+        bool WordWrap = true;
+        TextOverflow Overflow = TextOverflow::Overflow;
+
+        f32 MinFontSize = 8.0f;
 
         static void Write(const TextComponent& component, nlohmann::json& json);
         static void Read(TextComponent& component, const nlohmann::json& json);

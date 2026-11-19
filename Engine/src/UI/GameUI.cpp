@@ -147,20 +147,30 @@ namespace ByteForge::GameUI
             if (!font) return;
 
             const TextLayoutSettings settings{
-                .FontSize   = text.FontSize * scale,
-                .BoxSize    = bounds.GetSize(),
-                .Horizontal = text.Horizontal,
-                .Vertical   = text.Vertical
+                .FontSize    = text.FontSize * scale,
+                .BoxSize     = bounds.GetSize(),
+                .Horizontal  = text.Horizontal,
+                .Vertical    = text.Vertical,
+                .WordWrap    = text.WordWrap,
+                .Overflow    = text.Overflow,
+                .MinFontSize = text.MinFontSize * scale
             };
             const TextLayout layout = LayoutText(font->GetGlyphs(), DecodeUtf8(text.Text), settings);
 
             const glm::vec2 origin{ bounds.Min.x, bounds.Max.y };
+
+            const bool clip = text.Overflow == TextOverflow::Clip;
+            if (clip)
+                renderer.PushClipRect(bounds.Min, bounds.Max);
 
             for (const PlacedGlyph& glyph : layout.Glyphs)
             {
                 renderer.DrawGlyph(origin + glyph.Min, origin + glyph.Max, font->GetAtlas(),
                                    glyph.UVMin, glyph.UVMax, font->GetDistanceRange(), text.Color);
             }
+
+            if (clip)
+                renderer.PopClipRect();
         }
     }
 
