@@ -7,6 +7,7 @@
 #include "Editor/EditorIcons.h"
 #include "Editor/EditorFonts.h"
 #include "Editor/ScriptProject.h"
+#include "Editor/ScriptBuildProgress.h"
 #include "Editor/SceneDocument.h"
 #include "Editor/SceneDialogs.h"
 #include "Editor/GameExporter.h"
@@ -78,6 +79,7 @@ namespace ByteForge
             Layouts.Update();
             Export.Update();
             Scripts.Update(IsEditing());
+            m_ScriptBuildProgress.Update(*this);
             Document.Update();
             FlushDeferred();
             UpdateScene(ts);
@@ -194,5 +196,7 @@ namespace ByteForge
         bool m_StepRequested = false;
 
         std::vector<std::function<void()>> m_Deferred;
+
+        ScriptBuildProgress m_ScriptBuildProgress;
     };
 }

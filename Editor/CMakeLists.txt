@@ -34,6 +34,7 @@ add_executable(Editor
         src/Editor/HubLauncher.cpp
         src/Editor/PopupManager.cpp
         src/Editor/EditorLayouts.cpp
+        src/Editor/ScriptBuildProgress.cpp
         src/Editor/Tooling/CodeEditorLauncher.cpp
         src/Editor/Theme/Theme.cpp
         src/Editor/Theme/ThemePresets.cpp

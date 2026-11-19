@@ -5,6 +5,7 @@
 #include <imgui.h>
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,12 +29,25 @@ namespace ByteForge
         ImGuiWindowFlags Flags = ImGuiWindowFlags_AlwaysAutoResize;
     };
 
+    struct ProgressState
+    {
+        std::string Status;
+
+        f32 Fraction = -1.0f;
+
+        bool Cancelling = false;
+    };
+
     class PopupManager
     {
     public:
         using DrawFn = std::function<void(Popup&)>;
 
+        using ProgressFn = std::function<std::optional<ProgressState>()>;
+
         void Open(const std::string& title, DrawFn draw, PopupOptions options = {});
+
+        void OpenProgress(const std::string& title, ProgressFn poll, std::function<void()> cancel = {});
 
         void Draw();
 
