@@ -30,15 +30,16 @@ namespace ByteForge
         void DrawScriptBuildStatus(const EditorContext& context)
         {
             const ScriptProject& scripts = context.Scripts;
-            if (!scripts.IsBuilding()) return;
+            if (!scripts.IsBuilding() || context.IsEditing()) return;
 
             const ImGuiStyle& style = ImGui::GetStyle();
             ImGui::SameLine(ImGui::GetWindowWidth() - BuildStatusWidth - style.ItemSpacing.x * 2.0f);
 
-            const std::string overlay = std::format("Compiling scripts {:.1f}s", scripts.GetBuildSeconds());
+            const std::string overlay = std::format("Scripts load on stop {:.1f}s", scripts.GetBuildSeconds());
 
             ImGui::ProgressBar(-1.0f * static_cast<f32>(ImGui::GetTime()),
                                ImVec2(BuildStatusWidth, ImGui::GetFrameHeight()), overlay.c_str());
+            ImGui::SetTooltip("The C# scripts changed and are compiling; stop the game to load them");
         }
 
         void DrawPrefabBreadcrumb(EditorContext& context)
