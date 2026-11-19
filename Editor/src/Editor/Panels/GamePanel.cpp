@@ -60,6 +60,8 @@ namespace ByteForge
         const f32 aspect = settings.UseFixedAspect ? settings.FixedAspect : size.x / size.y;
         const OrthographicCamera camera = MakeSceneCamera(settings, transform, aspect);
 
+        GetContext().GameViewSize = size;
+
         m_Canvas.Render([&](Renderer2D& sprites, LineRenderer&)
         {
             scene->Render(sprites, camera);

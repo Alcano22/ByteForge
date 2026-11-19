@@ -4,11 +4,13 @@
 #include "Editor/AssetPayload.h"
 #include "Editor/Commands/EntityCommands.h"
 #include "Editor/Viewport/SceneGizmos.h"
+#include "Editor/Viewport/RectGizmo.h"
 #include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Renderer/LineRenderer.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
+#include <Engine/Scene/SceneSerializer.h>
 
 #include <imgui.h>
 
@@ -16,12 +18,14 @@
 #include <array>
 #include <format>
 #include <string>
+#include <utility>
 
 namespace ByteForge
 {
     namespace
     {
         constexpr f32 FocusPadding = 3.0f;
+        constexpr f32 UIFocusPadding = 1.5f;
         constexpr f32 OverlayMargin = 8.0f;
         constexpr ImGuiKey SpaceToggleKey = ImGuiKey_X;
         constexpr const char* SpaceToggleKeyName = "X";
@@ -29,6 +33,11 @@ namespace ByteForge
         const std::array<EditorUI::ToggleOption<TransformSpace>, 2> SpaceOptions{{
             { .Value = TransformSpace::Global, .Label = "Global" },
             { .Value = TransformSpace::Local,  .Label = "Local"  }
+        }};
+
+        const std::array<EditorUI::ToggleOption<bool>, 2> UIOptions{{
+            { .Value = true,  .Label = "UI: On"  },
+            { .Value = false, .Label = "UI: Off" }
         }};
 
         const std::array<EditorUI::ToggleOption<ColliderVisibility>, 3> ColliderOptions{{
@@ -67,7 +76,11 @@ namespace ByteForge
 
     ScenePanel::ScenePanel(EditorContext& context)
         : EditorPanel(context, Name),
-          m_Canvas({ .ClearColor = EditorColors::GetVec4(EditorColor::SceneBackground), .EntityIds = true }) {}
+          m_Canvas({
+              .ClearColor = EditorColors::GetVec4(EditorColor::SceneBackground),
+              .EntityIds = true,
+              .UI = true
+          }) {}
 
     void ScenePanel::OnUpdate(Timestep)
     {
@@ -79,6 +92,8 @@ namespace ByteForge
         m_Camera.SetViewportSize(m_Canvas.GetSize());
         const Entity selected = GetContext().SelectionContext.GetEntity();
 
+        m_UIFrame = SceneUI::ComputeFrame(*scene, GetContext().GameViewSize);
+
         m_Canvas.Render([&](Renderer2D& sprites, LineRenderer& lines)
         {
             const Camera& camera = m_Camera.GetCamera();
@@ -89,9 +104,13 @@ namespace ByteForge
 
             scene->Render(sprites, camera);
 
+            if (m_ShowUI)
+                SceneUI::Render(*scene, m_Canvas.GetUIRenderer(), m_UIFrame, m_Camera);
+
             lines.BeginScene(camera);
             SceneGizmos::DrawColliders(lines, *scene, m_Camera, selected, m_Colliders);
-            if (selected.IsValid())
+            if (selected.IsValid() && !selected.HasComponent<RectTransformComponent>() &&
+                !selected.HasComponent<CanvasComponent>())
                 SceneGizmos::DrawSelection(lines, selected);
             lines.EndScene();
         });
@@ -113,6 +132,9 @@ namespace ByteForge
         {
             m_Canvas.Draw();
             HandleAssetDrop();
+
+            if (m_ShowUI && GetContext().ActiveScene != nullptr)
+                SceneUI::DrawOutlines(*GetContext().ActiveScene, m_UIFrame, m_Camera, m_Canvas);
 
             DrawToolOverlay();
             const bool gizmoOwnsPointer = DrawTransformGizmo();
@@ -158,7 +180,7 @@ namespace ByteForge
 
     void ScenePanel::HandleToolShortcuts()
     {
-        if (m_Drag) return;
+        if (m_Drag || m_RectDrag) return;
 
         for (const ToolInfo& tool : Tools)
         {
@@ -178,9 +200,19 @@ namespace ByteForge
         Scene* scene = GetContext().ActiveScene;
         if (scene == nullptr) return;
 
-        const u32 pickingId = m_Canvas.ReadEntityId(m_Canvas.ToViewport(ImGui::GetIO().MousePos));
-
         Selection& selection = GetContext().SelectionContext;
+
+        if (m_ShowUI)
+        {
+            const glm::vec2 world = SceneUI::ToWorld(ImGui::GetIO().MousePos, m_Camera, m_Canvas);
+            if (const Entity element = SceneUI::Pick(*scene, m_UIFrame, world); element.IsValid())
+            {
+                selection.Select(element);
+                return;
+            }
+        }
+
+        const u32 pickingId = m_Canvas.ReadEntityId(m_Canvas.ToViewport(ImGui::GetIO().MousePos));
         if (const Entity picked = scene->FindEntityByPickingId(pickingId); picked.IsValid())
             selection.Select(picked);
         else
@@ -208,6 +240,20 @@ namespace ByteForge
     {
         const Entity selected = GetContext().SelectionContext.GetEntity();
         if (!selected.IsValid()) return;
+
+        if (selected.HasComponent<RectTransformComponent>() && GetContext().ActiveScene != nullptr)
+        {
+            const auto layout = SceneUI::FindElement(*GetContext().ActiveScene, m_UIFrame, selected);
+            if (!layout) return;
+
+            const GameUI::Rect& bounds = layout->Element.Bounds;
+            const glm::vec2 worldSize = bounds.GetSize() * glm::vec2(glm::length(m_UIFrame.AxisX),
+                                                                     glm::length(m_UIFrame.AxisY));
+            const glm::vec2 viewSize = glm::max(m_Canvas.GetSize(), glm::vec2(1.0f));
+            const f32 height = std::max({ worldSize.x * viewSize.y / viewSize.x, worldSize.y, 0.1f });
+            m_Camera.Focus(m_UIFrame.ToWorld(bounds.GetCenter()), height * UIFocusPadding);
+            return;
+        }
 
         const TransformComponent transform = selected.GetWorldTransform();
         const glm::vec2 extent = glm::abs(transform.Scale);
@@ -241,6 +287,9 @@ namespace ByteForge
         ImGui::SameLine();
         EditorUI::ToggleButton("colliders", m_Colliders, ColliderOptions);
 
+        ImGui::SameLine();
+        EditorUI::ToggleButton("ui", m_ShowUI, UIOptions);
+
         ImGui::NewLine();
     }
 
@@ -250,6 +299,20 @@ namespace ByteForge
         const Entity selected = context.SelectionContext.GetEntity();
 
         if (!context.IsEditing() || !selected.IsValid())
+        {
+            m_Drag.reset();
+            CancelRectDrag();
+            return false;
+        }
+
+        if (selected.HasComponent<RectTransformComponent>())
+        {
+            m_Drag.reset();
+            return DrawRectGizmo(selected);
+        }
+        CancelRectDrag();
+
+        if (selected.HasComponent<CanvasComponent>())
         {
             m_Drag.reset();
             return false;
@@ -285,6 +348,66 @@ namespace ByteForge
         const std::string name = std::format("{} '{}'", GetToolInfo(m_Tool).Name, entity.GetTag());
         context.History.Record(MakeScope<ModifyTransformCommand>(*context.ActiveScene, drag.EntityId,
                                                                  name, drag.Before, after));
+    }
+
+    bool ScenePanel::DrawRectGizmo(const Entity selected)
+    {
+        Scene& scene = *GetContext().ActiveScene;
+
+        const std::optional<SceneUI::ElementLayout> layout = m_ShowUI
+                                                           ? SceneUI::FindElement(scene, m_UIFrame, selected)
+                                                           : std::nullopt;
+        if (!layout)
+        {
+            CancelRectDrag();
+            return false;
+        }
+
+        const glm::vec2 world = SceneUI::ToWorld(ImGui::GetIO().MousePos, m_Camera, m_Canvas);
+        const Entity onTop = SceneUI::Pick(scene, m_UIFrame, world);
+        const bool canGrabBody = !onTop.IsValid() || onTop == selected;
+
+        auto& transform = selected.GetComponent<RectTransformComponent>();
+        const RectTransformComponent before = transform;
+
+        const GizmoInteraction interaction = RectGizmo::Manipulate(selected.GetUUID(), transform, layout->Element,
+                                                                   layout->Scale, m_UIFrame, m_Camera, m_Canvas,
+                                                                   canGrabBody, ImGui::GetIO().KeyCtrl);
+
+        if (interaction.Active && !m_RectDrag)
+            m_RectDrag = RectDrag{ .EntityId = selected.GetUUID(), .Before = before };
+        else if (!interaction.Active && m_RectDrag)
+            CommitRectDrag(selected);
+
+        return interaction.Hovered || interaction.Active;
+    }
+
+    void ScenePanel::CommitRectDrag(const Entity entity)
+    {
+        const RectDrag drag = *m_RectDrag;
+        m_RectDrag.reset();
+
+        EditorContext& context = GetContext();
+        if (context.ActiveScene == nullptr || drag.EntityId != entity.GetUUID()) return;
+
+        auto& transform = entity.GetComponent<RectTransformComponent>();
+        if (transform == drag.Before) return;
+
+        const RectTransformComponent after = transform;
+        transform = drag.Before;
+        nlohmann::json beforeJson = SceneSerializer::SerializeEntity(entity);
+        transform = after;
+        nlohmann::json afterJson = SceneSerializer::SerializeEntity(entity);
+
+        const std::string name = std::format("Edit Rect '{}'", entity.GetTag());
+        context.History.Record(MakeScope<ModifyEntityCommand>(*context.ActiveScene, name,
+                                                              std::move(beforeJson), std::move(afterJson)));
+    }
+
+    void ScenePanel::CancelRectDrag()
+    {
+        RectGizmo::Cancel();
+        m_RectDrag.reset();
     }
 
     void ScenePanel::DrawStatusOverlay() const

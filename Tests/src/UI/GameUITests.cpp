@@ -35,7 +35,7 @@ namespace
 
 TEST_CASE("A canvas scaled with the screen follows the reference resolution", "[ui]")
 {
-    constexpr CanvasComponent canvas{ .ReferenceResolution = { 1920.0f, 1080.0f }, .MatchWidthOrHeight = 0.5f };
+    const CanvasComponent canvas{ .ReferenceResolution = { 1920.0f, 1080.0f }, .MatchWidthOrHeight = 0.5f };
 
     CHECK(ComputeCanvasScale(canvas, { 1920.0f, 1080.0f }) == Approx(1.0f));
     CHECK(ComputeCanvasScale(canvas, { 3840.0f, 2160.0f }) == Approx(2.0f));
@@ -46,7 +46,7 @@ TEST_CASE("Match picks the side the scale follows, blended in powers of two", "[
 {
     CanvasComponent canvas{ .ReferenceResolution = { 1000.0f, 1000.0f } };
 
-    constexpr glm::vec2 screen{ 500.0f, 2000.0f };
+    const glm::vec2 screen{ 500.0f, 2000.0f };
 
     canvas.MatchWidthOrHeight = 0.0f;
     CHECK(ComputeCanvasScale(canvas, screen) == Approx(0.5f));
@@ -271,4 +271,72 @@ TEST_CASE("A button's tint follows its state", "[ui]")
 
     button.Interactable = false;
     CHECK(button.GetStateColor() == button.DisabledColor);
+}
+
+TEST_CASE("SetRect is the reverse of ComputeRect", "[ui]")
+{
+    const Rect parent{ .Min = { 100.0f, 50.0f }, .Max = { 900.0f, 650.0f } };
+    const Rect target{ .Min = { 230.0f, 120.0f }, .Max = { 410.0f, 180.0f } };
+    constexpr f32 scale = 1.5f;
+
+    SECTION("with anchors on one point")
+    {
+        RectTransformComponent transform{
+            .AnchorMin = { 0.25f, 0.75f },
+            .AnchorMax = { 0.25f, 0.75f },
+            .Pivot     = { 0.0f, 1.0f }
+        };
+
+        SetRect(transform, parent, scale, target);
+        CheckRect(ComputeRect(transform, parent, scale), target.Min, target.Max);
+    }
+
+    SECTION("with stretching anchors")
+    {
+        RectTransformComponent transform{
+            .AnchorMin = { 0.1f, 0.0f },
+            .AnchorMax = { 0.6f, 1.0f },
+            .Pivot     = { 0.3f, 0.5f }
+        };
+
+        SetRect(transform, parent, scale, target);
+        CheckRect(ComputeRect(transform, parent, scale), target.Min, target.Max);
+    }
+}
+
+TEST_CASE("SetRect keeps the anchors and the pivot", "[ui]")
+{
+    RectTransformComponent transform{
+        .AnchorMin = { 0.0f, 0.0f },
+        .AnchorMax = { 1.0f, 1.0f },
+        .Pivot     = { 0.25f, 0.75f }
+    };
+    const RectTransformComponent before = transform;
+
+    SetRect(transform, Screen, 1.0f, { .Min = { 20.0f, 20.0f }, .Max = { 1900.0f, 1060.0f } });
+
+    CHECK(transform.AnchorMin == before.AnchorMin);
+    CHECK(transform.AnchorMax == before.AnchorMax);
+    CHECK(transform.Pivot == before.Pivot);
+
+    CHECK(transform.Size.x == Approx(-40.0f));
+    CHECK(transform.Size.y == Approx(-40.0f));
+}
+
+TEST_CASE("Elements know the rectangle they are laid out in", "[ui]")
+{
+    Scene scene;
+    const Entity canvas = scene.CreateEntity("Canvas");
+    canvas.AddComponent<CanvasComponent>();
+
+    const Entity panel = AddElement(scene, canvas, { .Size = { 400.0f, 400.0f } });
+    AddElement(scene, panel, { .Size = { 100.0f, 50.0f } });
+
+    const std::vector<CanvasLayout> layouts = ComputeLayout(scene, { 1920.0f, 1080.0f });
+    REQUIRE(layouts.size() == 1);
+    REQUIRE(layouts[0].Elements.size() == 2);
+
+    const Rect screen{ .Min = { 0.0f, 0.0f }, .Max = { 1920.0f, 1080.0f } };
+    CHECK(layouts[0].Elements[0].Parent == screen);
+    CHECK(layouts[0].Elements[1].Parent == layouts[0].Elements[0].Bounds);
 }

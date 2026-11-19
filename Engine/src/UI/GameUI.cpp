@@ -35,7 +35,7 @@ namespace ByteForge::GameUI
                 if (transform == nullptr) continue;
 
                 const Rect bounds = ComputeRect(*transform, parentRect, scale);
-                elements.push_back({ .Handle = child, .Bounds = bounds });
+                elements.push_back({ .Handle = child, .Bounds = bounds, .Parent = parentRect });
 
                 LayoutChildren(child, bounds, scale, elements);
             }
@@ -153,6 +153,21 @@ namespace ByteForge::GameUI
         return { .Min = min, .Max = min + size };
     }
 
+    void SetRect(RectTransformComponent& transform, const Rect& parent, const f32 scale, const Rect& rect)
+    {
+        const f32 safeScale = std::max(scale, MinScale);
+
+        const glm::vec2 parentSize = parent.GetSize();
+        const glm::vec2 anchorMin = parent.Min + parentSize * transform.AnchorMin;
+        const glm::vec2 anchorMax = parent.Min + parentSize * transform.AnchorMax;
+
+        const glm::vec2 size = rect.GetSize();
+        const glm::vec2 pivot = rect.Min + size * transform.Pivot;
+
+        transform.Size = (size - (anchorMax - anchorMin)) / safeScale;
+        transform.Position = (pivot - glm::mix(anchorMin, anchorMax, transform.Pivot)) / safeScale;
+    }
+
     std::vector<CanvasLayout> ComputeLayout(Scene& scene, const glm::vec2& screenSize)
     {
         std::vector<CanvasLayout> layouts;
@@ -256,14 +271,18 @@ namespace ByteForge::GameUI
         return clicked;
     }
 
-    void Render(Scene& scene, UIRenderer& renderer, const glm::vec2& screenSize)
+    void Render(Scene& scene, UIRenderer& renderer, const glm::vec2& screenSize,
+                const std::optional<glm::mat4>& toClip)
     {
         if (screenSize.x < 1.0f || screenSize.y < 1.0f) return;
 
         const std::vector<CanvasLayout> canvases = ComputeLayout(scene, screenSize);
         if (canvases.empty()) return;
 
-        renderer.Begin(screenSize);
+        if (toClip)
+            renderer.Begin(screenSize, *toClip);
+        else
+            renderer.Begin(screenSize);
 
         for (const CanvasLayout& canvas : canvases)
         {

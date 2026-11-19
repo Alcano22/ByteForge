@@ -189,6 +189,8 @@ namespace ByteForge
         EditorFonts Fonts;
         ScriptProject Scripts{ Project::GetActive().GetRoot() };
 
+        glm::vec2 GameViewSize{ 1280.0f, 720.0f };
+
     private:
         std::vector<std::pair<std::type_index, Scope<EditorPanel>>> m_Panels;
 

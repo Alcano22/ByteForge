@@ -39,6 +39,7 @@ namespace ByteForge
         explicit UIRenderer(const UIRendererSpec& spec = {});
 
         void Begin(const glm::vec2& screenSize);
+        void Begin(const glm::vec2& screenSize, const glm::mat4& toClip);
         void End();
 
         void DrawRect(const glm::vec2& min, const glm::vec2& max, const glm::vec4& color, u32 entityId = 0);
@@ -52,6 +53,8 @@ namespace ByteForge
 
         [[nodiscard]] const UIRendererStats& GetStats() const { return m_Stats; }
         [[nodiscard]] u32 GetCapacity() const { return m_Capacity; }
+
+        [[nodiscard]] static glm::mat4 MakeScreenProjection(const glm::vec2& screenSize);
 
     private:
         enum class QuadMode : u32

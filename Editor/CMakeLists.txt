@@ -70,6 +70,8 @@ add_executable(Editor
         src/Editor/Viewport/EditorCamera2D.cpp
         src/Editor/Viewport/SceneGizmos.cpp
         src/Editor/Viewport/TransformGizmo.cpp
+        src/Editor/Viewport/SceneUI.cpp
+        src/Editor/Viewport/RectGizmo.cpp
         src/Editor/Graph/GraphTheme.cpp
         src/Editor/Graph/GraphIds.cpp
         src/Editor/Graph/GraphDocument.cpp

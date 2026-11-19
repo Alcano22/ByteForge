@@ -3,6 +3,7 @@
 #include "Editor/EditorPanel.h"
 #include "Editor/Viewport/EditorCamera2D.h"
 #include "Editor/Viewport/SceneGizmos.h"
+#include "Editor/Viewport/SceneUI.h"
 #include "Editor/Viewport/TransformGizmo.h"
 #include "Editor/Viewport/ViewportCanvas.h"
 
@@ -37,6 +38,10 @@ namespace ByteForge
         bool DrawTransformGizmo();
         void CommitDrag(Entity entity);
 
+        bool DrawRectGizmo(Entity selected);
+        void CommitRectDrag(Entity entity);
+        void CancelRectDrag();
+
         void DrawStatusOverlay() const;
 
     private:
@@ -44,6 +49,12 @@ namespace ByteForge
         {
             UUID EntityId;
             TransformComponent Before;
+        };
+
+        struct RectDrag
+        {
+            UUID EntityId;
+            RectTransformComponent Before;
         };
 
         ViewportCanvas m_Canvas;
@@ -54,5 +65,9 @@ namespace ByteForge
         TransformSpace m_Space = TransformSpace::Global;
         ColliderVisibility m_Colliders = ColliderVisibility::All;
         std::optional<TransformDrag> m_Drag;
+
+        bool m_ShowUI = true;
+        UIFrame m_UIFrame;
+        std::optional<RectDrag> m_RectDrag;
     };
 }

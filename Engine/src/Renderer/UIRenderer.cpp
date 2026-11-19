@@ -29,15 +29,12 @@ namespace ByteForge
             };
         }
 
-        class ScreenCamera final : public Camera
+        class PlacementCamera final : public Camera
         {
         public:
-            explicit ScreenCamera(const glm::vec2& size)
+            explicit PlacementCamera(const glm::mat4& toClip)
             {
-                m_ProjectionMatrix = glm::ortho(0.0f, size.x, 0.0f, size.y, -1.0f, 1.0f);
-                m_ProjectionMatrix[1][1] *= -1.0f;
-                m_ProjectionMatrix[3][1] *= -1.0f;
-
+                m_ProjectionMatrix = toClip;
                 RecalculateViewProjection();
             }
         };
@@ -80,7 +77,20 @@ namespace ByteForge
         m_WhiteTexture = Texture2D::Create(1, 1, white, { .Filter = TextureFilter::Nearest, .GenerateMips = false });
     }
 
+    glm::mat4 UIRenderer::MakeScreenProjection(const glm::vec2& screenSize)
+    {
+        glm::mat4 projection = glm::ortho(0.0f, screenSize.x, 0.0f, screenSize.y, -1.0f, 1.0f);
+        projection[1][1] *= -1.0f;
+        projection[3][1] *= -1.0f;
+        return projection;
+    }
+
     void UIRenderer::Begin(const glm::vec2& screenSize)
+    {
+        Begin(screenSize, MakeScreenProjection(screenSize));
+    }
+
+    void UIRenderer::Begin(const glm::vec2& screenSize, const glm::mat4& toClip)
     {
         if (m_Active)
             throw LogicError("UIRenderer::Begin: the previous UI has not been ended with End");
@@ -100,7 +110,7 @@ namespace ByteForge
         m_ClipStack.clear();
         m_ClipStack.emplace_back(0.0f, 0.0f, screenSize.x, screenSize.y);
 
-        Renderer::BeginScene(ScreenCamera(screenSize));
+        Renderer::BeginScene(PlacementCamera(toClip));
         m_Active = true;
     }
 
