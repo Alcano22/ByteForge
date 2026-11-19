@@ -35,7 +35,7 @@ namespace
 
 TEST_CASE("Each visible character becomes one quad", "[text]")
 {
-    const TextLayout layout = LayoutText(GetInter(), U"Hi there", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"Hi there", { .FontSize = TestFontSize });
 
     CHECK(layout.Glyphs.size() == 7);
     CHECK(layout.LineCount == 1);
@@ -44,7 +44,7 @@ TEST_CASE("Each visible character becomes one quad", "[text]")
 TEST_CASE("The first baseline lies one ascender below the top", "[text]")
 {
     const FontMetrics& metrics = GetInter().GetMetrics();
-    const TextLayout layout = LayoutText(GetInter(), U"H", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"H", { .FontSize = TestFontSize });
 
     REQUIRE(layout.Glyphs.size() == 1);
     const PlacedGlyph& h = layout.Glyphs.front();
@@ -58,7 +58,7 @@ TEST_CASE("The first baseline lies one ascender below the top", "[text]")
 
 TEST_CASE("The pen moves by the advances and the kerning", "[text]")
 {
-    const TextLayout layout = LayoutText(GetInter(), U"AV", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"AV", { .FontSize = TestFontSize });
     REQUIRE(layout.Glyphs.size() == 2);
 
     const f32 kerning = GetInter().GetKerning(U'A', U'V') * TestFontSize;
@@ -74,7 +74,7 @@ TEST_CASE("The pen moves by the advances and the kerning", "[text]")
 TEST_CASE("A line break starts a new line one line height lower", "[text]")
 {
     const FontMetrics& metrics = GetInter().GetMetrics();
-    const TextLayout layout = LayoutText(GetInter(), U"H\nH", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"H\nH", { .FontSize = TestFontSize });
 
     REQUIRE(layout.Glyphs.size() == 2);
     CHECK(layout.LineCount == 2);
@@ -86,13 +86,13 @@ TEST_CASE("A line break starts a new line one line height lower", "[text]")
 
 TEST_CASE("The widest line sets the width", "[text]")
 {
-    const TextLayout layout = LayoutText(GetInter(), U"HH\nH", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"HH\nH", { .FontSize = TestFontSize });
     CHECK(layout.Size.x == Approx(2.0f * Advance(U'H') + GetInter().GetKerning(U'H', U'H') * TestFontSize));
 }
 
 TEST_CASE("Characters the font lacks are drawn as '?'", "[text]")
 {
-    const TextLayout layout = LayoutText(GetInter(), U"\u4E2D", TestFontSize);
+    const TextLayout layout = LayoutText(GetInter(), U"\u4E2D", { .FontSize = TestFontSize });
 
     REQUIRE(layout.Glyphs.size() == 1);
     CHECK(layout.Glyphs.front().UVMin == GetInter().GetGlyph(U'?')->UVMin);
@@ -100,7 +100,65 @@ TEST_CASE("Characters the font lacks are drawn as '?'", "[text]")
 
 TEST_CASE("Control characters and empty text draw nothing", "[text]")
 {
-    CHECK(LayoutText(GetInter(), U"\r\t", TestFontSize).Glyphs.empty());
-    CHECK(LayoutText(GetInter(), U"", TestFontSize).Glyphs.empty());
-    CHECK(LayoutText(GetInter(), U"Hello", 0.0f).Glyphs.empty());
+    CHECK(LayoutText(GetInter(), U"\r\t", { .FontSize = TestFontSize }).Glyphs.empty());
+    CHECK(LayoutText(GetInter(), U"", { .FontSize = TestFontSize }).Glyphs.empty());
+    CHECK(LayoutText(GetInter(), U"Hello", { .FontSize = 0.0f }).Glyphs.empty());
+}
+
+TEST_CASE("Lines are aligned inside the box", "[text]")
+{
+    constexpr glm::vec2 box{ 1000.0f, 400.0f };
+    const f32 width = Advance(U'H');
+
+    const auto firstGlyphX = [&](const HorizontalAlignment alignment)
+    {
+        const TextLayoutSettings settings{ .FontSize = TestFontSize, .BoxSize = box, .Horizontal = alignment };
+        return LayoutText(GetInter(), U"H", settings).Glyphs.front().Min.x;
+    };
+
+    const f32 left = firstGlyphX(HorizontalAlignment::Left);
+    CHECK(firstGlyphX(HorizontalAlignment::Center) == Approx(left + (box.x - width) * 0.5f));
+    CHECK(firstGlyphX(HorizontalAlignment::Right) == Approx(left + box.x - width));
+}
+
+TEST_CASE("Each line is aligned on its own", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize   = TestFontSize,
+        .BoxSize    = { 1000.0f, 400.0f },
+        .Horizontal = HorizontalAlignment::Right
+    };
+    const TextLayout layout = LayoutText(GetInter(), U"HH\nH", settings);
+
+    REQUIRE(layout.Glyphs.size() == 3);
+
+    CHECK(layout.Glyphs[2].Min.x == Approx(layout.Glyphs[1].Min.x));
+}
+
+TEST_CASE("The block is aligned vertically", "[text]")
+{
+    constexpr glm::vec2 box{ 1000.0f, 400.0f };
+    const f32 blockHeight = GetInter().GetMetrics().LineHeight * TestFontSize;
+
+    const auto firstGlyphY = [&](const VerticalAlignment alignment)
+    {
+        const TextLayoutSettings settings{ .FontSize = TestFontSize, .BoxSize = box, .Vertical = alignment };
+        return LayoutText(GetInter(), U"H", settings).Glyphs.front().Min.y;
+    };
+
+    const f32 top = firstGlyphY(VerticalAlignment::Top);
+    CHECK(firstGlyphY(VerticalAlignment::Middle) == Approx(top - (box.y - blockHeight) * 0.5f));
+    CHECK(firstGlyphY(VerticalAlignment::Bottom) == Approx(top - (box.y - blockHeight)));
+}
+
+TEST_CASE("Trailing spaces do not shift aligned text", "[text]")
+{
+    const TextLayoutSettings settings{
+        .FontSize   = TestFontSize,
+        .BoxSize    = { 1000.0f, 400.0f },
+        .Horizontal = HorizontalAlignment::Center
+    };
+
+    const f32 plain = LayoutText(GetInter(), U"H", settings).Glyphs.front().Min.x;
+    CHECK(LayoutText(GetInter(), U"H   ", settings).Glyphs.front().Min.x == Approx(plain));
 }

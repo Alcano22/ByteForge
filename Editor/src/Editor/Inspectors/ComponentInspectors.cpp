@@ -401,6 +401,39 @@ namespace ByteForge
             ImGui::Text("State: %s", state);
         }
 
+        template<typename T, usize N>
+        bool SegmentedEnum(const char* label, T& value, const std::array<T, N>& options)
+        {
+            ImGui::PushID(label);
+
+            const f32 spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+            const f32 width = (ImGui::CalcItemWidth() - spacing * static_cast<f32>(N - 1)) / static_cast<f32>(N);
+
+            bool changed = false;
+            for (usize i = 0; i < N; ++i)
+            {
+                if (i > 0)
+                    ImGui::SameLine(0.0f, spacing);
+
+                const bool selected = options[i] == value;
+                const EditorUI::ScopedStyleColor highlight(ImGuiCol_Button,
+                                                           ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive), selected);
+
+                const std::string name(magic_enum::enum_name(options[i]));
+                if (ImGui::Button(name.c_str(), ImVec2(width, 0.0f)) && !selected)
+                {
+                    value = options[i];
+                    changed = true;
+                }
+            }
+
+            ImGui::SameLine(0.0f, spacing);
+            ImGui::TextUnformatted(label);
+
+            ImGui::PopID();
+            return changed;
+        }
+
         void DrawTextComponent(TextComponent& text, Entity, EditorContext& context)
         {
             const ImVec2 size{ -FLT_MIN, ImGui::GetTextLineHeightWithSpacing() * 4.0f };
@@ -413,6 +446,9 @@ namespace ByteForge
             ImGui::SetItemTooltip("In canvas units: scales with the canvas like the Rect Transform");
 
             ImGui::ColorEdit4("Color", glm::value_ptr(text.Color));
+
+            SegmentedEnum("Horizontal", text.Horizontal, magic_enum::enum_values<HorizontalAlignment>());
+            SegmentedEnum("Vertical", text.Vertical, magic_enum::enum_values<VerticalAlignment>());
 
             if (text.Font.IsSet() && AssetManager::LoadFont(text.Font)->GetState() == AssetLoadState::Failed)
                 EditorUI::ErrorTextWrapped("This font cannot be loaded, the built-in one is shown instead");

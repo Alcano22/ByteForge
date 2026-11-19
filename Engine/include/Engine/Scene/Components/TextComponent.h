@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Scene/UUID.h"
+#include "Engine/Text/TextAlignment.h"
 
 #include <glm/glm.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -18,6 +19,9 @@ namespace ByteForge
         f32 FontSize = 32.0f;
 
         glm::vec4 Color{ 0.9f, 0.9f, 0.9f, 1.0f };
+
+        HorizontalAlignment Horizontal = HorizontalAlignment::Left;
+        VerticalAlignment Vertical = VerticalAlignment::Top;
 
         static void Write(const TextComponent& component, nlohmann::json& json);
         static void Read(TextComponent& component, const nlohmann::json& json);

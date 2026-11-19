@@ -44,6 +44,26 @@ namespace ByteForge
             return {};
         }
 
+        void AddButtonLabel(const Entity button)
+        {
+            const Entity label = button.GetScene().CreateEntity("Text");
+            label.SetParent(button, false);
+
+            auto& transform = label.AddComponent<RectTransformComponent>();
+            transform.AnchorMin = glm::vec2(0.0f);
+            transform.AnchorMax = glm::vec2(1.0f);
+            transform.Pivot = glm::vec2(0.5f);
+            transform.Position = glm::vec2(0.0f);
+            transform.Size = glm::vec2(0.0f);
+
+            auto& text = label.AddComponent<TextComponent>();
+            text.Text = "Button";
+            text.FontSize = 24.0f;
+            text.Color = { 0.1f, 0.1f, 0.1f, 1.0f };
+            text.Horizontal = HorizontalAlignment::Center;
+            text.Vertical = VerticalAlignment::Middle;
+        }
+
         void AddCanvas(const Entity entity)
         {
             entity.AddComponent<CanvasComponent>();
@@ -420,6 +440,7 @@ namespace ByteForge
                     entity.GetComponent<RectTransformComponent>().Size = { 160.0f, 40.0f };
                     entity.AddComponent<ImageComponent>();
                     entity.AddComponent<ButtonComponent>();
+                    AddButtonLabel(entity);
                 });
             }
 

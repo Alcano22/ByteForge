@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Text/Font.h"
+#include "Engine/Text/TextAlignment.h"
 
 #include <glm/glm.hpp>
 
@@ -10,6 +11,15 @@
 
 namespace ByteForge
 {
+    struct TextLayoutSettings
+    {
+        f32 FontSize = 32.0f;
+        glm::vec2 BoxSize{ 0.0f };
+
+        HorizontalAlignment Horizontal = HorizontalAlignment::Left;
+        VerticalAlignment Vertical = VerticalAlignment::Top;
+    };
+
     struct PlacedGlyph
     {
         glm::vec2 Min{ 0.0f };
@@ -27,5 +37,6 @@ namespace ByteForge
         u32 LineCount = 0;
     };
 
-    [[nodiscard]] BYTEFORGE_API TextLayout LayoutText(const FontGlyphs& font, std::u32string_view text, f32 fontSize);
+    [[nodiscard]] BYTEFORGE_API TextLayout LayoutText(const FontGlyphs& font, std::u32string_view text,
+                                                      const TextLayoutSettings& settings);
 }

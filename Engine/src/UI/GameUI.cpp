@@ -146,9 +146,15 @@ namespace ByteForge::GameUI
             const Ref<Font> font = ResolveFont(text.Font);
             if (!font) return;
 
-            const TextLayout layout = LayoutText(font->GetGlyphs(), DecodeUtf8(text.Text), text.FontSize * scale);
+            const TextLayoutSettings settings{
+                .FontSize   = text.FontSize * scale,
+                .BoxSize    = bounds.GetSize(),
+                .Horizontal = text.Horizontal,
+                .Vertical   = text.Vertical
+            };
+            const TextLayout layout = LayoutText(font->GetGlyphs(), DecodeUtf8(text.Text), settings);
 
-            const glm::vec2 origin{ bounds.Min.x, bounds.Min.y };
+            const glm::vec2 origin{ bounds.Min.x, bounds.Max.y };
 
             for (const PlacedGlyph& glyph : layout.Glyphs)
             {
