@@ -23,7 +23,8 @@ namespace ByteForge
             BuiltInComponentType{ "ByteForge.SpriteRenderer", &Has<SpriteRendererComponent> },
             BuiltInComponentType{ "ByteForge.Rigidbody2D",    &Has<Rigidbody2DComponent>    },
             BuiltInComponentType{ "ByteForge.AudioSource",    &Has<AudioSourceComponent>    },
-            BuiltInComponentType{ "ByteForge.Animator",       &Has<AnimatorComponent>       }
+            BuiltInComponentType{ "ByteForge.Animator",       &Has<AnimatorComponent>       },
+            BuiltInComponentType{ "ByteForge.Text",           &Has<TextComponent>           }
         };
     }
 
