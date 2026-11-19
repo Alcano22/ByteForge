@@ -450,6 +450,10 @@ namespace ByteForge
             SegmentedEnum("Horizontal", text.Horizontal, magic_enum::enum_values<HorizontalAlignment>());
             SegmentedEnum("Vertical", text.Vertical, magic_enum::enum_values<VerticalAlignment>());
 
+            ImGui::Checkbox("Rich Text", &text.RichText);
+            ImGui::SetItemTooltip("Tags: <b>, <i>, <u>, <s> and <color=#RRGGBB> or <color=#RRGGBBAA> or "
+                                  "<color=red>, each closed with </b>, </color> and so on");
+
             ImGui::Checkbox("Word Wrap", &text.WordWrap);
             ImGui::SetItemTooltip("Break lines at spaces to stay within the rectangle's width");
 

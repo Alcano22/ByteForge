@@ -28,6 +28,8 @@ namespace ByteForge
 
         f32 MinFontSize = 8.0f;
 
+        bool RichText = true;
+
         static void Write(const TextComponent& component, nlohmann::json& json);
         static void Read(TextComponent& component, const nlohmann::json& json);
     };

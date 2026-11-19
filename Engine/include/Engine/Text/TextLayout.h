@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Text/Font.h"
+#include "Engine/Text/RichText.h"
 #include "Engine/Text/TextOptions.h"
 
 #include <glm/glm.hpp>
@@ -32,6 +33,8 @@ namespace ByteForge
 
         glm::vec2 UVMin{ 0.0f };
         glm::vec2 UVMax{ 0.0f };
+
+        u32 Style = 0;
     };
 
     struct TextLayout
@@ -43,6 +46,9 @@ namespace ByteForge
 
         f32 FontSize = 0.0f;
     };
+
+    [[nodiscard]] BYTEFORGE_API TextLayout LayoutText(const FontGlyphs& font, const StyledText& text,
+                                                      const TextLayoutSettings& settings);
 
     [[nodiscard]] BYTEFORGE_API TextLayout LayoutText(const FontGlyphs& font, std::u32string_view text,
                                                       const TextLayoutSettings& settings);

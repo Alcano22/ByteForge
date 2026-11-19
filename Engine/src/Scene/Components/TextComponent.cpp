@@ -27,6 +27,7 @@ namespace ByteForge
         json["wordWrap"]    = component.WordWrap;
         json["overflow"]    = std::string(magic_enum::enum_name(component.Overflow));
         json["minFontSize"] = component.MinFontSize;
+        json["richText"]    = component.RichText;
     }
 
     void TextComponent::Read(TextComponent& component, const nlohmann::json& json)
@@ -46,5 +47,6 @@ namespace ByteForge
                                     .value_or(defaults.Overflow);
         component.MinFontSize = std::clamp(json.value("minFontSize", defaults.MinFontSize), SmallestFontSize,
                                            component.FontSize);
+        component.RichText    = json.value("richText", defaults.RichText);
     }
 }

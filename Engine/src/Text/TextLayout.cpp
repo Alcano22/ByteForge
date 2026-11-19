@@ -39,6 +39,7 @@ namespace ByteForge
             f32 Kerning = 0.0f;
             bool Space = false;
             bool LineBreak = false;
+            u32 Style = 0;
         };
 
         struct Line
@@ -47,14 +48,16 @@ namespace ByteForge
             usize End = 0;
         };
 
-        std::vector<Character> ReadCharacters(const FontGlyphs& font, const std::u32string_view text)
+        std::vector<Character> ReadCharacters(const FontGlyphs& font, const StyledText& text)
         {
             std::vector<Character> characters;
-            characters.reserve(text.size());
+            characters.reserve(text.Characters.size());
 
             char32_t previous = 0;
-            for (const char32_t character : text)
+            for (usize index = 0; index < text.Characters.size(); ++index)
             {
+                const char32_t character = text.Characters[index];
+
                 if (character == U'\n')
                 {
                     characters.push_back({ .LineBreak = true });
@@ -70,7 +73,8 @@ namespace ByteForge
                 characters.push_back({
                     .Data    = glyph,
                     .Kerning = previous != 0 ? font.GetKerning(previous, character) : 0.0f,
-                    .Space   = character == U' '
+                    .Space   = character == U' ',
+                    .Style   = text.CharacterStyles[index]
                 });
                 previous = character;
             }
@@ -169,7 +173,7 @@ namespace ByteForge
         }
     }
 
-    TextLayout LayoutText(const FontGlyphs& font, const std::u32string_view text, const TextLayoutSettings& settings)
+    TextLayout LayoutText(const FontGlyphs& font, const StyledText& text, const TextLayoutSettings& settings)
     {
         TextLayout layout{ .LineCount = 1 };
 
@@ -224,7 +228,9 @@ namespace ByteForge
                         .Min   = pen + glyph.PlaneMin * fontSize,
                         .Max   = pen + glyph.PlaneMax * fontSize,
                         .UVMin = glyph.UVMin,
-                        .UVMax = glyph.UVMax
+                        .UVMax = glyph.UVMax,
+                        // CHANGED
+                        .Style = character.Style
                     });
                 }
 
@@ -234,5 +240,10 @@ namespace ByteForge
 
         layout.Size = { widest, blockHeight };
         return layout;
+    }
+
+    TextLayout LayoutText(const FontGlyphs& font, const std::u32string_view text, const TextLayoutSettings& settings)
+    {
+        return LayoutText(font, MakePlainText(std::u32string(text)), settings);
     }
 }

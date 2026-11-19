@@ -12,6 +12,7 @@
 #include <array>
 #include <cmath>
 #include <ranges>
+#include <utility>
 
 namespace ByteForge::GameUI
 {
@@ -139,6 +140,13 @@ namespace ByteForge::GameUI
             return nullptr;
         }
 
+        glm::vec4 StyleColor(const TextStyle& style, const glm::vec4& textColor)
+        {
+            if (!style.Color)
+                return textColor;
+            return { style.Color->r, style.Color->g, style.Color->b, style.Color->a * textColor.a };
+        }
+
         void DrawTextElement(UIRenderer& renderer, const TextComponent& text, const Rect& bounds, const f32 scale)
         {
             if (text.Text.empty()) return;
@@ -155,7 +163,9 @@ namespace ByteForge::GameUI
                 .Overflow    = text.Overflow,
                 .MinFontSize = text.MinFontSize * scale
             };
-            const TextLayout layout = LayoutText(font->GetGlyphs(), DecodeUtf8(text.Text), settings);
+            std::u32string characters = DecodeUtf8(text.Text);
+            const StyledText styled = text.RichText ? ParseRichText(characters) : MakePlainText(std::move(characters));
+            const TextLayout layout = LayoutText(font->GetGlyphs(), styled, settings);
 
             const glm::vec2 origin{ bounds.Min.x, bounds.Max.y };
 
@@ -165,8 +175,9 @@ namespace ByteForge::GameUI
 
             for (const PlacedGlyph& glyph : layout.Glyphs)
             {
+                const glm::vec4 color = StyleColor(styled.Styles[glyph.Style], text.Color);
                 renderer.DrawGlyph(origin + glyph.Min, origin + glyph.Max, font->GetAtlas(),
-                                   glyph.UVMin, glyph.UVMax, font->GetDistanceRange(), text.Color);
+                                   glyph.UVMin, glyph.UVMax, font->GetDistanceRange(), color);
             }
 
             if (clip)

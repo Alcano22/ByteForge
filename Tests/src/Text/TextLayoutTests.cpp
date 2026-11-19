@@ -243,3 +243,14 @@ TEST_CASE("Shrink stops at the minimum size", "[text]")
 
     CHECK(LayoutText(GetInter(), U"Far too long", settings).FontSize == Approx(40.0f));
 }
+
+TEST_CASE("Glyphs keep the style of their characters", "[text][richtext]")
+{
+    const StyledText text = ParseRichText(U"H<color=red>H</color> H");
+    const TextLayout layout = LayoutText(GetInter(), text, { .FontSize = TestFontSize });
+
+    REQUIRE(layout.Glyphs.size() == 3);
+    CHECK(layout.Glyphs[0].Style == 0);
+    CHECK(text.Styles[layout.Glyphs[1].Style].Color.has_value());
+    CHECK(layout.Glyphs[2].Style == 0);
+}

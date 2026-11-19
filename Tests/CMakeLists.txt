@@ -12,6 +12,7 @@ add_executable(ByteForgeTests
         src/UI/GameUITests.cpp
         src/Text/FontAtlasTests.cpp
         src/Text/TextLayoutTests.cpp
+        src/Text/RichTextTests.cpp
         src/Assets/PakTests.cpp
         src/Assets/PrefabTests.cpp
         src/Project/ProjectTests.cpp
