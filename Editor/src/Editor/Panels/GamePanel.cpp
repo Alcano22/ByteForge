@@ -6,6 +6,7 @@
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneCamera.h>
+#include <Engine/UI/GameUI.h>
 
 #include <imgui.h>
 
@@ -39,7 +40,7 @@ namespace ByteForge
 
     GamePanel::GamePanel(EditorContext& context)
         : EditorPanel(context, Name),
-          m_Canvas({ .ClearColor = DefaultCamera.ClearColor, .FixedAspect = DefaultCamera.FixedAspect }) {}
+          m_Canvas({ .ClearColor = DefaultCamera.ClearColor, .FixedAspect = DefaultCamera.FixedAspect, .UI = true }) {}
 
     void GamePanel::OnUpdate(Timestep)
     {
@@ -59,7 +60,11 @@ namespace ByteForge
         const f32 aspect = settings.UseFixedAspect ? settings.FixedAspect : size.x / size.y;
         const OrthographicCamera camera = MakeSceneCamera(settings, transform, aspect);
 
-        m_Canvas.Render([&](Renderer2D& sprites, LineRenderer&) { scene->Render(sprites, camera); });
+        m_Canvas.Render([&](Renderer2D& sprites, LineRenderer&)
+        {
+            scene->Render(sprites, camera);
+            GameUI::Render(*scene, m_Canvas.GetUIRenderer(), size);
+        });
     }
 
     void GamePanel::OnImGuiRender()

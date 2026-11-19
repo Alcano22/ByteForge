@@ -225,6 +225,160 @@ namespace ByteForge
             }
         }
 
+        bool IsInsideCanvas(const Entity entity)
+        {
+            for (Entity parent = entity.GetParent(); parent.IsValid(); parent = parent.GetParent())
+            {
+                if (parent.HasComponent<CanvasComponent>())
+                    return true;
+            }
+            return false;
+        }
+
+        struct AnchorPreset
+        {
+            const char* Name;
+            f32 MinX, MinY, MaxX, MaxY;
+        };
+
+        constexpr std::array AnchorPresets{
+            AnchorPreset{ "Top Left",       0.0f, 1.0f, 0.0f, 1.0f },
+            AnchorPreset{ "Top Center",     0.5f, 1.0f, 0.5f, 1.0f },
+            AnchorPreset{ "Top Right",      1.0f, 1.0f, 1.0f, 1.0f },
+            AnchorPreset{ "Middle Left",    0.0f, 0.5f, 0.0f, 0.5f },
+            AnchorPreset{ "Center",         0.5f, 0.5f, 0.5f, 0.5f },
+            AnchorPreset{ "Middle Right",   1.0f, 0.5f, 1.0f, 0.5f },
+            AnchorPreset{ "Bottom Left",    0.0f, 0.0f, 0.0f, 0.0f },
+            AnchorPreset{ "Bottom Center",  0.5f, 0.0f, 0.5f, 0.0f },
+            AnchorPreset{ "Bottom Right",   1.0f, 0.0f, 1.0f, 0.0f },
+            AnchorPreset{ "Stretch Top",    0.0f, 1.0f, 1.0f, 1.0f },
+            AnchorPreset{ "Stretch Middle", 0.0f, 0.5f, 1.0f, 0.5f },
+            AnchorPreset{ "Stretch Bottom", 0.0f, 0.0f, 1.0f, 0.0f },
+            AnchorPreset{ "Stretch Left",   0.0f, 0.0f, 0.0f, 1.0f },
+            AnchorPreset{ "Stretch Center", 0.5f, 0.0f, 0.5f, 1.0f },
+            AnchorPreset{ "Stretch Right",  1.0f, 0.0f, 1.0f, 1.0f },
+            AnchorPreset{ "Stretch All",    0.0f, 0.0f, 1.0f, 1.0f }
+        };
+
+        bool Matches(const AnchorPreset& preset, const RectTransformComponent& transform)
+        {
+            return transform.AnchorMin == glm::vec2(preset.MinX, preset.MinY) &&
+                   transform.AnchorMax == glm::vec2(preset.MaxX, preset.MaxY);
+        }
+
+        void ApplyPreset(const AnchorPreset& preset, RectTransformComponent& transform)
+        {
+            const glm::vec2 min{ preset.MinX, preset.MinY };
+            const glm::vec2 max{ preset.MaxX, preset.MaxY };
+
+            for (glm::length_t axis = 0; axis < 2; ++axis)
+            {
+                const bool wasStretched = transform.AnchorMin[axis] != transform.AnchorMax[axis];
+                const bool stretched = min[axis] != max[axis];
+
+                transform.Pivot[axis] = stretched ? 0.5f : min[axis];
+                transform.Position[axis] = 0.0f;
+
+                if (stretched)
+                    transform.Size[axis] = 0.0f;
+                else if (wasStretched)
+                    transform.Size[axis] = 100.0f;
+            }
+
+            transform.AnchorMin = min;
+            transform.AnchorMax = max;
+        }
+
+        void DrawRectTransform(RectTransformComponent& transform, const Entity entity, EditorContext&)
+        {
+            if (!IsInsideCanvas(entity))
+                EditorUI::ErrorTextWrapped("Not inside a Canvas: move it below an entity with a Canvas to show it");
+
+            const auto preset = std::ranges::find_if(AnchorPresets, [&](const AnchorPreset& candidate)
+            {
+                return Matches(candidate, transform);
+            });
+
+            if (ImGui::BeginCombo("Anchors", preset != AnchorPresets.end() ? preset->Name : "Custom"))
+            {
+                for (usize i = 0; i < AnchorPresets.size(); ++i)
+                {
+                    if (i == 9 || i == 12 || i == 15)
+                        ImGui::Separator();
+
+                    if (ImGui::Selectable(AnchorPresets[i].Name, Matches(AnchorPresets[i], transform)))
+                        ApplyPreset(AnchorPresets[i], transform);
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::DragFloat2("Position", glm::value_ptr(transform.Position), 1.0f);
+            ImGui::DragFloat2("Size", glm::value_ptr(transform.Size), 1.0f);
+            ImGui::SetItemTooltip("With stretching anchors: what is added to the stretched span "
+                                  "(negative values leave a margin)");
+
+            if (ImGui::TreeNode("Anchors and Pivot"))
+            {
+                ImGui::DragFloat2("Anchor Min", glm::value_ptr(transform.AnchorMin), 0.01f, 0.0f, 1.0f);
+                ImGui::DragFloat2("Anchor Max", glm::value_ptr(transform.AnchorMax), 0.01f, 0.0f, 1.0f);
+                ImGui::DragFloat2("Pivot", glm::value_ptr(transform.Pivot), 0.01f, 0.0f, 1.0f);
+                ImGui::TreePop();
+            }
+        }
+
+        void DrawCanvas(CanvasComponent& canvas, const Entity entity, EditorContext&)
+        {
+            if (IsInsideCanvas(entity))
+                ImGui::TextDisabled("Inside another canvas: laid out as one of its elements");
+
+            EditorUI::EnumCombo<CanvasComponent::ScaleMode>("Scale Mode", canvas.Scaling,
+                                                            magic_enum::enum_values<CanvasComponent::ScaleMode>());
+
+            if (canvas.Scaling == CanvasComponent::ScaleMode::ScaleWithScreenSize)
+            {
+                ImGui::DragFloat2("Reference Resolution", glm::value_ptr(canvas.ReferenceResolution),
+                                  1.0f, 1.0f, MaxFloat, "%.0f");
+                ImGui::SliderFloat("Match", &canvas.MatchWidthOrHeight, 0.0f, 1.0f, "%.2f");
+                ImGui::SetItemTooltip("Which side the scale follows when the screen's shape differs from the "
+                                      "reference: 0 the width, 1 the height");
+            } else
+                ImGui::DragFloat("Scale Factor", &canvas.ScaleFactor, 0.01f, 0.01f, 100.0f);
+
+            ImGui::DragInt("Sort Order", &canvas.SortOrder, 0.1f);
+            ImGui::SetItemTooltip("Canvases with a higher order are drawn over those with a lower one");
+        }
+
+        void DrawImage(ImageComponent& image, const Entity entity, EditorContext& context)
+        {
+            ImGui::ColorEdit4("Color", glm::value_ptr(image.Color));
+
+            Ref<TextureAsset> texture = image.Sprite ? image.Sprite->GetTextureAsset() : nullptr;
+            if (EditorUI::TextureAssetField("Texture", texture, context.SelectionContext))
+                image.Sprite = texture ? Sprite::Create(texture) : nullptr;
+
+            EditorUI::EnumCombo<ImageComponent::DrawMode>("Mode", image.Mode,
+                                                          magic_enum::enum_values<ImageComponent::DrawMode>());
+
+            if (image.Mode == ImageComponent::DrawMode::Sliced)
+            {
+                ImGui::DragFloat4("Border", glm::value_ptr(image.Border), 0.5f, 0.0f, MaxFloat, "%.0f");
+                ImGui::SetItemTooltip("Left, bottom, right, top in texture pixels: these parts keep their size, "
+                                      "the middle stretches");
+            }
+
+            auto* transform = entity.TryGetComponent<RectTransformComponent>();
+            ImGui::BeginDisabled(!image.Sprite || transform == nullptr);
+            if (ImGui::Button("Set Native Size") && image.Sprite && transform != nullptr)
+            {
+                const Ref<Texture2D>& pixels = image.Sprite->GetTexture();
+                const glm::vec2 span = image.Sprite->GetUVMax() - image.Sprite->GetUVMin();
+                transform->Size = glm::abs(span) * glm::vec2(static_cast<f32>(pixels->GetWidth()),
+                                                             static_cast<f32>(pixels->GetHeight()));
+            }
+            ImGui::EndDisabled();
+            ImGui::SetItemTooltip("Makes the element as large as the sprite's pixels (in canvas units)");
+        }
+
         template<typename T, auto DrawFn>
         constexpr ComponentInspector Inspect(const char* name, const EditorIcon icon = EditorIcon::FileScript,
                                              const bool removable = true)
@@ -245,15 +399,42 @@ namespace ByteForge
             };
         }
 
+        template<typename T, auto DrawFn>
+        constexpr ComponentInspector InspectUIElement(const char* name, const EditorIcon icon)
+        {
+            ComponentInspector inspector = Inspect<T, DrawFn>(name, icon);
+            inspector.Add = [](const Entity entity)
+            {
+                if (!entity.HasComponent<RectTransformComponent>())
+                    entity.AddComponent<RectTransformComponent>();
+                entity.AddComponent<T>();
+            };
+            return inspector;
+        }
+
+        constexpr ComponentInspector InspectTransform()
+        {
+            ComponentInspector inspector = Inspect<TransformComponent, DrawTransform>(
+                "Transform", EditorIcon::ComponentTransform, false);
+            inspector.Has = [](const Entity entity)
+            {
+                return entity.HasComponent<TransformComponent>() && !entity.HasComponent<RectTransformComponent>();
+            };
+            return inspector;
+        }
+
         constexpr std::array Inspectors{
-            Inspect<TransformComponent, DrawTransform>("Transform", EditorIcon::ComponentTransform, false),
+            InspectTransform(),
             Inspect<SpriteRendererComponent, DrawSpriteRenderer>("Sprite Renderer", EditorIcon::ComponentSprite),
             Inspect<CameraComponent, DrawCamera>("Camera", EditorIcon::ComponentCamera),
             Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D", EditorIcon::ComponentRigidbody),
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),
             Inspect<AudioSourceComponent, DrawAudioSource>("Audio Source", EditorIcon::ComponentAudioSource),
-            Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip)
+            Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip),
+            Inspect<RectTransformComponent, DrawRectTransform>("Rect Transform", EditorIcon::ComponentTransform, false),
+            Inspect<CanvasComponent, DrawCanvas>("Canvas", EditorIcon::FileGeneric),
+            InspectUIElement<ImageComponent, DrawImage>("Image", EditorIcon::ComponentSprite)
         };
     }
 
@@ -269,8 +450,7 @@ namespace ByteForge
             if (it == Inspectors.end())
             {
                 throw LogicError("Component '{}' is registered in the ComponentRegistry but has no"
-                                 "inspector (add an Inspect<...> entry in ComponentInspectors.cpp)",
-                                 descriptor.Key);
+                                 "inspector (add an Inspect<...> entry in ComponentInspectors.cpp)", descriptor.Key);
             }
 
             if (it->Removable != descriptor.Removable)

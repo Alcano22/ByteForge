@@ -26,6 +26,15 @@ namespace ByteForge
             .EntityIdFormat = idFormat
         });
 
+        if (m_Spec.UI)
+        {
+            m_UIRenderer = MakeScope<UIRenderer>(UIRendererSpec{
+                .ColorFormat    = ColorFormat,
+                .DepthFormat    = DepthFormat,
+                .EntityIdFormat = idFormat
+            });
+        }
+
         m_LineRenderer = MakeScope<LineRenderer>(LineRendererSpec{
             .ColorFormat    = ColorFormat,
             .DepthFormat    = DepthFormat,

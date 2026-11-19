@@ -4,6 +4,7 @@
 #include <Engine/Renderer/LineRenderer.h>
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Renderer2D.h>
+#include <Engine/Renderer/UIRenderer.h>
 #include <Engine/Renderer/RenderTarget.h>
 
 #include <glm/glm.hpp>
@@ -22,6 +23,8 @@ namespace ByteForge
         std::optional<f32> FixedAspect;
 
         bool EntityIds = false;
+
+        bool UI = false;
     };
 
     class ViewportCanvas
@@ -46,6 +49,14 @@ namespace ByteForge
 
         [[nodiscard]] u32 ReadEntityId(const glm::vec2& viewportPoint) const;
 
+        [[nodiscard]] UIRenderer& GetUIRenderer()
+        {
+            if (!m_UIRenderer)
+                throw LogicError("ViewportCanvas::GetUIRenderer: the canvas was created without ViewportCanvasSpec::UI");
+
+            return *m_UIRenderer;
+        }
+
         [[nodiscard]] bool IsHovered() const { return m_Hovered; }
         [[nodiscard]] glm::vec2 GetSize() const { return glm::vec2(m_Size); }
         [[nodiscard]] ImVec2 GetScreenMin() const { return m_ScreenMin; }
@@ -61,6 +72,7 @@ namespace ByteForge
     private:
         ViewportCanvasSpec m_Spec;
         Scope<Renderer2D> m_Renderer2D;
+        Scope<UIRenderer> m_UIRenderer;
         Scope<LineRenderer> m_LineRenderer;
         Ref<RenderTarget> m_Target;
 

@@ -10,11 +10,13 @@
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Renderer2D.h>
+#include <Engine/Renderer/UIRenderer.h>
 #include <Engine/Renderer/ShaderLibrary.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneCamera.h>
 #include <Engine/Scene/SceneSerializer.h>
+#include <Engine/UI/GameUI.h>
 #include <Engine/Scripting/ScriptEngine.h>
 
 #include <nlohmann/json.hpp>
@@ -84,6 +86,7 @@ namespace ByteForge
             LoadStartScene();
 
             m_Renderer = MakeScope<Renderer2D>();
+            m_UIRenderer = MakeScope<UIRenderer>();
         }
 
         void OnDetach() override { m_Scene.OnRuntimeStop(); }
@@ -116,6 +119,9 @@ namespace ByteForge
             const GameView view = ComputeGameView(settings, width, height);
             Renderer::SetViewport(view.Rect);
             m_Scene.Render(*m_Renderer, MakeSceneCamera(settings, transform, view.Aspect));
+
+            GameUI::Render(m_Scene, *m_UIRenderer,
+                           glm::vec2(static_cast<f32>(view.Rect.Width), static_cast<f32>(view.Rect.Height)));
         }
 
     private:
@@ -223,6 +229,7 @@ namespace ByteForge
         ProjectSettings m_Settings;
         Scene m_Scene;
         Scope<Renderer2D> m_Renderer;
+        Scope<UIRenderer> m_UIRenderer;
     };
 
     Application* CreateApplication()

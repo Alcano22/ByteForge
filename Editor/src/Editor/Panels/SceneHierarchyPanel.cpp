@@ -33,6 +33,46 @@ namespace ByteForge
             entity.AddComponent<BoxCollider2DComponent>();
         }
 
+        Entity FindUIParent(const EditorContext& context)
+        {
+            const Entity selected = context.SelectionContext.GetEntity();
+            for (Entity entity = selected; entity.IsValid(); entity = entity.GetParent())
+            {
+                if (entity.HasComponent<CanvasComponent>())
+                    return selected.HasComponent<RectTransformComponent>() ? selected : entity;
+            }
+            return {};
+        }
+
+        void AddCanvas(const Entity entity)
+        {
+            entity.AddComponent<CanvasComponent>();
+        }
+
+        void CreateUIElement(EditorContext& context, const std::string& name, void (*setup)(Entity))
+        {
+            if (const Entity parent = FindUIParent(context); parent.IsValid())
+            {
+                context.CreateEntity(name, [parent, setup](const Entity entity)
+                {
+                    entity.SetParent(parent, false);
+                    entity.AddComponent<RectTransformComponent>();
+                    setup(entity);
+                });
+                return;
+            }
+
+            context.CreateEntity("Canvas", [name, setup](const Entity canvas)
+            {
+                AddCanvas(canvas);
+
+                const Entity element = canvas.GetScene().CreateEntity(name);
+                element.SetParent(canvas, false);
+                element.AddComponent<RectTransformComponent>();
+                setup(element);
+            });
+        }
+
         enum class DropZone { Before, Into, After };
 
         struct DropTarget
@@ -352,6 +392,17 @@ namespace ByteForge
                     AddBox(entity, Rigidbody2DComponent::BodyType::Dynamic);
                 });
             }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("UI"))
+        {
+            if (ImGui::MenuItem("Canvas"))
+                context.CreateEntity("Canvas", AddCanvas);
+
+            if (ImGui::MenuItem("Image"))
+                CreateUIElement(context, "Image", [](const Entity entity) { entity.AddComponent<ImageComponent>(); });
 
             ImGui::EndMenu();
         }

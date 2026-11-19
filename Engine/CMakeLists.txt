@@ -104,6 +104,10 @@ add_library(Engine SHARED
         src/Scene/Components/ScriptComponent.cpp
         src/Scene/Components/ComponentOrderComponent.cpp
         src/Scene/Components/PrefabInstanceComponent.cpp
+        src/Scene/Components/RectTransformComponent.cpp
+        src/Scene/Components/CanvasComponent.cpp
+        src/Scene/Components/ImageComponent.cpp
+        src/UI/GameUI.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
         src/Assets/AssetRegistry.cpp
@@ -122,6 +126,7 @@ add_library(Engine SHARED
         src/Renderer/UniformBuffer.cpp
         src/Renderer/Shader.cpp
         src/Renderer/Renderer.cpp
+        src/Renderer/UIRenderer.cpp
         src/Renderer/Camera.cpp
         src/Renderer/Pipeline.cpp
         src/Renderer/Material.cpp

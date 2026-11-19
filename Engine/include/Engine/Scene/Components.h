@@ -14,3 +14,6 @@
 #include "Engine/Scene/Components/ScriptComponent.h"
 #include "Engine/Scene/Components/ComponentOrderComponent.h"
 #include "Engine/Scene/Components/PrefabInstanceComponent.h"
+#include "Engine/Scene/Components/RectTransformComponent.h"
+#include "Engine/Scene/Components/CanvasComponent.h"
+#include "Engine/Scene/Components/ImageComponent.h"

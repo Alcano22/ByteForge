@@ -59,7 +59,10 @@ namespace ByteForge
             Describe<AnimatorComponent>("animator"),
             Describe<ScriptComponent>("script", true, true),
             Describe<ComponentOrderComponent>("componentOrder", true, true),
-            Describe<PrefabInstanceComponent>("prefabInstance", true, true)
+            Describe<PrefabInstanceComponent>("prefabInstance", true, true),
+            Describe<RectTransformComponent>("rectTransform", false),
+            Describe<CanvasComponent>("canvas"),
+            Describe<ImageComponent>("image")
         };
 
         constexpr bool HasUniqueKeys()
