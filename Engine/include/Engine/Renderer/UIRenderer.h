@@ -48,6 +48,10 @@ namespace ByteForge
                       const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint = glm::vec4(1.0f),
                       u32 entityId = 0);
 
+        void DrawGlyph(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& atlas,
+                       const glm::vec2& uvMin, const glm::vec2& uvMax, f32 distanceRange,
+                       const glm::vec4& color, u32 entityId = 0);
+
         void PushClipRect(const glm::vec2& min, const glm::vec2& max);
         void PopClipRect();
 
@@ -59,12 +63,13 @@ namespace ByteForge
     private:
         enum class QuadMode : u32
         {
-            Image = 0
+            Image = 0,
+            Text  = 1
         };
 
         void SubmitQuad(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& texture,
                         const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& color,
-                        QuadMode mode, u32 entityId);
+                        QuadMode mode, u32 entityId, f32 distanceRange = 0.0f);
         void Flush();
 
         void CreateBuffers(u32 capacity);
@@ -82,6 +87,7 @@ namespace ByteForge
             glm::vec4 ClipRect;
             u32 Mode;
             u32 EntityId;
+            f32 DistanceRange;
         };
 
         struct MaterialEntry

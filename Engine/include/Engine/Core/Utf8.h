@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Aliases.h"
+#include "Engine/Core/Types.h"
 
 #include <string>
 #include <string_view>
@@ -22,5 +23,69 @@ namespace ByteForge
     [[nodiscard]] inline fs::path PathFromUtf8(const std::string_view text)
     {
         return fs::path(std::u8string(text.begin(), text.end()));
+    }
+
+    [[nodiscard]] inline std::u32string DecodeUtf8(const std::string_view text)
+    {
+        constexpr char32_t Replacement = 0xFFFD;
+
+        std::u32string result;
+        result.reserve(text.size());
+
+        for (usize i = 0; i < text.size();)
+        {
+            const char32_t lead = static_cast<unsigned char>(text[i]);
+
+            usize length = 0;
+            char32_t codepoint = 0;
+            char32_t smallest = 0;
+
+            if (lead < 0x80u)
+            {
+                result.push_back(lead);
+                ++i;
+                continue;
+            }
+
+            if ((lead & 0xE0u) == 0xC0u)
+            {
+                length = 2;
+                codepoint = lead & 0x1Fu;
+                smallest = 0x80u;
+            } else if ((lead & 0xF0u) == 0xE0u)
+            {
+                length = 3;
+                codepoint = lead & 0x0Fu;
+                smallest = 0x800u;
+            } else if ((lead & 0xF8u) == 0xF0u)
+            {
+                length = 4;
+                codepoint = lead & 0x07u;
+                smallest = 0x10000u;
+            } else
+            {
+                result.push_back(Replacement);
+                ++i;
+                continue;
+            }
+
+            usize read = 1;
+            while (read < length && i + read < text.size())
+            {
+                const char32_t next = static_cast<unsigned char>(text[i + read]);
+                if ((next & 0xC0u) != 0x80u) break;
+
+                codepoint = (codepoint << 6) | (next & 0x3Fu);
+                ++read;
+            }
+
+            const bool valid = read == length && codepoint >= smallest && codepoint <= 0x10FFFFu &&
+                               (codepoint < 0xD800u || codepoint > 0xDFFFu);
+
+            result.push_back(valid ? codepoint : Replacement);
+            i += read;
+        }
+
+        return result;
     }
 }

@@ -1,9 +1,12 @@
 #include "Engine/UI/GameUI.h"
+#include "Engine/Assets/AssetManager.h"
+#include "Engine/Core/Utf8.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/UIRenderer.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
+#include "Engine/Text/TextLayout.h"
 
 #include <algorithm>
 #include <array>
@@ -121,6 +124,36 @@ namespace ByteForge::GameUI
             {
                 renderer.DrawRect(bounds.Min, bounds.Max, sprite.GetTexture(),
                                   sprite.GetUVMin(), sprite.GetUVMax(), color);
+            }
+        }
+
+        Ref<Font> ResolveFont(const UUID handle)
+        {
+            const Ref<FontAsset> asset = AssetManager::LoadFont(handle);
+            if (asset->GetFont())
+                return asset->GetFont();
+
+            if (handle.IsSet() && asset->GetState() == AssetLoadState::Failed)
+                return AssetManager::LoadFont(UUID(0))->GetFont();
+
+            return nullptr;
+        }
+
+        void DrawTextElement(UIRenderer& renderer, const TextComponent& text, const Rect& bounds, const f32 scale)
+        {
+            if (text.Text.empty()) return;
+
+            const Ref<Font> font = ResolveFont(text.Font);
+            if (!font) return;
+
+            const TextLayout layout = LayoutText(font->GetGlyphs(), DecodeUtf8(text.Text), text.FontSize * scale);
+
+            const glm::vec2 origin{ bounds.Min.x, bounds.Min.y };
+
+            for (const PlacedGlyph& glyph : layout.Glyphs)
+            {
+                renderer.DrawGlyph(origin + glyph.Min, origin + glyph.Max, font->GetAtlas(),
+                                   glyph.UVMin, glyph.UVMax, font->GetDistanceRange(), text.Color);
             }
         }
     }
@@ -290,6 +323,9 @@ namespace ByteForge::GameUI
             {
                 if (const auto* image = element.Handle.TryGetComponent<ImageComponent>())
                     DrawImage(renderer, element.Handle, *image, element.Bounds, canvas.Scale);
+
+                if (const auto* text = element.Handle.TryGetComponent<TextComponent>())
+                    DrawTextElement(renderer, *text, element.Bounds, canvas.Scale);
             }
         }
 

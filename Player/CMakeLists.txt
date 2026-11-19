@@ -15,6 +15,7 @@ byteforge_copy_directory(Player
 )
 
 byteforge_add_engine_shaders(Player ${BYTEFORGE_PLAYER_DIR})
+byteforge_add_engine_fonts(Player ${BYTEFORGE_PLAYER_DIR})
 
 if(UNIX AND NOT APPLE)
     set_target_properties(Player PROPERTIES INSTALL_RPATH "$ORIGIN")

@@ -20,12 +20,13 @@ namespace ByteForge
         BufferLayout MakeVertexLayout()
         {
             return {
-                { ShaderDataType::Float2, "Position" },
-                { ShaderDataType::Float2, "UV"       },
-                { ShaderDataType::Float4, "Color"    },
-                { ShaderDataType::Float4, "ClipRect" },
-                { ShaderDataType::UInt,   "Mode"     },
-                { ShaderDataType::UInt,   "EntityId" }
+                { ShaderDataType::Float2, "Position"      },
+                { ShaderDataType::Float2, "UV"            },
+                { ShaderDataType::Float4, "Color"         },
+                { ShaderDataType::Float4, "ClipRect"      },
+                { ShaderDataType::UInt,   "Mode"          },
+                { ShaderDataType::UInt,   "EntityId"      },
+                { ShaderDataType::Float,  "DistanceRange" }
             };
         }
 
@@ -43,7 +44,7 @@ namespace ByteForge
     UIRenderer::UIRenderer(const UIRendererSpec& spec)
         : m_Spec(spec)
     {
-        static_assert(sizeof(Vertex) == 12 * sizeof(f32) + 2 * sizeof(u32),
+        static_assert(sizeof(Vertex) == 13 * sizeof(f32) + 2 * sizeof(u32),
                       "Vertex must be tightly packed to match the buffer layout");
 
         if (spec.MaxQuads == 0 || spec.MaxQuads > MaxSupportedQuads)
@@ -140,6 +141,13 @@ namespace ByteForge
         SubmitQuad(min, max, texture, uvMin, uvMax, tint, QuadMode::Image, entityId);
     }
 
+    void UIRenderer::DrawGlyph(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& atlas,
+                               const glm::vec2& uvMin, const glm::vec2& uvMax, const f32 distanceRange,
+                               const glm::vec4& color, const u32 entityId)
+    {
+        SubmitQuad(min, max, atlas, uvMin, uvMax, color, QuadMode::Text, entityId, distanceRange);
+    }
+
     void UIRenderer::PushClipRect(const glm::vec2& min, const glm::vec2& max)
     {
         if (!m_Active)
@@ -161,7 +169,7 @@ namespace ByteForge
 
     void UIRenderer::SubmitQuad(const glm::vec2& min, const glm::vec2& max, const Ref<Texture2D>& texture,
                                 const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& color,
-                                const QuadMode mode, const u32 entityId)
+                                const QuadMode mode, const u32 entityId, const f32 distanceRange)
     {
         if (!m_Active)
             throw LogicError("UIRenderer: rectangles can only be drawn between Begin and End");
@@ -203,12 +211,13 @@ namespace ByteForge
         for (usize i = 0; i < VerticesPerQuad; ++i)
         {
             vertices[i] = {
-                .Position = corners[i].Position,
-                .UV       = corners[i].UV,
-                .Color    = vertexColor,
-                .ClipRect = clip,
-                .Mode     = static_cast<u32>(mode),
-                .EntityId = entityId
+                .Position      = corners[i].Position,
+                .UV            = corners[i].UV,
+                .Color         = vertexColor,
+                .ClipRect      = clip,
+                .Mode          = static_cast<u32>(mode),
+                .EntityId      = entityId,
+                .DistanceRange = distanceRange
             };
         }
 

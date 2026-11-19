@@ -9,8 +9,27 @@ namespace ByteForge
         constexpr char32_t FallbackCharacter = U'?';
     }
 
+    FontGlyphs::FontGlyphs(std::unordered_map<char32_t, Glyph> glyphs,
+                           std::unordered_map<u64, f32> kerning, const FontMetrics& metrics)
+        : m_Glyphs(std::move(glyphs)), m_Kerning(std::move(kerning)), m_Metrics(metrics) {}
+
+    const Glyph* FontGlyphs::GetGlyph(const char32_t character) const
+    {
+        if (const auto it = m_Glyphs.find(character); it != m_Glyphs.end())
+            return &it->second;
+
+        const auto fallback = m_Glyphs.find(FallbackCharacter);
+        return fallback != m_Glyphs.end() ? &fallback->second : nullptr;
+    }
+
+    f32 FontGlyphs::GetKerning(const char32_t left, const char32_t right) const
+    {
+        const auto it = m_Kerning.find(FontAtlasData::KerningKey(left, right));
+        return it != m_Kerning.end() ? it->second : 0.0f;
+    }
+
     Font::Font(FontAtlasData atlas)
-        : m_Glyphs(std::move(atlas.Glyphs)), m_Kerning(std::move(atlas.Kerning)), m_Metrics(atlas.Metrics),
+        : m_Glyphs(std::move(atlas.Glyphs), std::move(atlas.Kerning), atlas.Metrics),
           m_GlyphSize(atlas.GlyphSize), m_DistanceRange(atlas.DistanceRange)
     {
         m_Atlas = Texture2D::Create(atlas.Width, atlas.Height, atlas.Pixels, {
@@ -19,20 +38,5 @@ namespace ByteForge
             .Wrap         = TextureWrap::ClampToEdge,
             .GenerateMips = false
         });
-
-        if (const auto it = m_Glyphs.find(FallbackCharacter); it != m_Glyphs.end())
-            m_Fallback = &it->second;
-    }
-
-    const Glyph* Font::GetGlyph(const char32_t character) const
-    {
-        const auto it = m_Glyphs.find(character);
-        return it != m_Glyphs.end() ? &it->second : m_Fallback;
-    }
-
-    f32 Font::GetKerning(const char32_t left, const char32_t right) const
-    {
-        const auto it = m_Kerning.find(FontAtlasData::KerningKey(left, right));
-        return it != m_Kerning.end() ? it->second : 0.0f;
     }
 }

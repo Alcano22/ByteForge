@@ -102,7 +102,9 @@ namespace ByteForge
             {
                 for (const GameUI::Element& element : std::views::reverse(canvas.Elements))
                 {
-                    if (element.Bounds.Contains(point) && element.Handle.HasComponent<ImageComponent>())
+                    const bool visible = element.Handle.HasComponent<ImageComponent>() ||
+                                         element.Handle.HasComponent<TextComponent>();
+                    if (element.Bounds.Contains(point) && visible)
                         return element.Handle;
                 }
             }

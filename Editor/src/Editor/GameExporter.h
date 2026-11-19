@@ -31,6 +31,7 @@ namespace ByteForge
     {
         fs::path PlayerDirectory;
         fs::path ScriptCoreDirectory;
+        fs::path FontsDirectory;
         fs::path AssetsDirectory;
         fs::path ProjectFile;
         std::optional<fs::path> GameScripts;

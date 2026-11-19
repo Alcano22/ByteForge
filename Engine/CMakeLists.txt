@@ -109,6 +109,7 @@ add_library(Engine SHARED
         src/Scene/Components/CanvasComponent.cpp
         src/Scene/Components/ImageComponent.cpp
         src/Scene/Components/ButtonComponent.cpp
+        src/Scene/Components/TextComponent.cpp
         src/UI/GameUI.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp
@@ -146,6 +147,7 @@ add_library(Engine SHARED
         src/Renderer/ShaderLibrary.cpp
         src/Text/FontAtlas.cpp
         src/Text/Font.cpp
+        src/Text/TextLayout.cpp
         src/ImGui/ImGuiLayer.cpp
         src/ImGui/ImGuiRenderer.cpp
         src/ImGui/ImGuiWidgets.cpp

@@ -55,6 +55,7 @@ install(DIRECTORY ${BYTEFORGE_PLAYER_DIR}/
         ${BYTEFORGE_INSTALL_EXCLUDES}
         PATTERN "ScriptCore" EXCLUDE
         PATTERN "shaders" EXCLUDE
+        PATTERN "fonts" EXCLUDE
 )
 
 if(BYTEFORGE_BUILD_HUB)

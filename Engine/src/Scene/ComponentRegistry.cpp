@@ -63,7 +63,8 @@ namespace ByteForge
             Describe<RectTransformComponent>("rectTransform", false),
             Describe<CanvasComponent>("canvas"),
             Describe<ImageComponent>("image"),
-            Describe<ButtonComponent>("button")
+            Describe<ButtonComponent>("button"),
+            Describe<TextComponent>("text")
         };
 
         constexpr bool HasUniqueKeys()

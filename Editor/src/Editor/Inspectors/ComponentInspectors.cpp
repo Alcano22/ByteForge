@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <array>
@@ -400,6 +401,23 @@ namespace ByteForge
             ImGui::Text("State: %s", state);
         }
 
+        void DrawTextComponent(TextComponent& text, Entity, EditorContext& context)
+        {
+            const ImVec2 size{ -FLT_MIN, ImGui::GetTextLineHeightWithSpacing() * 4.0f };
+            ImGui::InputTextMultiline("##text", &text.Text, size);
+
+            EditorUI::AssetReferenceField("Font", AssetType::Font, text.Font, context.SelectionContext,
+                                          "Inter (built-in)");
+
+            ImGui::DragFloat("Font Size", &text.FontSize, 0.25f, 1.0f, 1000.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SetItemTooltip("In canvas units: scales with the canvas like the Rect Transform");
+
+            ImGui::ColorEdit4("Color", glm::value_ptr(text.Color));
+
+            if (text.Font.IsSet() && AssetManager::LoadFont(text.Font)->GetState() == AssetLoadState::Failed)
+                EditorUI::ErrorTextWrapped("This font cannot be loaded, the built-in one is shown instead");
+        }
+
         template<typename T, auto DrawFn>
         constexpr ComponentInspector Inspect(const char* name, const EditorIcon icon = EditorIcon::FileScript,
                                              const bool removable = true)
@@ -456,7 +474,8 @@ namespace ByteForge
             Inspect<RectTransformComponent, DrawRectTransform>("Rect Transform", EditorIcon::ComponentTransform, false),
             Inspect<CanvasComponent, DrawCanvas>("Canvas", EditorIcon::FileGeneric),
             InspectUIElement<ImageComponent, DrawImage>("Image", EditorIcon::ComponentSprite),
-            InspectUIElement<ButtonComponent, DrawButton>("Button", EditorIcon::ComponentSprite)
+            InspectUIElement<ButtonComponent, DrawButton>("Button", EditorIcon::ComponentSprite),
+            InspectUIElement<TextComponent, DrawTextComponent>("Text", EditorIcon::FileFont)
         };
     }
 

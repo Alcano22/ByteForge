@@ -18,3 +18,4 @@
 #include "Engine/Scene/Components/CanvasComponent.h"
 #include "Engine/Scene/Components/ImageComponent.h"
 #include "Engine/Scene/Components/ButtonComponent.h"
+#include "Engine/Scene/Components/TextComponent.h"

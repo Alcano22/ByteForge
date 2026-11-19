@@ -414,6 +414,7 @@ namespace ByteForge
         ExportPlan plan;
         plan.PlayerDirectory = RuntimePaths::GetRoot() / "player";
         plan.ScriptCoreDirectory = RuntimePaths::GetDataDirectory() / "ScriptCore";
+        plan.FontsDirectory = RuntimePaths::GetDataDirectory() / "fonts";
         plan.AssetsDirectory = project.GetAssetDirectory();
         plan.ProjectFile = project.GetProjectFile();
 
@@ -433,7 +434,8 @@ namespace ByteForge
         if (!fs::exists(plan.PlayerDirectory / PlayerFileName()))
             return Unexpected("'{}' is missing, build the 'Player' target", PlayerFileName());
 
-        for (const fs::path& required : { RuntimePaths::GetDataDirectory() / "shaders", plan.ScriptCoreDirectory })
+        for (const fs::path& required : { RuntimePaths::GetDataDirectory() / "shaders",
+                                          plan.ScriptCoreDirectory, plan.FontsDirectory })
         {
             if (!fs::exists(required))
                 return Unexpected("'{}' is missing", ToGenericUtf8(required));
@@ -472,7 +474,7 @@ namespace ByteForge
         progress.BeginStep("Copying the player");
 
         std::error_code error;
-        for (const char* folder : { "assets", "engine", "shaders", "ScriptCore", ".byteforge", "dotnet" })
+        for (const char* folder : { "assets", "engine", "shaders", "fonts", "ScriptCore", ".byteforge", "dotnet" })
             fs::remove_all(output / folder, error);
 
         for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
@@ -500,6 +502,12 @@ namespace ByteForge
         if (!scriptCore)
             return Unexpected(scriptCore.error());
         result.FileCount += *scriptCore;
+
+        const auto fonts = CopyTree(plan.FontsDirectory, output / "fonts",
+            [](const fs::path&) { return true; }, progress);
+        if (!fonts)
+            return Unexpected(fonts.error());
+        result.FileCount += *fonts;
 
         progress.BeginStep("Bundling the .NET runtime");
 
