@@ -25,6 +25,7 @@ namespace ByteForge
 
             bool KeyboardBlocked = false;
             bool MouseBlocked = false;
+            bool PointerOverUI = false;
 
             std::optional<InputViewport> Viewport;
         };
@@ -36,6 +37,8 @@ namespace ByteForge
         {
             return !blocked && index < N && bits[index];
         }
+
+        bool IsMouseInputBlocked() { return s_State.MouseBlocked || s_State.PointerOverUI; }
 
         template<usize N>
         void Press(std::bitset<N>& down, std::bitset<N>& pressed, const usize index)
@@ -77,17 +80,17 @@ namespace ByteForge
 
     bool Input::IsMouseButtonDown(const MouseButton button)
     {
-        return Query(s_State.MouseDown, static_cast<usize>(button), s_State.MouseBlocked);
+        return Query(s_State.MouseDown, static_cast<usize>(button), IsMouseInputBlocked());
     }
 
     bool Input::IsMouseButtonPressed(const MouseButton button)
     {
-        return Query(s_State.MousePressed, static_cast<usize>(button), s_State.MouseBlocked);
+        return Query(s_State.MousePressed, static_cast<usize>(button), IsMouseInputBlocked());
     }
 
     bool Input::IsMouseButtonReleased(const MouseButton button)
     {
-        return Query(s_State.MouseReleased, static_cast<usize>(button), s_State.MouseBlocked);
+        return Query(s_State.MouseReleased, static_cast<usize>(button), IsMouseInputBlocked());
     }
 
     glm::vec2 Input::GetMousePosition() { return s_State.MousePosition; }
@@ -99,17 +102,31 @@ namespace ByteForge
 
     glm::vec2 Input::GetScrollDelta()
     {
-        return s_State.MouseBlocked ? glm::vec2(0.0f) : s_State.ScrollDelta;
+        return IsMouseInputBlocked() ? glm::vec2(0.0f) : s_State.ScrollDelta;
     }
 
     void Input::SetViewport(const InputViewport& viewport) { s_State.Viewport = viewport; }
-    void Input::ClearViewport() { s_State.Viewport.reset(); }
+
+    void Input::ClearViewport()
+    {
+        s_State.Viewport.reset();
+        s_State.PointerOverUI = false;
+    }
 
     bool Input::HasViewport() { return s_State.Viewport.has_value(); }
 
     glm::vec2 Input::GetViewportSize()
     {
         return s_State.Viewport ? s_State.Viewport->Size : glm::vec2(0.0f);
+    }
+
+    glm::vec2 Input::GetViewportPixelSize()
+    {
+        if (!s_State.Viewport)
+            return glm::vec2(0.0f);
+
+        const InputViewport& viewport = *s_State.Viewport;
+        return viewport.PixelSize.x > 0.0f && viewport.PixelSize.y > 0.0f ? viewport.PixelSize : viewport.Size;
     }
 
     glm::vec2 Input::GetViewportMousePosition()
@@ -124,8 +141,12 @@ namespace ByteForge
 
     bool Input::IsKeyboardBlocked() { return s_State.KeyboardBlocked; }
     void Input::SetKeyboardBlocked(const bool blocked) { s_State.KeyboardBlocked = blocked; }
+
     bool Input::IsMouseBlocked() { return s_State.MouseBlocked; }
     void Input::SetMouseBlocked(const bool blocked) { s_State.MouseBlocked = blocked; }
+
+    bool Input::IsPointerOverUI() { return s_State.PointerOverUI; }
+    void Input::SetPointerOverUI(const bool overUI) { s_State.PointerOverUI = overUI; }
 
     void Input::OnEvent(const Event& event)
     {

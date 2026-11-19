@@ -1,6 +1,7 @@
 #include "Scripting/CSharp/CSharpScriptBackend.h"
 #include "Scripting/CSharp/NativeAPI.h"
 #include "Scripting/CSharp/ScriptGlue.h"
+#include "Scripting/CSharp/ManagedValue.h"
 
 #include "Engine/Core/Log.h"
 
@@ -13,8 +14,6 @@
 #include <type_traits>
 #include <variant>
 #include <limits>
-
-#include "ManagedValue.h"
 
 namespace ByteForge
 {
@@ -88,6 +87,11 @@ namespace ByteForge
                                             static_cast<u64>(other.GetUUID())));
             }
 
+            void OnUIEvent(const UIEvent event) override
+            {
+                Check(m_Functions.OnUIEvent(m_Handle, static_cast<i32>(event)));
+            }
+
             std::optional<ScriptValue> GetField(const std::string_view name) const override
             {
                 const std::string fieldName(name);
@@ -147,6 +151,7 @@ namespace ByteForge
         resolve(m_Functions.OnUpdate, ScriptHostType, "OnUpdate");
         resolve(m_Functions.OnDestroy, ScriptHostType, "OnDestroy");
         resolve(m_Functions.OnContact, ScriptHostType, "OnContact");
+        resolve(m_Functions.OnUIEvent, ScriptHostType, "OnUIEvent");
 
         const NativeAPI api = ScriptGlue::CreateNativeAPI();
         if (const i32 result = initialize(&api); result != 0)

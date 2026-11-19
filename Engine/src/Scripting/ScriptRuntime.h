@@ -30,6 +30,7 @@ namespace ByteForge
         void Update(Timestep ts);
 
         void DispatchContact(entt::entity self, ContactEvent event, Entity other);
+        void DispatchUIEvent(entt::entity self, UIEvent event);
 
         [[nodiscard]] ScriptInstance* FindInstance(entt::entity handle, UUID entry) const;
 
@@ -58,6 +59,7 @@ namespace ByteForge
 
         [[nodiscard]] Instance* FindMutable(entt::entity handle, UUID entry);
         [[nodiscard]] std::vector<ScriptKey> CollectKeys() const;
+        [[nodiscard]] std::vector<UUID> CollectEntries(entt::entity handle) const;
 
         void OnComponentDestroyed(entt::registry& registry, entt::entity handle);
 

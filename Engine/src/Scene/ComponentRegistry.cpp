@@ -62,7 +62,8 @@ namespace ByteForge
             Describe<PrefabInstanceComponent>("prefabInstance", true, true),
             Describe<RectTransformComponent>("rectTransform", false),
             Describe<CanvasComponent>("canvas"),
-            Describe<ImageComponent>("image")
+            Describe<ImageComponent>("image"),
+            Describe<ButtonComponent>("button")
         };
 
         constexpr bool HasUniqueKeys()

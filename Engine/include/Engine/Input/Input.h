@@ -15,6 +15,8 @@ namespace ByteForge
         glm::vec2 Size{ 0.0f };
         glm::vec2 MousePosition{ 0.0f };
         bool CapturesMouse = false;
+
+        glm::vec2 PixelSize{ 0.0f };
     };
 
     class BYTEFORGE_API Input
@@ -38,6 +40,7 @@ namespace ByteForge
 
         [[nodiscard]] static bool HasViewport();
         [[nodiscard]] static glm::vec2 GetViewportSize();
+        [[nodiscard]] static glm::vec2 GetViewportPixelSize();
 
         [[nodiscard]] static glm::vec2 GetViewportMousePosition();
 
@@ -48,6 +51,9 @@ namespace ByteForge
 
         [[nodiscard]] static bool IsMouseBlocked();
         static void SetMouseBlocked(bool blocked);
+
+        [[nodiscard]] static bool IsPointerOverUI();
+        static void SetPointerOverUI(bool overUI);
 
         static void OnEvent(const Event& event);
         static void EndFrame();

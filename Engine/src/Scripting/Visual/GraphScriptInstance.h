@@ -18,6 +18,7 @@ namespace ByteForge
         void OnDestroy() override;
         void OnUpdate(Timestep ts) override;
         void OnContact(ContactEvent event, Entity other) override;
+        void OnUIEvent(UIEvent event) override;
 
         [[nodiscard]] std::optional<ScriptValue> GetField(std::string_view name) const override;
         bool SetField(std::string_view name, const ScriptValue& value) override;

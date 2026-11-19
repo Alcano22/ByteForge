@@ -142,7 +142,8 @@ namespace ByteForge
             Input::SetViewport({
                 .Size          = size,
                 .MousePosition = Input::GetMousePosition() - origin,
-                .CapturesMouse = false
+                .CapturesMouse = false,
+                .PixelSize     = { static_cast<f32>(view.Rect.Width), static_cast<f32>(view.Rect.Height) }
             });
         }
 

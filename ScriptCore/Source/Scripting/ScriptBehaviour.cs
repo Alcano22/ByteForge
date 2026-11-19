@@ -12,6 +12,8 @@ public abstract class ScriptBehaviour : Component
     protected virtual void OnCollisionEnter(Entity other) {}
     protected virtual void OnCollisionExit(Entity other) {}
 
+    protected virtual void OnClick() {}
+
     internal void InvokeCreate() => OnCreate();
     internal void InvokeUpdate(float deltaTime) => OnUpdate(deltaTime);
     internal void InvokeDestroy() => OnDestroy();
@@ -24,6 +26,14 @@ public abstract class ScriptBehaviour : Component
             case 1: OnSensorExit(other);     break;
             case 2: OnCollisionEnter(other); break;
             case 3: OnCollisionExit(other);  break;
+        }
+    }
+
+    internal void InvokeUIEvent(int uiEvent)
+    {
+        switch (uiEvent)
+        {
+            case 0: OnClick(); break;
         }
     }
 }

@@ -23,6 +23,8 @@ namespace ByteForge
 
         glm::vec4 Border{ 0.0f };
 
+        bool RaycastTarget = true;
+
         static void Write(const ImageComponent& component, nlohmann::json& json);
         static void Read(ImageComponent& component, const nlohmann::json& json);
     };

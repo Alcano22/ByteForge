@@ -107,6 +107,7 @@ add_library(Engine SHARED
         src/Scene/Components/RectTransformComponent.cpp
         src/Scene/Components/CanvasComponent.cpp
         src/Scene/Components/ImageComponent.cpp
+        src/Scene/Components/ButtonComponent.cpp
         src/UI/GameUI.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp

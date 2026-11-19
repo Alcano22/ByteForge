@@ -51,6 +51,14 @@ namespace ByteForge
         Fire(ToGraphEvent(event), EntityRef{ other.GetUUID() });
     }
 
+    void GraphScriptInstance::OnUIEvent(const UIEvent event)
+    {
+        switch (event)
+        {
+            case UIEvent::Click: Fire(GraphEvent::OnClick, std::nullopt); break;
+        }
+    }
+
     std::optional<ScriptValue> GraphScriptInstance::GetField(const std::string_view name) const
     {
         const auto it = m_Program->VariableSlots.find(name);

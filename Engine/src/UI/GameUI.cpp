@@ -1,14 +1,14 @@
 #include "Engine/UI/GameUI.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Renderer/UIRenderer.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <ranges>
 
 namespace ByteForge::GameUI
 {
@@ -39,6 +39,21 @@ namespace ByteForge::GameUI
 
                 LayoutChildren(child, bounds, scale, elements);
             }
+        }
+
+        bool IsPointerTarget(const Entity element)
+        {
+            if (element.HasComponent<ButtonComponent>())
+                return true;
+
+            const auto* image = element.TryGetComponent<ImageComponent>();
+            return image != nullptr && image->RaycastTarget;
+        }
+
+        glm::vec2 ToScreenPoint(const glm::vec2& mouse, const glm::vec2& viewSize, const glm::vec2& screenSize)
+        {
+            const glm::vec2 scaled = mouse * (screenSize / viewSize);
+            return { scaled.x, screenSize.y - scaled.y };
         }
 
         void DrawSliced(UIRenderer& renderer, const Sprite& sprite, const glm::vec4& color,
@@ -84,11 +99,16 @@ namespace ByteForge::GameUI
             }
         }
 
-        void DrawImage(UIRenderer& renderer, const ImageComponent& image, const Rect& bounds, const f32 scale)
+        void DrawImage(UIRenderer& renderer, const Entity element, const ImageComponent& image,
+                       const Rect& bounds, const f32 scale)
         {
+            glm::vec4 color = image.Color;
+            if (const auto* button = element.TryGetComponent<ButtonComponent>())
+                color *= button->GetStateColor();
+
             if (!image.Sprite)
             {
-                renderer.DrawRect(bounds.Min, bounds.Max, image.Color);
+                renderer.DrawRect(bounds.Min, bounds.Max, color);
                 return;
             }
 
@@ -96,11 +116,11 @@ namespace ByteForge::GameUI
             const bool sliced = image.Mode == ImageComponent::DrawMode::Sliced && image.Border != glm::vec4(0.0f);
 
             if (sliced)
-                DrawSliced(renderer, sprite, image.Color, bounds, image.Border, scale);
+                DrawSliced(renderer, sprite, color, bounds, image.Border, scale);
             else
             {
                 renderer.DrawRect(bounds.Min, bounds.Max, sprite.GetTexture(),
-                                  sprite.GetUVMin(), sprite.GetUVMax(), image.Color);
+                                  sprite.GetUVMin(), sprite.GetUVMax(), color);
             }
         }
     }
@@ -155,6 +175,87 @@ namespace ByteForge::GameUI
         return layouts;
     }
 
+    Entity FindPointerTarget(const std::vector<CanvasLayout>& layouts, const glm::vec2& point)
+    {
+        for (const CanvasLayout& canvas : std::views::reverse(layouts))
+        {
+            for (const Element& element : std::views::reverse(canvas.Elements))
+            {
+                if (element.Bounds.Contains(point) && IsPointerTarget(element.Handle))
+                    return element.Handle;
+            }
+        }
+        return {};
+    }
+
+    Entity FindButton(const Entity element)
+    {
+        for (Entity entity = element; entity.IsValid(); entity = entity.GetParent())
+        {
+            if (entity.HasComponent<CanvasComponent>() && !entity.HasComponent<RectTransformComponent>()) break;
+
+            if (entity.HasComponent<ButtonComponent>())
+                return entity;
+        }
+        return {};
+    }
+
+    std::vector<Entity> UpdatePointer(Scene& scene)
+    {
+        Input::SetPointerOverUI(false);
+
+        const glm::vec2 viewSize = Input::GetViewportSize();
+        const glm::vec2 screenSize = Input::GetViewportPixelSize();
+
+        const bool hasPointer = Input::HasViewport() && !Input::IsMouseBlocked()
+                             && viewSize.x >= 1.0f && viewSize.y >= 1.0f;
+
+        Entity target;
+        if (hasPointer)
+        {
+            const glm::vec2 point = ToScreenPoint(Input::GetViewportMousePosition(), viewSize, screenSize);
+            target = FindPointerTarget(ComputeLayout(scene, screenSize), point);
+        }
+
+        const Entity hoveredButton = FindButton(target);
+
+        const bool pressed = Input::IsMouseButtonPressed(MouseButton::ButtonLeft);
+        const bool released = Input::IsMouseButtonReleased(MouseButton::ButtonLeft);
+        const bool down = Input::IsMouseButtonDown(MouseButton::ButtonLeft);
+
+        std::vector<Entity> clicked;
+        bool holding = false;
+
+        scene.Each<ButtonComponent>([&](const Entity entity, ButtonComponent& button)
+        {
+            button.Hovered = button.Interactable && entity == hoveredButton;
+
+            if (!button.Interactable)
+            {
+                button.Pressed = false;
+                return;
+            }
+
+            if (pressed && button.Hovered)
+                button.Pressed = true;
+
+            if (button.Pressed && released)
+            {
+                if (button.Hovered)
+                    clicked.push_back(entity);
+                button.Pressed = false;
+            } else if (button.Pressed && !down)
+            {
+                button.Pressed = false;
+            }
+
+            holding |= button.Pressed;
+        });
+
+        Input::SetPointerOverUI(target.IsValid() || holding);
+        return clicked;
+    }
+
     void Render(Scene& scene, UIRenderer& renderer, const glm::vec2& screenSize)
     {
         if (screenSize.x < 1.0f || screenSize.y < 1.0f) return;
@@ -169,7 +270,7 @@ namespace ByteForge::GameUI
             for (const Element& element : canvas.Elements)
             {
                 if (const auto* image = element.Handle.TryGetComponent<ImageComponent>())
-                    DrawImage(renderer, *image, element.Bounds, canvas.Scale);
+                    DrawImage(renderer, element.Handle, *image, element.Bounds, canvas.Scale);
             }
         }
 

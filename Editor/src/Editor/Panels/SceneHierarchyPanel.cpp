@@ -404,6 +404,16 @@ namespace ByteForge
             if (ImGui::MenuItem("Image"))
                 CreateUIElement(context, "Image", [](const Entity entity) { entity.AddComponent<ImageComponent>(); });
 
+            if (ImGui::MenuItem("Button"))
+            {
+                CreateUIElement(context, "Button", [](const Entity entity)
+                {
+                    entity.GetComponent<RectTransformComponent>().Size = { 160.0f, 40.0f };
+                    entity.AddComponent<ImageComponent>();
+                    entity.AddComponent<ButtonComponent>();
+                });
+            }
+
             ImGui::EndMenu();
         }
     }

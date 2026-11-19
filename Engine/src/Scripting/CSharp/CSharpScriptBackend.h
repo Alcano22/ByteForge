@@ -32,6 +32,7 @@ namespace ByteForge
             i32 (CORECLR_DELEGATE_CALLTYPE* OnUpdate)(void* instance, f32 deltaTime) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* OnDestroy)(void* instance) = nullptr;
             i32 (CORECLR_DELEGATE_CALLTYPE* OnContact)(void* instance, i32 event, u64 other) = nullptr;
+            i32 (CORECLR_DELEGATE_CALLTYPE* OnUIEvent)(void* instance, i32 event) = nullptr;
         };
 
         explicit CSharpScriptBackend(const fs::path& scriptCoreDirectory);

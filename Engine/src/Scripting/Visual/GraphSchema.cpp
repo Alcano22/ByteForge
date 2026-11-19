@@ -42,6 +42,7 @@ namespace ByteForge
                 case GraphEvent::OnSensorExit:     return "On Sensor Exit";
                 case GraphEvent::OnCollisionEnter: return "On Collision Enter";
                 case GraphEvent::OnCollisionExit:  return "On Collision Exit";
+                case GraphEvent::OnClick:          return "On Click";
             }
             return "Unknown Event";
         }
@@ -64,6 +65,7 @@ namespace ByteForge
                     break;
                 case GraphEvent::OnCreate:
                 case GraphEvent::OnDestroy:
+                case GraphEvent::OnClick:
                     break;
             }
             return signature;
@@ -169,7 +171,7 @@ namespace ByteForge
             std::unordered_map<UUID, NodeSignature> m_Signatures;
         };
 
-        using DataEdges = std::map<u64, std::vector<u64>>; // producer -> consumers
+        using DataEdges = std::map<u64, std::vector<u64>>;
 
         DataEdges CollectDataEdges(const ScriptGraph& graph, SignatureCache& cache)
         {

@@ -56,5 +56,12 @@ namespace ByteForge::GameUI
 
     [[nodiscard]] BYTEFORGE_API std::vector<CanvasLayout> ComputeLayout(Scene& scene, const glm::vec2& screenSize);
 
+    [[nodiscard]] BYTEFORGE_API Entity FindPointerTarget(const std::vector<CanvasLayout>& layouts,
+                                                         const glm::vec2& point);
+
+    [[nodiscard]] BYTEFORGE_API Entity FindButton(Entity element);
+
+    [[nodiscard]] BYTEFORGE_API std::vector<Entity> UpdatePointer(Scene& scene);
+
     BYTEFORGE_API void Render(Scene& scene, UIRenderer& renderer, const glm::vec2& screenSize);
 }

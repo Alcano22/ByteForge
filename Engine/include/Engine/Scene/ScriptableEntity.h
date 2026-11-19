@@ -31,6 +31,8 @@ namespace ByteForge
         virtual void OnCollisionEnter(Entity) {}
         virtual void OnCollisionExit(Entity) {}
 
+        virtual void OnClick() {}
+
     private:
         friend class NativeScriptInstance;
 

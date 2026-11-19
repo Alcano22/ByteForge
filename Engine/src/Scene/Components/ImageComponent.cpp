@@ -13,9 +13,10 @@ namespace ByteForge
 
     void ImageComponent::Write(const ImageComponent& component, nlohmann::json& json)
     {
-        json["color"]  = ToJson(component.Color);
-        json["mode"]   = std::string(magic_enum::enum_name(component.Mode));
-        json["border"] = ToJson(component.Border);
+        json["color"]         = ToJson(component.Color);
+        json["mode"]          = std::string(magic_enum::enum_name(component.Mode));
+        json["border"]        = ToJson(component.Border);
+        json["raycastTarget"] = component.RaycastTarget;
 
         if (component.Sprite)
         {
@@ -31,10 +32,12 @@ namespace ByteForge
     {
         const ImageComponent defaults;
 
-        component.Color  = json.contains("color") ? ToVec4(json.at("color")) : defaults.Color;
-        component.Mode   = magic_enum::enum_cast<DrawMode>(json.value("mode", std::string())).value_or(defaults.Mode);
-        component.Border = json.contains("border") ? ToVec4(json.at("border")) : defaults.Border;
-        component.Sprite = nullptr;
+        component.Color         = json.contains("color") ? ToVec4(json.at("color")) : defaults.Color;
+        component.Mode          = magic_enum::enum_cast<DrawMode>(json.value("mode", std::string()))
+                                      .value_or(defaults.Mode);
+        component.Border        = json.contains("border") ? ToVec4(json.at("border")) : defaults.Border;
+        component.RaycastTarget = json.value("raycastTarget", defaults.RaycastTarget);
+        component.Sprite        = nullptr;
 
         if (json.contains("sprite"))
         {

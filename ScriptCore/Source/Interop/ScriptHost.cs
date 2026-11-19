@@ -273,6 +273,10 @@ internal static unsafe class ScriptHost
     public static int OnContact(IntPtr instance, int contact, ulong other) =>
         Invoke(instance, (contact, other), static (script, args) => script.InvokeContact(args.contact, new Entity(args.other)));
 
+    [UnmanagedCallersOnly]
+    public static int OnUIEvent(IntPtr instance, int uiEvent) =>
+        Invoke(instance, uiEvent, static (script, e) => script.InvokeUIEvent(e));
+
     private static ScriptBehaviour GetScript(IntPtr instance) =>
         (ScriptBehaviour)GCHandle.FromIntPtr(instance).Target!;
 

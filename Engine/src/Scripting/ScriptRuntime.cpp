@@ -1,9 +1,11 @@
 #include "Scripting/ScriptRuntime.h"
 
 #include "Engine/Core/Log.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
+#include "Engine/UI/GameUI.h"
 #include "Engine/Scripting/ScriptEngine.h"
 
 #include <algorithm>
@@ -64,11 +66,19 @@ namespace ByteForge
         m_Released.clear();
         ScriptEngine::Get().OnRuntimeStop(m_Scene);
         m_Running = false;
+
+        Input::SetPointerOverUI(false);
     }
 
     void ScriptRuntime::Update(const Timestep ts)
     {
         Sync();
+
+        for (const Entity button : GameUI::UpdatePointer(m_Scene))
+        {
+            if (const auto it = m_Scene.m_EntityByUUID.find(button.GetUUID()); it != m_Scene.m_EntityByUUID.end())
+                DispatchUIEvent(it->second, UIEvent::Click);
+        }
 
         for (const auto& [handle, entry] : CollectKeys())
             Invoke(handle, entry, "OnUpdate", [ts](ScriptInstance& script) { script.OnUpdate(ts); });
@@ -78,19 +88,17 @@ namespace ByteForge
 
     void ScriptRuntime::DispatchContact(const entt::entity self, const ContactEvent event, const Entity other)
     {
-        const entt::registry& registry = m_Scene.m_Registry;
-        if (!registry.valid(self)) return;
+        for (const UUID entry : CollectEntries(self))
+        {
+            Invoke(self, entry, "OnContact",
+                   [event, other](ScriptInstance& script) { script.OnContact(event, other); });
+        }
+    }
 
-        const auto* component = registry.try_get<ScriptComponent>(self);
-        if (component == nullptr) return;
-
-        std::vector<UUID> entries;
-        entries.reserve(component->Scripts.size());
-        for (const ScriptEntry& entry : component->Scripts)
-            entries.push_back(entry.Id);
-
-        for (const UUID entry : entries)
-            Invoke(self, entry, "OnContact", [event, other](ScriptInstance& script) { script.OnContact(event, other); });
+    void ScriptRuntime::DispatchUIEvent(const entt::entity self, const UIEvent event)
+    {
+        for (const UUID entry : CollectEntries(self))
+            Invoke(self, entry, "OnUIEvent", [event](ScriptInstance& script) { script.OnUIEvent(event); });
     }
 
     ScriptInstance* ScriptRuntime::FindInstance(const entt::entity handle, const UUID entry) const
@@ -124,6 +132,24 @@ namespace ByteForge
         }
 
         return keys;
+    }
+
+    std::vector<UUID> ScriptRuntime::CollectEntries(const entt::entity handle) const
+    {
+        const entt::registry& registry = m_Scene.m_Registry;
+        if (!registry.valid(handle))
+            return {};
+
+        const auto* component = registry.try_get<ScriptComponent>(handle);
+        if (component == nullptr)
+            return {};
+
+        std::vector<UUID> entries;
+        entries.reserve(component->Scripts.size());
+        for (const ScriptEntry& entry : component->Scripts)
+            entries.push_back(entry.Id);
+
+        return entries;
     }
 
     void ScriptRuntime::Sync()

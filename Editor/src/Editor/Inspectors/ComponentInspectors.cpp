@@ -379,6 +379,27 @@ namespace ByteForge
             ImGui::SetItemTooltip("Makes the element as large as the sprite's pixels (in canvas units)");
         }
 
+        void DrawButton(ButtonComponent& button, const Entity entity, EditorContext&)
+        {
+            ImGui::Checkbox("Interactable", &button.Interactable);
+
+            ImGui::ColorEdit4("Normal", glm::value_ptr(button.NormalColor));
+            ImGui::ColorEdit4("Hovered", glm::value_ptr(button.HoveredColor));
+            ImGui::ColorEdit4("Pressed", glm::value_ptr(button.PressedColor));
+            ImGui::ColorEdit4("Disabled", glm::value_ptr(button.DisabledColor));
+
+            if (!entity.HasComponent<ImageComponent>())
+                ImGui::TextDisabled("Add an Image to see the button and its tint");
+
+            if (!entity.GetScene().IsRunning()) return;
+
+            const char* state = !button.Interactable             ? "Disabled"
+                              : button.Pressed && button.Hovered ? "Pressed"
+                              : button.Hovered                   ? "Hovered"
+                                                                 : "Normal";
+            ImGui::Text("State: %s", state);
+        }
+
         template<typename T, auto DrawFn>
         constexpr ComponentInspector Inspect(const char* name, const EditorIcon icon = EditorIcon::FileScript,
                                              const bool removable = true)
@@ -434,7 +455,8 @@ namespace ByteForge
             Inspect<AnimatorComponent, DrawAnimator>("Animator", EditorIcon::FileAnimationClip),
             Inspect<RectTransformComponent, DrawRectTransform>("Rect Transform", EditorIcon::ComponentTransform, false),
             Inspect<CanvasComponent, DrawCanvas>("Canvas", EditorIcon::FileGeneric),
-            InspectUIElement<ImageComponent, DrawImage>("Image", EditorIcon::ComponentSprite)
+            InspectUIElement<ImageComponent, DrawImage>("Image", EditorIcon::ComponentSprite),
+            InspectUIElement<ButtonComponent, DrawButton>("Button", EditorIcon::ComponentSprite)
         };
     }
 

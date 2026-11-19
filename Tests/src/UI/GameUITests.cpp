@@ -14,7 +14,7 @@ using Catch::Approx;
 
 namespace
 {
-    const Rect Screen{ .Min = { 0.0f, 0.0f }, .Max = { 1920.0f, 1080.0f } };
+    constexpr Rect Screen{ .Min = { 0.0f, 0.0f }, .Max = { 1920.0f, 1080.0f } };
 
     void CheckRect(const Rect& rect, const glm::vec2& min, const glm::vec2& max)
     {
@@ -35,7 +35,7 @@ namespace
 
 TEST_CASE("A canvas scaled with the screen follows the reference resolution", "[ui]")
 {
-    const CanvasComponent canvas{ .ReferenceResolution = { 1920.0f, 1080.0f }, .MatchWidthOrHeight = 0.5f };
+    constexpr CanvasComponent canvas{ .ReferenceResolution = { 1920.0f, 1080.0f }, .MatchWidthOrHeight = 0.5f };
 
     CHECK(ComputeCanvasScale(canvas, { 1920.0f, 1080.0f }) == Approx(1.0f));
     CHECK(ComputeCanvasScale(canvas, { 3840.0f, 2160.0f }) == Approx(2.0f));
@@ -46,7 +46,7 @@ TEST_CASE("Match picks the side the scale follows, blended in powers of two", "[
 {
     CanvasComponent canvas{ .ReferenceResolution = { 1000.0f, 1000.0f } };
 
-    const glm::vec2 screen{ 500.0f, 2000.0f };
+    constexpr glm::vec2 screen{ 500.0f, 2000.0f };
 
     canvas.MatchWidthOrHeight = 0.0f;
     CHECK(ComputeCanvasScale(canvas, screen) == Approx(0.5f));
@@ -179,4 +179,96 @@ TEST_CASE("Canvases are ordered by their sort order", "[ui]")
     REQUIRE(layouts.size() == 2);
     CHECK(layouts[0].Canvas == back);
     CHECK(layouts[1].Canvas == front);
+}
+
+namespace
+{
+    Entity AddImage(Scene& scene, const Entity parent, const RectTransformComponent& transform,
+                    const bool raycastTarget = true)
+    {
+        const Entity entity = AddElement(scene, parent, transform);
+        entity.AddComponent<ImageComponent>().RaycastTarget = raycastTarget;
+        return entity;
+    }
+
+    Entity AddCanvas(Scene& scene, const i32 sortOrder = 0)
+    {
+        const Entity canvas = scene.CreateEntity("Canvas");
+        canvas.AddComponent<CanvasComponent>(CanvasComponent{ .SortOrder = sortOrder });
+        return canvas;
+    }
+
+    constexpr glm::vec2 Center{ 960.0f, 540.0f };
+}
+
+TEST_CASE("The pointer hits the element drawn on top", "[ui]")
+{
+    Scene scene;
+    const Entity canvas = AddCanvas(scene);
+    AddImage(scene, canvas, {});
+    const Entity front = AddImage(scene, canvas, {});
+
+    CHECK(FindPointerTarget(ComputeLayout(scene, { 1920.0f, 1080.0f }), Center) == front);
+}
+
+TEST_CASE("A canvas with a higher sort order is hit first", "[ui]")
+{
+    Scene scene;
+    const Entity front = AddImage(scene, AddCanvas(scene, 1), {});
+    AddImage(scene, AddCanvas(scene, 0), {});
+
+    CHECK(FindPointerTarget(ComputeLayout(scene, { 1920.0f, 1080.0f }), Center) == front);
+}
+
+TEST_CASE("Images that are no raycast target let the pointer through", "[ui]")
+{
+    Scene scene;
+    const Entity canvas = AddCanvas(scene);
+    const Entity back = AddImage(scene, canvas, {});
+    AddImage(scene, canvas, {}, false);
+
+    CHECK(FindPointerTarget(ComputeLayout(scene, { 1920.0f, 1080.0f }), Center) == back);
+}
+
+TEST_CASE("Nothing is hit outside every element", "[ui]")
+{
+    Scene scene;
+    AddImage(scene, AddCanvas(scene), {});
+
+    CHECK_FALSE(FindPointerTarget(ComputeLayout(scene, { 1920.0f, 1080.0f }), { 10.0f, 10.0f }).IsValid());
+}
+
+TEST_CASE("A hit on a child counts for the button above it, but not beyond the canvas", "[ui]")
+{
+    Scene scene;
+    const Entity canvas = AddCanvas(scene);
+    canvas.AddComponent<ButtonComponent>();
+
+    const Entity button = AddElement(scene, canvas, { .Size = { 200.0f, 60.0f } });
+    button.AddComponent<ButtonComponent>();
+    const Entity icon = AddImage(scene, button, { .Size = { 20.0f, 20.0f } });
+
+    const Entity plain = AddImage(scene, canvas, { .Position = { 500.0f, 0.0f } });
+
+    CHECK(FindButton(icon) == button);
+    CHECK(FindButton(button) == button);
+    CHECK_FALSE(FindButton(plain).IsValid());
+}
+
+TEST_CASE("A button's tint follows its state", "[ui]")
+{
+    ButtonComponent button;
+    CHECK(button.GetStateColor() == button.NormalColor);
+
+    button.Hovered = true;
+    CHECK(button.GetStateColor() == button.HoveredColor);
+
+    button.Pressed = true;
+    CHECK(button.GetStateColor() == button.PressedColor);
+
+    button.Hovered = false;
+    CHECK(button.GetStateColor() == button.NormalColor);
+
+    button.Interactable = false;
+    CHECK(button.GetStateColor() == button.DisabledColor);
 }

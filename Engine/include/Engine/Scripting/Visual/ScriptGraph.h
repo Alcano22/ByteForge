@@ -56,9 +56,10 @@ namespace ByteForge
         OnSensorEnter,
         OnSensorExit,
         OnCollisionEnter,
-        OnCollisionExit
+        OnCollisionExit,
+        OnClick
     };
-    inline constexpr usize GraphEventCount = static_cast<usize>(GraphEvent::OnCollisionExit) + 1;
+    inline constexpr usize GraphEventCount = static_cast<usize>(GraphEvent::OnClick) + 1;
 
     struct EventNode { GraphEvent Event = GraphEvent::OnUpdate; };
     struct CallNode { std::string Function; };

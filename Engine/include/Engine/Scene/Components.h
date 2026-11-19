@@ -17,3 +17,4 @@
 #include "Engine/Scene/Components/RectTransformComponent.h"
 #include "Engine/Scene/Components/CanvasComponent.h"
 #include "Engine/Scene/Components/ImageComponent.h"
+#include "Engine/Scene/Components/ButtonComponent.h"

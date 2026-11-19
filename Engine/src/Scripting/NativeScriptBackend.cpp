@@ -35,6 +35,14 @@ namespace ByteForge
             }
         }
 
+        void OnUIEvent(const UIEvent event) override
+        {
+            switch (event)
+            {
+                case UIEvent::Click: m_Script->OnClick(); break;
+            }
+        }
+
     private:
         Scope<ScriptableEntity> m_Script;
     };

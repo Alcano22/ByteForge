@@ -19,6 +19,8 @@ namespace ByteForge
 
     enum class ContactEvent { SensorEnter, SensorExit, CollisionEnter, CollisionExit };
 
+    enum class UIEvent { Click };
+
     class BYTEFORGE_API ScriptInstance
     {
     public:
@@ -28,6 +30,7 @@ namespace ByteForge
         virtual void OnDestroy() = 0;
         virtual void OnUpdate(Timestep ts) = 0;
         virtual void OnContact(ContactEvent event, Entity other) = 0;
+        virtual void OnUIEvent(UIEvent event) = 0;
 
         [[nodiscard]] virtual std::optional<ScriptValue> GetField(std::string_view) const { return std::nullopt; }
         virtual bool SetField(std::string_view, const ScriptValue&) { return false; }
