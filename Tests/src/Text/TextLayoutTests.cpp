@@ -284,3 +284,53 @@ TEST_CASE("Italic glyphs lean around the baseline", "[text][richtext]")
     CHECK(layout.Glyphs[1].TopShift == 0.0f);
     CHECK(layout.Glyphs[1].BottomShift == 0.0f);
 }
+
+TEST_CASE("An underline runs under its characters and stops before the next", "[text][richtext]")
+{
+    const TextLayout layout = LayoutText(GetInter(), ParseRichText(U"<u>ab</u>c"), { .FontSize = TestFontSize });
+    const TextLayout plain = LayoutText(GetInter(), U"abc", { .FontSize = TestFontSize });
+
+    REQUIRE(layout.Bars.size() == 1);
+    const PlacedBar& bar = layout.Bars.front();
+
+    const f32 baseline = -GetInter().GetMetrics().Ascender * TestFontSize;
+    CHECK(bar.Min.x == Approx(0.0f));
+    CHECK(bar.Max.x == Approx(plain.Glyphs[2].Min.x - GetInter().GetGlyph(U'c')->PlaneMin.x * TestFontSize));
+    CHECK(bar.Max.y < baseline);
+    CHECK(bar.Max.y - bar.Min.y == Approx(GetInter().GetMetrics().UnderlineThickness * TestFontSize));
+}
+
+TEST_CASE("A strikethrough runs above the baseline, below the x-height", "[text][richtext]")
+{
+    const TextLayout layout = LayoutText(GetInter(), ParseRichText(U"<s>x</s>"), { .FontSize = TestFontSize });
+
+    REQUIRE(layout.Bars.size() == 1);
+    const f32 baseline = -GetInter().GetMetrics().Ascender * TestFontSize;
+    const f32 middle = (layout.Bars[0].Min.y + layout.Bars[0].Max.y) * 0.5f;
+
+    CHECK(middle > baseline);
+    CHECK(middle < baseline + 0.5f * TestFontSize);
+}
+
+TEST_CASE("Bars break with the lines and leave trailing spaces out", "[text][richtext]")
+{
+    const f32 width = (Advance(U'a') * 3.0f + Advance(U' ')) * 1.1f;
+    const TextLayout layout = LayoutText(GetInter(), ParseRichText(U"<u>aaa bbb</u>"),
+                                         { .FontSize = TestFontSize, .BoxSize = { width, 1000.0f }, .WordWrap = true });
+
+    REQUIRE(layout.LineCount == 2);
+    REQUIRE(layout.Bars.size() == 2);
+    CHECK(layout.Bars[0].Max.x < Advance(U'a') * 3.0f + Advance(U' ') * 0.5f);
+    CHECK(layout.Bars[1].Min.y < layout.Bars[0].Min.y);
+}
+
+TEST_CASE("A bar splits where the colour changes, not where boldness does", "[text][richtext]")
+{
+    const TextLayout same = LayoutText(GetInter(), ParseRichText(U"<u>a<b>b</b></u>"), { .FontSize = TestFontSize });
+    const TextLayout split = LayoutText(GetInter(), ParseRichText(U"<u>a<color=red>b</color></u>"),
+                                        { .FontSize = TestFontSize });
+
+    CHECK(same.Bars.size() == 1);
+    REQUIRE(split.Bars.size() == 2);
+    CHECK(split.Bars[0].Max.x == Approx(split.Bars[1].Min.x));
+}

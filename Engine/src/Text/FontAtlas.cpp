@@ -30,6 +30,11 @@ namespace ByteForge
 
         constexpr f32 EdgeValue = 0.5f;
 
+        constexpr f32 FallbackUnderlineY = -0.1f;
+        constexpr f32 FallbackLineThickness = 0.05f;
+
+        constexpr f32 FallbackStrikethroughShare = 0.3f;
+
         class FontFile
         {
         public:
@@ -181,6 +186,21 @@ namespace ByteForge
             }
         }
 
+        f32 FindStrikethroughY(msdfgen::FontHandle* font, const f32 ascender)
+        {
+            msdfgen::Shape shape;
+            if (HasGlyph(font, U'x') && msdfgen::loadGlyph(shape, font, U'x', msdfgen::FONT_SCALING_EM_NORMALIZED))
+            {
+                shape.normalize();
+                if (!shape.contours.empty())
+                {
+                    const msdfgen::Shape::Bounds bounds = shape.getBounds();
+                    return static_cast<f32>(bounds.t * 0.5f);
+                }
+            }
+            return ascender * FallbackStrikethroughShare;
+        }
+
         void ReadKerning(msdfgen::FontHandle* font, FontAtlasData& atlas)
         {
             for (const auto& [left, leftGlyph] : atlas.Glyphs)
@@ -215,12 +235,16 @@ namespace ByteForge
         if (!msdfgen::getFontMetrics(metrics, font.Get(), msdfgen::FONT_SCALING_EM_NORMALIZED))
             return Unexpected("the font has no metrics");
 
+        const bool hasUnderline = metrics.underlineThickness > 0.0;
+        const f32 ascender = static_cast<f32>(metrics.ascenderY);
+
         atlas.Metrics = {
-            .Ascender           = static_cast<f32>(metrics.ascenderY),
+            .Ascender           = ascender,
             .Descender          = static_cast<f32>(metrics.descenderY),
             .LineHeight         = static_cast<f32>(metrics.lineHeight),
-            .UnderlineY         = static_cast<f32>(metrics.underlineY),
-            .UnderlineThickness = static_cast<f32>(metrics.underlineThickness)
+            .UnderlineY         = hasUnderline ? static_cast<f32>(metrics.underlineY) : FallbackUnderlineY,
+            .UnderlineThickness = hasUnderline ? static_cast<f32>(metrics.underlineThickness) : FallbackLineThickness,
+            .StrikethroughY     = FindStrikethroughY(font.Get(), ascender)
         };
 
         std::vector<RenderedGlyph> rendered;

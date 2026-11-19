@@ -100,6 +100,10 @@ TEST_CASE("Glyph metrics are in ems around the baseline", "[text]")
     CHECK(atlas.Metrics.Ascender > 0.0f);
     CHECK(atlas.Metrics.Descender < 0.0f);
     CHECK(atlas.Metrics.LineHeight >= atlas.Metrics.Ascender - atlas.Metrics.Descender);
+    CHECK(atlas.Metrics.UnderlineY < 0.0f);
+    CHECK(atlas.Metrics.UnderlineThickness > 0.0f);
+    CHECK(atlas.Metrics.StrikethroughY > 0.2f);
+    CHECK(atlas.Metrics.StrikethroughY < 0.4f);
 }
 
 TEST_CASE("Something that is no font is refused", "[text]")

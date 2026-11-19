@@ -149,9 +149,26 @@ namespace ByteForge::GameUI
 
         constexpr f32 MaxWeight = 0.45f;
 
+        constexpr f32 MinBarThickness = 1.0f;
+
         f32 BoldWeight(const Font& font)
         {
             return std::min(BoldDilation * font.GetGlyphSize() / font.GetDistanceRange(), MaxWeight);
+        }
+
+        void DrawBar(UIRenderer& renderer, const PlacedBar& bar, const glm::vec2& origin, const glm::vec4& color)
+        {
+            glm::vec2 min = origin + bar.Min;
+            glm::vec2 max = origin + bar.Max;
+
+            const f32 missing = MinBarThickness - (max.y - min.y);
+            if (missing > 0.0f)
+            {
+                min.y -= missing * 0.5f;
+                max.y += missing * 0.5f;
+            }
+
+            renderer.DrawRect(min, max, color);
         }
 
         void DrawTextElement(UIRenderer& renderer, const TextComponent& text, const Rect& bounds, const f32 scale)
@@ -198,6 +215,9 @@ namespace ByteForge::GameUI
                     .Color         = StyleColor(style, text.Color)
                 }, font->GetAtlas());
             }
+
+            for (const PlacedBar& bar : layout.Bars)
+                DrawBar(renderer, bar, origin, StyleColor(styled.Styles[bar.Style], text.Color));
 
             if (clip)
                 renderer.PopClipRect();

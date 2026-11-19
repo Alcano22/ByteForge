@@ -44,6 +44,9 @@ namespace ByteForge
             f32 Advance = 0.0f;
             f32 Offset = 0.0f;
             bool Italic = false;
+
+            bool Underline = false;
+            bool Strikethrough = false;
         };
 
         struct Line
@@ -78,13 +81,15 @@ namespace ByteForge
                 const f32 dilation = style.Bold ? BoldDilation : 0.0f;
 
                 characters.push_back({
-                    .Data    = glyph,
-                    .Kerning = previous != 0 ? font.GetKerning(previous, character) : 0.0f,
-                    .Space   = character == U' ',
-                    .Style   = text.CharacterStyles[index],
-                    .Advance = glyph->Advance + 2.0f * dilation,
-                    .Offset  = dilation,
-                    .Italic  = style.Italic
+                    .Data          = glyph,
+                    .Kerning       = previous != 0 ? font.GetKerning(previous, character) : 0.0f,
+                    .Space         = character == U' ',
+                    .Style         = text.CharacterStyles[index],
+                    .Advance       = glyph->Advance + 2.0f * dilation,
+                    .Offset        = dilation,
+                    .Italic        = style.Italic,
+                    .Underline     = style.Underline,
+                    .Strikethrough = style.Strikethrough
                 });
                 previous = character;
             }
@@ -100,13 +105,67 @@ namespace ByteForge
             return x;
         }
 
-        f32 MeasureVisible(const std::vector<Character>& characters, const Line& line)
+        usize VisibleEnd(const std::vector<Character>& characters, const Line& line)
         {
             usize end = line.End;
             while (end > line.Begin && characters[end - 1].Space)
                 --end;
-            return Measure(characters, line.Begin, end);
+            return end;
         }
+
+        f32 MeasureVisible(const std::vector<Character>& characters, const Line& line)
+        {
+            return Measure(characters, line.Begin, VisibleEnd(characters, line));
+        }
+
+        class BarRun
+        {
+        public:
+            BarRun(const StyledText& text, const f32 centerY, const f32 halfThickness, std::vector<PlacedBar>& bars)
+                : m_Text(text), m_CenterY(centerY), m_HalfThickness(halfThickness), m_Bars(bars) {}
+
+            void Add(const bool marked, const u32 style, const f32 start, const f32 end)
+            {
+                if (m_Open && (!marked || m_Text.Styles[style].Color != m_Text.Styles[m_Style].Color))
+                    Close();
+
+                if (!marked) return;
+
+                if (!m_Open)
+                {
+                    m_Open = true;
+                    m_Style = style;
+                    m_Start = start;
+                }
+                m_End = end;
+            }
+
+            void Close()
+            {
+                if (!m_Open) return;
+                m_Open = false;
+
+                if (m_End > m_Start)
+                {
+                    m_Bars.push_back({
+                        .Min   = { m_Start, m_CenterY - m_HalfThickness },
+                        .Max   = { m_End,   m_CenterY + m_HalfThickness },
+                        .Style = m_Style
+                    });
+                }
+            }
+
+        private:
+            const StyledText& m_Text;
+            f32 m_CenterY;
+            f32 m_HalfThickness;
+            std::vector<PlacedBar>& m_Bars;
+
+            bool m_Open = false;
+            u32 m_Style = 0;
+            f32 m_Start = 0.0f;
+            f32 m_End = 0.0f;
+        };
 
         std::vector<Line> BreakLines(const std::vector<Character>& characters, const f32 maxWidth)
         {
@@ -210,6 +269,8 @@ namespace ByteForge
         const f32 shiftY = -(settings.BoxSize.y - blockHeight) * AlignmentFactor(settings.Vertical);
         const f32 horizontal = AlignmentFactor(settings.Horizontal);
 
+        const f32 halfThickness = metrics.UnderlineThickness * fontSize * 0.5f;
+
         f32 widest = 0.0f;
         for (usize index = 0; index < lines.size(); ++index)
         {
@@ -223,6 +284,10 @@ namespace ByteForge
                 -metrics.Ascender * fontSize - static_cast<f32>(index) * lineHeight + shiftY
             };
 
+            const usize visibleEnd = VisibleEnd(characters, line);
+            BarRun underline(text, pen.y + metrics.UnderlineY * fontSize, halfThickness, layout.Bars);
+            BarRun strikethrough(text, pen.y + metrics.StrikethroughY * fontSize, halfThickness, layout.Bars);
+
             for (usize i = line.Begin; i < line.End; ++i)
             {
                 const Character& character = characters[i];
@@ -230,6 +295,13 @@ namespace ByteForge
 
                 if (i > line.Begin)
                     pen.x += character.Kerning * fontSize;
+
+                if (i < visibleEnd)
+                {
+                    const f32 end = pen.x + character.Advance * fontSize;
+                    underline.Add(character.Underline, character.Style, pen.x, end);
+                    strikethrough.Add(character.Strikethrough, character.Style, pen.x, end);
+                }
 
                 const Glyph& glyph = *character.Data;
                 if (glyph.IsVisible())
@@ -254,6 +326,9 @@ namespace ByteForge
 
                 pen.x += character.Advance * fontSize;
             }
+
+            underline.Close();
+            strikethrough.Close();
         }
 
         layout.Size = { widest, blockHeight };

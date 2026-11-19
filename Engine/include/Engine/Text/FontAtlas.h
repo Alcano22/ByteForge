@@ -34,6 +34,8 @@ namespace ByteForge
 
         f32 UnderlineY = 0.0f;
         f32 UnderlineThickness = 0.0f;
+
+        f32 StrikethroughY = 0.0f;
     };
 
     using CharacterRange = std::pair<char32_t, char32_t>;

@@ -44,9 +44,18 @@ namespace ByteForge
         f32 TopShift = 0.0f;
     };
 
+    struct PlacedBar
+    {
+        glm::vec2 Min{ 0.0f };
+        glm::vec2 Max{ 0.0f };
+
+        u32 Style = 0;
+    };
+
     struct TextLayout
     {
         std::vector<PlacedGlyph> Glyphs;
+        std::vector<PlacedBar> Bars;
 
         glm::vec2 Size{ 0.0f };
         u32 LineCount = 0;
