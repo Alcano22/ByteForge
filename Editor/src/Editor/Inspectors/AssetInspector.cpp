@@ -320,8 +320,9 @@ namespace ByteForge::EditorUI
                     context.InstantiatePrefab(handle);
                 ImGui::TextDisabled("or drag it into the Scene or the Hierarchy");
                 break;
-            case AssetType::Font:      DrawFontInspector(metadata); break;
-            case AssetType::None:      break;
+            case AssetType::Font:         DrawFontInspector(metadata); break;
+            case AssetType::InputActions: break;
+            case AssetType::None:         break;
         }
     }
 }

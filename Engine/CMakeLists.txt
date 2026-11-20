@@ -90,6 +90,7 @@ add_library(Engine SHARED
         src/Core/LayerStack.cpp
         src/Core/JobSystem.cpp
         src/Input/Input.cpp
+        src/Input/InputControl.cpp
         src/Scene/Scene.cpp
         src/Scene/SceneSerializer.cpp
         src/Scene/Physics2DWorld.cpp
@@ -119,6 +120,7 @@ add_library(Engine SHARED
         src/Assets/Pak.cpp
         src/Assets/AnimationClip.cpp
         src/Assets/AnimatorController.cpp
+        src/Assets/InputActions.cpp
         src/Audio/AudioEngine.cpp
         src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp

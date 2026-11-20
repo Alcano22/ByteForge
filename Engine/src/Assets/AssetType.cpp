@@ -3,6 +3,7 @@
 #include "Engine/Assets/PhysicsMaterial.h"
 #include "Engine/Assets/AnimationClip.h"
 #include "Engine/Assets/AnimatorController.h"
+#include "Engine/Assets/InputActions.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
 #include "Engine/Core/StringUtils.h"
 
@@ -44,6 +45,8 @@ namespace ByteForge
             return AssetType::AnimatorController;
         if (ext == ".ttf" || ext == ".otf")
             return AssetType::Font;
+        if (ext == InputActionsExtension)
+            return AssetType::InputActions;
 
         return AssetType::None;
     }
