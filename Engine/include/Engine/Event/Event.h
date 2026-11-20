@@ -12,7 +12,9 @@ namespace ByteForge
         None = 0,
         WindowClose, WindowResized, FramebufferResized,
         KeyPressed, KeyReleased, KeyTyped,
-        MouseButtonPressed, MouseButtonReleased, MouseScrolled, MouseMoved
+        MouseButtonPressed, MouseButtonReleased, MouseScrolled, MouseMoved,
+        GamepadConnected, GamepadDisconnected,
+        GamepadButtonPressed, GamepadButtonReleased, GamepadAxisMoved
     };
 
     enum EventCategory
@@ -22,7 +24,8 @@ namespace ByteForge
         EventCategoryInput       = 1 << 1,
         EventCategoryKeyboard    = 1 << 2,
         EventCategoryMouse       = 1 << 3,
-        EventCategoryMouseButton = 1 << 4
+        EventCategoryMouseButton = 1 << 4,
+        EventCategoryGamepad     = 1 << 5
     };
 
 #define EVENT_CLASS_TYPE(type) \

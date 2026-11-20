@@ -3,15 +3,21 @@
 #include "Engine/Event/ApplicationEvent.h"
 #include "Engine/Event/KeyEvent.h"
 #include "Engine/Event/MouseEvent.h"
+#include "Engine/Event/GamepadEvent.h"
 #include "Engine/Renderer/GraphicsContext.h"
 #include "Engine/Renderer/ImageDecoder.h"
 
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
+#include <iterator>
 #include <vector>
 
 namespace ByteForge
 {
+    static_assert(GamepadButtonCount == GLFW_GAMEPAD_BUTTON_LAST + 1, "GamepadButton must match the GLFW layout");
+    static_assert(GamepadAxisCount == GLFW_GAMEPAD_AXIS_LAST + 1, "GamepadAxis must match the GLFW layout");
+
     namespace
     {
         WeakRef<void> s_GlfwContext;
@@ -58,6 +64,23 @@ namespace ByteForge
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
             s_GlfwContext = context;
             return context;
+        }
+
+        f32 ToEngineAxis(const usize axis, const f32 value)
+        {
+            switch (static_cast<GamepadAxis>(axis))
+            {
+                case GamepadAxis::LeftY:
+                case GamepadAxis::RightY:
+                    return -value;
+
+                case GamepadAxis::LeftTrigger:
+                case GamepadAxis::RightTrigger:
+                    return (value + 1.0f) * 0.5f;
+
+                default:
+                    return value;
+            }
         }
     }
 
@@ -112,7 +135,12 @@ namespace ByteForge
         s_PrimaryData = nullptr;
     }
 
-    void Window::PollEvents() const { glfwPollEvents(); }
+    void Window::PollEvents()
+    {
+        glfwPollEvents();
+        PollGamepads();
+    }
+
     bool Window::ShouldClose() const { return glfwWindowShouldClose(m_Window.get()); }
 
     void Window::SetTitle(const std::string& title)
@@ -158,6 +186,86 @@ namespace ByteForge
 
         if (!images.empty())
             glfwSetWindowIcon(m_Window.get(), static_cast<i32>(images.size()), images.data());
+    }
+
+    void Window::PollGamepads()
+    {
+        if (s_PrimaryData != &m_Data) return;
+
+        for (usize slot = 0; slot < m_Gamepads.size(); ++slot)
+        {
+            GamepadSlot& gamepad = m_Gamepads[slot];
+            if (gamepad.JoystickId < 0 || glfwJoystickIsGamepad(gamepad.JoystickId)) continue;
+
+            CORE_INFO("Gamepad {} disconnected", slot);
+            gamepad = GamepadSlot{};
+
+            GamepadDisconnectedEvent event(static_cast<u32>(slot));
+            m_Data.EventCallback(event);
+        }
+
+        for (i32 joystick = GLFW_JOYSTICK_1; joystick <= GLFW_JOYSTICK_LAST; ++joystick)
+        {
+            if (!glfwJoystickIsGamepad(joystick)) continue;
+
+            if (std::ranges::find(m_Gamepads, joystick, &GamepadSlot::JoystickId) != m_Gamepads.end()) continue;
+
+            const auto freeSlot = std::ranges::find(m_Gamepads, -1, &GamepadSlot::JoystickId);
+            if (freeSlot == m_Gamepads.end()) break;
+
+            freeSlot->JoystickId = joystick;
+
+            const auto slot = static_cast<u32>(std::distance(m_Gamepads.begin(), freeSlot));
+            const char* rawName = glfwGetGamepadName(joystick);
+            std::string name = rawName ? rawName : "Unknown Gamepad";
+
+            CORE_INFO("Gamepad {} connected: {}", slot, name);
+
+            GamepadConnectedEvent event(slot, std::move(name));
+            m_Data.EventCallback(event);
+        }
+
+        for (usize slot = 0; slot < m_Gamepads.size(); ++slot)
+        {
+            GamepadSlot& gamepad = m_Gamepads[slot];
+            if (gamepad.JoystickId < 0) continue;
+
+            GLFWgamepadstate state;
+            if (!glfwGetGamepadState(gamepad.JoystickId, &state)) continue;
+
+            const auto index = static_cast<u32>(slot);
+
+            for (usize button = 0; button < GamepadButtonCount; ++button)
+            {
+                const bool down = state.buttons[button] == GLFW_PRESS;
+                if (down == gamepad.Buttons[button]) continue;
+
+                gamepad.Buttons[button] = down;
+                const auto code = static_cast<GamepadButton>(button);
+
+                if (down)
+                {
+                    GamepadButtonPressedEvent event(index, code);
+                    m_Data.EventCallback(event);
+                }
+                else
+                {
+                    GamepadButtonReleasedEvent event(index, code);
+                    m_Data.EventCallback(event);
+                }
+            }
+
+            for (usize axis = 0; axis < GamepadAxisCount; ++axis)
+            {
+                const f32 value = ToEngineAxis(axis, state.axes[axis]);
+                if (value == gamepad.Axes[axis]) continue;
+
+                gamepad.Axes[axis] = value;
+
+                GamepadAxisMovedEvent event(index, static_cast<GamepadAxis>(axis), value);
+                m_Data.EventCallback(event);
+            }
+        }
     }
 
     void Window::SetupCallbacks() const

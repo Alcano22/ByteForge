@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Input/GamepadCodes.h"
 
 #include <GLFW/glfw3.h>
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -35,7 +37,7 @@ namespace ByteForge
         explicit Window(const WindowProps& props);
         ~Window();
 
-        void PollEvents() const;
+        void PollEvents();
         bool ShouldClose() const;
 
         void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
@@ -55,6 +57,8 @@ namespace ByteForge
     private:
         void SetupCallbacks() const;
 
+        void PollGamepads();
+
     private:
         struct GlfwWindowDestroyer
         {
@@ -71,9 +75,18 @@ namespace ByteForge
             EventCallbackFn EventCallback = [](Event&) {};
         };
 
+        struct GamepadSlot
+        {
+            i32 JoystickId = -1;
+            std::array<bool, GamepadButtonCount> Buttons{};
+            std::array<f32, GamepadAxisCount> Axes{};
+        };
+
         Ref<void> m_GlfwContext;
         Scope<GLFWwindow, GlfwWindowDestroyer> m_Window;
         Scope<GraphicsContext> m_Context;
         WindowData m_Data;
+
+        std::array<GamepadSlot, MaxGamepads> m_Gamepads;
     };
 }

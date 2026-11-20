@@ -70,6 +70,7 @@ namespace ByteForge
                 const ImGuiIO& io = ImGui::GetIO();
                 Input::SetKeyboardBlocked(io.WantCaptureKeyboard);
                 Input::SetMouseBlocked(io.WantCaptureMouse && !Input::ViewportCapturesMouse());
+                Input::SetGamepadBlocked(io.WantCaptureKeyboard);
             }
 
             Renderer::BeginFrame();

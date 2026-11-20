@@ -1,7 +1,9 @@
 #include "Engine/Input/Input.h"
 #include "Engine/Event/KeyEvent.h"
 #include "Engine/Event/MouseEvent.h"
+#include "Engine/Event/GamepadEvent.h"
 
+#include <array>
 #include <bitset>
 #include <cstddef>
 #include <optional>
@@ -13,6 +15,15 @@ namespace ByteForge
         constexpr usize KeyCount = static_cast<usize>(KeyCode::Menu) + 1;
         constexpr usize MouseButtonCount = static_cast<usize>(MouseButton::ButtonLast) + 1;
 
+        struct GamepadState
+        {
+            bool Connected = false;
+            std::string Name;
+
+            std::bitset<GamepadButtonCount> Down, Pressed, Released;
+            std::array<f32, GamepadAxisCount> Axes{};
+        };
+
         struct State
         {
             std::bitset<KeyCount> KeyDown, KeyPressed, KeyReleased;
@@ -23,14 +34,19 @@ namespace ByteForge
             glm::vec2 ScrollDelta{ 0.0f };
             bool HasMousePosition = false;
 
+            std::array<GamepadState, MaxGamepads> Gamepads;
+
             bool KeyboardBlocked = false;
             bool MouseBlocked = false;
+            bool GamepadBlocked = false;
             bool PointerOverUI = false;
 
             std::optional<InputViewport> Viewport;
         };
 
         State s_State;
+
+        const std::string s_EmptyGamepadName;
 
         template<usize N>
         bool Query(const std::bitset<N>& bits, const usize index, const bool blocked)
@@ -39,6 +55,16 @@ namespace ByteForge
         }
 
         bool IsMouseInputBlocked() { return s_State.MouseBlocked || s_State.PointerOverUI; }
+
+        GamepadState* FindGamepadSlot(const u32 gamepad)
+        {
+            return gamepad < MaxGamepads ? &s_State.Gamepads[gamepad] : nullptr;
+        }
+
+        const GamepadState* QueryGamepad(const u32 gamepad)
+        {
+            return s_State.GamepadBlocked ? nullptr : FindGamepadSlot(gamepad);
+        }
 
         template<usize N>
         void Press(std::bitset<N>& down, std::bitset<N>& pressed, const usize index)
@@ -105,6 +131,43 @@ namespace ByteForge
         return IsMouseInputBlocked() ? glm::vec2(0.0f) : s_State.ScrollDelta;
     }
 
+    bool Input::IsGamepadConnected(const u32 gamepad)
+    {
+        const GamepadState* state = FindGamepadSlot(gamepad);
+        return state && state->Connected;
+    }
+
+    const std::string& Input::GetGamepadName(const u32 gamepad)
+    {
+        const GamepadState* state = FindGamepadSlot(gamepad);
+        return state ? state->Name : s_EmptyGamepadName;
+    }
+
+    bool Input::IsGamepadButtonDown(const GamepadButton button, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->Down, static_cast<usize>(button), false);
+    }
+
+    bool Input::IsGamepadButtonPressed(const GamepadButton button, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->Pressed, static_cast<usize>(button), false);
+    }
+
+    bool Input::IsGamepadButtonReleased(const GamepadButton button, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->Released, static_cast<usize>(button), false);
+    }
+
+    f32 Input::GetGamepadAxis(const GamepadAxis axis, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        const auto index = static_cast<usize>(axis);
+        return state && index < GamepadAxisCount ? state->Axes[index] : 0.0f;
+    }
+
     void Input::SetViewport(const InputViewport& viewport) { s_State.Viewport = viewport; }
 
     void Input::ClearViewport()
@@ -144,6 +207,9 @@ namespace ByteForge
 
     bool Input::IsMouseBlocked() { return s_State.MouseBlocked; }
     void Input::SetMouseBlocked(const bool blocked) { s_State.MouseBlocked = blocked; }
+
+    bool Input::IsGamepadBlocked() { return s_State.GamepadBlocked; }
+    void Input::SetGamepadBlocked(const bool blocked) { s_State.GamepadBlocked = blocked; }
 
     bool Input::IsPointerOverUI() { return s_State.PointerOverUI; }
     void Input::SetPointerOverUI(const bool overUI) { s_State.PointerOverUI = overUI; }
@@ -195,6 +261,54 @@ namespace ByteForge
                 s_State.ScrollDelta += glm::vec2(scrollEvent.GetOffsetX(), scrollEvent.GetOffsetY());
                 break;
             }
+            case EventType::GamepadConnected:
+            {
+                const auto& connectedEvent = static_cast<const GamepadConnectedEvent&>(event);
+                GamepadState* gamepad = FindGamepadSlot(connectedEvent.GetGamepad());
+                if (!gamepad) break;
+
+                *gamepad = GamepadState{};
+                gamepad->Connected = true;
+                gamepad->Name = connectedEvent.GetGamepadName();
+                break;
+            }
+            case EventType::GamepadDisconnected:
+            {
+                const auto& disconnectedEvent = static_cast<const GamepadDisconnectedEvent&>(event);
+                GamepadState* gamepad = FindGamepadSlot(disconnectedEvent.GetGamepad());
+                if (!gamepad) break;
+
+                gamepad->Released |= gamepad->Down;
+                gamepad->Down.reset();
+                gamepad->Axes.fill(0.0f);
+                gamepad->Connected = false;
+                gamepad->Name.clear();
+                break;
+            }
+            case EventType::GamepadButtonPressed:
+            {
+                const auto& buttonEvent = static_cast<const GamepadButtonPressedEvent&>(event);
+                if (GamepadState* gamepad = FindGamepadSlot(buttonEvent.GetGamepad()))
+                    Press(gamepad->Down, gamepad->Pressed, static_cast<usize>(buttonEvent.GetButton()));
+                break;
+            }
+            case EventType::GamepadButtonReleased:
+            {
+                const auto& buttonEvent = static_cast<const GamepadButtonReleasedEvent&>(event);
+                if (GamepadState* gamepad = FindGamepadSlot(buttonEvent.GetGamepad()))
+                    Release(gamepad->Down, gamepad->Released, static_cast<usize>(buttonEvent.GetButton()));
+                break;
+            }
+            case EventType::GamepadAxisMoved:
+            {
+                const auto& axisEvent = static_cast<const GamepadAxisMovedEvent&>(event);
+                GamepadState* gamepad = FindGamepadSlot(axisEvent.GetGamepad());
+                const auto axis = static_cast<usize>(axisEvent.GetAxis());
+
+                if (gamepad && axis < GamepadAxisCount)
+                    gamepad->Axes[axis] = axisEvent.GetValue();
+                break;
+            }
             default: break;
         }
     }
@@ -205,6 +319,12 @@ namespace ByteForge
         s_State.KeyReleased.reset();
         s_State.MousePressed.reset();
         s_State.MouseReleased.reset();
+
+        for (GamepadState& gamepad : s_State.Gamepads)
+        {
+            gamepad.Pressed.reset();
+            gamepad.Released.reset();
+        }
 
         s_State.MouseDelta = glm::vec2(0.0f);
         s_State.ScrollDelta = glm::vec2(0.0f);

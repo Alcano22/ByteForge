@@ -3,8 +3,11 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Input/KeyCodes.h"
 #include "Engine/Input/MouseButtons.h"
+#include "Engine/Input/GamepadCodes.h"
 
 #include <glm/glm.hpp>
+
+#include <string>
 
 namespace ByteForge
 {
@@ -35,6 +38,15 @@ namespace ByteForge
         [[nodiscard]] static glm::vec2 GetMouseDelta();
         [[nodiscard]] static glm::vec2 GetScrollDelta();
 
+        [[nodiscard]] static bool IsGamepadConnected(u32 gamepad = 0);
+        [[nodiscard]] static const std::string& GetGamepadName(u32 gamepad = 0);
+
+        [[nodiscard]] static bool IsGamepadButtonDown(GamepadButton button, u32 gamepad = 0);
+        [[nodiscard]] static bool IsGamepadButtonPressed(GamepadButton button, u32 gamepad = 0);
+        [[nodiscard]] static bool IsGamepadButtonReleased(GamepadButton button, u32 gamepad = 0);
+
+        [[nodiscard]] static f32 GetGamepadAxis(GamepadAxis axis, u32 gamepad = 0);
+
         static void SetViewport(const InputViewport& viewport);
         static void ClearViewport();
 
@@ -51,6 +63,9 @@ namespace ByteForge
 
         [[nodiscard]] static bool IsMouseBlocked();
         static void SetMouseBlocked(bool blocked);
+
+        [[nodiscard]] static bool IsGamepadBlocked();
+        static void SetGamepadBlocked(bool blocked);
 
         [[nodiscard]] static bool IsPointerOverUI();
         static void SetPointerOverUI(bool overUI);
