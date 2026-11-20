@@ -6,6 +6,7 @@
 #include "Engine/Assets/AnimationClip.h"
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Assets/FontAsset.h"
+#include "Engine/Assets/InputActions.h"
 #include "Engine/Scene/UUID.h"
 
 #include <expected>
@@ -45,6 +46,13 @@ namespace ByteForge
         static bool SaveAnimatorController(UUID handle);
 
         [[nodiscard]] static Result<UUID> CreateAnimatorController(const fs::path& relativePath);
+
+        [[nodiscard]] static Ref<InputActionsAsset> LoadInputActions(UUID handle);
+
+        static void SetInputActions(UUID handle, InputActionsData data);
+        static bool SaveInputActions(UUID handle);
+
+        [[nodiscard]] static Result<UUID> CreateInputActions(const fs::path& relativePath);
 
         [[nodiscard]] static Ref<FontAsset> LoadFont(UUID handle);
 

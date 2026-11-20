@@ -70,6 +70,7 @@ namespace ByteForge
         void CreateAnimationClip();
         void CreateAnimatorController();
         void CreateScriptGraph();
+        void CreateInputActions();
         void CreatePrefab(Entity entity);
 
         void RenameAfterRefresh(fs::path path);

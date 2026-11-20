@@ -38,6 +38,7 @@ namespace ByteForge
         std::unordered_map<UUID, Ref<PhysicsMaterialAsset>> s_PhysicsMaterials;
         std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
         std::unordered_map<UUID, Ref<AnimatorControllerAsset>> s_AnimatorControllers;
+        std::unordered_map<UUID, Ref<InputActionsAsset>> s_InputActions;
         std::unordered_map<UUID, Ref<FontAsset>> s_Fonts;
         std::unordered_map<UUID, std::future<Result<FontAtlasData>>> s_PendingFonts;
         Ref<Texture2D> s_Fallback;
@@ -134,6 +135,15 @@ namespace ByteForge
                 return Unexpected(data.error());
 
             return ParseAnimatorController(*data);
+        }
+
+        Result<InputActionsData> ReadInputActions(const UUID handle)
+        {
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return Unexpected(data.error());
+
+            return ParseInputActions(*data);
         }
     }
 
@@ -431,6 +441,69 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
+    Ref<InputActionsAsset> AssetManager::LoadInputActions(const UUID handle)
+    {
+        if (const auto it = s_InputActions.find(handle); it != s_InputActions.end())
+            return it->second;
+
+        InputActionsData data;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::InputActions)
+            CORE_ERROR("AssetManager: {} is not a known input actions asset", static_cast<u64>(handle));
+        else if (auto parsed = ReadInputActions(handle))
+            data = std::move(*parsed);
+        else
+            CORE_ERROR("AssetManager: cannot load '{}': {}", ToGenericUtf8(metadata.Path), parsed.error());
+
+        auto asset = MakeRef<InputActionsAsset>(handle, std::move(data));
+        s_InputActions.emplace(handle, asset);
+        return asset;
+    }
+
+    void AssetManager::SetInputActions(const UUID handle, InputActionsData data)
+    {
+        LoadInputActions(handle)->m_Data = std::move(data);
+    }
+
+    bool AssetManager::SaveInputActions(const UUID handle)
+    {
+        const auto it = s_InputActions.find(handle);
+        AssetMetadata metadata;
+        if (it == s_InputActions.end() || !AssetRegistry::TryGetMetadata(handle, metadata))
+            return false;
+
+        const InputActionsData& data = it->second->GetData();
+        if (const Result<> valid = ValidateInputActions(data); !valid)
+        {
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), valid.error());
+            return false;
+        }
+
+        const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
+        if (const auto written = WriteJsonFile(path, SerializeInputActions(data)); !written)
+        {
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), written.error());
+            return false;
+        }
+
+        return true;
+    }
+
+    Result<UUID> AssetManager::CreateInputActions(const fs::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
+
+        if (const auto written = WriteJsonFile(path, SerializeInputActions(MakeDefaultInputActions())); !written)
+            return Unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
     void AssetManager::Reload(const UUID handle)
     {
         AssetMetadata metadata;
@@ -464,6 +537,14 @@ namespace ByteForge
                 it->second->SetData(std::move(*controller));
             else
                 CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), controller.error());
+        }
+
+        if (const auto it = s_InputActions.find(handle); it != s_InputActions.end())
+        {
+            if (auto actions = ReadInputActions(handle))
+                it->second->m_Data = std::move(*actions);
+            else
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), actions.error());
         }
     }
 
@@ -509,6 +590,7 @@ namespace ByteForge
         s_PhysicsMaterials.clear();
         s_AnimationClips.clear();
         s_AnimatorControllers.clear();
+        s_InputActions.clear();
         s_PendingFonts.clear();
         s_Fonts.clear();
         s_Fallback.reset();

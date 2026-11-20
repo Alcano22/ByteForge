@@ -9,6 +9,7 @@
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
+#include <Engine/Assets/InputActions.h>
 #include <Engine/Assets/Prefab.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
@@ -592,6 +593,8 @@ namespace ByteForge
                 CreateAnimatorController();
             if (ImGui::MenuItem("Script Graph"))
                 CreateScriptGraph();
+            if (ImGui::MenuItem("Input Actions"))
+                CreateInputActions();
 
             ImGui::EndMenu();
         }
@@ -678,6 +681,19 @@ namespace ByteForge
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Script Graph", ScriptGraphExtension);
 
         if (const auto created = AssetManager::CreateScriptGraph(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateInputActions()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Input Actions", InputActionsExtension);
+
+        if (const auto created = AssetManager::CreateInputActions(path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;
