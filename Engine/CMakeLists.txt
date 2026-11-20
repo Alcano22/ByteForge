@@ -91,6 +91,8 @@ add_library(Engine SHARED
         src/Core/JobSystem.cpp
         src/Input/Input.cpp
         src/Input/InputControl.cpp
+        src/Input/InputControlSource.cpp
+        src/Input/InputActionSystem.cpp
         src/Scene/Scene.cpp
         src/Scene/SceneSerializer.cpp
         src/Scene/Physics2DWorld.cpp
