@@ -109,6 +109,7 @@ byteforge_copy_directory(Editor
 
 byteforge_add_engine_shaders(Editor ${BYTEFORGE_SHARE_DIR})
 byteforge_add_engine_fonts(Editor ${BYTEFORGE_SHARE_DIR})
+byteforge_add_engine_input(Editor ${BYTEFORGE_SHARE_DIR})
 
 add_dependencies(Editor ScriptCore)
 

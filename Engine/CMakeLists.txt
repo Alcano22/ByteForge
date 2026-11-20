@@ -307,3 +307,13 @@ function(byteforge_add_engine_fonts target destination)
             ${destination}/fonts
     )
 endfunction()
+
+set(BYTEFORGE_ENGINE_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources/input
+        CACHE INTERNAL "The engine's gamepad mappings")
+
+function(byteforge_add_engine_input target destination)
+    byteforge_copy_directory(${target}
+            ${BYTEFORGE_ENGINE_INPUT_DIR}
+            ${destination}/input
+    )
+endfunction()

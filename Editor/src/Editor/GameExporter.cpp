@@ -441,6 +441,14 @@ namespace ByteForge
                 return Unexpected("'{}' is missing", ToGenericUtf8(required));
         }
 
+        if (const fs::path input = RuntimePaths::GetDataDirectory() / "input"; fs::exists(input))
+            plan.InputDirectory = input;
+        else
+        {
+            APP_WARN("'{}' is missing, the exported game will only know the controllers built into GLFW",
+                     ToGenericUtf8(input));
+        }
+
         const bool hasScripts = !AssetRegistry::GetAssetsOfType(AssetType::Script).empty();
         const bool hasAssembly = fs::exists(gameScripts);
         if (hasScripts && !hasAssembly)
@@ -474,7 +482,7 @@ namespace ByteForge
         progress.BeginStep("Copying the player");
 
         std::error_code error;
-        for (const char* folder : { "assets", "engine", "shaders", "fonts", "ScriptCore", ".byteforge", "dotnet" })
+        for (const char* folder : { "assets", "engine", "shaders", "fonts", "input", "ScriptCore", ".byteforge", "dotnet" })
             fs::remove_all(output / folder, error);
 
         for (fs::directory_iterator it(output, error), end; !error && it != end; it.increment(error))
@@ -508,6 +516,15 @@ namespace ByteForge
         if (!fonts)
             return Unexpected(fonts.error());
         result.FileCount += *fonts;
+
+        if (plan.InputDirectory)
+        {
+            const auto input = CopyTree(*plan.InputDirectory, output / "input",
+                [](const fs::path&) { return true; }, progress);
+            if (!input)
+                return Unexpected(input.error());
+            result.FileCount += *input;
+        }
 
         progress.BeginStep("Bundling the .NET runtime");
 

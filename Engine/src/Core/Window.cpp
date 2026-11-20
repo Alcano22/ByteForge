@@ -1,4 +1,5 @@
 #include "Engine/Core/Window.h"
+#include "Engine/Core/FileSystem.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Event/ApplicationEvent.h"
 #include "Engine/Event/KeyEvent.h"
@@ -10,8 +11,13 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <bitset>
 #include <iterator>
+#include <string>
+#include <system_error>
 #include <vector>
+
+#include "Engine/Core/RuntimePaths.h"
 
 namespace ByteForge
 {
@@ -37,6 +43,36 @@ namespace ByteForge
             }
         }
 
+        fs::path GetGamepadMappingsFile()
+        {
+            return RuntimePaths::GetDataDirectory() / "input" / "gamecontrollerdb.txt";
+        }
+
+        void LoadGamepadMappings()
+        {
+            const fs::path file = GetGamepadMappingsFile();
+
+            std::error_code error;
+            if (!fs::exists(file, error))
+            {
+                CORE_WARN("'{}' is missing, only controllers built into GLFW will work", ToGenericUtf8(file));
+                return;
+            }
+
+            const Result<std::vector<std::byte>> data = ReadBinaryFile(file);
+            if (!data)
+            {
+                CORE_WARN("Cannot read the gamepad mappings: {}", data.error());
+                return;
+            }
+
+            const std::string mappings(reinterpret_cast<const char*>(data->data()), data->size());
+            if (glfwUpdateGamepadMappings(mappings.c_str()) == GLFW_TRUE)
+                CORE_INFO("Loaded gamepad mappings from '{}'", ToGenericUtf8(file));
+            else
+                CORE_WARN("GLFW rejected the gamepad mappings in '{}'", ToGenericUtf8(file));
+        }
+
         Ref<void> AcquireGlfwContext(const bool preferX11)
         {
             Ref<void> context = s_GlfwContext.lock();
@@ -60,10 +96,40 @@ namespace ByteForge
 
             CORE_INFO("GLFW runs on {}", GetPlatformName());
 
+            LoadGamepadMappings();
+
             static i32 s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
             s_GlfwContext = context;
             return context;
+        }
+
+        std::bitset<GLFW_JOYSTICK_LAST + 1> s_ReportedJoysticks;
+
+        void ReportUnmappedJoystick(const i32 joystick)
+        {
+            const auto index = static_cast<usize>(joystick);
+
+            if (!glfwJoystickPresent(joystick))
+            {
+                s_ReportedJoysticks.reset(index);
+                return;
+            }
+
+            if (s_ReportedJoysticks.test(index)) return;
+            s_ReportedJoysticks.set(index);
+
+            const char* name = glfwGetJoystickName(joystick);
+            const char* guid = glfwGetJoystickGUID(joystick);
+
+            i32 axisCount = 0, buttonCount = 0, hatCount = 0;
+            glfwGetJoystickAxes(joystick, &axisCount);
+            glfwGetJoystickButtons(joystick, &buttonCount);
+            glfwGetJoystickHats(joystick, &hatCount);
+
+            CORE_WARN("Joystick {} '{}' is connected but has no gamepad mapping (GUID {}, {} axes, {} buttons, "
+                      "{} hats), add a line for it to '{}'", joystick, name ? name : "Unknown", guid ? guid : "unknown",
+                      axisCount, buttonCount, hatCount, ToGenericUtf8(GetGamepadMappingsFile()));
         }
 
         f32 ToEngineAxis(const usize axis, const f32 value)
@@ -206,7 +272,11 @@ namespace ByteForge
 
         for (i32 joystick = GLFW_JOYSTICK_1; joystick <= GLFW_JOYSTICK_LAST; ++joystick)
         {
-            if (!glfwJoystickIsGamepad(joystick)) continue;
+            if (!glfwJoystickIsGamepad(joystick))
+            {
+                ReportUnmappedJoystick(joystick);
+                continue;
+            }
 
             if (std::ranges::find(m_Gamepads, joystick, &GamepadSlot::JoystickId) != m_Gamepads.end()) continue;
 
