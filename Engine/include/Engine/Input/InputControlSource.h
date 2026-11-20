@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 
+#include <optional>
+
 namespace ByteForge
 {
     class BYTEFORGE_API InputControlSource
@@ -20,4 +22,6 @@ namespace ByteForge
     public:
         [[nodiscard]] glm::vec2 Read(const InputControl& control) const override;
     };
+
+    [[nodiscard]] BYTEFORGE_API std::optional<InputControl> FindPressedControl(bool preferSticks);
 }

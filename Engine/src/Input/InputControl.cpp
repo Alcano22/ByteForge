@@ -99,4 +99,31 @@ namespace ByteForge
 
         return InputControl{ *type, *code };
     }
+
+    const std::vector<InputControl>& GetKnownInputControls()
+    {
+        static const std::vector<InputControl> controls = []
+        {
+            std::vector<InputControl> result;
+
+            for (const KeyCode key : magic_enum::enum_values<KeyCode>())
+                result.push_back(InputControl::FromKey(key));
+
+            for (u16 button = 0; button < MouseButtonNames.size(); ++button)
+                result.push_back(InputControl{ InputControlType::MouseButton, button });
+
+            for (const GamepadButton button : magic_enum::enum_values<GamepadButton>())
+                result.push_back(InputControl::FromGamepadButton(button));
+
+            for (const GamepadAxis axis : magic_enum::enum_values<GamepadAxis>())
+                result.push_back(InputControl::FromGamepadAxis(axis));
+
+            for (const GamepadStick stick : magic_enum::enum_values<GamepadStick>())
+                result.push_back(InputControl::FromGamepadStick(stick));
+
+            return result;
+        }();
+
+        return controls;
+    }
 }

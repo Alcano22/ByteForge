@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace ByteForge
 {
@@ -64,4 +65,6 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API std::string InputControlToString(const InputControl& control);
 
     [[nodiscard]] BYTEFORGE_API std::optional<InputControl> InputControlFromString(std::string_view text);
+
+    [[nodiscard]] BYTEFORGE_API const std::vector<InputControl>& GetKnownInputControls();
 }

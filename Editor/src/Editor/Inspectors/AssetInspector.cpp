@@ -4,6 +4,7 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 #include "Editor/Panels/AnimationClipPanel.h"
+#include "Editor/Panels/InputActionsPanel.h"
 
 #include <Engine/Assets/AssetMetadata.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -151,6 +152,24 @@ namespace ByteForge::EditorUI
             ImGui::Spacing();
             if (ImGui::Button("Edit"))
                 context.Open<AnimationClipPanel>().OpenClip(metadata.Handle);
+            ImGui::TextDisabled("or double-click it in the Assets panel");
+        }
+
+        void DrawInputActionsInspector(const AssetMetadata& metadata, EditorContext& context)
+        {
+            const InputActionsData& data = AssetManager::LoadInputActions(metadata.Handle)->GetData();
+
+            usize actionCount = 0;
+            for (const InputActionMapData& map : data.Maps)
+                actionCount += map.Actions.size();
+
+            ImGui::Text("%zu action maps, %zu actions", data.Maps.size(), actionCount);
+            for (const InputActionMapData& map : data.Maps)
+                ImGui::BulletText("%s (%zu)", map.Name.c_str(), map.Actions.size());
+
+            ImGui::Spacing();
+            if (ImGui::Button("Edit"))
+                context.Open<InputActionsPanel>().OpenAsset(metadata.Handle);
             ImGui::TextDisabled("or double-click it in the Assets panel");
         }
 
@@ -320,9 +339,9 @@ namespace ByteForge::EditorUI
                     context.InstantiatePrefab(handle);
                 ImGui::TextDisabled("or drag it into the Scene or the Hierarchy");
                 break;
-            case AssetType::Font:         DrawFontInspector(metadata); break;
-            case AssetType::InputActions: break;
-            case AssetType::None:         break;
+            case AssetType::Font:         DrawFontInspector(metadata);                  break;
+            case AssetType::InputActions: DrawInputActionsInspector(metadata, context); break;
+            case AssetType::None:                                                       break;
         }
     }
 }

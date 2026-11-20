@@ -4,6 +4,7 @@
 #include "Editor/AssetPayload.h"
 #include "Editor/Panels/GraphEditorPanel.h"
 #include "Editor/Panels/AnimationClipPanel.h"
+#include "Editor/Panels/InputActionsPanel.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
@@ -761,6 +762,8 @@ namespace ByteForge
             GetContext().Open<GraphEditorPanel>().OpenGraph(*entry.Handle);
         else if (entry.Type == AssetType::AnimationClip && entry.Handle)
             GetContext().Open<AnimationClipPanel>().OpenClip(*entry.Handle);
+        else if (entry.Type == AssetType::InputActions && entry.Handle)
+            GetContext().Open<InputActionsPanel>().OpenAsset(*entry.Handle);
         else if (entry.Type == AssetType::Script)
             GetContext().CodeEditor.OpenFile(AssetRegistry::GetAssetRoot() / entry.Path);
         else if (entry.Type == AssetType::Prefab && entry.Handle)

@@ -3,10 +3,14 @@
 
 #include <glm/glm.hpp>
 
+#include <cmath>
+
 namespace ByteForge
 {
     namespace
     {
+        constexpr f32 ListenAxisThreshold = 0.5f;
+
         f32 ToValue(const bool down) { return down ? 1.0f : 0.0f; }
 
         f32 GamepadButtonValue(const GamepadButton button, const u32 gamepad)
@@ -47,6 +51,27 @@ namespace ByteForge
                     return glm::vec2(0.0f);
             }
         }
+
+        std::optional<GamepadStick> StickOf(const GamepadAxis axis)
+        {
+            switch (axis)
+            {
+                case GamepadAxis::LeftX:
+                case GamepadAxis::LeftY:
+                    return GamepadStick::Left;
+                case GamepadAxis::RightX:
+                case GamepadAxis::RightY:
+                    return GamepadStick::Right;
+                default:
+                    return std::nullopt;
+            }
+        }
+
+        bool IsDPadButton(const GamepadButton button)
+        {
+            return button == GamepadButton::DPadUp || button == GamepadButton::DPadDown ||
+                   button == GamepadButton::DPadLeft || button == GamepadButton::DPadRight;
+        }
     }
 
     glm::vec2 RawInputSource::Read(const InputControl& control) const
@@ -77,5 +102,44 @@ namespace ByteForge
                 break;
         }
         return glm::vec2(0.0f);
+    }
+
+    std::optional<InputControl> FindPressedControl(const bool preferSticks)
+    {
+        for (u16 key = 0; key <= static_cast<u16>(KeyCode::Menu); ++key)
+        {
+            if (Input::IsKeyPressed(static_cast<KeyCode>(key)))
+                return InputControl::FromKey(static_cast<KeyCode>(key));
+        }
+
+        for (u32 gamepad = 0; gamepad < MaxGamepads; ++gamepad)
+        {
+            for (usize button = 0; button < GamepadButtonCount; ++button)
+            {
+                const auto code = static_cast<GamepadButton>(button);
+                if (!Input::IsGamepadButtonPressed(code, gamepad)) continue;
+
+                if (preferSticks && IsDPadButton(code))
+                    return InputControl::FromGamepadStick(GamepadStick::DPad);
+
+                return InputControl::FromGamepadButton(code);
+            }
+
+            for (usize axis = 0; axis < GamepadAxisCount; ++axis)
+            {
+                const auto code = static_cast<GamepadAxis>(axis);
+                if (std::abs(Input::GetGamepadAxis(code, gamepad)) < ListenAxisThreshold) continue;
+
+                if (preferSticks)
+                {
+                    if (const std::optional<GamepadStick> stick = StickOf(code))
+                        return InputControl::FromGamepadStick(*stick);
+                }
+
+                return InputControl::FromGamepadAxis(code);
+            }
+        }
+
+        return std::nullopt;
     }
 }
