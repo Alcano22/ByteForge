@@ -9,6 +9,7 @@ add_executable(ByteForgeTests
         src/Core/Utf8Tests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
+        src/Scripting/InputAPITests.cpp
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp
         src/Input/InputActionSystemTests.cpp

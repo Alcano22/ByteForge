@@ -1,5 +1,6 @@
 #include "Engine/Scripting/API/ScriptAPI.h"
 #include "Scripting/API/CoreAPI.h"
+#include "Scripting/API/InputAPI.h"
 
 #include <format>
 #include <stdexcept>
@@ -63,7 +64,11 @@ namespace ByteForge
         }
     }
 
-    ScriptAPI::ScriptAPI() { RegisterCoreAPI(*this); }
+    ScriptAPI::ScriptAPI()
+    {
+        RegisterCoreAPI(*this);
+        RegisterInputAPI(*this);
+    }
 
     const ScriptAPI& ScriptAPI::Get()
     {

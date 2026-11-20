@@ -88,6 +88,15 @@ internal static unsafe class ScriptAPI
     private static uint s_InputGetMouseDelta;
     private static uint s_InputGetScrollDelta;
 
+    private static uint s_InputActionExists;
+    private static uint s_InputActionIsDown;
+    private static uint s_InputActionWasPressed;
+    private static uint s_InputActionWasReleased;
+    private static uint s_InputActionReadValue;
+    private static uint s_InputActionsEnableMap;
+    private static uint s_InputActionsDisableMap;
+    private static uint s_InputActionsIsMapEnabled;
+
     internal static bool Bind()
     {
         bool complete = true;
@@ -171,6 +180,15 @@ internal static unsafe class ScriptAPI
         s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",    "()->Vector2",                          ref complete);
         s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",            "()->Vector2",                          ref complete);
         s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",           "()->Vector2",                          ref complete);
+
+        s_InputActionExists             = Resolve("InputAction.Exists",             "(String)->Bool",                       ref complete);
+        s_InputActionIsDown             = Resolve("InputAction.IsDown",             "(String)->Bool",                       ref complete);
+        s_InputActionWasPressed         = Resolve("InputAction.WasPressed",         "(String)->Bool",                       ref complete);
+        s_InputActionWasReleased        = Resolve("InputAction.WasReleased",        "(String)->Bool",                       ref complete);
+        s_InputActionReadValue          = Resolve("InputAction.ReadValue",          "(String)->Vector2",                    ref complete);
+        s_InputActionsEnableMap         = Resolve("InputActions.EnableMap",         "(String)->Void",                       ref complete);
+        s_InputActionsDisableMap        = Resolve("InputActions.DisableMap",        "(String)->Void",                       ref complete);
+        s_InputActionsIsMapEnabled      = Resolve("InputActions.IsMapEnabled",      "(String)->Bool",                       ref complete);
 
         return complete;
     }
@@ -419,6 +437,32 @@ internal static unsafe class ScriptAPI
     public static Vector2 Input_GetMouseDelta() => Call(s_InputGetMouseDelta).Vector2;
     public static Vector2 Input_GetScrollDelta() => Call(s_InputGetScrollDelta).Vector2;
 
+    // Input actions
+
+    public static bool InputAction_Exists(string path) =>
+        CallWithText(s_InputActionExists, path).Bool != 0;
+
+    public static bool InputAction_IsDown(byte[] path) =>
+        CallWithUtf8(s_InputActionIsDown, path).Bool != 0;
+
+    public static bool InputAction_WasPressed(byte[] path) =>
+        CallWithUtf8(s_InputActionWasPressed, path).Bool != 0;
+
+    public static bool InputAction_WasReleased(byte[] path) =>
+        CallWithUtf8(s_InputActionWasReleased, path).Bool != 0;
+
+    public static Vector2 InputAction_ReadValue(byte[] path) =>
+        CallWithUtf8(s_InputActionReadValue, path).Vector2;
+
+    public static void InputActions_EnableMap(string name) =>
+        CallWithText(s_InputActionsEnableMap, name);
+
+    public static void InputActions_DisableMap(string name) =>
+        CallWithText(s_InputActionsDisableMap, name);
+
+    public static bool InputActions_IsMapEnabled(string name) =>
+        CallWithText(s_InputActionsIsMapEnabled, name).Bool != 0;
+
     // Plumbing
 
     private static uint Resolve(string id, string signature, ref bool complete)
@@ -449,12 +493,14 @@ internal static unsafe class ScriptAPI
         return result;
     }
 
-    private static APIValue CallWithText(uint function, string text)
+    private static APIValue CallWithText(uint function, string text) =>
+        CallWithUtf8(function, Encoding.UTF8.GetBytes(text));
+
+    private static APIValue CallWithUtf8(uint function, byte[] text)
     {
-        byte[] bytes = Encoding.UTF8.GetBytes(text);
-        fixed (byte* data = bytes)
+        fixed (byte* data = text)
         {
-            return Call(function, new APIValue { Text = data, TextLength = bytes.Length });
+            return Call(function, new APIValue{ Text = data, TextLength = text.Length });
         }
     }
 }
