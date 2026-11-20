@@ -48,6 +48,10 @@ namespace ByteForge
         changed |= EditorUI::AssetReferenceField("Startup Scene", AssetType::Scene, m_StartScene,
                                                  context.SelectionContext);
 
+        changed |= EditorUI::AssetReferenceField("Input Actions", AssetType::InputActions, m_InputActions,
+                                                 context.SelectionContext);
+        ImGui::SetItemTooltip("Loaded when the game starts, scripts look their actions up on it");
+
         if (changed)
             m_Dirty = true;
 
@@ -97,6 +101,7 @@ namespace ByteForge
         m_WindowTitle = settings.WindowTitle;
         m_WindowSize = { static_cast<i32>(settings.WindowWidth), static_cast<i32>(settings.WindowHeight) };
         m_StartScene = settings.StartScene;
+        m_InputActions = settings.InputActions;
 
         m_FileTime = ReadFileTime();
         m_Loaded = true;
@@ -114,6 +119,7 @@ namespace ByteForge
         settings.WindowWidth = static_cast<u32>(std::clamp(m_WindowSize[0], MinWindowSize, MaxWindowSize));
         settings.WindowHeight = static_cast<u32>(std::clamp(m_WindowSize[1], MinWindowSize, MaxWindowSize));
         settings.StartScene = m_StartScene;
+        settings.InputActions = m_InputActions;
 
         if (const auto saved = settings.Save(GetFile()); !saved)
         {

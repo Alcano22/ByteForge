@@ -32,6 +32,7 @@ namespace ByteForge
         std::string m_WindowTitle;
         std::array<i32, 2> m_WindowSize{ 1280, 720 };
         UUID m_StartScene{ 0 };
+        UUID m_InputActions{ 0 };
 
         std::string m_Error;
         fs::file_time_type m_FileTime{};

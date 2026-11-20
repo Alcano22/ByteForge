@@ -17,6 +17,8 @@ namespace ByteForge
         std::string Name = "Untitled";
         UUID StartScene{ 0 };
 
+        UUID InputActions{ 0 };
+
         std::string WindowTitle = "ByteForge Game";
         u32 WindowWidth = 1280;
         u32 WindowHeight = 720;

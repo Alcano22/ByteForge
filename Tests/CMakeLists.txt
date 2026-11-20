@@ -21,6 +21,7 @@ add_executable(ByteForgeTests
         src/Assets/PrefabTests.cpp
         src/Assets/InputActionsTests.cpp
         src/Project/ProjectTests.cpp
+        src/Project/ProjectSettingsTests.cpp
         src/Project/RecentProjectsTests.cpp
         src/Hub/TestArchives.cpp
         src/Hub/ArchiveTests.cpp

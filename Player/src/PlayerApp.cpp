@@ -1,4 +1,5 @@
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/Prefab.h>
 #include <Engine/Assets/Pak.h>
 #include <Engine/Core/Application.h>
@@ -7,6 +8,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Input/InputActionSystem.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Renderer/Renderer.h>
 #include <Engine/Renderer/Renderer2D.h>
@@ -82,6 +84,9 @@ namespace ByteForge
         {
             MountAssets();
 
+            LoadInputActions();
+            m_Scene.SetInputActions(&m_InputActions);
+
             LoadGameScripts();
             LoadStartScene();
 
@@ -89,7 +94,11 @@ namespace ByteForge
             m_UIRenderer = MakeScope<UIRenderer>();
         }
 
-        void OnDetach() override { m_Scene.OnRuntimeStop(); }
+        void OnDetach() override
+        {
+            m_Scene.OnRuntimeStop();
+            m_Scene.SetInputActions(nullptr);
+        }
 
         void OnUpdate(const Timestep ts) override
         {
@@ -103,6 +112,8 @@ namespace ByteForge
                 PublishInput(window, ComputeGameView(GetCameraSettings(), width, height));
             else
                 Input::ClearViewport();
+
+            m_InputActions.Update(RawInputSource{});
 
             m_Scene.OnUpdateRuntime(ts);
 
@@ -158,6 +169,17 @@ namespace ByteForge
 
             if (const auto mounted = AssetRegistry::Mount(archive); !mounted)
                 throw Error("PlayerLayer: cannot mount '{}': {}", ToGenericUtf8(archive), mounted.error());
+        }
+
+        void LoadInputActions()
+        {
+            if (!m_Settings.InputActions.IsSet())
+            {
+                APP_INFO("The project has no input actions");
+                return;
+            }
+
+            m_InputActions.SetActions(AssetManager::LoadInputActions(m_Settings.InputActions));
         }
 
         static void LoadGameScripts()
@@ -228,6 +250,7 @@ namespace ByteForge
 
     private:
         ProjectSettings m_Settings;
+        InputActionSystem m_InputActions;
         Scene m_Scene;
         Scope<Renderer2D> m_Renderer;
         Scope<UIRenderer> m_UIRenderer;

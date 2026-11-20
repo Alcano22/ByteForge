@@ -30,6 +30,7 @@ namespace ByteForge
         {
             settings.Name = json.value("name", defaults.Name);
             settings.StartScene = UUID(json.value("startScene", u64{ 0 }));
+            settings.InputActions = UUID(json.value("inputActions", u64{ 0 }));
             settings.EngineVersion = json.value("engineVersion", std::string());
 
             if (const auto window = json.find("window"); window != json.end() && window->is_object())
@@ -38,9 +39,7 @@ namespace ByteForge
                 settings.WindowWidth = window->value("width", defaults.WindowWidth);
                 settings.WindowHeight = window->value("height", defaults.WindowHeight);
             } else
-            {
                 settings.WindowTitle = settings.Name;
-            }
         } catch (const nlohmann::json::exception& e)
         {
             return Unexpected("'{}' has invalid values: {}", ToUtf8(file), e.what());
@@ -57,10 +56,11 @@ namespace ByteForge
         const std::string engineVersion = EngineVersion.empty() ? std::string(GetEngineVersion()) : EngineVersion;
 
         const nlohmann::json json{
-            { "version",       FormatVersion                   },
-            { "engineVersion", engineVersion                   },
-            { "name",          Name                            },
-            { "startScene",    static_cast<u64>(StartScene)    },
+            { "version",       FormatVersion                  },
+            { "engineVersion", engineVersion                  },
+            { "name",          Name                           },
+            { "startScene",    static_cast<u64>(StartScene)   },
+            { "inputActions",  static_cast<u64>(InputActions) },
             { "window", {
                 { "title",  WindowTitle  },
                 { "width",  WindowWidth  },

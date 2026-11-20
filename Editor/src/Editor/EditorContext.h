@@ -18,6 +18,7 @@
 
 #include <Engine/Core/Core.h>
 #include <Engine/Core/Timestep.h>
+#include <Engine/Input/InputActionSystem.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/UUID.h>
@@ -174,6 +175,8 @@ namespace ByteForge
         void DropInvalidSelection();
 
     public:
+        InputActionSystem InputActions;
+
         Scene* ActiveScene = nullptr;
         SceneDocument Document{ *this };
         PopupManager Popups;

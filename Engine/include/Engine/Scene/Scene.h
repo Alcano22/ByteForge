@@ -26,6 +26,7 @@ namespace ByteForge
     struct TransformComponent;
     class ScriptRuntime;
     class ScriptInstance;
+    class InputActionSystem;
 
     class BYTEFORGE_API Scene : NonCopyable
     {
@@ -68,6 +69,9 @@ namespace ByteForge
         void OnRuntimeStop();
 
         void RequestSceneLoad(UUID sceneAsset);
+
+        [[nodiscard]] InputActionSystem* GetInputActions() const { return m_InputActions; }
+        void SetInputActions(InputActionSystem* actions) { m_InputActions = actions; }
 
         void EnsureRuntimeBody(Entity entity);
         void SyncRuntimeBodies(Entity root);
@@ -119,5 +123,7 @@ namespace ByteForge
         std::optional<UUID> m_PendingSceneLoad;
         Scope<Physics2DWorld> m_PhysicsWorld;
         Scope<ScriptRuntime> m_ScriptRuntime;
+
+        InputActionSystem* m_InputActions = nullptr;
     };
 }

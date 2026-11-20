@@ -7,6 +7,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/Prefab.h>
 #include <Engine/Audio/AudioEngine.h>
+#include <Engine/Project/ProjectSettings.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/Scene/Components.h>
@@ -36,6 +37,21 @@ namespace ByteForge
             }
             return {};
         }
+
+        Ref<InputActionsAsset> LoadProjectInputActions()
+        {
+            const Result<ProjectSettings> settings = Project::GetActive().LoadSettings();
+            if (!settings)
+            {
+                APP_WARN("Cannot read the project settings, playing without input actions: {}", settings.error());
+                return nullptr;
+            }
+
+            if (!settings->InputActions.IsSet())
+                return nullptr;
+
+            return AssetManager::LoadInputActions(settings->InputActions);
+        }
     }
 
     void EditorContext::UpdateScene(const Timestep ts)
@@ -43,9 +59,14 @@ namespace ByteForge
         if (ActiveScene == nullptr) return;
 
         if (IsPlaying())
+        {
+            InputActions.Update(RawInputSource{});
             ActiveScene->OnUpdateRuntime(ts);
-        else if (IsPaused() && ConsumeStepRequest())
+        } else if (IsPaused() && ConsumeStepRequest())
+        {
+            InputActions.Update(RawInputSource{});
             ActiveScene->OnStepRuntime();
+        }
     }
 
     void EditorContext::OnScenePlay()
@@ -53,6 +74,10 @@ namespace ByteForge
         if (!CanPlay()) return;
 
         m_EditSceneSnapshot = SceneSerializer::Serialize(*ActiveScene);
+
+        InputActions.SetActions(LoadProjectInputActions());
+        ActiveScene->SetInputActions(&InputActions);
+
         ActiveScene->OnRuntimeStart();
         SelectionContext.ClearEntity();
         State = SceneState::Play;
@@ -65,6 +90,10 @@ namespace ByteForge
         if (State == SceneState::Edit || ActiveScene == nullptr) return;
 
         ActiveScene->OnRuntimeStop();
+
+        ActiveScene->SetInputActions(nullptr);
+        InputActions.SetActions(nullptr);
+
         SceneSerializer::Deserialize(*ActiveScene, m_EditSceneSnapshot);
         m_EditSceneSnapshot = nlohmann::json();
         m_StepRequested = false;
