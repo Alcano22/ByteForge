@@ -19,3 +19,4 @@
 #include "Engine/Scene/Components/ImageComponent.h"
 #include "Engine/Scene/Components/ButtonComponent.h"
 #include "Engine/Scene/Components/TextComponent.h"
+#include "Engine/Scene/Components/Light2DComponent.h"

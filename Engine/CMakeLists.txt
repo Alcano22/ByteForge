@@ -114,6 +114,7 @@ add_library(Engine SHARED
         src/Scene/Components/ImageComponent.cpp
         src/Scene/Components/ButtonComponent.cpp
         src/Scene/Components/TextComponent.cpp
+        src/Scene/Components/Light2DComponent.cpp
         src/UI/GameUI.cpp
         src/Assets/AssetManager.cpp
         src/Assets/AssetType.cpp

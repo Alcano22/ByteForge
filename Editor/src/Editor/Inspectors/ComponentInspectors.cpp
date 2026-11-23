@@ -81,6 +81,42 @@ namespace ByteForge
                 ImGui::DragFloat("Aspect Ratio", &camera.FixedAspect, 0.01f, 0.1f, 10.0f);
         }
 
+        void DrawLight2D(Light2DComponent& light, Entity, EditorContext&)
+        {
+            constexpr ImGuiSliderFlags clamp = ImGuiSliderFlags_AlwaysClamp;
+
+            EditorUI::EnumCombo<Light2DType>("Type", light.Type, magic_enum::enum_values<Light2DType>());
+            ImGui::ColorEdit3("Color", glm::value_ptr(light.Color));
+            ImGui::DragFloat("Intensity", &light.Intensity, 0.01f, 0.0f, MaxFloat, "%.2f", clamp);
+
+            if (light.Type == Light2DType::Global)
+            {
+                ImGui::TextDisabled("Lights every Sprite Lit sprite evenly, like ambient light");
+                return;
+            }
+
+            ImGui::DragFloat("Radius", &light.Radius, 0.05f, 0.0f, MaxFloat, "%.2f", clamp);
+            ImGui::DragFloat("Inner Radius", &light.InnerRadius, 0.05f, 0.0f, light.Radius, "%.2f", clamp);
+            ImGui::SetItemTooltip("Full intensity up to here, fading out towards the radius");
+
+            light.InnerRadius = std::min(light.InnerRadius, light.Radius);
+
+            if (light.Type != Light2DType::Spot) return;
+
+            f32 outerDegrees = glm::degrees(light.OuterAngle);
+            if (ImGui::DragFloat("Outer Angle", &outerDegrees, 0.5f, 0.0f, 360.0f, "%.1f deg", clamp))
+                light.OuterAngle = glm::radians(outerDegrees);
+
+            f32 innerDegrees = glm::degrees(light.InnerAngle);
+            if (ImGui::DragFloat("Inner Angle", &innerDegrees, 0.5f, 0.0f, outerDegrees, "%.1f deg", clamp))
+                light.InnerAngle = glm::radians(innerDegrees);
+            ImGui::SetItemTooltip("Full intensity inside this cone, fading out towards the outer angle");
+
+            light.InnerAngle = std::min(light.InnerAngle, light.OuterAngle);
+
+            ImGui::TextDisabled("Shines along the entity's local X axis, turn it with the rotation");
+        }
+
         bool EditPhysicsMaterial(const char* label, Ref<PhysicsMaterialAsset>& material,
                                  Selection& selection, const char* noneText)
         {
@@ -525,6 +561,7 @@ namespace ByteForge
             InspectTransform(),
             Inspect<SpriteRendererComponent, DrawSpriteRenderer>("Sprite Renderer", EditorIcon::ComponentSprite),
             Inspect<CameraComponent, DrawCamera>("Camera", EditorIcon::ComponentCamera),
+            Inspect<Light2DComponent, DrawLight2D>("Light 2D", EditorIcon::ComponentLight),
             Inspect<Rigidbody2DComponent, DrawRigidbody2D>("Rigidbody 2D", EditorIcon::ComponentRigidbody),
             Inspect<BoxCollider2DComponent, DrawBoxCollider2D>("Box Collider 2D", EditorIcon::ComponentBoxCollider),
             Inspect<CircleCollider2DComponent, DrawCircleCollider2D>("Circle Collider 2D", EditorIcon::ComponentCircleCollider),

@@ -64,7 +64,8 @@ namespace ByteForge
             Describe<CanvasComponent>("canvas"),
             Describe<ImageComponent>("image"),
             Describe<ButtonComponent>("button"),
-            Describe<TextComponent>("text")
+            Describe<TextComponent>("text"),
+            Describe<Light2DComponent>("light2D")
         };
 
         constexpr bool HasUniqueKeys()

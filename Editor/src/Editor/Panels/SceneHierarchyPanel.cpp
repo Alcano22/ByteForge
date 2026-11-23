@@ -33,6 +33,11 @@ namespace ByteForge
             entity.AddComponent<BoxCollider2DComponent>();
         }
 
+        void AddLight(const Entity entity, const Light2DType type)
+        {
+            entity.AddComponent<Light2DComponent>().Type = type;
+        }
+
         Entity FindUIParent(const EditorContext& context)
         {
             const Entity selected = context.SelectionContext.GetEntity();
@@ -394,6 +399,18 @@ namespace ByteForge
 
         if (ImGui::MenuItem("Camera"))
             context.CreateEntity("Camera", [](const Entity entity) { entity.AddComponent<CameraComponent>(); });
+
+        if (ImGui::BeginMenu("Light"))
+        {
+            if (ImGui::MenuItem("Global Light 2D"))
+                context.CreateEntity("Global Light 2D", [](const Entity entity) { AddLight(entity, Light2DType::Global); });
+            if (ImGui::MenuItem("Point Light 2D"))
+                context.CreateEntity("Point Light 2D", [](const Entity entity) { AddLight(entity, Light2DType::Point); });
+            if (ImGui::MenuItem("Spot Light 2D"))
+                context.CreateEntity("Spot Light 2D", [](const Entity entity) { AddLight(entity, Light2DType::Spot); });
+
+            ImGui::EndMenu();
+        }
 
         if (ImGui::BeginMenu("Physics"))
         {

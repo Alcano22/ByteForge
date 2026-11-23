@@ -42,6 +42,7 @@ namespace ByteForge
         ComponentCircleCollider,
         ComponentAudioSource,
         ComponentCamera,
+        ComponentLight,
         Count
     };
 
