@@ -88,4 +88,40 @@ namespace ByteForge
 
         return result;
     }
+
+    inline void AppendUtf8(std::string& output, char32_t codepoint)
+    {
+        if (codepoint > 0x10FFFFu || (codepoint >= 0xD800u && codepoint <= 0xDFFFu))
+            codepoint = 0xFFFD;
+
+        if (codepoint < 0x80u)
+            output.push_back(static_cast<char>(codepoint));
+        else if (codepoint < 0x800u)
+        {
+            output.push_back(static_cast<char>(0xC0u | (codepoint >> 6)));
+            output.push_back(static_cast<char>(0x80u | (codepoint & 0x3Fu)));
+        } else if (codepoint < 0x10000u)
+        {
+            output.push_back(static_cast<char>(0xE0u | (codepoint >> 12)));
+            output.push_back(static_cast<char>(0x80u | ((codepoint >> 6) & 0x3Fu)));
+            output.push_back(static_cast<char>(0x80u | (codepoint & 0x3Fu)));
+        } else
+        {
+            output.push_back(static_cast<char>(0xF0u | (codepoint >> 18)));
+            output.push_back(static_cast<char>(0x80u | ((codepoint >> 12) & 0x3Fu)));
+            output.push_back(static_cast<char>(0x80u | ((codepoint >> 6) & 0x3Fu)));
+            output.push_back(static_cast<char>(0x80u | (codepoint & 0x3Fu)));
+        }
+    }
+
+    [[nodiscard]] inline std::string EncodeUtf8(const std::u32string_view text)
+    {
+        std::string result;
+        result.reserve(text.size());
+
+        for (const char32_t codepoint : text)
+            AppendUtf8(result, codepoint);
+
+        return result;
+    }
 }

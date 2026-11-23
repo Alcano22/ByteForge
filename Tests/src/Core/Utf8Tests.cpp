@@ -55,6 +55,29 @@ TEST_CASE("Malformed UTF-8 becomes replacement characters", "[core][utf8]")
     CHECK(DecodeUtf8("\xED\xA0\x80") == U"\uFFFD"s);
 }
 
+TEST_CASE("Code points of every length encode to UTF-8", "[core][utf8]")
+{
+    CHECK(EncodeUtf8(U"Hi") == "Hi");
+    CHECK(EncodeUtf8(U"Gr\u00F6\u00DFe") == Text(u8"Gr\u00F6\u00DFe"));
+    CHECK(EncodeUtf8(U"\u20AC \u6F22 \U0001F3AE") == Text(u8"\u20AC \u6F22 \U0001F3AE"));
+    CHECK(EncodeUtf8(U"").empty());
+}
+
+TEST_CASE("Encoding is the inverse of decoding", "[core][utf8]")
+{
+    const std::string text = Text(u8"J\u00F6rg \u20AC \u6F22\u5B57 \U0001F3AE");
+    CHECK(EncodeUtf8(DecodeUtf8(text)) == text);
+}
+
+TEST_CASE("Code points UTF-8 can't represent become replacement characters", "[core][utf8]")
+{
+    const std::string replacement = Text(u8"\uFFFD");
+
+    CHECK(EncodeUtf8(std::u32string{ char32_t{ 0xD800 } }) == replacement);
+    CHECK(EncodeUtf8(std::u32string{ char32_t{ 0xDFFF } }) == replacement);
+    CHECK(EncodeUtf8(std::u32string{ char32_t{ 0x110000 } }) == replacement);
+}
+
 TEST_CASE("An empty path is empty text", "[core][utf8]")
 {
     CHECK(ToUtf8(fs::path()).empty());
