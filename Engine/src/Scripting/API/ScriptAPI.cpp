@@ -2,6 +2,7 @@
 #include "Scripting/API/CoreAPI.h"
 #include "Scripting/API/InputAPI.h"
 #include "Scripting/API/MathAPI.h"
+#include "Scripting/API/LogicAPI.h"
 #include "Scripting/API/StringAPI.h"
 
 #include <format>
@@ -70,6 +71,7 @@ namespace ByteForge
     {
         RegisterCoreAPI(*this);
         RegisterMathAPI(*this);
+        RegisterLogicAPI(*this);
         RegisterStringAPI(*this);
         RegisterInputAPI(*this);
     }

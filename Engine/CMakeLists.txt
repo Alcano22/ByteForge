@@ -167,6 +167,7 @@ add_library(Engine SHARED
         src/Scripting/API/CoreAPI.cpp
         src/Scripting/API/InputAPI.cpp
         src/Scripting/API/MathAPI.cpp
+        src/Scripting/API/LogicAPI.cpp
         src/Scripting/API/StringAPI.cpp
         src/Scripting/CSharp/DotNetHost.cpp
         src/Scripting/CSharp/CSharpScriptBackend.cpp
