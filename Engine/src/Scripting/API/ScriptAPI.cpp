@@ -3,6 +3,8 @@
 #include "Scripting/API/InputAPI.h"
 #include "Scripting/API/MathAPI.h"
 #include "Scripting/API/LogicAPI.h"
+#include "Scripting/API/TimeAPI.h"
+#include "Scripting/API/RandomAPI.h"
 #include "Scripting/API/StringAPI.h"
 
 #include <format>
@@ -73,6 +75,8 @@ namespace ByteForge
         RegisterMathAPI(*this);
         RegisterLogicAPI(*this);
         RegisterStringAPI(*this);
+        RegisterTimeAPI(*this);
+        RegisterRandomAPI(*this);
         RegisterInputAPI(*this);
     }
 

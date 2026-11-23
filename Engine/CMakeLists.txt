@@ -89,6 +89,7 @@ add_library(Engine SHARED
         src/Core/Window.cpp
         src/Core/LayerStack.cpp
         src/Core/JobSystem.cpp
+        src/Core/Random.cpp
         src/Input/Input.cpp
         src/Input/InputControl.cpp
         src/Input/InputControlSource.cpp
@@ -168,6 +169,8 @@ add_library(Engine SHARED
         src/Scripting/API/InputAPI.cpp
         src/Scripting/API/MathAPI.cpp
         src/Scripting/API/LogicAPI.cpp
+        src/Scripting/API/TimeAPI.cpp
+        src/Scripting/API/RandomAPI.cpp
         src/Scripting/API/StringAPI.cpp
         src/Scripting/CSharp/DotNetHost.cpp
         src/Scripting/CSharp/CSharpScriptBackend.cpp

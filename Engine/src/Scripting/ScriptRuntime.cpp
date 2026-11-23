@@ -1,6 +1,7 @@
 #include "Scripting/ScriptRuntime.h"
 
 #include "Engine/Core/Log.h"
+#include "Engine/Core/Random.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/Entity.h"
@@ -47,6 +48,10 @@ namespace ByteForge
         if (m_Running) return;
 
         m_Running = true;
+
+        m_Scene.GetTime().Reset();
+        m_Scene.GetRandom().SetSeed(Random::EntropySeed());
+
         ScriptEngine::Get().OnRuntimeStart(m_Scene);
         Sync();
     }
@@ -72,6 +77,8 @@ namespace ByteForge
 
     void ScriptRuntime::Update(const Timestep ts)
     {
+        m_Scene.GetTime().Advance(ts);
+
         Sync();
 
         for (const Entity button : GameUI::UpdatePointer(m_Scene))

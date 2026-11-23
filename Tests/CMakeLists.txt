@@ -14,6 +14,8 @@ add_executable(ByteForgeTests
         src/Scripting/LogicAPITests.cpp
         src/Scripting/VectorAPITests.cpp
         src/Scripting/StringAPITests.cpp
+        src/Scripting/TimeAPITests.cpp
+        src/Scripting/RandomAPITests.cpp
         src/Scripting/ScriptAPICompatibilityTests.cpp
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp

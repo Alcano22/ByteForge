@@ -2,11 +2,13 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/NonCopyable.h"
+#include "Engine/Core/Random.h"
 #include "Engine/Core/Timestep.h"
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/Renderer2D.h"
 #include "Engine/Scene/UUID.h"
 #include "Engine/Scene/PhysicsLayers.h"
+#include "Engine/Scene/SceneTime.h"
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -73,6 +75,10 @@ namespace ByteForge
         [[nodiscard]] InputActionSystem* GetInputActions() const { return m_InputActions; }
         void SetInputActions(InputActionSystem* actions) { m_InputActions = actions; }
 
+        [[nodiscard]] SceneTime& GetTime() { return m_Time; }
+        [[nodiscard]] const SceneTime& GetTime() const { return m_Time; }
+        [[nodiscard]] Random& GetRandom() { return m_Random; }
+
         void EnsureRuntimeBody(Entity entity);
         void SyncRuntimeBodies(Entity root);
         void RebuildRuntimeBody(Entity entity);
@@ -125,5 +131,8 @@ namespace ByteForge
         Scope<ScriptRuntime> m_ScriptRuntime;
 
         InputActionSystem* m_InputActions = nullptr;
+
+        SceneTime m_Time;
+        Random m_Random;
     };
 }
