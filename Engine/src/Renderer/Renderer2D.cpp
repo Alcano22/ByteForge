@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <string_view>
+#include <variant>
 
 namespace ByteForge
 {
@@ -25,6 +27,17 @@ namespace ByteForge
                 { ShaderDataType::Float4, "Color"    },
                 { ShaderDataType::UInt,   "EntityId" }
             };
+        }
+
+        std::string ShaderParameterName(const std::string_view parameter)
+        {
+            std::string name = "u_";
+            for (const char c : parameter)
+            {
+                if (c != ' ')
+                    name += c;
+            }
+            return name;
         }
     }
 
@@ -66,6 +79,8 @@ namespace ByteForge
         constexpr std::array<std::byte, 4> white{ std::byte{ 255 }, std::byte{ 255 },
                                                   std::byte{ 255 }, std::byte{ 255 } };
         m_WhiteTexture = Texture2D::Create(1, 1, white, { .Filter = TextureFilter::Nearest, .GenerateMips = false });
+
+        m_DefaultMaterial = MakeRef<MaterialAsset>(UUID(0), MaterialData{});
     }
 
     void Renderer2D::BeginScene(const Camera& camera)
@@ -97,18 +112,19 @@ namespace ByteForge
         Flush();
 
         m_CurrentTexture = nullptr;
+        m_CurrentMaterial = nullptr;
         m_InScene = false;
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
     {
-        SubmitQuad(position, size, 0.0f, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, 0);
+        SubmitQuad(position, size, 0.0f, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, nullptr, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
                               const Ref<Texture2D>& texture, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, 0.0f, texture, WholeTextureUVMin, WholeTextureUVMax, tint, 0);
+        SubmitQuad(position, size, 0.0f, texture, WholeTextureUVMin, WholeTextureUVMax, tint, nullptr, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size,
@@ -118,25 +134,27 @@ namespace ByteForge
             throw LogicError("Renderer2D::DrawQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, 0.0f, subTexture->GetTexture(),
-                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, 0);
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, nullptr, 0);
     }
 
     void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                               const glm::vec2& uvMin, const glm::vec2& uvMax, const glm::vec4& tint)
     {
-        SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint, 0);
+        SubmitQuad(position, size, 0.0f, texture, uvMin, uvMax, tint, nullptr, 0);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                      const glm::vec4& color, const u32 entityId)
     {
-        SubmitQuad(position, size, rotation, m_WhiteTexture, WholeTextureUVMin, WholeTextureUVMax, color, entityId);
+        SubmitQuad(position, size, rotation, m_WhiteTexture,
+                   WholeTextureUVMin, WholeTextureUVMax, color, nullptr, entityId);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                      const Ref<Texture2D>& texture, const glm::vec4& tint, const u32 entityId)
     {
-        SubmitQuad(position, size, rotation, texture, WholeTextureUVMin, WholeTextureUVMax, tint, entityId);
+        SubmitQuad(position, size, rotation, texture,
+                   WholeTextureUVMin, WholeTextureUVMax, tint, nullptr, entityId);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
@@ -147,19 +165,26 @@ namespace ByteForge
             throw LogicError("Renderer2D::DrawRotatedQuad: the sub-texture must not be null");
 
         SubmitQuad(position, size, rotation, subTexture->GetTexture(),
-                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, entityId);
+                   subTexture->GetUVMin(), subTexture->GetUVMax(), tint, nullptr, entityId);
     }
 
     void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                      const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
                                      const glm::vec4& tint, const u32 entityId)
     {
-        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint, entityId);
+        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint, nullptr, entityId);
+    }
+
+    void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
+                                     const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
+                                     const glm::vec4& tint, const Ref<MaterialAsset>& material, const u32 entityId)
+    {
+        SubmitQuad(position, size, rotation, texture, uvMin, uvMax, tint, material, entityId);
     }
 
     void Renderer2D::SubmitQuad(const glm::vec3& position, const glm::vec2& size, const f32 rotation,
                                 const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                                const glm::vec4& color, const u32 entityId)
+                                const glm::vec4& color, const Ref<MaterialAsset>& material, const u32 entityId)
     {
         if (!m_InScene)
             throw LogicError("Renderer2D: quads can only be drawn between BeginScene and EndScene");
@@ -167,10 +192,12 @@ namespace ByteForge
         if (!texture)
             throw LogicError("Renderer2D: the texture of a quad must not be null");
 
-        if (texture != m_CurrentTexture)
+        const Ref<MaterialAsset>& resolvedMaterial = material ? material : m_DefaultMaterial;
+        if (texture != m_CurrentTexture || resolvedMaterial != m_CurrentMaterial)
         {
             Flush();
             m_CurrentTexture = texture;
+            m_CurrentMaterial = resolvedMaterial;
         }
 
         if (m_FrameQuads == m_Capacity && !Grow())
@@ -231,7 +258,7 @@ namespace ByteForge
             .First        = 0,
             .VertexOffset = static_cast<i32>(firstVertex)
         };
-        Renderer::Submit(GetMaterial(m_CurrentTexture), m_Mesh, range);
+        Renderer::Submit(GetMaterial(m_CurrentMaterial, m_CurrentTexture), m_Mesh, range);
 
         ++m_Stats.DrawCalls;
         m_BatchStart = m_FrameQuads;
@@ -272,20 +299,66 @@ namespace ByteForge
         return true;
     }
 
-    Ref<Material> Renderer2D::GetMaterial(const Ref<Texture2D>& texture)
+    Ref<Material> Renderer2D::GetMaterial(const Ref<MaterialAsset>& asset, const Ref<Texture2D>& texture)
     {
-        if (const auto it = m_Materials.find(texture.get()); it != m_Materials.end())
-            return it->second.Instance;
+        const MaterialKey key{ .Asset = asset.get(), .Texture = texture.get() };
+
+        if (const auto it = m_Materials.find(key); it != m_Materials.end())
+        {
+            const MaterialEntry& entry = it->second;
+            if (entry.Asset.lock() == asset && entry.Texture.lock() == texture && entry.Revision == asset->GetRevision())
+                return entry.Instance;
+        }
 
         Ref<Material> material = Material::Create(m_Pipeline);
         material->Set("u_Texture", texture);
+        ApplyParameters(*material, asset->GetData());
 
-        m_Materials.emplace(texture.get(), MaterialEntry{ .Texture = texture, .Instance = material });
+        m_Materials.insert_or_assign(key, MaterialEntry{
+            .Asset    = asset,
+            .Texture  = texture,
+            .Revision = asset->GetRevision(),
+            .Instance = material
+        });
         return material;
+    }
+
+    void Renderer2D::ApplyParameters(Material& material, const MaterialData& data) const
+    {
+        const MaterialShaderInfo* shader = FindMaterialShader(data.Shader);
+        if (shader == nullptr)
+            shader = FindMaterialShader(SpriteUnlitShader);
+
+        for (const MaterialParameterInfo& parameter : shader->Parameters)
+        {
+            const MaterialValue value = ResolveMaterialParameter(data, parameter);
+            const std::string name = ShaderParameterName(parameter.Name);
+
+            switch (parameter.Type)
+            {
+                case MaterialParameterType::Float:
+                    material.Set(name, std::get<f32>(value));
+                    break;
+
+                case MaterialParameterType::Color:
+                {
+                    const glm::vec4 color = std::get<glm::vec4>(value);
+                    material.Set(name, m_LinearizeColors ? SrgbToLinear(color) : color);
+                    break;
+                }
+
+                case MaterialParameterType::Texture:
+                    throw LogicError("Renderer2D: material parameter '{}' is a texture, which sprite shaders "
+                                     "don't support yet", parameter.Name);
+            }
+        }
     }
 
     void Renderer2D::EvictUnusedMaterials()
     {
-        std::erase_if(m_Materials, [](const auto& entry) { return entry.second.Texture.use_count() <= 1; });
+        std::erase_if(m_Materials, [](const auto& entry)
+        {
+            return entry.second.Asset.expired() || entry.second.Texture.use_count() <= 1;
+        });
     }
 }

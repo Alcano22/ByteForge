@@ -55,6 +55,11 @@ namespace ByteForge
             if (EditorUI::TextureAssetField("Texture", texture, context.SelectionContext))
                 spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
 
+            UUID material = spriteRenderer.Material ? spriteRenderer.Material->GetHandle() : UUID(0);
+            if (EditorUI::AssetReferenceField("Material", AssetType::Material, material, context.SelectionContext,
+                                              "None (Sprite Unlit)"))
+                spriteRenderer.Material = material.IsSet() ? AssetManager::LoadMaterial(material) : nullptr;
+
             ImGui::DragInt("Sorting Layer", &spriteRenderer.SortingLayer, 0.1f);
             if (ImGui::IsItemHovered())
             {

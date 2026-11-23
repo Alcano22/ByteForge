@@ -300,7 +300,7 @@ namespace ByteForge
         return children;
     }
 
-    std::vector<Entity> Scene::GetRootEntities()
+    std::vector<Entity> Scene::GetRootEntities() const
     {
         std::vector<Entity> roots;
         roots.reserve(m_RootOrder.size());
@@ -437,17 +437,13 @@ namespace ByteForge
             const auto& spriteRenderer = view.get<SpriteRendererComponent>(item.Handle);
             const u32 pickingId = ToPickingId(item.Handle);
 
-            if (spriteRenderer.Sprite)
-            {
-                const Sprite& sprite = *spriteRenderer.Sprite;
-                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                         sprite.GetTexture(), sprite.GetUVMin(), sprite.GetUVMax(),
-                                         spriteRenderer.Color, pickingId);
-            } else
-            {
-                renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation,
-                                         spriteRenderer.Color, pickingId);
-            }
+            const Ref<ByteForge::Sprite>& sprite = spriteRenderer.Sprite;
+            const Ref<Texture2D>& texture = sprite ? sprite->GetTexture() : renderer.GetWhiteTexture();
+            const glm::vec2 uvMin = sprite ? sprite->GetUVMin() : glm::vec2(0.0f);
+            const glm::vec2 uvMax = sprite ? sprite->GetUVMax() : glm::vec2(1.0f);
+
+            renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation, texture,
+                                     uvMin, uvMax, spriteRenderer.Color, spriteRenderer.Material, pickingId);
         }
 
         renderer.EndScene();

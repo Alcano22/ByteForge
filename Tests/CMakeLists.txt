@@ -10,6 +10,7 @@ add_executable(ByteForgeTests
         src/Core/RandomTests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
+        src/Scene/SpriteRendererTests.cpp
         src/Scripting/InputAPITests.cpp
         src/Scripting/MathAPITests.cpp
         src/Scripting/LogicAPITests.cpp

@@ -3,6 +3,11 @@
 [[vk::binding(0, 1)]] Texture2D u_Texture;
 [[vk::binding(1, 1)]] SamplerState u_TextureSampler;
 
+[[vk::binding(2, 1)]] cbuffer MaterialUBO
+{
+    float4 u_Tint;
+};
+
 struct VSInput
 {
     float3 Position : POSITION;
@@ -23,15 +28,15 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output;
     output.Position = mul(u_ViewProjection, float4(input.Position, 1.0));
-    output.UV = input.UV;
-    output.Color = input.Color;
+    output.UV       = input.UV;
+    output.Color    = input.Color;
     output.EntityId = input.EntityId;
     return output;
 }
 
 float4 ShadeQuad(VSOutput input)
 {
-    return u_Texture.Sample(u_TextureSampler, input.UV) * input.Color;
+    return u_Texture.Sample(u_TextureSampler, input.UV) * input.Color * u_Tint;
 }
 
 #ifdef ENTITY_ID

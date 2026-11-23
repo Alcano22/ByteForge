@@ -21,6 +21,9 @@ namespace ByteForge
                 { "uvMax",   ToJson(component.Sprite->GetUVMax())                               }
             };
         }
+
+        if (component.Material && component.Material->GetHandle().IsSet())
+            json["material"] = static_cast<u64>(component.Material->GetHandle());
     }
 
     void SpriteRendererComponent::Read(SpriteRendererComponent& component, const nlohmann::json& json)
@@ -36,5 +39,9 @@ namespace ByteForge
                 AssetManager::LoadTexture2D(UUID(sp.at("texture").get<u64>())),
                 ToVec2(sp.at("uvMin")), ToVec2(sp.at("uvMax")));
         }
+
+        component.Material = json.contains("material")
+                           ? AssetManager::LoadMaterial(UUID(json.at("material").get<u64>()))
+                           : nullptr;
     }
 }

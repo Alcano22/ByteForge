@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/NonCopyable.h"
+#include "Engine/Assets/MaterialAsset.h"
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/ImageFormat.h"
 #include "Engine/Renderer/Material.h"
@@ -12,9 +13,12 @@
 
 #include <glm/glm.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -37,8 +41,6 @@ namespace ByteForge
         u32 DroppedQuads = 0;
     };
 
-    // Colors and tints are in sRGB, exactly as a color picker shows them. When rendering into an
-    // sRGB target they are converted to linear, so the hardware's sRGB encoding restores them.
     class BYTEFORGE_API Renderer2D : NonCopyable
     {
     public:
@@ -67,20 +69,28 @@ namespace ByteForge
                              const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
                              const glm::vec4& tint = glm::vec4(1.0f), u32 entityId = 0);
 
+        void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
+                             const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
+                             const glm::vec4& tint, const Ref<MaterialAsset>& material, u32 entityId = 0);
+
+        [[nodiscard]] const Ref<Texture2D>& GetWhiteTexture() const { return m_WhiteTexture; }
+
         [[nodiscard]] const Renderer2DStats& GetStats() const { return m_Stats; }
         [[nodiscard]] u32 GetCapacity() const { return m_Capacity; }
 
     private:
         void SubmitQuad(const glm::vec3& position, const glm::vec2& size, f32 rotation,
                         const Ref<Texture2D>& texture, const glm::vec2& uvMin, const glm::vec2& uvMax,
-                        const glm::vec4& color, u32 entityId);
+                        const glm::vec4& color, const Ref<MaterialAsset>& material, u32 entityId);
         void Flush();
 
         void CreateBuffers(u32 capacity);
         [[nodiscard]] bool Grow();
 
-        [[nodiscard]] Ref<Material> GetMaterial(const Ref<Texture2D>& texture);
+        [[nodiscard]] Ref<Material> GetMaterial(const Ref<MaterialAsset>& asset, const Ref<Texture2D>& texture);
         void EvictUnusedMaterials();
+
+        void ApplyParameters(Material& material, const MaterialData& data) const;
 
     private:
         struct Vertex
@@ -91,9 +101,30 @@ namespace ByteForge
             u32 EntityId;
         };
 
+        struct MaterialKey
+        {
+            const MaterialAsset* Asset = nullptr;
+            const Texture2D* Texture = nullptr;
+
+            bool operator==(const MaterialKey&) const = default;
+        };
+
+        struct MaterialKeyHash
+        {
+            usize operator()(const MaterialKey& key) const noexcept
+            {
+                const usize asset = std::hash<const void*>{}(key.Asset);
+                const usize texture = std::hash<const void*>{}(key.Texture);
+                constexpr usize Golden = static_cast<usize>(0x9E3779B97F4A7C15ull);
+                return asset ^ (texture + Golden + (asset << 6) + (asset >> 2));
+            }
+        };
+
         struct MaterialEntry
         {
+            std::weak_ptr<MaterialAsset> Asset;
             std::weak_ptr<Texture2D> Texture;
+            u64 Revision = 0;
             Ref<Material> Instance;
         };
 
@@ -103,7 +134,8 @@ namespace ByteForge
         Ref<VertexBuffer> m_VertexBuffer;
         Ref<Mesh> m_Mesh;
         Ref<Texture2D> m_WhiteTexture;
-        std::unordered_map<const Texture2D*, MaterialEntry> m_Materials;
+        Ref<MaterialAsset> m_DefaultMaterial;
+        std::unordered_map<MaterialKey, MaterialEntry, MaterialKeyHash> m_Materials;
 
         std::vector<Vertex> m_Vertices;
 
@@ -114,6 +146,7 @@ namespace ByteForge
         u32 m_FrameQuads = 0;
         u32 m_BatchStart = 0;
         Ref<Texture2D> m_CurrentTexture;
+        Ref<MaterialAsset> m_CurrentMaterial;
         bool m_InScene = false;
         bool m_LinearizeColors = false;
 

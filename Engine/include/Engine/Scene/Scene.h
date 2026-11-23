@@ -54,7 +54,7 @@ namespace ByteForge
         void SetParent(Entity child, Entity parent, bool keepWorldTransform = true, i32 index = -1);
         [[nodiscard]] Entity GetParent(Entity entity) const;
         [[nodiscard]] std::vector<Entity> GetChildren(Entity entity) const;
-        [[nodiscard]] std::vector<Entity> GetRootEntities();
+        [[nodiscard]] std::vector<Entity> GetRootEntities() const;
         [[nodiscard]] bool IsDescendantOf(Entity entity, Entity ancestor) const;
 
         [[nodiscard]] i32 GetSiblingIndex(Entity entity) const;
