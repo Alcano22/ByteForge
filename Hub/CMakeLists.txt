@@ -37,6 +37,7 @@ qt_add_qml_module(Hub
         qml/HubBadge.qml
         qml/HubCheckBox.qml
         qml/HubProgressBar.qml
+        qml/PackagesPage.qml
     SOURCES
         src/QtConversions.h
         src/ProjectListModel.h
@@ -49,6 +50,10 @@ qt_add_qml_module(Hub
         src/ReleaseListModel.cpp
         src/EditorDownload.h
         src/EditorDownload.cpp
+        src/SdkDownload.h
+        src/SdkDownload.cpp
+        src/PackageController.h
+        src/PackageController.cpp
         src/HubController.h
         src/HubController.cpp
 )

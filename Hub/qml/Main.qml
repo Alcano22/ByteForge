@@ -35,8 +35,10 @@ ApplicationWindow {
     }
 
     onActiveChanged: {
-        if (active)
+        if (active) {
             HubController.refresh()
+            PackageController.refresh()
+        }
     }
 
     header: ToolBar {
@@ -87,6 +89,10 @@ ApplicationWindow {
                 HubTab {
                     text: "Installs"
                 }
+
+                HubTab {
+                    text: "Packages"
+                }
             }
 
             Item {
@@ -102,6 +108,8 @@ ApplicationWindow {
         ProjectsPage {}
 
         InstallsPage {}
+
+        PackagesPage {}
     }
 
     Rectangle {
@@ -146,6 +154,14 @@ ApplicationWindow {
 
     Connections {
         target: HubController
+
+        function onErrorOccurred(message) {
+            errorBanner.show(message)
+        }
+    }
+
+    Connections {
+        target: PackageController
 
         function onErrorOccurred(message) {
             errorBanner.show(message)

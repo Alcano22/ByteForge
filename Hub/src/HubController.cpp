@@ -5,6 +5,7 @@
 #include <Engine/Core/SemanticVersion.h>
 #include <Engine/Core/Version.h>
 #include <Engine/Core/FileLock.h>
+#include <Engine/Core/Platform.h>
 #include <Engine/Project/Project.h>
 #include <Engine/Project/ProjectSettings.h>
 #include <Engine/Project/ProjectTemplate.h>
@@ -35,8 +36,7 @@ namespace ByteForge::Hub
 
         fs::path QueryInstallsDirectory()
         {
-            return ToPath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)) /
-                   "ByteForge" / "Editors";
+            return Platform::GetUserDataDirectory() / "Editors";
         }
 
         std::string ReadProjectVersion(const Project& project)
