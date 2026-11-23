@@ -43,6 +43,7 @@ add_executable(ByteForgeTests
         src/Hub/EditorInstallsTests.cpp
         src/Hub/EditorManifestTests.cpp
         src/Hub/EditorReleasesTests.cpp
+        src/Hub/DotNetPackageTests.cpp
 )
 
 target_include_directories(ByteForgeTests PRIVATE src)

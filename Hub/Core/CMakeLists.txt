@@ -6,6 +6,7 @@ add_library(HubCore STATIC
         src/EditorManifest.cpp
         src/Archive.cpp
         src/EditorChoice.cpp
+        src/DotNetPackage.cpp
 )
 
 target_include_directories(HubCore PUBLIC include)
