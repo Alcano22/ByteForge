@@ -46,7 +46,7 @@ namespace ByteForge::Platform
             if (std::optional<fs::path> overridden = GetEnvironmentPath("BYTEFORGE_DATA_DIR"))
                 return *overridden;
 
-            return Detail::QueryUserConfigDirectory() / "ByteForge";
+            return Detail::QueryUserDataDirectory() / "ByteForge";
         }();
         return directory;
     }
