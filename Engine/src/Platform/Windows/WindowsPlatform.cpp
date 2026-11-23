@@ -79,10 +79,30 @@ namespace ByteForge
             const std::wstring extension = program.extension().wstring();
             return _wcsicmp(extension.c_str(), L".cmd") == 0 || _wcsicmp(extension.c_str(), L".bat") == 0;
         }
+
+        fs::path QueryModulePath(const HMODULE module)
+        {
+            std::wstring buffer(MAX_PATH, L'\0');
+
+            while (true)
+            {
+                const DWORD length = GetModuleFileNameW(module, buffer.data(), static_cast<DWORD>(buffer.size()));
+                if (length == 0)
+                    throw Error("Platform: GetModuleFileNameW failed (error {})", GetLastError());
+
+                if (length < buffer.size())
+                {
+                    buffer.resize(length);
+                    return fs::path(buffer);
+                }
+
+                buffer.resize(buffer.size() * 2);
+            }
+        }
     }
 
     SharedLibrary::SharedLibrary(const fs::path& path)
-        : m_Handle(LoadLibraryW(path.c_str()))
+        : m_Handle(LoadLibraryExW(path.c_str(), nullptr, path.is_absolute() ? LOAD_WITH_ALTERED_SEARCH_PATH : 0))
     {
         if (m_Handle == nullptr)
         {
@@ -100,6 +120,18 @@ namespace ByteForge
     void* SharedLibrary::GetSymbol(const char* name) const
     {
         return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(m_Handle), name));
+    }
+
+    fs::path SharedLibrary::GetPathOf(const void* address)
+    {
+        HMODULE module = nullptr;
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                static_cast<LPCWSTR>(address), &module))
+        {
+            throw Error("Platform: no loaded module contains address {} (error {})", address, GetLastError());
+        }
+
+        return QueryModulePath(module);
     }
 
     Platform::ProcessResult Platform::RunProcess(const std::vector<std::string>& arguments)
@@ -238,25 +270,7 @@ namespace ByteForge::Platform::Detail
         }
     }
 
-    fs::path QueryExecutablePath()
-    {
-        std::wstring buffer(MAX_PATH, L'\0');
-
-        while (true)
-        {
-            const DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
-            if (length == 0)
-                throw Error("Platform: GetModuleFileNameW failed (error {})", GetLastError());
-
-            if (length < buffer.size())
-            {
-                buffer.resize(length);
-                return fs::path(buffer);
-            }
-
-            buffer.resize(buffer.size() * 2);
-        }
-    }
+    fs::path QueryExecutablePath() { return QueryModulePath(nullptr); }
 
     std::vector<std::string> QueryCommandLineArguments()
     {

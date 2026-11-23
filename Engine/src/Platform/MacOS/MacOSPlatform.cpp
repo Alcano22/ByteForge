@@ -36,6 +36,15 @@ namespace ByteForge
     {
         return dlsym(m_Handle, name);
     }
+
+    fs::path SharedLibrary::GetPathOf(const void* address)
+    {
+        Dl_info info{};
+        if (dladdr(address, &info) == 0 || info.dli_fname == nullptr)
+            throw Error("Platform: no loaded library contains address {}", address);
+
+        return fs::absolute(fs::path(info.dli_fname));
+    }
 }
 
 namespace ByteForge::Platform::Detail

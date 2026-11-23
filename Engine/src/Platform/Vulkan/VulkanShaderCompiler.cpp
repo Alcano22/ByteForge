@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <format>
 #include <mutex>
+#include <system_error>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -46,6 +47,23 @@ namespace ByteForge
 #else
         constexpr const char* DxcLibraryName = "libdxcompiler.so";
 #endif
+
+        constexpr char EngineModuleAnchor = 0;
+
+        fs::path FindDxcLibrary()
+        {
+            const fs::path engine = SharedLibrary::GetPathOf(&EngineModuleAnchor);
+            fs::path library = engine.parent_path() / DxcLibraryName;
+
+            std::error_code error;
+            if (!fs::is_regular_file(library, error))
+            {
+                throw Error("'{}' is missing, the shader compiler belongs next to '{}'",
+                            ToUtf8(library), ToUtf8(engine.filename()));
+            }
+
+            return library;
+        }
 
         template<typename T>
         ComScope<T> CreateDxcInstance(const DxcCreateInstanceProc createInstance, REFCLSID clsid)
@@ -88,8 +106,10 @@ namespace ByteForge
     VulkanShaderCompiler::VulkanShaderCompiler()
         : m_Impl(MakeScope<Impl>())
     {
+        fs::path libraryPath;
         try
         {
+            libraryPath = FindDxcLibrary();
             m_Impl->Library = MakeScope<SharedLibrary>(fs::path(DxcLibraryName));
         } catch (const std::exception& e)
         {
@@ -109,7 +129,7 @@ namespace ByteForge
             throw Error("Failed to create DXC include handler");
         m_Impl->IncludeHandler = ComScope<IDxcIncludeHandler>(rawHandler, ComDeleter<IDxcIncludeHandler>{});
 
-        CORE_INFO("DXC shader compiler initialized");
+        CORE_INFO("DXC shader compiler initialized from '{}'", ToUtf8(libraryPath));
     }
 
     VulkanShaderCompiler::~VulkanShaderCompiler() = default;

@@ -17,6 +17,8 @@ namespace ByteForge
 
         [[nodiscard]] void* GetSymbol(const char* name) const;
 
+        [[nodiscard]] static fs::path GetPathOf(const void* address);
+
     private:
         void* m_Handle = nullptr;
     };
