@@ -4,6 +4,7 @@
 #include "Engine/Assets/AnimationClip.h"
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Assets/InputActions.h"
+#include "Engine/Assets/MaterialAsset.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
 #include "Engine/Core/StringUtils.h"
 
@@ -47,6 +48,8 @@ namespace ByteForge
             return AssetType::Font;
         if (ext == InputActionsExtension)
             return AssetType::InputActions;
+        if (ext == MaterialExtension)
+            return AssetType::Material;
 
         return AssetType::None;
     }

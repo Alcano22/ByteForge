@@ -7,6 +7,7 @@ add_executable(ByteForgeTests
         src/Core/ErrorTests.cpp
         src/Core/SemanticVersionTests.cpp
         src/Core/Utf8Tests.cpp
+        src/Core/RandomTests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
         src/Scripting/InputAPITests.cpp
@@ -28,6 +29,7 @@ add_executable(ByteForgeTests
         src/Assets/PakTests.cpp
         src/Assets/PrefabTests.cpp
         src/Assets/InputActionsTests.cpp
+        src/Assets/MaterialAssetTests.cpp
         src/Project/ProjectTests.cpp
         src/Project/ProjectSettingsTests.cpp
         src/Project/RecentProjectsTests.cpp

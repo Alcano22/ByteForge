@@ -15,6 +15,8 @@
 #include <Engine/Scripting/Visual/GraphSchema.h>
 #include <Engine/Scripting/Visual/ScriptGraphSerializer.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
@@ -22,7 +24,9 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <variant>
 
 namespace ByteForge::EditorUI
 {
@@ -173,6 +177,110 @@ namespace ByteForge::EditorUI
             ImGui::TextDisabled("or double-click it in the Assets panel");
         }
 
+        std::optional<UUID> s_UnsavedMaterial;
+
+        void SaveUnsavedMaterial()
+        {
+            if (const std::optional<UUID> handle = std::exchange(s_UnsavedMaterial, std::nullopt))
+                AssetManager::SaveMaterial(*handle);
+        }
+
+        void DisabledTextWrapped(const std::string_view text)
+        {
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextDisabled("%.*s", static_cast<int>(text.size()), text.data());
+            ImGui::PopTextWrapPos();
+        }
+
+        bool DrawMaterialParameter(const MaterialParameterInfo& parameter,
+                                   MaterialValue& value, EditorContext& context)
+        {
+            const std::string label(parameter.Name);
+            bool changed = false;
+
+            if (auto* number = std::get_if<f32>(&value))
+                changed = ImGui::DragFloat(label.c_str(), number, 0.01f);
+            else if (auto* color = std::get_if<glm::vec4>(&value))
+                changed = ImGui::ColorEdit4(label.c_str(), glm::value_ptr(*color));
+            else if (auto* texture = std::get_if<MaterialTexture>(&value))
+                changed = AssetReferenceField(label.c_str(), AssetType::Texture2D, texture->Handle, context.SelectionContext);
+
+            if (!parameter.Tooltip.empty())
+                ImGui::SetItemTooltip("%.*s", static_cast<int>(parameter.Tooltip.size()), parameter.Tooltip.data());
+
+            return changed;
+        }
+
+        void DrawMaterialInspector(const AssetMetadata& metadata, EditorContext& context)
+        {
+            MaterialData data = AssetManager::LoadMaterial(metadata.Handle)->GetData();
+            bool changed = false;
+
+            const MaterialShaderInfo* shader = FindMaterialShader(data.Shader);
+            const std::string preview = shader != nullptr ? std::string(shader->DisplayName)
+                                                          : std::format("Unknown ({})", data.Shader);
+
+            if (ImGui::BeginCombo("Shader", preview.c_str()))
+            {
+                for (const MaterialShaderInfo& candidate : GetMaterialShaders())
+                {
+                    const bool selected = &candidate == shader;
+                    const std::string name(candidate.DisplayName);
+
+                    if (ImGui::Selectable(name.c_str(), selected) && !selected)
+                    {
+                        data.Shader = candidate.Id;
+                        changed = true;
+                    }
+                    ImGui::SetItemTooltip("%.*s", static_cast<int>(candidate.Description.size()),
+                                          candidate.Description.data());
+
+                    if (selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            shader = FindMaterialShader(data.Shader);
+            if (shader == nullptr)
+            {
+                ErrorTextWrapped("This shader does not exist. Pick one of the built-in shaders above, "
+                                 "the stored parameter values are kept.");
+            } else
+            {
+                DisabledTextWrapped(shader->Description);
+
+                if (!shader->Parameters.empty())
+                {
+                    ImGui::SeparatorText("Parameters");
+
+                    for (const MaterialParameterInfo& parameter : shader->Parameters)
+                    {
+                        const std::string name(parameter.Name);
+                        ImGui::PushID(name.c_str());
+
+                        MaterialValue value = ResolveMaterialParameter(data, parameter);
+                        if (DrawMaterialParameter(parameter, value, context))
+                        {
+                            data.Parameters.insert_or_assign(name, std::move(value));
+                            changed = true;
+                        }
+
+                        ImGui::PopID();
+                    }
+                }
+            }
+
+            if (changed)
+            {
+                AssetManager::SetMaterial(metadata.Handle, std::move(data));
+                s_UnsavedMaterial = metadata.Handle;
+            }
+
+            if (!ImGui::IsAnyItemActive())
+                SaveUnsavedMaterial();
+        }
+
         std::string MakeUniqueStateName(const AnimatorControllerData& data, const std::string& base,
                                         const std::optional<usize> ignore = std::nullopt)
         {
@@ -309,6 +417,9 @@ namespace ByteForge::EditorUI
 
     void DrawAssetInspector(const UUID handle, EditorContext& context)
     {
+        if (s_UnsavedMaterial && *s_UnsavedMaterial != handle)
+            SaveUnsavedMaterial();
+
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(handle, metadata))
         {
@@ -341,6 +452,7 @@ namespace ByteForge::EditorUI
                 break;
             case AssetType::Font:         DrawFontInspector(metadata);                  break;
             case AssetType::InputActions: DrawInputActionsInspector(metadata, context); break;
+            case AssetType::Material:     DrawMaterialInspector(metadata, context);     break;
             case AssetType::None:                                                       break;
         }
     }

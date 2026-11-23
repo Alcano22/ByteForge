@@ -586,6 +586,8 @@ namespace ByteForge
 
             ImGui::Separator();
 
+            if (ImGui::MenuItem("Material"))
+                CreateMaterial();
             if (ImGui::MenuItem("Physics Material 2D"))
                 CreatePhysicsMaterial();
             if (ImGui::MenuItem("Animation Clip"))
@@ -695,6 +697,19 @@ namespace ByteForge
         const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Input Actions", InputActionsExtension);
 
         if (const auto created = AssetManager::CreateInputActions(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
+            return;
+        }
+
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateMaterial()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Material", MaterialExtension);
+
+        if (const auto created = AssetManager::CreateMaterial(path); !created)
         {
             APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
             return;

@@ -39,6 +39,7 @@ namespace ByteForge
         std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
         std::unordered_map<UUID, Ref<AnimatorControllerAsset>> s_AnimatorControllers;
         std::unordered_map<UUID, Ref<InputActionsAsset>> s_InputActions;
+        std::unordered_map<UUID, Ref<MaterialAsset>> s_Materials;
         std::unordered_map<UUID, Ref<FontAsset>> s_Fonts;
         std::unordered_map<UUID, std::future<Result<FontAtlasData>>> s_PendingFonts;
         Ref<Texture2D> s_Fallback;
@@ -144,6 +145,15 @@ namespace ByteForge
                 return Unexpected(data.error());
 
             return ParseInputActions(*data);
+        }
+
+        Result<MaterialData> ReadMaterial(const UUID handle)
+        {
+            const Result<nlohmann::json> data = AssetRegistry::ReadJson(handle);
+            if (!data)
+                return Unexpected(data.error());
+
+            return ParseMaterial(*data);
         }
     }
 
@@ -504,6 +514,62 @@ namespace ByteForge
         return AssetRegistry::Import(relativePath);
     }
 
+    Ref<MaterialAsset> AssetManager::LoadMaterial(const UUID handle)
+    {
+        if (const auto it = s_Materials.find(handle); it != s_Materials.end())
+            return it->second;
+
+        MaterialData data;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Material)
+            CORE_ERROR("AssetManager: {} is not a known material", static_cast<u64>(handle));
+        else if (auto parsed = ReadMaterial(handle))
+            data = std::move(*parsed);
+        else
+            CORE_ERROR("AssetManager: cannot load '{}': {}", ToGenericUtf8(metadata.Path), parsed.error());
+
+        auto asset = MakeRef<MaterialAsset>(handle, std::move(data));
+        s_Materials.emplace(handle, asset);
+        return asset;
+    }
+
+    void AssetManager::SetMaterial(const UUID handle, MaterialData data)
+    {
+        LoadMaterial(handle)->SetData(std::move(data));
+    }
+
+    bool AssetManager::SaveMaterial(UUID handle)
+    {
+        const auto it = s_Materials.find(handle);
+        AssetMetadata metadata;
+        if (it == s_Materials.end() || !AssetRegistry::TryGetMetadata(handle, metadata))
+            return false;
+
+        const fs::path path = AssetRegistry::GetAssetRoot() / metadata.Path;
+        if (const auto written = WriteJsonFile(path, SerializeMaterial(it->second->GetData())); !written)
+        {
+            CORE_ERROR("AssetManager: cannot save '{}': {}", ToGenericUtf8(metadata.Path), written.error());
+            return false;
+        }
+
+        return true;
+    }
+
+    Result<UUID> AssetManager::CreateMaterial(const fs::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
+
+        if (const auto written = WriteJsonFile(path, SerializeMaterial(MaterialData{})); !written)
+            return Unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
     void AssetManager::Reload(const UUID handle)
     {
         AssetMetadata metadata;
@@ -545,6 +611,14 @@ namespace ByteForge
                 it->second->m_Data = std::move(*actions);
             else
                 CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), actions.error());
+        }
+
+        if (const auto it = s_Materials.find(handle); it != s_Materials.end())
+        {
+            if (auto material = ReadMaterial(handle))
+                it->second->SetData(std::move(*material));
+            else
+                CORE_ERROR("AssetManager: cannot reload '{}': {}", ToGenericUtf8(metadata.Path), material.error());
         }
     }
 
@@ -591,6 +665,7 @@ namespace ByteForge
         s_AnimationClips.clear();
         s_AnimatorControllers.clear();
         s_InputActions.clear();
+        s_Materials.clear();
         s_PendingFonts.clear();
         s_Fonts.clear();
         s_Fallback.reset();

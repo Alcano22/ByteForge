@@ -36,7 +36,7 @@ namespace ByteForge
             "folder.svg",
             "file_generic.svg", "file_script.svg", "file_data.svg", "file_font.svg", "file_audio.svg",
             "file_scene.svg", "file_physics_material.svg", "file_script_graph.svg", "file_animation_clip.svg",
-            "file_animator_controller.svg", "file_input_actions.svg",
+            "file_animator_controller.svg", "file_input_actions.svg", "file_material.svg",
             "player_play.svg", "player_pause.svg", "player_step.svg", "player_stop.svg",
             "tool_move.svg", "tool_rotate.svg", "tool_scale.svg",
             "component_transform.svg", "component_sprite.svg", "component_rigidbody.svg",
@@ -181,7 +181,9 @@ namespace ByteForge
 
             { ".bfanimator", EditorIcon::FileAnimatorController },
 
-            { ".bfinput",    EditorIcon::FileInputActions       }
+            { ".bfinput",    EditorIcon::FileInputActions       },
+
+            { ".bfmat",      EditorIcon::FileMaterial           }
         };
 
         const std::string extension = ToLower(ToUtf8(path.extension()));

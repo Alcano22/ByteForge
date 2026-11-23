@@ -45,6 +45,7 @@ namespace ByteForge
             case AssetType::AnimatorController: return std::monostate{};
             case AssetType::Font:               return std::monostate{};
             case AssetType::InputActions:       return std::monostate{};
+            case AssetType::Material:           return std::monostate{};
             case AssetType::None:               break;
         }
         return std::monostate{};
@@ -106,6 +107,7 @@ namespace ByteForge
             case AssetType::AnimatorController: return std::monostate{};
             case AssetType::Font:               return std::monostate{};
             case AssetType::InputActions:       return std::monostate{};
+            case AssetType::Material:           return std::monostate{};
             case AssetType::None:               break;
         }
 

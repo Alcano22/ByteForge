@@ -124,6 +124,7 @@ add_library(Engine SHARED
         src/Assets/AnimationClip.cpp
         src/Assets/AnimatorController.cpp
         src/Assets/InputActions.cpp
+        src/Assets/MaterialAsset.cpp
         src/Audio/AudioEngine.cpp
         src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp

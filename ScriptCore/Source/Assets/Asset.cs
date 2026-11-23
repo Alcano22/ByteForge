@@ -13,7 +13,8 @@ public enum AssetType : byte
     AnimationClip,
     AnimatorController,
     Font,
-    InputActions
+    InputActions,
+    Material
 }
 
 public abstract class Asset
