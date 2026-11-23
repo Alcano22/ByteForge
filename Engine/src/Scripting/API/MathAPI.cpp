@@ -16,6 +16,8 @@ namespace ByteForge
         constexpr i32 IntMin = std::numeric_limits<i32>::min();
         constexpr i32 IntMax = std::numeric_limits<i32>::max();
 
+        constexpr f32 MinNormalizeLength = 1e-6f;
+
         i32 WrapAdd(const i32 a, const i32 b) { return static_cast<i32>(static_cast<u32>(a) + static_cast<u32>(b)); }
         i32 WrapSubtract(const i32 a, const i32 b) { return static_cast<i32>(static_cast<u32>(a) - static_cast<u32>(b)); }
         i32 WrapMultiply(const i32 a, const i32 b) { return static_cast<i32>(static_cast<u32>(a) * static_cast<u32>(b)); }
@@ -42,6 +44,13 @@ namespace ByteForge
                 throw ScriptError("{}: {} does not fit into an Int", function, value);
 
             return static_cast<i32>(value);
+        }
+
+        template<typename Vector>
+        Vector SafeNormalize(const Vector& vector)
+        {
+            const f32 length = glm::length(vector);
+            return length > MinNormalizeLength ? vector / length : Vector(0.0f);
         }
 
         f32 MathAddFloat(const ScriptCallContext&, const f32 a, const f32 b) { return a + b; }
@@ -158,6 +167,64 @@ namespace ByteForge
         {
             return ToInt(std::trunc(static_cast<f64>(value)), "Math.TruncateToInt");
         }
+
+        glm::vec2 MathMakeVector2(const ScriptCallContext&, const f32 x, const f32 y) { return { x, y }; }
+        f32 MathGetXVector2(const ScriptCallContext&, const glm::vec2& v) { return v.x; }
+        f32 MathGetYVector2(const ScriptCallContext&, const glm::vec2& v) { return v.y; }
+
+        glm::vec2 MathAddVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b) { return a + b; }
+        glm::vec2 MathSubtractVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b) { return a - b; }
+        glm::vec2 MathScaleVector2(const ScriptCallContext&, const glm::vec2& v, const f32 s) { return v * s; }
+
+        glm::vec2 MathMultiplyVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b) { return a * b; }
+
+        f32 MathLengthVector2(const ScriptCallContext&, const glm::vec2& v) { return glm::length(v); }
+        glm::vec2 MathNormalizeVector2(const ScriptCallContext&, const glm::vec2& v) { return SafeNormalize(v); }
+        f32 MathDotVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b) { return glm::dot(a, b); }
+        f32 MathDistanceVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b) { return glm::distance(a, b); }
+
+        glm::vec2 MathLerpVector2(const ScriptCallContext&, const glm::vec2& a, const glm::vec2& b, const f32 t)
+        {
+            return glm::mix(a, b, std::clamp(t, 0.0f, 1.0f));
+        }
+
+        glm::vec2 MathRotateVector2(const ScriptCallContext&, const glm::vec2& v, const f32 radians)
+        {
+            const f32 cos = std::cos(radians);
+            const f32 sin = std::sin(radians);
+            return { v.x * cos - v.y * sin, v.x * sin + v.y * cos };
+        }
+
+        f32 MathAngleVector2(const ScriptCallContext&, const glm::vec2& v) { return std::atan2(v.y, v.x); }
+
+        glm::vec2 MathClampLengthVector2(const ScriptCallContext&, const glm::vec2& v, const f32 maxLength)
+        {
+            if (maxLength < 0.0f)
+                throw ScriptError("Math.ClampLengthVector2: Max Length must not be negative, got {}", maxLength);
+
+            const f32 length = glm::length(v);
+            return length > maxLength ? v * (maxLength / length) : v;
+        }
+
+        glm::vec3 MathMakeVector3(const ScriptCallContext&, const f32 x, const f32 y, const f32 z) { return { x, y, z }; }
+        f32 MathGetXVector3(const ScriptCallContext&, const glm::vec3& v) { return v.x; }
+        f32 MathGetYVector3(const ScriptCallContext&, const glm::vec3& v) { return v.y; }
+        f32 MathGetZVector3(const ScriptCallContext&, const glm::vec3& v) { return v.z; }
+
+        glm::vec3 MathSubtractVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return a - b; }
+        f32 MathLengthVector3(const ScriptCallContext&, const glm::vec3& v) { return glm::length(v); }
+        glm::vec3 MathNormalizeVector3(const ScriptCallContext&, const glm::vec3& v) { return SafeNormalize(v); }
+        f32 MathDotVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return glm::dot(a, b); }
+        glm::vec3 MathCrossVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return glm::cross(a, b); }
+        f32 MathDistanceVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b) { return glm::distance(a, b); }
+
+        glm::vec3 MathLerpVector3(const ScriptCallContext&, const glm::vec3& a, const glm::vec3& b, const f32 t)
+        {
+            return glm::mix(a, b, std::clamp(t, 0.0f, 1.0f));
+        }
+
+        glm::vec3 MathVector2ToVector3(const ScriptCallContext&, const glm::vec2& v, const f32 z) { return { v.x, v.y, z }; }
+        glm::vec2 MathVector3ToVector2(const ScriptCallContext&, const glm::vec3& v) { return { v.x, v.y }; }
     }
 
     void RegisterMathAPI(ScriptAPI& api)
@@ -209,5 +276,36 @@ namespace ByteForge
         api.Register<&MathCeilToInt>("Math.CeilToInt", "Ceil To Int", Pure, { "Value" });
         api.Register<&MathRoundToInt>("Math.RoundToInt", "Round To Int", Pure, { "Value" });
         api.Register<&MathTruncateToInt>("Math.TruncateToInt", "Truncate To Int", Pure, { "Value" });
+
+        api.Register<&MathMakeVector2>("Math.MakeVector2", "Make Vector2", Pure, { "X", "Y" });
+        api.Register<&MathGetXVector2>("Math.GetXVector2", "Get X (Vector2)", Pure, { "Vector" });
+        api.Register<&MathGetYVector2>("Math.GetYVector2", "Get Y (Vector2)", Pure, { "Vector" });
+        api.Register<&MathAddVector2>("Math.AddVector2", "Add (Vector2)", Pure, { "A", "B" });
+        api.Register<&MathSubtractVector2>("Math.SubtractVector2", "Subtract (Vector2)", Pure, { "A", "B" });
+        api.Register<&MathScaleVector2>("Math.ScaleVector2", "Scale (Vector2)", Pure, { "Vector", "Scale" });
+        api.Register<&MathMultiplyVector2>("Math.MultiplyVector2", "Multiply (Vector2)", Pure, { "A", "B" });
+        api.Register<&MathLengthVector2>("Math.LengthVector2", "Length (Vector2)", Pure, { "Vector" });
+        api.Register<&MathNormalizeVector2>("Math.NormalizeVector2", "Normalize (Vector2)", Pure, { "Vector" });
+        api.Register<&MathDotVector2>("Math.DotVector2", "Dot (Vector2)", Pure, { "A", "B" });
+        api.Register<&MathDistanceVector2>("Math.DistanceVector2", "Distance (Vector2)", Pure, { "A", "B" });
+        api.Register<&MathLerpVector2>("Math.LerpVector2", "Lerp (Vector2)", Pure, { "A", "B", "T" });
+        api.Register<&MathRotateVector2>("Math.RotateVector2", "Rotate (Vector2)", Pure, { "Vector", "Radians" });
+        api.Register<&MathAngleVector2>("Math.AngleVector2", "Angle (Vector2)", Pure, { "Vector" });
+        api.Register<&MathClampLengthVector2>("Math.ClampLengthVector2", "Clamp Length (Vector2)", Pure, { "Vector", "Max Length" });
+
+        api.Register<&MathMakeVector3>("Math.MakeVector3", "Make Vector3", Pure, { "X", "Y", "Z" });
+        api.Register<&MathGetXVector3>("Math.GetXVector3", "Get X (Vector3)", Pure, { "Vector" });
+        api.Register<&MathGetYVector3>("Math.GetYVector3", "Get Y (Vector3)", Pure, { "Vector" });
+        api.Register<&MathGetZVector3>("Math.GetZVector3", "Get Z (Vector3)", Pure, { "Vector" });
+        api.Register<&MathSubtractVector3>("Math.SubtractVector3", "Subtract (Vector3)", Pure, { "A", "B" });
+        api.Register<&MathLengthVector3>("Math.LengthVector3", "Length (Vector3)", Pure, { "Vector" });
+        api.Register<&MathNormalizeVector3>("Math.NormalizeVector3", "Normalize (Vector3)", Pure, { "Vector" });
+        api.Register<&MathDotVector3>("Math.DotVector3", "Dot (Vector3)", Pure, { "A", "B" });
+        api.Register<&MathCrossVector3>("Math.CrossVector3", "Cross (Vector3)", Pure, { "A", "B" });
+        api.Register<&MathDistanceVector3>("Math.DistanceVector3", "Distance (Vector3)", Pure, { "A", "B" });
+        api.Register<&MathLerpVector3>("Math.LerpVector3", "Lerp (Vector3)", Pure, { "A", "B", "T" });
+
+        api.Register<&MathVector2ToVector3>("Math.Vector2ToVector3", "Vector2 To Vector3", Pure, { "Vector", "Z" });
+        api.Register<&MathVector3ToVector2>("Math.Vector3ToVector2", "Vector3 To Vector2", Pure, { "Vector" });
     }
 }
