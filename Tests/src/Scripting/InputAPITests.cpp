@@ -1,3 +1,5 @@
+#include "Scripting/ScriptTestHelpers.h"
+
 #include <Engine/Event/KeyEvent.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/InputActionSystem.h>
@@ -8,34 +10,15 @@
 
 #include <optional>
 #include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
 
 using namespace ByteForge;
+using namespace ByteForge::Tests;
 
 namespace
 {
-    ScriptValue Text(std::string text)
-    {
-        return ScriptValue(std::in_place_type<std::string>, std::move(text));
-    }
-
-    std::optional<ScriptValue> Call(const ScriptCallContext& context, const std::string_view id,
-                                    const std::vector<ScriptValue>& arguments)
-    {
-        const ScriptFunction* function = ScriptAPI::Get().Find(id);
-        REQUIRE(function != nullptr);
-
-        ValidateArguments(*function, arguments);
-        return function->Invoke(context, arguments);
-    }
-
     bool CallBool(const ScriptCallContext& context, const std::string_view id, const std::string& argument)
     {
-        const std::optional<ScriptValue> result = Call(context, id, { Text(argument) });
-        REQUIRE(result.has_value());
-        return std::get<bool>(*result);
+        return CallScriptAs<bool>(context, id, { Text(argument) });
     }
 
     class InputAPIFixture
@@ -87,9 +70,7 @@ TEST_CASE_METHOD(InputAPIFixture, "Script functions read input actions through t
     CHECK(CallBool(context, "InputAction.WasPressed", "Gameplay/Jump"));
     CHECK_FALSE(CallBool(context, "InputAction.WasReleased", "Gameplay/Jump"));
 
-    const std::optional<ScriptValue> value = Call(context, "InputAction.ReadValue", { Text("Gameplay/Jump") });
-    REQUIRE(value.has_value());
-    CHECK(std::get<glm::vec2>(*value) == glm::vec2(1.0f, 0.0f));
+    CHECK(CallScriptAs<glm::vec2>(context, "InputAction.ReadValue", { Text("Gameplay/Jump") }) == glm::vec2(1.0f, 0.0f));
 }
 
 TEST_CASE_METHOD(InputAPIFixture, "Unknown input actions are reported", "[scripting][input]")
@@ -97,21 +78,21 @@ TEST_CASE_METHOD(InputAPIFixture, "Unknown input actions are reported", "[script
     const ScriptCallContext context = Context();
 
     CHECK_FALSE(CallBool(context, "InputAction.Exists", "Gameplay/Fly"));
-    CHECK_THROWS_AS(Call(context, "InputAction.IsDown", { Text("Gameplay/Fly") }), ScriptError);
-    CHECK_THROWS_AS(Call(context, "InputAction.IsDown", { Text("Jump") }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "InputAction.IsDown", { Text("Gameplay/Fly") }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "InputAction.IsDown", { Text("Jump") }), ScriptError);
 }
 
 TEST_CASE_METHOD(InputAPIFixture, "Action maps can be switched from scripts", "[scripting][input]")
 {
     const ScriptCallContext context = Context();
 
-    Call(context, "InputActions.DisableMap", { Text("Gameplay") });
+    CallScript(context, "InputActions.DisableMap", { Text("Gameplay") });
     CHECK_FALSE(CallBool(context, "InputActions.IsMapEnabled", "Gameplay"));
 
-    Call(context, "InputActions.EnableMap", { Text("Gameplay") });
+    CallScript(context, "InputActions.EnableMap", { Text("Gameplay") });
     CHECK(CallBool(context, "InputActions.IsMapEnabled", "Gameplay"));
 
-    CHECK_THROWS_AS(Call(context, "InputActions.DisableMap", { Text("UI") }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "InputActions.DisableMap", { Text("UI") }), ScriptError);
 }
 
 TEST_CASE("Without input actions the script functions explain why", "[scripting][input]")
@@ -120,6 +101,6 @@ TEST_CASE("Without input actions the script functions explain why", "[scripting]
     const ScriptCallContext context{ .ActiveScene = &scene };
 
     CHECK_FALSE(CallBool(context, "InputAction.Exists", "Gameplay/Jump"));
-    CHECK_THROWS_AS(Call(context, "InputAction.IsDown", { Text("Gameplay/Jump") }), ScriptError);
-    CHECK_THROWS_AS(Call(context, "InputActions.EnableMap", { Text("Gameplay") }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "InputAction.IsDown", { Text("Gameplay/Jump") }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "InputActions.EnableMap", { Text("Gameplay") }), ScriptError);
 }
