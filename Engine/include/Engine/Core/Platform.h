@@ -11,12 +11,14 @@
 namespace ByteForge::Platform
 {
     [[nodiscard]] BYTEFORGE_CORE_API const fs::path& GetExecutablePath();
-
     [[nodiscard]] BYTEFORGE_CORE_API const fs::path& GetExecutableDirectory();
 
     [[nodiscard]] BYTEFORGE_CORE_API const std::vector<std::string>& GetCommandLineArguments();
 
     [[nodiscard]] BYTEFORGE_CORE_API const fs::path& GetUserConfigDirectory();
+    [[nodiscard]] BYTEFORGE_CORE_API const fs::path& GetUserDataDirectory();
+
+    [[nodiscard]] BYTEFORGE_CORE_API std::optional<fs::path> GetEnvironmentPath(const char* name);
 
     struct ProcessResult
     {

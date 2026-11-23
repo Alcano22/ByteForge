@@ -23,6 +23,7 @@ add_library(ByteForgeCore SHARED
         src/Core/Version.cpp
         src/Core/SemanticVersion.cpp
         src/Core/RuntimePaths.cpp
+        src/Core/DotNetLocator.cpp
         src/Scene/UUID.cpp
         src/Project/ProjectSettings.cpp
         src/Project/Project.cpp

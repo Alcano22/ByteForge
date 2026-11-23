@@ -10,4 +10,5 @@ namespace ByteForge::Platform::Detail
 
     [[nodiscard]] std::vector<std::string> QueryCommandLineArguments();
     [[nodiscard]] fs::path QueryUserConfigDirectory();
+    [[nodiscard]] fs::path QueryUserDataDirectory();
 }

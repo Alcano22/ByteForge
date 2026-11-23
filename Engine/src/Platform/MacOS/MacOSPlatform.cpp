@@ -77,4 +77,6 @@ namespace ByteForge::Platform::Detail
 
         return QueryExecutablePath().parent_path() / "UserData";
     }
+
+    fs::path QueryUserDataDirectory() { return QueryUserConfigDirectory(); }
 }

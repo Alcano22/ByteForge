@@ -37,6 +37,7 @@ int main(const int argc, char* argv[])
     Tests::SetTemporaryRoot(root);
 
     SetEnvironment("BYTEFORGE_CONFIG_DIR", root / "config");
+    SetEnvironment("BYTEFORGE_DATA_DIR",   root / "data");
 
     const int result = Catch::Session().run(argc, argv);
 

@@ -8,6 +8,7 @@ add_executable(ByteForgeTests
         src/Core/SemanticVersionTests.cpp
         src/Core/Utf8Tests.cpp
         src/Core/RandomTests.cpp
+        src/Core/DotNetLocatorTests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
         src/Scene/SpriteRendererTests.cpp

@@ -301,4 +301,12 @@ namespace ByteForge::Platform::Detail
 
         return fs::path(buffer);
     }
+
+    fs::path QueryUserDataDirectory()
+    {
+        if (std::optional<fs::path> local = GetEnvironmentPath("LOCALAPPDATA"))
+            return *local;
+
+        return QueryExecutablePath().parent_path() / "UserData";
+    }
 }

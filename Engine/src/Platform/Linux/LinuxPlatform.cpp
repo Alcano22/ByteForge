@@ -82,4 +82,18 @@ namespace ByteForge::Platform::Detail
 
         return QueryExecutablePath().parent_path() / "UserData";
     }
+
+    fs::path QueryUserDataDirectory()
+    {
+        if (const char* data = std::getenv("XDG_DATA_HOME"); data != nullptr && fs::path(data).is_absolute())
+            return data;
+
+        if (const char* home = std::getenv("HOME"); home != nullptr && *home != '\0')
+            return fs::path(home) / ".local" / "share";
+
+        if (const passwd* user = getpwuid(getuid()); user != nullptr && user->pw_dir != nullptr)
+            return fs::path(user->pw_dir) / ".local" / "share";
+
+        return QueryExecutablePath().parent_path() / "UserData";
+    }
 }
