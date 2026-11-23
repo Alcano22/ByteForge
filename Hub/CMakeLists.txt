@@ -104,6 +104,7 @@ if(WIN32)
             --no-compiler-runtime
             --no-opengl-sw
             --no-system-d3d-compiler
+            --no-system-dxc-compiler
             --skip-plugin-types qmltooling,generic,networkinformation,iconengines,imageformats
             --plugindir "${BYTEFORGE_QT_DIR}/plugins"
             --qml-deploy-dir "${BYTEFORGE_QT_DIR}/qml"
