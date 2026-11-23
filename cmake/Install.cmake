@@ -79,6 +79,7 @@ if(BYTEFORGE_BUILD_HUB)
                 FILES_MATCHING
                 PATTERN "Qt6*.dll"
                 PATTERN "qt.conf"
+                PATTERN "ByteForgeCore.dll"
         )
     else()
         install(TARGETS Hub
