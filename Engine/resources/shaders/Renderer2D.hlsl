@@ -22,21 +22,55 @@ struct VSOutput
     float2 UV                     : TEXCOORD0;
     float4 Color                  : COLOR;
     nointerpolation uint EntityId : ENTITYID;
+    float2 WorldPosition          : TEXCOORD1;
 };
 
 VSOutput VSMain(VSInput input)
 {
     VSOutput output;
-    output.Position = mul(u_ViewProjection, float4(input.Position, 1.0));
-    output.UV       = input.UV;
-    output.Color    = input.Color;
-    output.EntityId = input.EntityId;
+    output.Position      = mul(u_ViewProjection, float4(input.Position, 1.0));
+    output.UV            = input.UV;
+    output.Color         = input.Color;
+    output.EntityId      = input.EntityId;
+    output.WorldPosition = input.Position.xy;
     return output;
 }
 
+#ifdef LIT
+
+float3 LightAt(float2 position)
+{
+    float3 light = u_AmbientColor.rgb;
+
+    const uint count = min(u_Light2DCount.x, MAX_LIGHTS_2D);
+    for (uint i = 0; i < count; ++i)
+    {
+        const Light2D source = u_Lights2D[i];
+
+        const float2 offset = position - source.PositionRadius.xy;
+        const float distanceToLight = length(offset);
+
+        float attenuation = 1.0 - smoothstep(source.PositionRadius.w, source.PositionRadius.z, distanceToLight);
+        const float2 direction = distanceToLight > 1e-5 ? offset / distanceToLight : source.DirectionCone.xy;
+        attenuation *= smoothstep(source.DirectionCone.z, source.DirectionCone.w, dot(direction, source.DirectionCone.xy));
+
+        light += source.Color.rgb * attenuation;
+    }
+
+    return light;
+}
+
+#endif
+
 float4 ShadeQuad(VSOutput input)
 {
-    return u_Texture.Sample(u_TextureSampler, input.UV) * input.Color * u_Tint;
+    float4 color = u_Texture.Sample(u_TextureSampler, input.UV) * input.Color * u_Tint;
+
+#ifdef LIT
+    color.rgb *= LightAt(input.WorldPosition);
+#endif
+
+    return color;
 }
 
 #ifdef ENTITY_ID

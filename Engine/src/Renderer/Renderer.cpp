@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include <stdexcept>
+#include <span>
 
 namespace ByteForge
 {
@@ -16,13 +17,32 @@ namespace ByteForge
         const glm::vec3 direction = glm::dot(sunDirection, sunDirection) > 0.0f ? glm::normalize(sunDirection)
                                                                                 : glm::vec3(0.0f, -1.0f, 0.0f);
 
-        RenderBackend::Get().BeginScene({
-            .ViewProjection = camera.GetViewProjection(),
-            .CameraPosition = glm::vec4(camera.GetPosition(), 1.0f),
-            .LightDirection = glm::vec4(direction, 0.0f),
-            .LightColor     = glm::vec4(lighting.Sun.Color * lighting.Sun.Intensity, 0.0f),
-            .AmbientColor   = glm::vec4(lighting.Ambient, 0.0f)
-        });
+        const std::span<const SceneLight2D> lights = lighting.Lights2D;
+        if (lights.size() > MaxLights2D)
+        {
+            throw LogicError("Renderer::BeginScene: at most {} 2D lights per scene, got {}",
+                             MaxLights2D, lights.size());
+        }
+
+        SceneUniforms uniforms;
+        uniforms.ViewProjection = camera.GetViewProjection();
+        uniforms.CameraPosition = glm::vec4(camera.GetPosition(), 1.0f);
+        uniforms.LightDirection = glm::vec4(direction, 0.0f);
+        uniforms.LightColor     = glm::vec4(lighting.Sun.Color * lighting.Sun.Intensity, 0.0f);
+        uniforms.AmbientColor   = glm::vec4(lighting.Ambient, 0.0f);
+
+        uniforms.Light2DCount = glm::uvec4(static_cast<u32>(lights.size()), 0u, 0u, 0u);
+        for (usize i = 0; i < lights.size(); ++i)
+        {
+            const SceneLight2D& light = lights[i];
+            uniforms.Lights2D[i] = {
+                .PositionRadius = glm::vec4(light.Position, light.Radius, light.InnerRadius),
+                .Color          = glm::vec4(light.Color, 0.0f),
+                .DirectionCone  = glm::vec4(light.Direction, light.CosOuter, light.CosInner)
+            };
+        }
+
+        RenderBackend::Get().BeginScene(uniforms);
     }
 
     void Renderer::SubmitRaw(const Ref<Material>& material, const Ref<Mesh>& mesh,

@@ -5,6 +5,7 @@
 #include "Engine/Assets/MaterialAsset.h"
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/ImageFormat.h"
+#include "Engine/Renderer/Light2D.h"
 #include "Engine/Renderer/Material.h"
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/Pipeline.h"
@@ -18,6 +19,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -46,7 +48,7 @@ namespace ByteForge
     public:
         explicit Renderer2D(const Renderer2DSpec& spec = {});
 
-        void BeginScene(const Camera& camera);
+        void BeginScene(const Camera& camera, std::span<const Light2D> lights = {});
         void EndScene();
 
         void DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color);
@@ -84,6 +86,7 @@ namespace ByteForge
                         const glm::vec4& color, const Ref<MaterialAsset>& material, u32 entityId);
         void Flush();
 
+        [[nodiscard]] Ref<Pipeline> CreatePipeline(bool lit) const;
         void CreateBuffers(u32 capacity);
         [[nodiscard]] bool Grow();
 
@@ -131,6 +134,7 @@ namespace ByteForge
         Renderer2DSpec m_Spec;
 
         Ref<Pipeline> m_Pipeline;
+        Ref<Pipeline> m_LitPipeline;
         Ref<VertexBuffer> m_VertexBuffer;
         Ref<Mesh> m_Mesh;
         Ref<Texture2D> m_WhiteTexture;
@@ -141,6 +145,7 @@ namespace ByteForge
 
         u32 m_Capacity = 0;
         bool m_OverflowReported = false;
+        bool m_LightOverflowReported = false;
 
         u64 m_Frame = std::numeric_limits<u64>::max();
         u32 m_FrameQuads = 0;

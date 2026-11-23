@@ -152,6 +152,7 @@ add_library(Engine SHARED
         src/Renderer/MeshPrimitives.cpp
         src/Renderer/MeshRenderer.cpp
         src/Renderer/ShaderLibrary.cpp
+        src/Renderer/Light2D.cpp
         src/Text/FontAtlas.cpp
         src/Text/Font.cpp
         src/Text/TextLayout.cpp

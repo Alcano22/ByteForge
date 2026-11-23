@@ -60,13 +60,15 @@ namespace ByteForge
 
     std::span<const ShaderVariant> ShaderLibrary::GetBuiltinVariants()
     {
-        static const std::array<ShaderVariant, 6> variants{{
-            { .File = "Renderer2D.hlsl", .Defines = {}              },
-            { .File = "Renderer2D.hlsl", .Defines = { "ENTITY_ID" } },
-            { .File = "UI.hlsl",         .Defines = {}              },
-            { .File = "UI.hlsl",         .Defines = { "ENTITY_ID" } },
-            { .File = "Line.hlsl",       .Defines = {}              },
-            { .File = "Mesh.hlsl",       .Defines = {}              }
+        static const std::array<ShaderVariant, 8> variants{{
+            { .File = "Renderer2D.hlsl", .Defines = {}                     },
+            { .File = "Renderer2D.hlsl", .Defines = { "ENTITY_ID" }        },
+            { .File = "Renderer2D.hlsl", .Defines = { "LIT" }              },
+            { .File = "Renderer2D.hlsl", .Defines = { "ENTITY_ID", "LIT" } },
+            { .File = "UI.hlsl",         .Defines = {}                     },
+            { .File = "UI.hlsl",         .Defines = { "ENTITY_ID" }        },
+            { .File = "Line.hlsl",       .Defines = {}                     },
+            { .File = "Mesh.hlsl",       .Defines = {}                     }
         }};
         return variants;
     }

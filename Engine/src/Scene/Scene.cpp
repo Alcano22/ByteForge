@@ -394,7 +394,27 @@ namespace ByteForge
 
     void Scene::Render(Renderer2D& renderer, const Camera& camera)
     {
-        renderer.BeginScene(camera);
+        std::vector<Light2D> lights;
+        for (const auto handle : m_Registry.view<TransformComponent, Light2DComponent>())
+        {
+            const auto& light = m_Registry.get<Light2DComponent>(handle);
+            const TransformComponent world = GetWorldTransform(Entity(handle, this));
+            const bool spot = light.Type == Light2DType::Spot;
+
+            lights.push_back({
+                .Global      = light.Type == Light2DType::Global,
+                .Position    = glm::vec2(world.Position),
+                .Direction   = { std::cos(world.Rotation), std::sin(world.Rotation) },
+                .Color       = light.Color,
+                .Intensity   = light.Intensity,
+                .Radius      = light.Radius,
+                .InnerRadius = light.InnerRadius,
+                .OuterAngle  = spot ? light.OuterAngle : Light2D::FullCircle,
+                .InnerAngle  = spot ? light.InnerAngle : Light2D::FullCircle
+            });
+        }
+
+        renderer.BeginScene(camera, lights);
 
         const auto view = m_Registry.view<TransformComponent, SpriteRendererComponent>();
 

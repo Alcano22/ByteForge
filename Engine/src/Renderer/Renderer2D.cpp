@@ -57,24 +57,8 @@ namespace ByteForge
 
         CreateBuffers(spec.MaxQuads);
 
-        const bool writesEntityIds = spec.EntityIdFormat != ImageFormat::None;
-
-        std::vector<ColorAttachment> attachments{ { .Format = spec.ColorFormat, .Blend = BlendMode::Alpha } };
-        if (writesEntityIds)
-            attachments.push_back({ .Format = spec.EntityIdFormat });
-
-        std::vector<std::string> defines;
-        if (writesEntityIds)
-            defines.emplace_back("ENTITY_ID");
-
-        m_Pipeline = Pipeline::Create({
-            .Shader           = Shader::Load(GetBuiltInShaderPath("Renderer2D.hlsl"), std::move(defines)),
-            .VertexLayout     = MakeVertexLayout(),
-            .ColorAttachments = std::move(attachments),
-            .DepthFormat      = spec.DepthFormat,
-            .DepthTest        = spec.DepthFormat != ImageFormat::None,
-            .DepthWrite       = false
-        });
+        m_Pipeline = CreatePipeline(false);
+        m_LitPipeline = CreatePipeline(true);
 
         constexpr std::array<std::byte, 4> white{ std::byte{ 255 }, std::byte{ 255 },
                                                   std::byte{ 255 }, std::byte{ 255 } };
@@ -83,7 +67,31 @@ namespace ByteForge
         m_DefaultMaterial = MakeRef<MaterialAsset>(UUID(0), MaterialData{});
     }
 
-    void Renderer2D::BeginScene(const Camera& camera)
+    Ref<Pipeline> Renderer2D::CreatePipeline(const bool lit) const
+    {
+        const bool writesEntityIds = m_Spec.EntityIdFormat != ImageFormat::None;
+
+        std::vector<ColorAttachment> attachments{ { .Format = m_Spec.ColorFormat, .Blend = BlendMode::Alpha } };
+        if (writesEntityIds)
+            attachments.push_back({ .Format = m_Spec.EntityIdFormat });
+
+        std::vector<std::string> defines;
+        if (writesEntityIds)
+            defines.emplace_back("ENTITY_ID");
+        if (lit)
+            defines.emplace_back("LIT");
+
+        return Pipeline::Create({
+            .Shader           = Shader::Load(GetBuiltInShaderPath("Renderer2D.hlsl"), std::move(defines)),
+            .VertexLayout     = MakeVertexLayout(),
+            .ColorAttachments = std::move(attachments),
+            .DepthFormat      = m_Spec.DepthFormat,
+            .DepthTest        = m_Spec.DepthFormat != ImageFormat::None,
+            .DepthWrite       = false
+        });
+    }
+
+    void Renderer2D::BeginScene(const Camera& camera, const std::span<const Light2D> lights)
     {
         if (m_InScene)
             throw LogicError("Renderer2D::BeginScene: the previous scene has not been ended with EndScene");
@@ -100,7 +108,15 @@ namespace ByteForge
             EvictUnusedMaterials();
         }
 
-        Renderer::BeginScene(camera);
+        const PreparedLights2D lighting = PrepareLights2D(lights, glm::vec2(camera.GetPosition()), m_LinearizeColors);
+        if (lighting.Dropped > 0 && !m_LightOverflowReported)
+        {
+            CORE_WARN("Renderer2D: more than {} lights in one scene, the {} farthest from the camera are left out",
+                      MaxLights2D, lighting.Dropped);
+            m_LightOverflowReported = true;
+        }
+
+        Renderer::BeginScene(camera, SceneLighting{ .Ambient = lighting.Ambient, .Lights2D = lighting.Lights });
         m_InScene = true;
     }
 
@@ -310,7 +326,8 @@ namespace ByteForge
                 return entry.Instance;
         }
 
-        Ref<Material> material = Material::Create(m_Pipeline);
+        const bool lit = asset->GetData().Shader == SpriteLitShader;
+        Ref<Material> material = Material::Create(lit ? m_LitPipeline : m_Pipeline);
         material->Set("u_Texture", texture);
         ApplyParameters(*material, asset->GetData());
 
