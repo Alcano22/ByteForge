@@ -1,6 +1,7 @@
 #include "Editor/ScriptProject.h"
 
 #include <Engine/Core/Log.h>
+#include <Engine/Core/DotNetLocator.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Core/RuntimePaths.h>
 #include <Engine/Core/JobSystem.h>
@@ -24,12 +25,16 @@
 #include <vector>
 #include <exception>
 #include <future>
+#include <optional>
 
 namespace ByteForge
 {
     namespace
     {
-        constexpr const char* TargetFramework = "net10.0";
+        std::string GetTargetFramework()
+        {
+            return std::format("net{}.0", DotNetMajorVersion);
+        }
 
 #ifdef BYTEFORGE_DEBUG
         constexpr const char* Configuration = "Debug";
@@ -83,7 +88,7 @@ namespace ByteForge
         {
             u64 hash = 14695981039346656037ull;
 
-            Mix(hash, TargetFramework);
+            Mix(hash, GetTargetFramework());
             Mix(hash, Configuration);
 
             Mix(hash, ToUtf8(scriptCore));
@@ -110,6 +115,12 @@ namespace ByteForge
             }
 
             return std::format("{:016x}", hash);
+        }
+
+        void WarnMissingSdk()
+        {
+            APP_WARN("Game scripts are not built: no .NET {} SDK found. Install it in ByteForge Hub under "
+                     "Packages, or from https://dot.net", DotNetMajorVersion);
         }
 
         void ReportBuildOutput(const std::string& output)
@@ -169,7 +180,7 @@ namespace ByteForge
     </Reference>
   </ItemGroup>
 </Project>
-)", TargetFramework, ToUtf8(scriptCore));
+)", GetTargetFramework(), ToUtf8(scriptCore));
 
         const fs::path file = GetProjectFile();
         if (ReadFile(file) == content) return;
@@ -222,7 +233,10 @@ namespace ByteForge
     {
         if (ScriptEngine::Get().FindBackendByName("C#") == nullptr)
         {
-            APP_WARN("C# scripting is unavailable, game scripts are not built");
+            if (!DotNetLocator::Find(DotNetComponent::Runtime))
+                WarnMissingSdk();
+            else
+                APP_WARN("C# scripting is unavailable, game scripts are not built");
             return;
         }
 
@@ -241,8 +255,15 @@ namespace ByteForge
             return;
         }
 
+        const std::optional<DotNetInstallation> dotnet = DotNetLocator::Find(DotNetComponent::Sdk);
+        if (!dotnet)
+        {
+            WarnMissingSdk();
+            return;
+        }
+
         std::vector<std::string> command{
-            "dotnet", "build", ToUtf8(GetProjectFile()),
+            ToUtf8(dotnet->GetHost()), "build", ToUtf8(GetProjectFile()),
             "-c", Configuration,
             "-o", ToUtf8(GetOutputDirectory()),
             "--nologo", "-v", "quiet"

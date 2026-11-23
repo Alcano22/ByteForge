@@ -126,8 +126,8 @@ namespace ByteForge
         };
     }
 
-    CSharpScriptBackend::CSharpScriptBackend(const fs::path& scriptCoreDirectory)
-        : m_Host(scriptCoreDirectory / "ScriptCore.runtimeconfig.json")
+    CSharpScriptBackend::CSharpScriptBackend(const DotNetInstallation& dotnet, const fs::path& scriptCoreDirectory)
+        : m_Host(dotnet, scriptCoreDirectory / "ScriptCore.runtimeconfig.json")
     {
         const fs::path assembly = scriptCoreDirectory / "ScriptCore.dll";
 

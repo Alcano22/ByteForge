@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Core.h"
+#include "Engine/Core/DotNetLocator.h"
 #include "Platform/SharedLibrary.h"
 
 #include <coreclr_delegates.h>
@@ -14,7 +15,7 @@ namespace ByteForge
     class DotNetHost
     {
     public:
-        explicit DotNetHost(const fs::path& runtimeConfig);
+        DotNetHost(const DotNetInstallation& dotnet, const fs::path& runtimeConfig);
         ~DotNetHost();
 
         DotNetHost(const DotNetHost&) = delete;

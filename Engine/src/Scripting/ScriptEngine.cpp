@@ -1,4 +1,5 @@
 #include "Engine/Scripting/ScriptEngine.h"
+#include "Engine/Core/DotNetLocator.h"
 #include "Engine/Core/RuntimePaths.h"
 #include "Engine/Core/Log.h"
 #include "Scripting/NativeScriptBackend.h"
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <utility>
 #include <filesystem>
+#include <optional>
 
 namespace ByteForge
 {
@@ -137,9 +139,16 @@ namespace ByteForge
             return;
         }
 
+        const std::optional<DotNetInstallation> dotnet = DotNetLocator::Find(DotNetComponent::Runtime);
+        if (!dotnet)
+        {
+            CORE_WARN("C# scripting unavailable: no .NET {} runtime found", DotNetMajorVersion);
+            return;
+        }
+
         try
         {
-            RegisterBackend(MakeScope<CSharpScriptBackend>(directory));
+            RegisterBackend(MakeScope<CSharpScriptBackend>(*dotnet, directory));
         } catch (const std::exception& e)
         {
             CORE_ERROR("C# scripting unavailable: {}", e.what());

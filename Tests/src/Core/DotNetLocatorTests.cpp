@@ -17,7 +17,7 @@ namespace
     {
         std::vector<std::string> Runtimes;
         std::vector<std::string> Sdks;
-        bool HostResolver = true;
+        std::vector<std::string> HostResolvers = { "10.0.0" };
         bool HostExecutable = true;
     };
 
@@ -25,8 +25,8 @@ namespace
     {
         fs::create_directories(root);
 
-        if (layout.HostResolver)
-            fs::create_directories(root / "host" / "fxr" / "10.0.0");
+        for (const std::string& hostResolver : layout.HostResolvers)
+            fs::create_directories(root / "host" / "fxr" / hostResolver);
 
         for (const std::string& runtime : layout.Runtimes)
             fs::create_directories(root / "shared" / "Microsoft.NETCore.App" / runtime);
@@ -49,10 +49,26 @@ namespace
 TEST_CASE("A folder without hostfxr is no .NET installation", "[core][dotnet]")
 {
     const Tests::TemporaryDirectory directory;
-    const fs::path root = MakeDotNet(directory / "dotnet", { .Runtimes = { "10.0.0" }, .HostResolver = false });
+    const fs::path root = MakeDotNet(directory / "dotnet", { .Runtimes = { "10.0.0" }, .HostResolvers = {} });
+    const fs::path broken = MakeDotNet(directory / "broken", { .Runtimes = { "10.0.0" }, .HostResolvers = { "latest" } });
 
     CHECK_FALSE(DotNetLocator::Inspect({ .Root = root }).has_value());
+    CHECK_FALSE(DotNetLocator::Inspect({ .Root = broken }).has_value());
     CHECK_FALSE(DotNetLocator::Inspect({ .Root = directory / "missing" }).has_value());
+}
+
+TEST_CASE("The newest hostfxr of any version is found", "[core][dotnet]")
+{
+    const Tests::TemporaryDirectory directory;
+    const fs::path root = MakeDotNet(directory / "dotnet", {
+        .Runtimes      = { "10.0.0" },
+        .HostResolvers = { "9.0.4", "11.0.1", "10.0.0" }
+    });
+
+    const std::optional<DotNetInstallation> installation = DotNetLocator::Inspect({ .Root = root });
+    REQUIRE(installation.has_value());
+
+    CHECK(installation->HostResolver.ToString() == "11.0.1");
 }
 
 TEST_CASE("The newest runtime and SDK of the major version are found", "[core][dotnet]")

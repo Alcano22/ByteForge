@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace ByteForge
@@ -18,6 +19,17 @@ namespace ByteForge
         Hub,
         System
     };
+
+    [[nodiscard]] constexpr std::string_view GetSourceName(const DotNetSource source)
+    {
+        switch (source)
+        {
+            case DotNetSource::Bundled: return "bundled";
+            case DotNetSource::Hub:     return "Hub";
+            case DotNetSource::System:  return "system";
+        }
+        return "unknown";
+    }
 
     enum class DotNetComponent : u8
     {
@@ -35,6 +47,8 @@ namespace ByteForge
     {
         fs::path Root;
         DotNetSource Source = DotNetSource::System;
+
+        SemanticVersion HostResolver;
 
         std::optional<SemanticVersion> Runtime;
         std::optional<SemanticVersion> Sdk;

@@ -223,7 +223,6 @@ add_library(Engine SHARED
 
 target_compile_definitions(Engine PRIVATE
         BYTEFORGE_BUILD_DLL
-        BYTEFORGE_DOTNET_MAJOR_VERSION=10
 )
 
 target_compile_definitions(Engine PUBLIC

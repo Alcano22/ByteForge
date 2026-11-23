@@ -35,7 +35,7 @@ namespace ByteForge
             i32 (CORECLR_DELEGATE_CALLTYPE* OnUIEvent)(void* instance, i32 event) = nullptr;
         };
 
-        explicit CSharpScriptBackend(const fs::path& scriptCoreDirectory);
+        CSharpScriptBackend(const DotNetInstallation& dotnet, const fs::path& scriptCoreDirectory);
 
         [[nodiscard]] std::string_view GetName() const override { return "C#"; }
         [[nodiscard]] std::vector<std::string> GetClassNames() const override;

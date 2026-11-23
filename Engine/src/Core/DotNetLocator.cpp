@@ -11,7 +11,8 @@ namespace ByteForge::DotNetLocator
 {
     namespace
     {
-        std::optional<SemanticVersion> FindNewestVersion(const fs::path& directory)
+        std::optional<SemanticVersion> FindNewestVersion(const fs::path& directory,
+                                                         const std::optional<u32> requiredMajor)
         {
             std::optional<SemanticVersion> newest;
 
@@ -22,26 +23,13 @@ namespace ByteForge::DotNetLocator
                 if (!it->is_directory(ignored)) continue;
 
                 const std::optional<SemanticVersion> version = SemanticVersion::Parse(ToUtf8(it->path().filename()));
-                if (!version || version->Major != DotNetMajorVersion) continue;
+                if (!version || (requiredMajor && version->Major != *requiredMajor)) continue;
 
                 if (!newest || *newest < *version)
                     newest = version;
             }
 
             return newest;
-        }
-
-        bool ContainsDirectory(const fs::path& directory)
-        {
-            std::error_code error;
-            for (fs::directory_iterator it(directory, error), end; !error && it != end; it.increment(error))
-            {
-                std::error_code ignored;
-                if (it->is_directory(ignored))
-                    return true;
-            }
-
-            return false;
         }
 
         std::vector<fs::path> GetSystemRoots()
@@ -91,14 +79,16 @@ namespace ByteForge::DotNetLocator
 
         const auto add = [&candidates](const fs::path& root, const DotNetSource source)
         {
-            if (root.empty()) return;
+            if (root.empty())
+                return;
 
             std::error_code error;
             fs::path normalized = fs::weakly_canonical(root, error);
             if (error)
                 normalized = root.lexically_normal();
 
-            if (std::ranges::find(candidates, normalized, &DotNetCandidate::Root) != candidates.end()) return;
+            if (std::ranges::find(candidates, normalized, &DotNetCandidate::Root) != candidates.end())
+                return;
 
             candidates.push_back({ .Root = std::move(normalized), .Source = source });
         };
@@ -114,15 +104,25 @@ namespace ByteForge::DotNetLocator
 
     std::optional<DotNetInstallation> Inspect(const DotNetCandidate& candidate)
     {
-        if (candidate.Root.empty() || !ContainsDirectory(candidate.Root / "host" / "fxr"))
+        if (candidate.Root.empty())
             return std::nullopt;
 
-        DotNetInstallation installation{ .Root = candidate.Root, .Source = candidate.Source };
-        installation.Runtime = FindNewestVersion(candidate.Root / "shared" / "Microsoft.NETCore.App");
+        const std::optional<SemanticVersion> hostResolver = FindNewestVersion(candidate.Root / "host" / "fxr",
+                                                                              std::nullopt);
+        if (!hostResolver)
+            return std::nullopt;
+
+        DotNetInstallation installation{
+            .Root         = candidate.Root,
+            .Source       = candidate.Source,
+            .HostResolver = *hostResolver
+        };
+        installation.Runtime = FindNewestVersion(candidate.Root / "shared" / "Microsoft.NETCore.App",
+                                                 DotNetMajorVersion);
 
         std::error_code error;
         if (fs::is_regular_file(installation.GetHost(), error))
-            installation.Sdk = FindNewestVersion(candidate.Root / "sdk");
+            installation.Sdk = FindNewestVersion(candidate.Root / "sdk", DotNetMajorVersion);
 
         return installation;
     }

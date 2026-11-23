@@ -4,6 +4,7 @@
 
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/Pak.h>
+#include <Engine/Core/DotNetLocator.h>
 #include <Engine/Core/JobSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Platform.h>
@@ -275,101 +276,16 @@ namespace ByteForge
             return *stages;
         }
 
-        constexpr i32 DotNetMajorVersion = 10;
-
-        struct DotNetRuntime
+        Result<usize> BundleDotNetRuntime(const DotNetInstallation& runtime,
+                                          const fs::path& target, ExportProgress& progress)
         {
-            fs::path Root;
-            std::string Version;
-        };
-
-        std::vector<i32> ParseVersion(const std::string_view text)
-        {
-            std::vector<i32> parts;
-            usize start = 0;
-            while (start < text.size())
-            {
-                const usize end = std::min(text.find('.', start), text.size());
-                i32 value = 0;
-                std::from_chars(text.data() + start, text.data() + end, value);
-                parts.push_back(value);
-                start = end + 1;
-            }
-            return parts;
-        }
-
-        std::optional<std::string> FindNewestVersion(const fs::path& directory, const i32 major)
-        {
-            std::optional<std::string> best;
-
-            std::error_code error;
-            for (fs::directory_iterator it(directory, error), end; !error && it != end; it.increment(error))
-            {
-                if (!it->is_directory()) continue;
-
-                const std::string name = ToUtf8(it->path().filename());
-                const std::vector<i32> version = ParseVersion(name);
-                if (version.empty() || version.front() != major) continue;
-
-                if (!best || ParseVersion(*best) < version)
-                    best = name;
-            }
-            return best;
-        }
-
-        Result<DotNetRuntime> FindDotNetRuntime()
-        {
-            const Platform::ProcessResult listed = Platform::RunProcess({ "dotnet", "--list-runtimes" });
-            if (listed.ExitCode != 0)
-                return Unexpected("'dotnet --list-runtimes' failed: {}", listed.Output);
-
-            constexpr std::string_view Framework = "Microsoft.NETCore.App ";
-
-            std::optional<DotNetRuntime> best;
-            std::istringstream lines(listed.Output);
-            for (std::string line; std::getline(lines, line);)
-            {
-                if (!line.starts_with(Framework)) continue;
-
-                const usize versionEnd = line.find(' ', Framework.size());
-                const usize pathStart = line.find('[', versionEnd);
-                const usize pathEnd = line.rfind(']');
-                if (versionEnd == std::string::npos || pathStart == std::string::npos ||
-                    pathEnd == std::string::npos || pathEnd < pathStart) continue;
-
-                std::string version = line.substr(Framework.size(), versionEnd - Framework.size());
-                const std::vector<i32> parsed = ParseVersion(version);
-                if (parsed.empty() || parsed.front() != DotNetMajorVersion) continue;
-
-                if (best && ParseVersion(best->Version) >= parsed) continue;
-
-                const fs::path frameworkDirectory = line.substr(pathStart + 1, pathEnd - pathStart - 1);
-                best = DotNetRuntime{
-                    .Root    = frameworkDirectory.parent_path().parent_path(),
-                    .Version = std::move(version)
-                };
-            }
-
-            if (!best)
-                return Unexpected("no .NET {} runtime is installed", DotNetMajorVersion);
-
-            return *best;
-        }
-
-        Result<usize> BundleDotNetRuntime(const DotNetRuntime& runtime, const fs::path& target,
-                                          ExportProgress& progress)
-        {
-            const std::optional<std::string> fxr = FindNewestVersion(runtime.Root / "host" / "fxr", DotNetMajorVersion);
-            if (!fxr)
-            {
-                return Unexpected("'{}' contains no host/fxr for .NET {}",
-                                  ToGenericUtf8(runtime.Root), DotNetMajorVersion);
-            }
+            if (!runtime.Runtime)
+                return Unexpected("'{}' has no .NET {} runtime", ToGenericUtf8(runtime.Root), DotNetMajorVersion);
 
             usize copied = 0;
 
-            const fs::path framework = fs::path("shared") / "Microsoft.NETCore.App" / runtime.Version;
-            const fs::path hostFxr = fs::path("host") / "fxr" / *fxr;
+            const fs::path framework = fs::path("shared") / "Microsoft.NETCore.App" / runtime.Runtime->ToString();
+            const fs::path hostFxr = fs::path("host") / "fxr" / runtime.HostResolver.ToString();
 
             for (const fs::path& relative : { framework, hostFxr })
             {
@@ -528,9 +444,9 @@ namespace ByteForge
 
         progress.BeginStep("Bundling the .NET runtime");
 
-        const Result<DotNetRuntime> dotnet = FindDotNetRuntime();
+        const std::optional<DotNetInstallation> dotnet = DotNetLocator::Find(DotNetComponent::Runtime);
         if (!dotnet)
-            return Unexpected("cannot bundle the .NET runtime: {}", dotnet.error());
+            return Unexpected("cannot bundle the .NET runtime: no .NET {} runtime found", DotNetMajorVersion);
 
         const Result<usize> bundledRuntime = BundleDotNetRuntime(*dotnet, output / "dotnet", progress);
         if (!bundledRuntime)
@@ -541,7 +457,7 @@ namespace ByteForge
         }
 
         result.FileCount += *bundledRuntime;
-        result.DotNetVersion = dotnet->Version;
+        result.DotNetVersion = dotnet->Runtime->ToString();
 
         progress.BeginStep("Compiling shaders");
         if (progress.IsCancelled())

@@ -1,8 +1,6 @@
 #include "Scripting/CSharp/DotNetHost.h"
 
 #include "Engine/Core/Log.h"
-#include "Engine/Core/Platform.h"
-#include "Engine/Core/RuntimePaths.h"
 
 #include <nethost.h>
 
@@ -39,20 +37,11 @@ namespace ByteForge
         {
             CORE_ERROR("[.NET Host] {}", FromHostString(message));
         }
-
-        fs::path FindBundledRuntime()
-        {
-            const fs::path root = RuntimePaths::GetDataDirectory() / "dotnet";
-
-            std::error_code error;
-            return fs::is_directory(root / "host" / "fxr", error) ? root : fs::path();
-        }
     }
 
-    DotNetHost::DotNetHost(const fs::path& runtimeConfig)
+    DotNetHost::DotNetHost(const DotNetInstallation& dotnet, const fs::path& runtimeConfig)
     {
-        const fs::path dotnetRoot = FindBundledRuntime();
-        const bool bundled = !dotnetRoot.empty();
+        const fs::path& dotnetRoot = dotnet.Root;
 
         const get_hostfxr_parameters pathParameters{
             .size          = sizeof(get_hostfxr_parameters),
@@ -62,11 +51,11 @@ namespace ByteForge
 
         std::array<char_t, 4096> hostFxrPath{};
         usize size = hostFxrPath.size();
-        const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, bundled ? &pathParameters : nullptr);
+        const i32 pathResult = get_hostfxr_path(hostFxrPath.data(), &size, &pathParameters);
         if (pathResult != 0)
         {
-            throw Error("DotNetHost: no .NET runtime found (0x{:08X}). Install the .NET {} Runtime from https://dot.net",
-                        static_cast<u32>(pathResult), BYTEFORGE_DOTNET_MAJOR_VERSION);
+            throw Error("DotNetHost: no hostfxr in '{}' (0x{:08X})",
+                        ToUtf8(dotnetRoot), static_cast<u32>(pathResult));
         }
 
         m_HostFxr = MakeScope<SharedLibrary>(fs::path(hostFxrPath.data()));
@@ -85,7 +74,7 @@ namespace ByteForge
             .dotnet_root = dotnetRoot.c_str()
         };
 
-        const i32 initResult = initialize(runtimeConfig.c_str(), bundled ? &initParameters : nullptr, &m_Context);
+        const i32 initResult = initialize(runtimeConfig.c_str(), &initParameters, &m_Context);
         if (initResult < 0 || m_Context == nullptr)
         {
             if (m_Context != nullptr)
@@ -105,8 +94,9 @@ namespace ByteForge
 
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
 
-        CORE_INFO(".NET runtime started ({}, {})",
-                  ToUtf8(runtimeConfig.filename()), bundled ? "bundled" : "installed");
+        CORE_INFO(".NET {} runtime started from '{}' ({})",
+                  dotnet.Runtime ? dotnet.Runtime->ToString() : std::string("?"), ToUtf8(dotnetRoot),
+                  GetSourceName(dotnet.Source));
     }
 
     DotNetHost::~DotNetHost()
