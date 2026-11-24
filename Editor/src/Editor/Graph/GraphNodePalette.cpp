@@ -12,6 +12,7 @@
 #include <array>
 #include <cctype>
 #include <format>
+#include <set>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -55,6 +56,20 @@ namespace ByteForge
             }
             return true;
         }
+
+        std::set<AssetType> CollectParameterAssetTypes()
+        {
+            std::set<AssetType> types;
+            for (const ScriptFunction& function : ScriptAPI::Get().GetFunctions())
+            {
+                for (const ScriptParameter& parameter : function.Parameters)
+                {
+                    if (parameter.Type == ScriptFieldType::Asset)
+                        types.insert(parameter.Asset);
+                }
+            }
+            return types;
+        }
     }
 
     void GraphNodePalette::Open(const ScriptGraph& graph, const std::optional<PaletteContext> context)
@@ -95,7 +110,7 @@ namespace ByteForge
         for (const ScriptFieldType type : valueTypes)
             add(LiteralNode{ DefaultValueFor(PinType::Of(type)) });
 
-        for (const AssetType asset : { AssetType::AudioClip, AssetType::Texture2D, AssetType::PhysicsMaterial2D })
+        for (const AssetType asset : CollectParameterAssetTypes())
             add(LiteralNode{ AssetRef{ asset, UUID(0) } });
 
         for (const GraphVariable& variable : graph.GetVariables())
