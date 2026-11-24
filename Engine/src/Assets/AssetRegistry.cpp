@@ -339,6 +339,12 @@ namespace ByteForge
         return true;
     }
 
+    void AssetRegistry::MarkModified(const UUID handle)
+    {
+        if (s_Assets.contains(handle))
+            ++s_Revision;
+    }
+
     void AssetRegistry::Clear()
     {
         s_AssetRoot.clear();

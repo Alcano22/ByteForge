@@ -64,6 +64,8 @@ namespace ByteForge
 
         static bool SetSettings(UUID handle, AssetSettings settings);
 
+        static void MarkModified(UUID handle);
+
         static void Clear();
 
     private:

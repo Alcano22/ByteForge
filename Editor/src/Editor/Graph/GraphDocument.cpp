@@ -48,6 +48,8 @@ namespace ByteForge
             return saved;
 
         m_History.MarkClean();
+
+        AssetRegistry::MarkModified(m_Asset);
         return {};
     }
 

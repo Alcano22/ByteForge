@@ -7,18 +7,6 @@
 
 namespace ByteForge
 {
-    namespace
-    {
-        bool UsesVariable(const GraphNode& node, const UUID variable)
-        {
-            if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
-                return get->Variable == variable;
-            if (const auto* set = std::get_if<SetVariableNode>(&node.Data))
-                return set->Variable == variable;
-            return false;
-        }
-    }
-
     PinType PinType::Of(const ScriptValue& value)
     {
         const auto* asset = std::get_if<AssetRef>(&value);
@@ -50,6 +38,11 @@ namespace ByteForge
     {
         const auto it = std::ranges::find(m_Variables, id, &GraphVariable::Id);
         return it != m_Variables.end() ? &*it : nullptr;
+    }
+
+    GraphVariable* ScriptGraph::FindVariableForEdit(const UUID id)
+    {
+        return const_cast<GraphVariable*>(std::as_const(*this).FindVariable(id));
     }
 
     const GraphVariable* ScriptGraph::FindVariable(const std::string_view name) const
@@ -144,6 +137,64 @@ namespace ByteForge
         std::erase_if(m_Variables, [id](const GraphVariable& variable) { return variable.Id == id; });
     }
 
+    Result<> ScriptGraph::SetVariableDefault(const UUID id, ScriptValue value)
+    {
+        GraphVariable* variable = FindVariableForEdit(id);
+        if (variable == nullptr)
+            return Unexpected("The variable does not exist");
+
+        const bool retyped = PinType::Of(variable->Default) != PinType::Of(value);
+        variable->Default = std::move(value);
+
+        if (retyped)
+            DropMismatchedVariableUses(id);
+        return {};
+    }
+
+    Result<> ScriptGraph::SetVariableExposed(const UUID id, bool exposed)
+    {
+        GraphVariable* variable = FindVariableForEdit(id);
+        if (variable == nullptr)
+            return Unexpected("The variable does not exist");
+
+        variable->Exposed = exposed;
+        return {};
+    }
+
+    void ScriptGraph::DropMismatchedVariableUses(const UUID variable)
+    {
+        const GraphVariable* declared = FindVariable(variable);
+        if (declared == nullptr) return;
+
+        const PinType type = PinType::Of(declared->Default);
+
+        std::erase_if(m_Links, [&](const GraphLink& link)
+        {
+            const GraphNode* from = FindNode(link.From.Node);
+            const GraphNode* to = FindNode(link.To.Node);
+            if (from == nullptr || to == nullptr)
+                return false;
+            if (!UsesVariable(*from, variable) && !UsesVariable(*to, variable))
+                return false;
+
+            const NodeSignature source = DescribeNode(*this, *from);
+            const NodeSignature target = DescribeNode(*this, *to);
+
+            const PinInfo* output = FindPin(source, link.From.Pin, PinDirection::Output);
+            const PinInfo* input = FindPin(target, link.To.Pin, PinDirection::Input);
+            return output != nullptr && input != nullptr && !IsAssignable(output->Type, input->Type);
+        });
+
+        for (GraphNode& node : m_Nodes)
+        {
+            if (!std::holds_alternative<SetVariableNode>(node.Data) || !UsesVariable(node, variable)) continue;
+
+            const auto stored = node.Defaults.find(GraphPin::Value);
+            if (stored != node.Defaults.end() && !IsAssignable(PinType::Of(stored->second), type))
+                node.Defaults.erase(stored);
+        }
+    }
+
     Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore) const
     {
         if (name.empty())
@@ -154,6 +205,15 @@ namespace ByteForge
             return Unexpected("A variable named '{}' already exists", name);
 
         return {};
+    }
+
+    bool UsesVariable(const GraphNode& node, const UUID variable)
+    {
+        if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
+            return get->Variable == variable;
+        if (const auto* set = std::get_if<SetVariableNode>(&node.Data))
+            return set->Variable == variable;
+        return false;
     }
 
     std::string ScriptGraphClassName(const UUID graphAsset)

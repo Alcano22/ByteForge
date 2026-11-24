@@ -9,10 +9,8 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <format>
-#include <set>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -104,14 +102,8 @@ namespace ByteForge
         add(BranchNode{});
         add(DelayNode{});
 
-        constexpr std::array valueTypes{ ScriptFieldType::Bool, ScriptFieldType::Int, ScriptFieldType::Float,
-                                         ScriptFieldType::Vector2, ScriptFieldType::Vector3, ScriptFieldType::Vector4,
-                                         ScriptFieldType::String };
-        for (const ScriptFieldType type : valueTypes)
-            add(LiteralNode{ DefaultValueFor(PinType::Of(type)) });
-
-        for (const AssetType asset : CollectParameterAssetTypes())
-            add(LiteralNode{ AssetRef{ asset, UUID(0) } });
+        for (const PinType& type : GetLiteralTypes())
+            add(LiteralNode{ DefaultValueFor(type) });
 
         for (const GraphVariable& variable : graph.GetVariables())
         {

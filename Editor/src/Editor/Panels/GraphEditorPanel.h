@@ -4,11 +4,14 @@
 #include "Editor/Graph/GraphDocument.h"
 #include "Editor/Graph/GraphNodeRenderer.h"
 #include "Editor/Graph/GraphNodePalette.h"
+#include "Editor/Graph/GraphVariablesPanel.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
 
+#include <glm/glm.hpp>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <cstdint>
 #include <limits>
@@ -48,11 +51,23 @@ namespace ByteForge
 
         void ApplyValueEdits();
 
+        void AcceptVariableDrop(const ImRect& canvas);
+        void DrawVariableNodePopup();
+        void AddVariableNode(NodeData data, glm::vec2 position);
+
     private:
+        struct DroppedVariable
+        {
+            UUID Variable{ 0 };
+            glm::vec2 Position{ 0.0f };
+        };
+
         ax::NodeEditor::EditorContext* m_Editor = nullptr;
         Scope<GraphDocument> m_Document;
         GraphNodeRenderer m_Renderer;
         GraphNodePalette m_Palette;
+        GraphVariablesPanel m_Variables;
+        std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;
 
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();

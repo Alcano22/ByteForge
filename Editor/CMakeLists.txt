@@ -78,6 +78,7 @@ add_executable(Editor
         src/Editor/Graph/GraphDocument.cpp
         src/Editor/Graph/GraphNodeRenderer.cpp
         src/Editor/Graph/GraphNodePalette.cpp
+        src/Editor/Graph/GraphVariablesPanel.cpp
 )
 
 target_include_directories(Editor PRIVATE src)

@@ -56,4 +56,9 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API std::vector<GraphDiagnostic> ValidateGraph(const ScriptGraph& graph);
 
     [[nodiscard]] BYTEFORGE_API ScriptValue DefaultValueFor(const PinType& type);
+
+    [[nodiscard]] BYTEFORGE_API std::vector<PinType> GetLiteralTypes();
+    [[nodiscard]] BYTEFORGE_API std::vector<PinType> GetVariableTypes();
+
+    [[nodiscard]] BYTEFORGE_API std::string GetValueTypeName(const PinType& type);
 }

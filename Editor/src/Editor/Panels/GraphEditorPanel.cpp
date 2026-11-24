@@ -6,8 +6,6 @@
 
 #include <Engine/Core/Log.h>
 
-#include <imgui_internal.h>
-
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -23,7 +21,10 @@ namespace ByteForge
 
     namespace
     {
-        constexpr const char* AddNodePopup = "Add Node###GraphAddNode";
+        constexpr const char* AddNodePopup      = "Add Node###GraphAddNode";
+        constexpr const char* VariableNodePopup = "Variable Node###GraphVariableNode";
+
+        constexpr f32 SidebarWidth = 240.0f;
 
         NE::EditorContext* CreateNodeEditor()
         {
@@ -118,6 +119,9 @@ namespace ByteForge
 
         m_SyncedRevision = std::numeric_limits<u64>::max();
         m_FramesSinceLoad = 0;
+
+        m_Variables.Reset();
+        m_DroppedVariable.reset();
     }
 
     bool GraphEditorPanel::Save() const
@@ -158,6 +162,13 @@ namespace ByteForge
             {
                 HandleShortcuts();
                 DrawToolbar();
+
+                ImGui::BeginChild("##Sidebar", ImVec2(SidebarWidth, 0.0f),
+                                  ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
+                m_Variables.Draw(*m_Document, GetContext().SelectionContext);
+                ImGui::EndChild();
+
+                ImGui::SameLine();
                 DrawCanvas();
             }
         }
@@ -220,13 +231,18 @@ namespace ByteForge
         }
 
         ImGui::SameLine(0.0f, 16.0f);
-        ImGui::TextDisabled("Right-click to add nodes, drag pins to connect");
+        ImGui::TextDisabled("Right-click to add nodes, drag pins to connect, drag variables onto the graph");
     }
 
     void GraphEditorPanel::DrawCanvas()
     {
         NE::SetCurrentEditor(m_Editor);
         GraphTheme::ApplyStyle();
+
+        const ImVec2 canvasMin = ImGui::GetCursorScreenPos();
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+        const ImRect canvas(canvasMin, ImVec2(canvasMin.x + available.x, canvasMin.y + available.y));
+
         NE::Begin("Graph");
 
         SyncPositionsToEditor();
@@ -246,6 +262,9 @@ namespace ByteForge
             NE::NavigateToContent(0.0f);
 
         NE::End();
+
+        AcceptVariableDrop(canvas);
+        DrawVariableNodePopup();
 
         CommitMovedNodes();
         NE::SetCurrentEditor(nullptr);
@@ -489,5 +508,80 @@ namespace ByteForge
                 return true;
             });
         }
+    }
+
+    void GraphEditorPanel::AcceptVariableDrop(const ImRect& canvas)
+    {
+        if (!ImGui::BeginDragDropTargetCustom(canvas, ImGui::GetID("##VariableDrop"))) return;
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphVariablePayloadType))
+        {
+            if (const std::optional<UUID> variable = ReadGraphVariablePayload(payload))
+            {
+                const ImVec2 dropped = NE::ScreenToCanvas(ImGui::GetMousePos());
+                const glm::vec2 position(dropped.x, dropped.y);
+                const ImGuiIO& io = ImGui::GetIO();
+
+                if (io.KeyCtrl)
+                    AddVariableNode(GetVariableNode{ *variable }, position);
+                else if (io.KeyAlt)
+                    AddVariableNode(SetVariableNode{ *variable }, position);
+                else
+                {
+                    m_DroppedVariable = DroppedVariable{ *variable, position };
+                    ImGui::OpenPopup(VariableNodePopup);
+                }
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+
+    void GraphEditorPanel::DrawVariableNodePopup()
+    {
+        if (!ImGui::BeginPopup(VariableNodePopup))
+        {
+            if (!ImGui::IsPopupOpen(VariableNodePopup))
+                m_DroppedVariable.reset();
+            return;
+        }
+
+        const GraphVariable* variable = m_DroppedVariable
+                                      ? m_Document->GetGraph().FindVariable(m_DroppedVariable->Variable)
+                                      : nullptr;
+        if (variable == nullptr)
+        {
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return;
+        }
+
+        const DroppedVariable dropped = *m_DroppedVariable;
+        std::optional<NodeData> chosen;
+
+        if (ImGui::MenuItem(std::format("Get {}", variable->Name).c_str()))
+            chosen = GetVariableNode{ dropped.Variable };
+        if (ImGui::MenuItem(std::format("Set {}", variable->Name).c_str()))
+            chosen = SetVariableNode{ dropped.Variable };
+
+        ImGui::Separator();
+        ImGui::TextDisabled("Hold Ctrl (Get) or Alt (Set) while dropping to skip this");
+
+        if (chosen)
+        {
+            AddVariableNode(std::move(*chosen), dropped.Position);
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    void GraphEditorPanel::AddVariableNode(NodeData data, const glm::vec2 position)
+    {
+        m_Document->Edit("Add Node", [&](ScriptGraph& graph)
+        {
+            graph.AddNode(std::move(data), position);
+            return true;
+        });
     }
 }

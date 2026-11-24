@@ -426,4 +426,44 @@ namespace ByteForge
         }
         return 0.0f;
     }
+
+    std::vector<PinType> GetLiteralTypes()
+    {
+        std::vector<PinType> types;
+        for (const ScriptFieldType type : { ScriptFieldType::Bool, ScriptFieldType::Int, ScriptFieldType::Float,
+                                            ScriptFieldType::Vector2, ScriptFieldType::Vector3,
+                                            ScriptFieldType::Vector4, ScriptFieldType::String })
+            types.push_back(PinType::Of(type));
+
+        std::set<AssetType> assets;
+        for (const ScriptFunction& function : ScriptAPI::Get().GetFunctions())
+        {
+            for (const ScriptParameter& parameter : function.Parameters)
+            {
+                if (parameter.Type == ScriptFieldType::Asset)
+                    assets.insert(parameter.Asset);
+            }
+        }
+
+        for (const AssetType asset : assets)
+            types.push_back(PinType::Of(ScriptFieldType::Asset, asset));
+
+        return types;
+    }
+
+    std::vector<PinType> GetVariableTypes()
+    {
+        std::vector<PinType> types = GetLiteralTypes();
+        types.push_back(PinType::Of(ScriptFieldType::Entity));
+        return types;
+    }
+
+    std::string GetValueTypeName(const PinType& type)
+    {
+        if (type.IsExec)
+            return "Exec";
+
+        return type.Value == ScriptFieldType::Asset ? std::string(AssetTypeToString(type.Asset))
+                                                    : std::string(ScriptFieldTypeName(type.Value));
+    }
 }

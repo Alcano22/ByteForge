@@ -130,8 +130,14 @@ namespace ByteForge
         Result<> RenameVariable(UUID id, std::string name);
         void RemoveVariable(UUID id);
 
+        Result<> SetVariableDefault(UUID id, ScriptValue value);
+        Result<> SetVariableExposed(UUID id, bool exposed);
+
     private:
         [[nodiscard]] Result<> CheckVariableName(std::string_view name, UUID ignore) const;
+
+        [[nodiscard]] GraphVariable* FindVariableForEdit(UUID id);
+        void DropMismatchedVariableUses(UUID variable);
 
     public:
         static constexpr i32 FormatVersion = 1;
@@ -143,4 +149,5 @@ namespace ByteForge
     };
 
     [[nodiscard]] BYTEFORGE_API std::string ScriptGraphClassName(UUID graphAsset);
+    [[nodiscard]] BYTEFORGE_API bool UsesVariable(const GraphNode& node, UUID variable);
 }
