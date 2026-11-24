@@ -3,6 +3,7 @@
 #include "Engine/Scripting/API/ScriptAPI.h"
 
 #include <algorithm>
+#include <exception>
 #include <format>
 #include <utility>
 
@@ -170,9 +171,22 @@ namespace ByteForge
         std::erase_if(m_Delays, [](const PendingDelay& delay) { return delay.Remaining <= 0.0f; });
 
         for (const PendingDelay& delay : finished)
-        {
             m_DelayRunning[delay.Id] = false;
-            Run(delay.Resume);
+
+        std::exception_ptr firstError;
+        for (const PendingDelay& delay : finished)
+        {
+            try
+            {
+                Run(delay.Resume);
+            } catch (...)
+            {
+                if (!firstError)
+                    firstError = std::current_exception();
+            }
         }
+
+        if (firstError)
+            std::rethrow_exception(firstError);
     }
 }
