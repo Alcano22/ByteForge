@@ -73,12 +73,12 @@ namespace ByteForge
 
             if (auto data = AssetRegistry::ReadJson(metadata.Handle); !data)
                 graphClass.Error = std::format("cannot load: {}", data.error());
-            else if (auto graph = LoadScriptGraph(AssetRegistry::GetAssetRoot() / metadata.Path); !graph)
+            else if (auto graph = DeserializeScriptGraph(*data); !graph)
                 graphClass.Error = std::format("cannot load: {}", graph.error());
             else if (auto program = CompileScriptGraph(*graph); !program)
                 graphClass.Error = program.error();
             else
-                graphClass.Program = std::make_shared<const GraphProgram>(std::move(*program));
+                graphClass.Program = MakeRef<const GraphProgram>(std::move(*program));
 
             if (!graphClass.Error.empty())
                 CORE_WARN("Script graph '{}': {}", graphClass.DisplayName, graphClass.Error);
