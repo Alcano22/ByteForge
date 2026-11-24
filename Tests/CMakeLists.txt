@@ -22,6 +22,7 @@ add_executable(ByteForgeTests
         src/Scripting/TimeAPITests.cpp
         src/Scripting/RandomAPITests.cpp
         src/Scripting/ScriptAPICompatibilityTests.cpp
+        src/Scripting/ScriptGraphTests.cpp
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp
         src/Input/InputActionSystemTests.cpp
