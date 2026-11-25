@@ -54,20 +54,6 @@ namespace ByteForge
             }
             return true;
         }
-
-        std::set<AssetType> CollectParameterAssetTypes()
-        {
-            std::set<AssetType> types;
-            for (const ScriptFunction& function : ScriptAPI::Get().GetFunctions())
-            {
-                for (const ScriptParameter& parameter : function.Parameters)
-                {
-                    if (parameter.Type == ScriptFieldType::Asset)
-                        types.insert(parameter.Asset);
-                }
-            }
-            return types;
-        }
     }
 
     void GraphNodePalette::Open(const ScriptGraph& graph, const std::optional<PaletteContext> context)
@@ -101,6 +87,11 @@ namespace ByteForge
 
         add(BranchNode{});
         add(DelayNode{});
+        add(SequenceNode{});
+        add(ForLoopNode{});
+        add(DoOnceNode{});
+        add(FlipFlopNode{});
+        add(GateNode{});
 
         for (const PinType& type : GetLiteralTypes())
             add(LiteralNode{ DefaultValueFor(type) });

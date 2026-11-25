@@ -4,6 +4,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 
+#include <algorithm>
 #include <format>
 #include <fstream>
 #include <stdexcept>
@@ -23,6 +24,11 @@ namespace ByteForge
         template<> constexpr std::string_view NodeKindName<GetVariableNode> = "GetVariable";
         template<> constexpr std::string_view NodeKindName<SetVariableNode> = "SetVariable";
         template<> constexpr std::string_view NodeKindName<LiteralNode>     = "Literal";
+        template<> constexpr std::string_view NodeKindName<SequenceNode>    = "Sequence";
+        template<> constexpr std::string_view NodeKindName<ForLoopNode>     = "ForLoop";
+        template<> constexpr std::string_view NodeKindName<DoOnceNode>      = "DoOnce";
+        template<> constexpr std::string_view NodeKindName<FlipFlopNode>    = "FlipFlop";
+        template<> constexpr std::string_view NodeKindName<GateNode>        = "Gate";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -53,6 +59,8 @@ namespace ByteForge
                     json["variable"] = static_cast<u64>(data.Variable);
                 else if constexpr (std::is_same_v<T, LiteralNode>)
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
+                else if constexpr (std::is_same_v<T, SequenceNode>)
+                    json["outputs"] = data.Outputs;
             }, node.Data);
 
             if (!node.Defaults.empty())
@@ -95,6 +103,19 @@ namespace ByteForge
                     throw Error("literal node has an unreadable value");
                 return LiteralNode{ std::move(*value) };
             }
+            if (kind == NodeKindName<SequenceNode>)
+            {
+                const u32 outputs = json.value("outputs", MinSequenceOutputs);
+                return SequenceNode{ std::clamp(outputs, MinSequenceOutputs, MaxSequenceOutputs) };
+            }
+            if (kind == NodeKindName<ForLoopNode>)
+                return ForLoopNode{};
+            if (kind == NodeKindName<DoOnceNode>)
+                return DoOnceNode{};
+            if (kind == NodeKindName<FlipFlopNode>)
+                return FlipFlopNode{};
+            if (kind == NodeKindName<GateNode>)
+                return GateNode{};
 
             throw Error("unknown node kind '{}'", kind);
         }
@@ -161,10 +182,10 @@ namespace ByteForge
             links.push_back({ { "from", WritePinRef(link.From) }, { "to", WritePinRef(link.To) } });
 
         return {
-                { "version",   ScriptGraph::FormatVersion },
-                { "variables", std::move(variables)       },
-                { "nodes",     std::move(nodes)           },
-                { "links",     std::move(links)           }
+            { "version",   ScriptGraph::FormatVersion },
+            { "variables", std::move(variables)       },
+            { "nodes",     std::move(nodes)           },
+            { "links",     std::move(links)           }
         };
     }
 

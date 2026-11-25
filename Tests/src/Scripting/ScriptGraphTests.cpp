@@ -1,3 +1,4 @@
+#include "Scripting/GraphTestHelpers.h"
 #include "TestUtilities.h"
 
 #include <Engine/Assets/AssetRegistry.h>
@@ -27,100 +28,8 @@
 #include <vector>
 
 using namespace ByteForge;
+using namespace ByteForge::Tests;
 using Catch::Matchers::ContainsSubstring;
-
-namespace
-{
-    struct GraphBuilder
-    {
-        ScriptGraph Graph;
-
-        UUID Add(NodeData data) { return Graph.AddNode(std::move(data), glm::vec2(0.0f)); }
-
-        UUID Variable(std::string name, ScriptValue value)
-        {
-            const Result<UUID> id = Graph.AddVariable(std::move(name), std::move(value));
-            Tests::RequireSuccess(id);
-            return *id;
-        }
-
-        void Link(const UUID from, const std::string_view fromPin, const UUID to, const std::string_view toPin)
-        {
-            Tests::RequireSuccess(Graph.Connect({ from, std::string(fromPin) }, { to, std::string(toPin) }));
-        }
-
-        void SetDefault(const UUID node, const std::string_view pin, ScriptValue value)
-        {
-            GraphNode* found = Graph.FindNode(node);
-            REQUIRE(found != nullptr);
-            found->Defaults.insert_or_assign(std::string(pin), std::move(value));
-        }
-
-        void AppendIncrement(const UUID variable, const UUID after, const std::string_view pin)
-        {
-            const UUID get = Add(GetVariableNode{ variable });
-            const UUID add = Add(CallNode{ "Math.AddInt" });
-            const UUID set = Add(SetVariableNode{ variable });
-
-            SetDefault(add, "B", 1);
-            Link(get, GraphPin::Value, add, "A");
-            Link(add, "Result", set, GraphPin::Value);
-            Link(after, pin, set, GraphPin::Exec);
-        }
-    };
-
-    struct GraphFixture
-    {
-        Tests::TemporaryDirectory Directory;
-        ScriptEngine Engine;
-        Scene World;
-        Entity Owner = World.CreateEntity("Owner");
-
-        GraphFixture()
-        {
-            fs::create_directories(Directory / "assets");
-            AssetRegistry::Init(Directory / "assets");
-        }
-
-        ~GraphFixture() { AssetRegistry::Clear(); }
-
-        GraphFixture(const GraphFixture&) = delete;
-        GraphFixture& operator=(const GraphFixture&) = delete;
-
-        UUID Import(const ScriptGraph& graph, const fs::path& relativePath)
-        {
-            Tests::RequireSuccess(SaveScriptGraph(graph, Directory / "assets" / relativePath));
-
-            const UUID handle = AssetRegistry::Import(relativePath);
-            REQUIRE(handle.IsSet());
-            return handle;
-        }
-
-        Scope<ScriptInstance> Instantiate(const UUID graph)
-        {
-            ScriptBackend* backend = Engine.FindBackendByName("Graph");
-            REQUIRE(backend != nullptr);
-            return backend->CreateInstance(ScriptGraphClassName(graph), Owner);
-        }
-    };
-
-    template<typename T>
-    T Field(const ScriptInstance& instance, const std::string_view name)
-    {
-        const std::optional<ScriptValue> value = instance.GetField(name);
-        REQUIRE(value.has_value());
-        REQUIRE(std::holds_alternative<T>(*value));
-        return std::get<T>(*value);
-    }
-
-    bool HasError(const ScriptGraph& graph)
-    {
-        return std::ranges::any_of(ValidateGraph(graph), [](const GraphDiagnostic& diagnostic)
-        {
-            return diagnostic.Severity == GraphSeverity::Error;
-        });
-    }
-}
 
 TEST_CASE("A graph runs its events and keeps its variables between them", "[scripting][graph]")
 {
@@ -223,7 +132,7 @@ TEST_CASE("A Delay resumes its chain once its time has passed", "[scripting][gra
     SECTION("with an Int duration that is converted to Float")
     {
         builder.Link(builder.Add(LiteralNode{ 1 }), GraphPin::Value, delay, GraphPin::Duration);
-        builder.SetDefault(delay, GraphPin::Duration, 0.5f); // ignored, the link wins
+        builder.SetDefault(delay, GraphPin::Duration, 0.5f);
 
         const Scope<ScriptInstance> instance = fixture.Instantiate(fixture.Import(builder.Graph, "IntDelay.bfgraph"));
         instance->OnCreate();

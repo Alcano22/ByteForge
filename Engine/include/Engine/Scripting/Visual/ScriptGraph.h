@@ -75,8 +75,17 @@ namespace ByteForge
     struct SetVariableNode { UUID Variable{ 0 }; };
     struct LiteralNode { ScriptValue Value = 0.0f; };
 
+    inline constexpr u32 MinSequenceOutputs = 2;
+    inline constexpr u32 MaxSequenceOutputs = 16;
+
+    struct SequenceNode { u32 Outputs = MinSequenceOutputs; };
+    struct ForLoopNode {};
+    struct DoOnceNode {};
+    struct FlipFlopNode {};
+    struct GateNode {};
+
     using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode,
-                                  LiteralNode>;
+                                  LiteralNode, SequenceNode, ForLoopNode, DoOnceNode, FlipFlopNode, GateNode>;
 
     struct GraphNode
     {

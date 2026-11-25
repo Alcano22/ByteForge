@@ -6,6 +6,7 @@
 #include <exception>
 #include <format>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -99,6 +100,8 @@ namespace ByteForge
         const GraphProgram& program = *m_Program;
         const ScriptCallContext context{ .ActiveScene = m_Scene };
 
+        std::vector<u32> returns;
+
         for (usize budget = MaxInstructionsPerRun; budget > 0; --budget)
         {
             if (instruction >= program.Code.size())
@@ -137,9 +140,24 @@ namespace ByteForge
                         break;
                     case GraphOp::Delay:
                         StartDelay(current.A, std::get<f32>(m_Slots[current.B]), instruction);
-                        return;
+                        [[fallthrough]];
                     case GraphOp::Return:
-                        return;
+                        if (returns.empty()) return;
+
+                        instruction = returns.back();
+                        returns.pop_back();
+                        break;
+                    case GraphOp::Gosub:
+                        returns.push_back(instruction);
+                        instruction = current.A;
+                        break;
+                    case GraphOp::JumpIfGreaterInt:
+                        if (std::get<i32>(m_Slots[current.A]) > std::get<i32>(m_Slots[current.B]))
+                            instruction = current.C;
+                        break;
+                    case GraphOp::IncrementInt:
+                        ++std::get<i32>(m_Slots[current.A]);
+                        break;
                 }
             } catch (const std::exception& e)
             {

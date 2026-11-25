@@ -124,6 +124,57 @@ namespace ByteForge
             return signature;
         }
 
+        NodeSignature Describe(const ScriptGraph&, const SequenceNode& node)
+        {
+            NodeSignature signature{ .Title = "Sequence", .Category = "Flow" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            for (u32 i = 0; i < node.Outputs; ++i)
+                signature.Pins.push_back(Out(SequencePinName(i), PinType::Exec()));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph&, const ForLoopNode&)
+        {
+            NodeSignature signature{ .Title = "For Loop", .Category = "Flow" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            signature.Pins.push_back(In(GraphPin::First, PinType::Of(ScriptFieldType::Int)));
+            signature.Pins.push_back(In(GraphPin::Last, PinType::Of(ScriptFieldType::Int)));
+            signature.Pins.push_back(Out(GraphPin::LoopBody, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::Index, PinType::Of(ScriptFieldType::Int)));
+            signature.Pins.push_back(Out(GraphPin::Completed, PinType::Exec()));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph&, const DoOnceNode&)
+        {
+            NodeSignature signature{ .Title = "Do Once", .Category = "Flow" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            signature.Pins.push_back(In(GraphPin::Reset, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::Completed, PinType::Exec()));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph&, const FlipFlopNode&)
+        {
+            NodeSignature signature{ .Title = "Flip Flop", .Category = "Flow" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::A, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::B, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::IsA, PinType::Of(ScriptFieldType::Bool)));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph&, const GateNode&)
+        {
+            NodeSignature signature{ .Title = "Gate", .Category = "Flow" };
+            signature.Pins.push_back(In(GraphPin::Enter, PinType::Exec()));
+            signature.Pins.push_back(In(GraphPin::Open, PinType::Exec()));
+            signature.Pins.push_back(In(GraphPin::Close, PinType::Exec()));
+            signature.Pins.push_back(In(GraphPin::Toggle, PinType::Exec()));
+            signature.Pins.push_back(Out(GraphPin::Exit, PinType::Exec()));
+            return signature;
+        }
+
         NodeSignature Describe(const ScriptGraph& graph, const GetVariableNode& node)
         {
             const GraphVariable* variable = graph.FindVariable(node.Variable);
@@ -294,7 +345,7 @@ namespace ByteForge
         if (from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Int)
             return from.Enum.empty() || to.Enum.empty();
 
-        return from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Float;
+        return from.Value == ScriptFieldType::Int && from.Enum.empty() && to.Value == ScriptFieldType::Float;
     }
 
     Result<PinType> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
@@ -497,5 +548,10 @@ namespace ByteForge
 
         return type.Value == ScriptFieldType::Asset ? std::string(AssetTypeToString(type.Asset))
                                                     : std::string(ScriptFieldTypeName(type.Value));
+    }
+
+    std::string SequencePinName(const u32 index)
+    {
+        return std::format("Then {}", index);
     }
 }

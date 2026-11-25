@@ -24,6 +24,7 @@ namespace ByteForge
         constexpr const char* AddNodePopup      = "Add Node###GraphAddNode";
         constexpr const char* EnumPopup         = "Choose Value###GraphEnumPicker";
         constexpr const char* VariableNodePopup = "Variable Node###GraphVariableNode";
+        constexpr const char* NodeMenuPopup     = "Node###GraphNodeMenu";
 
         constexpr f32 SidebarWidth = 240.0f;
 
@@ -407,14 +408,32 @@ namespace ByteForge
         const ImVec2 mouse = ImGui::GetMousePos();
 
         NE::Suspend();
+        NE::NodeId menuNode;
+        const bool nodeMenu = NE::ShowNodeContextMenu(&menuNode);
         const bool backgroundMenu = NE::ShowBackgroundContextMenu();
         NE::Resume();
+
+        if (nodeMenu)
+        {
+            m_MenuNode = GraphIds::ToUUID(menuNode);
+            NE::Suspend();
+            ImGui::OpenPopup(NodeMenuPopup);
+            NE::Resume();
+        }
 
         if (backgroundMenu)
         {
             m_PendingPin.reset();
             OpenPalette(mouse, std::nullopt);
         }
+
+        NE::Suspend();
+        if (ImGui::BeginPopup(NodeMenuPopup))
+        {
+            DrawNodeMenu();
+            ImGui::EndPopup();
+        }
+        NE::Resume();
 
         NE::Suspend();
         if (ImGui::BeginPopup(AddNodePopup))
@@ -441,6 +460,53 @@ namespace ByteForge
         } else
             m_PendingPin.reset();
         NE::Resume();
+    }
+
+    void GraphEditorPanel::DrawNodeMenu()
+    {
+        const GraphNode* node = m_Document->GetGraph().FindNode(m_MenuNode);
+        if (node == nullptr)
+        {
+            ImGui::CloseCurrentPopup();
+            return;
+        }
+
+        const UUID id = node->Id;
+
+        if (const auto* sequence = std::get_if<SequenceNode>(&node->Data))
+        {
+            const u32 outputs = sequence->Outputs;
+
+            if (ImGui::MenuItem("Add Output", nullptr, false, outputs < MaxSequenceOutputs))
+            {
+                m_Document->Edit("Add Sequence Output", [&](ScriptGraph& graph)
+                {
+                    std::get<SequenceNode>(graph.FindNode(id)->Data).Outputs = outputs + 1;
+                    return true;
+                });
+            }
+
+            if (ImGui::MenuItem("Remove Output", nullptr, false, outputs > MinSequenceOutputs))
+            {
+                m_Document->Edit("Remove Sequence Output", [&](ScriptGraph& graph)
+                {
+                    std::get<SequenceNode>(graph.FindNode(id)->Data).Outputs = outputs - 1;
+                    graph.Disconnect(PinRef{ id, SequencePinName(outputs - 1) }, PinDirection::Output);
+                    return true;
+                });
+            }
+
+            ImGui::Separator();
+        }
+
+        if (ImGui::MenuItem("Delete"))
+        {
+            m_Document->Edit("Delete Node", [&](ScriptGraph& graph)
+            {
+                graph.RemoveNode(id);
+                return true;
+            });
+        }
     }
 
     void GraphEditorPanel::OpenPalette(const ImVec2 position, const std::optional<PaletteContext> context)

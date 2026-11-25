@@ -21,7 +21,24 @@ namespace ByteForge
         inline constexpr std::string_view Condition = "Condition";
         inline constexpr std::string_view Duration  = "Duration";
         inline constexpr std::string_view Value     = "Value";
+
+        inline constexpr std::string_view LoopBody  = "Loop Body";
+        inline constexpr std::string_view Completed = "Completed";
+        inline constexpr std::string_view First     = "First";
+        inline constexpr std::string_view Last      = "Last";
+        inline constexpr std::string_view Index     = "Index";
+        inline constexpr std::string_view Reset     = "Reset";
+        inline constexpr std::string_view A         = "A";
+        inline constexpr std::string_view B         = "B";
+        inline constexpr std::string_view IsA       = "Is A";
+        inline constexpr std::string_view Enter     = "Enter";
+        inline constexpr std::string_view Open      = "Open";
+        inline constexpr std::string_view Close     = "Close";
+        inline constexpr std::string_view Toggle    = "Toggle";
+        inline constexpr std::string_view Exit      = "Exit";
     }
+
+    [[nodiscard]] BYTEFORGE_API std::string SequencePinName(u32 index);
 
     struct NodeSignature
     {
@@ -42,7 +59,7 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API bool IsAssignable(const PinType& from, const PinType& to);
 
     [[nodiscard]] BYTEFORGE_API Result<PinType> CanConnect(const ScriptGraph& graph,
-                                                                               const PinRef& from, const PinRef& to);
+                                                           const PinRef& from, const PinRef& to);
 
     enum class GraphSeverity : u8 { Warning, Error };
 

@@ -3,11 +3,14 @@
 #include "Engine/Scripting/API/ScriptAPI.h"
 #include "Engine/Scripting/Visual/GraphSchema.h"
 
+
 #include <format>
 #include <map>
 #include <set>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -29,7 +32,7 @@ namespace ByteForge
                 if (std::optional<std::string> error = FirstError())
                     return Unexpected(std::move(*error));
 
-                AddSlot(EntityRef{}); // SelfSlot, set per instance
+                AddSlot(EntityRef{});
 
                 for (const GraphVariable& variable : m_Graph.GetVariables())
                 {
@@ -88,44 +91,61 @@ namespace ByteForge
                     return;
                 }
 
-                if (const auto it = m_NodeCode.find(link->To.Node); it != m_NodeCode.end())
+                if (const auto it = m_NodeCode.find({ link->To.Node, link->To.Pin }); it != m_NodeCode.end())
                 {
                     Emit(GraphOp::Jump, it->second);
                     return;
                 }
 
-                EmitNode(link->To.Node);
+                EmitNode(link->To.Node, link->To.Pin);
             }
 
-            void EmitNode(const UUID id)
+            void EmitNode(const UUID id, const std::string_view entry)
             {
-                m_NodeCode.emplace(id, Here());
+                m_NodeCode.emplace(std::pair<u64, std::string>{ id, std::string(entry) }, Here());
                 const GraphNode& node = *m_Graph.FindNode(id);
-                std::visit([&](const auto& data) { EmitStatement(node, data); }, node.Data);
+                std::visit([&](const auto& data) { EmitStatement(node, data, entry); }, node.Data);
             }
 
-            void EmitStatement(const GraphNode& node, const CallNode& call)
+            void EmitSubroutine(const u32 gosub, const UUID node, const std::string_view pin)
+            {
+                m_Program.Code[gosub].A = Here();
+                EmitContinuation(node, pin);
+            }
+
+            u32 StateSlot(const UUID node, ScriptValue initial)
+            {
+                if (const auto it = m_StateSlots.find(node); it != m_StateSlots.end())
+                    return it->second;
+
+                const u32 slot = AddSlot(std::move(initial));
+                m_StateSlots.emplace(node, slot);
+                return slot;
+            }
+
+            void EmitStatement(const GraphNode& node, const CallNode& call, std::string_view)
             {
                 std::set<u64> evaluated;
                 EmitCall(node, call, evaluated);
                 EmitContinuation(node.Id, GraphPin::Then);
             }
 
-            void EmitStatement(const GraphNode& node, const SetVariableNode& set)
+            void EmitStatement(const GraphNode& node, const SetVariableNode& set, std::string_view)
             {
                 std::set<u64> evaluated;
                 const u32 value = ResolveInput(node, RequirePin(node.Id, GraphPin::Value, PinDirection::Input),
-                                                    evaluated);
+                                               evaluated);
 
                 m_Label = Label(node.Id);
                 Emit(GraphOp::Copy, value, m_VariableSlots.at(set.Variable));
                 EmitContinuation(node.Id, GraphPin::Then);
             }
 
-            void EmitStatement(const GraphNode& node, const BranchNode&)
+            void EmitStatement(const GraphNode& node, const BranchNode&, std::string_view)
             {
                 std::set<u64> evaluated;
-                const u32 condition = ResolveInput(node, RequirePin(node.Id, GraphPin::Condition, PinDirection::Input), evaluated);
+                const u32 condition = ResolveInput(node, RequirePin(node.Id, GraphPin::Condition, PinDirection::Input),
+                                                   evaluated);
 
                 m_Label = Label(node.Id);
                 const u32 jump = Emit(GraphOp::JumpIfFalse, condition);
@@ -135,7 +155,7 @@ namespace ByteForge
                 EmitContinuation(node.Id, GraphPin::False);
             }
 
-            void EmitStatement(const GraphNode& node, const DelayNode&)
+            void EmitStatement(const GraphNode& node, const DelayNode&, std::string_view)
             {
                 std::set<u64> evaluated;
                 const u32 duration = ResolveInput(node, RequirePin(node.Id, GraphPin::Duration, PinDirection::Input), evaluated);
@@ -145,9 +165,117 @@ namespace ByteForge
                 EmitContinuation(node.Id, GraphPin::Then);
             }
 
-            void EmitStatement(const GraphNode&, const EventNode&) { Emit(GraphOp::Return); }
-            void EmitStatement(const GraphNode&, const GetVariableNode&) { Emit(GraphOp::Return); }
-            void EmitStatement(const GraphNode&, const LiteralNode&) { Emit(GraphOp::Return); }
+            void EmitStatement(const GraphNode& node, const SequenceNode& sequence, std::string_view)
+            {
+                m_Label = Label(node.Id);
+
+                std::vector<u32> calls;
+                for (u32 i = 0; i + 1 < sequence.Outputs; ++i)
+                    calls.push_back(Emit(GraphOp::Gosub));
+
+                EmitContinuation(node.Id, SequencePinName(sequence.Outputs - 1));
+
+                for (u32 i = 0; i < calls.size(); ++i)
+                    EmitSubroutine(calls[i], node.Id, SequencePinName(i));
+            }
+
+            void EmitStatement(const GraphNode& node, const ForLoopNode&, std::string_view)
+            {
+                std::set<u64> evaluated;
+                const u32 first = ResolveInput(node, RequirePin(node.Id, GraphPin::First, PinDirection::Input), evaluated);
+                const u32 last = ResolveInput(node, RequirePin(node.Id, GraphPin::Last, PinDirection::Input), evaluated);
+
+                m_Label = Label(node.Id);
+                const u32 counter = OutputSlot(node.Id, RequirePin(node.Id, GraphPin::Index, PinDirection::Output));
+                const u32 end = AddSlot(0);
+
+                Emit(GraphOp::Copy, first, counter);
+                Emit(GraphOp::Copy, last, end);
+                const u32 empty = Emit(GraphOp::JumpIfGreaterInt, counter, end);
+
+                const u32 body = Emit(GraphOp::Gosub);
+                const u32 more = Emit(GraphOp::JumpIfGreaterInt, end, counter);
+                const u32 done = Emit(GraphOp::Jump);
+
+                m_Program.Code[more].C = Here();
+                Emit(GraphOp::IncrementInt, counter);
+                Emit(GraphOp::Jump, body);
+
+                m_Program.Code[empty].C = Here();
+                m_Program.Code[done].A = Here();
+                EmitContinuation(node.Id, GraphPin::Completed);
+
+                EmitSubroutine(body, node.Id, GraphPin::LoopBody);
+            }
+
+            void EmitStatement(const GraphNode& node, const DoOnceNode&, const std::string_view entry)
+            {
+                m_Label = Label(node.Id);
+                const u32 done = StateSlot(node.Id, false);
+
+                if (entry == GraphPin::Reset)
+                {
+                    Emit(GraphOp::Copy, AddSlot(false), done);
+                    Emit(GraphOp::Return);
+                    return;
+                }
+
+                const u32 pass = Emit(GraphOp::JumpIfFalse, done);
+                Emit(GraphOp::Return);
+
+                m_Program.Code[pass].B = Here();
+                Emit(GraphOp::Copy, AddSlot(true), done);
+                EmitContinuation(node.Id, GraphPin::Completed);
+            }
+
+            void EmitStatement(const GraphNode& node, const FlipFlopNode&, std::string_view)
+            {
+                m_Label = Label(node.Id);
+                const u32 isA = OutputSlot(node.Id, RequirePin(node.Id, GraphPin::IsA, PinDirection::Output));
+
+                const u32 toA = Emit(GraphOp::JumpIfFalse, isA);
+                Emit(GraphOp::Copy, AddSlot(false), isA);
+                EmitContinuation(node.Id, GraphPin::B);
+
+                m_Program.Code[toA].B = Here();
+                Emit(GraphOp::Copy, AddSlot(true), isA);
+                EmitContinuation(node.Id, GraphPin::A);
+            }
+
+            void EmitStatement(const GraphNode& node, const GateNode&, const std::string_view entry)
+            {
+                m_Label = Label(node.Id);
+                const u32 isOpen = StateSlot(node.Id, true);
+
+                if (entry == GraphPin::Open || entry == GraphPin::Close)
+                {
+                    Emit(GraphOp::Copy, AddSlot(entry == GraphPin::Open), isOpen);
+                    Emit(GraphOp::Return);
+                    return;
+                }
+
+                if (entry == GraphPin::Toggle)
+                {
+                    const u32 opening = Emit(GraphOp::JumpIfFalse, isOpen);
+                    Emit(GraphOp::Copy, AddSlot(false), isOpen);
+                    Emit(GraphOp::Return);
+
+                    m_Program.Code[opening].B = Here();
+                    Emit(GraphOp::Copy, AddSlot(true), isOpen);
+                    Emit(GraphOp::Return);
+                    return;
+                }
+
+                const u32 closed = Emit(GraphOp::JumpIfFalse, isOpen);
+                EmitContinuation(node.Id, GraphPin::Exit);
+
+                m_Program.Code[closed].B = Here();
+                Emit(GraphOp::Return);
+            }
+
+            void EmitStatement(const GraphNode&, const EventNode&, std::string_view) { Emit(GraphOp::Return); }
+            void EmitStatement(const GraphNode&, const GetVariableNode&, std::string_view) { Emit(GraphOp::Return); }
+            void EmitStatement(const GraphNode&, const LiteralNode&, std::string_view) { Emit(GraphOp::Return); }
 
             void EmitCall(const GraphNode& node, const CallNode& call, std::set<u64>& evaluated)
             {
@@ -295,7 +423,8 @@ namespace ByteForge
             std::map<UUID, NodeSignature> m_Signatures;
             std::map<u64, u32> m_VariableSlots;
             std::map<std::pair<u64, std::string>, u32> m_OutputSlots;
-            std::map<u64, u32> m_NodeCode;
+            std::map<std::pair<u64, std::string>, u32, std::less<>> m_NodeCode;
+            std::map<u64, u32> m_StateSlots;
             std::map<UUID, u32> m_Labels;
             u32 m_Label = 0;
         };

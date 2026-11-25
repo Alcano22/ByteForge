@@ -17,12 +17,15 @@ namespace ByteForge
 
     enum class GraphOp : u8
     {
-        Call,        // A: function index, B: first entry in Arguments, C: argument count, D: result slot or NoSlot
-        Copy,        // A: source slot, B: target slot
-        IntToFloat,  // A: source slot, B: target slot
-        Jump,        // A: target instruction
-        JumpIfFalse, // A: condition slot, B: target instruction
-        Delay,       // A: delay id, B: duration slot; resumes at the next instruction
+        Call,             // A: function index, B: first entry in Arguments, C: argument count, D: result slot or NoSlot
+        Copy,             // A: source slot, B: target slot
+        IntToFloat,       // A: source slot, B: target slot
+        Jump,             // A: target instruction
+        JumpIfFalse,      // A: condition slot, B: target instruction
+        Delay,            // A: delay id, B: duration slot
+        Gosub,            // A: target instruction
+        JumpIfGreaterInt, // A: Int slot, B: Int slot, C: target instruction if A > B
+        IncrementInt,     // A: Int slot
         Return
     };
 

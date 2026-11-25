@@ -47,6 +47,7 @@ namespace ByteForge
         void HandleDeletion() const;
         void HandleContextMenu();
         void OpenPalette(ImVec2 position, std::optional<PaletteContext> context);
+        void DrawNodeMenu();
 
         void OpenUnsavedChangesPopup(UUID next);
 
@@ -76,6 +77,7 @@ namespace ByteForge
         GraphVariablesPanel m_Variables;
         std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;
+        UUID m_MenuNode{ 0 };
 
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();
         i32 m_FramesSinceLoad = 0;
