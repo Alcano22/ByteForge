@@ -175,6 +175,11 @@ namespace ByteForge
             return signature;
         }
 
+        NodeSignature Describe(const ScriptGraph&, const CommentNode& node)
+        {
+            return { .Title = node.Text, .Category = "Comments" };
+        }
+
         NodeSignature Describe(const ScriptGraph& graph, const GetVariableNode& node)
         {
             const GraphVariable* variable = graph.FindVariable(node.Variable);

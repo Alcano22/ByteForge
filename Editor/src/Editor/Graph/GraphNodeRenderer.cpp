@@ -153,8 +153,8 @@ namespace ByteForge
             return std::visit(Overloaded{
                 [](bool& v)        { return ImGui::Checkbox("##value", &v); },
                 [](i32& v)         { return ImGui::DragInt("##value", &v, 0.1f); },
-                [](f32& v)       { return ImGui::DragFloat("##value", &v, 0.01f, 0.0f, 0.0f, "%.3g"); },
-                [](f64& v)      { return ImGui::DragScalar("##value", ImGuiDataType_Double, &v, 0.01f, nullptr, nullptr, "%.3g"); },
+                [](f32& v)         { return ImGui::DragFloat("##value", &v, 0.01f, 0.0f, 0.0f, "%.3g"); },
+                [](f64& v)         { return ImGui::DragScalar("##value", ImGuiDataType_Double, &v, 0.01f, nullptr, nullptr, "%.3g"); },
                 [](glm::vec2& v)   { return ImGui::DragFloat2("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
                 [](glm::vec3& v)   { return ImGui::DragFloat3("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
                 [](glm::vec4& v)   { return ImGui::DragFloat4("##value", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
@@ -173,6 +173,7 @@ namespace ByteForge
         m_Links.clear();
         m_ConnectedPins.clear();
         m_Errors.clear();
+        m_CommentSizes.clear();
 
         for (const GraphDiagnostic& diagnostic : diagnostics)
         {
@@ -236,6 +237,12 @@ namespace ByteForge
         return it != m_Links.end() ? &it->second : nullptr;
     }
 
+    std::optional<glm::vec2> GraphNodeRenderer::FindCommentSize(const UUID node) const
+    {
+        const auto it = m_CommentSizes.find(node);
+        return it != m_CommentSizes.end() ? std::optional(it->second) : std::nullopt;
+    }
+
     GraphNodeRenderer::PinView GraphNodeRenderer::MakePinView(const GraphNode& node, const PinInfo& pin) const
     {
         PinView view{ .Pin = &pin, .Id = GraphIds::Pin(node.Id, pin.Name, pin.Direction) };
@@ -273,6 +280,12 @@ namespace ByteForge
 
     void GraphNodeRenderer::DrawNode(const ScriptGraph& graph, const GraphNode& node)
     {
+        if (const auto* comment = std::get_if<CommentNode>(&node.Data))
+        {
+            DrawComment(node, *comment);
+            return;
+        }
+
         const NodeSignature signature = DescribeNode(graph, node);
         const auto error = m_Errors.find(node.Id);
         const bool failed = error != m_Errors.end();
@@ -345,6 +358,29 @@ namespace ByteForge
         background.AddRectFilled(min, ImVec2(min.x + size.x, headerBottom), headerColor,
                                  NE::GetStyle().NodeRounding, ImDrawFlags_RoundCornersTop);
         background.AddLine(ImVec2(min.x, headerBottom), ImVec2(min.x + size.x, headerBottom), IM_COL32(0, 0, 0, 100));
+    }
+
+    void GraphNodeRenderer::DrawComment(const GraphNode& node, const CommentNode& comment)
+    {
+        NE::PushStyleColor(NE::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(GraphTheme::CommentBackground()));
+        NE::PushStyleColor(NE::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(GraphTheme::CommentBorder()));
+
+        NE::BeginNode(GraphIds::Node(node.Id));
+        EditorUI::PushID(node.Id);
+
+        const ImVec2 start = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos(ImVec2(start.x + TextPadding, start.y));
+        ImGui::TextUnformatted(comment.Text.c_str());
+        ImGui::SetCursorScreenPos(ImVec2(start.x, ImGui::GetCursorScreenPos().y));
+
+        NE::Group(ImVec2(comment.Size.x, comment.Size.y));
+        const ImVec2 drawn = ImGui::GetItemRectSize();
+        m_CommentSizes.insert_or_assign(node.Id, glm::vec2(drawn.x, drawn.y));
+
+        ImGui::PopID();
+        NE::EndNode();
+
+        NE::PopStyleColor(2);
     }
 
     void GraphNodeRenderer::DrawPin(const UUID node, const PinView& view)

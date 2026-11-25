@@ -84,8 +84,15 @@ namespace ByteForge
     struct FlipFlopNode {};
     struct GateNode {};
 
+    struct CommentNode
+    {
+        std::string Text = "Comment";
+        glm::vec2 Size{ 400.0f, 200.0f };
+    };
+
     using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode,
-                                  LiteralNode, SequenceNode, ForLoopNode, DoOnceNode, FlipFlopNode, GateNode>;
+                                  LiteralNode, SequenceNode, ForLoopNode, DoOnceNode, FlipFlopNode, GateNode,
+                                  CommentNode>;
 
     struct GraphNode
     {

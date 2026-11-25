@@ -92,6 +92,7 @@ namespace ByteForge
         add(DoOnceNode{});
         add(FlipFlopNode{});
         add(GateNode{});
+        add(CommentNode{});
 
         for (const PinType& type : GetLiteralTypes())
             add(LiteralNode{ DefaultValueFor(type) });

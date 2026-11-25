@@ -63,6 +63,9 @@ namespace ByteForge::GraphTheme
 
     ImU32 ActiveLinkColor() { return IM_COL32(255, 200, 60, 255); }
 
+    ImU32 CommentBackground() { return IM_COL32(255, 255, 255, 24); }
+    ImU32 CommentBorder() { return IM_COL32(255, 255, 255, 70); }
+
     void ApplyStyle()
     {
         NE::Style& style = NE::GetStyle();
@@ -73,6 +76,8 @@ namespace ByteForge::GraphTheme
         style.SelectedNodeBorderWidth = 2.0f;
         style.PinRounding = 4.0f;
         style.LinkStrength = 120.0f;
+        style.GroupRounding = 6.0f;
+        style.GroupBorderWidth = 1.0f;
 
         style.Colors[NE::StyleColor_Bg]            = EditorColors::Get(EditorColor::GraphBackground);
         style.Colors[NE::StyleColor_Grid]          = EditorColors::Get(EditorColor::GraphGrid);
@@ -81,5 +86,7 @@ namespace ByteForge::GraphTheme
         style.Colors[NE::StyleColor_HovNodeBorder] = EditorColors::Get(EditorColor::GraphNodeBorderHovered);
         style.Colors[NE::StyleColor_SelNodeBorder] = EditorColors::Get(EditorColor::GraphNodeBorderSelected);
         style.Colors[NE::StyleColor_PinRect]       = EditorColors::Get(EditorColor::GraphPinHighlight);
+        style.Colors[NE::StyleColor_GroupBg]       = ImColor(0, 0, 0, 50);
+        style.Colors[NE::StyleColor_GroupBorder]   = ImColor(255, 255, 255, 40);
     }
 }

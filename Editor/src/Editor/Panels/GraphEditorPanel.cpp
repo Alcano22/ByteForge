@@ -8,11 +8,14 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Scripting/Visual/GraphClipboard.h>
 
+#include <imgui_stdlib.h>
+
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <expected>
 #include <format>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,15 +26,21 @@ namespace ByteForge
 
     namespace
     {
-        constexpr const char* AddNodePopup      = "Add Node###GraphAddNode";
-        constexpr const char* EnumPopup         = "Choose Value###GraphEnumPicker";
-        constexpr const char* VariableNodePopup = "Variable Node###GraphVariableNode";
-        constexpr const char* NodeMenuPopup     = "Node###GraphNodeMenu";
-        constexpr const char* RuntimeErrorPopup = "Runtime Errors###GraphRuntimeErrors";
+        constexpr const char* AddNodePopup       = "Add Node###GraphAddNode";
+        constexpr const char* EnumPopup          = "Choose Value###GraphEnumPicker";
+        constexpr const char* VariableNodePopup  = "Variable Node###GraphVariableNode";
+        constexpr const char* NodeMenuPopup      = "Node###GraphNodeMenu";
+        constexpr const char* RuntimeErrorPopup  = "Runtime Errors###GraphRuntimeErrors";
+        constexpr const char* RenameCommentPopup = "Rename Comment###GraphRenameComment";
 
-        constexpr f32 SidebarWidth       = 240.0f;
+        constexpr f32 SidebarWidth = 240.0f;
+
         constexpr f64 ActiveLinkHoldTime = 0.2;
+
         constexpr glm::vec2 DuplicateOffset(40.0f, 40.0f);
+
+        constexpr f32 CommentMargin          = 24.0f;
+        constexpr f32 CommentResizeTolerance = 1.5f;
 
         NE::EditorContext* CreateNodeEditor()
         {
@@ -135,6 +144,8 @@ namespace ByteForge
         m_LinkTakenAt.clear();
         m_ActiveLinks.clear();
         m_PendingSelection.clear();
+        m_RenamedComment = UUID(0);
+        m_OpenRenamePopup = false;
     }
 
     bool GraphEditorPanel::Save() const
@@ -313,13 +324,16 @@ namespace ByteForge
         UpdateActiveLinks();
         m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics(), m_RuntimeErrors, m_ActiveLinks);
         ImGui::SetFontRasterizerDensity(previousDensity);
+        SelectPastedNodes();
         ApplyValueEdits();
         OpenEnumPicker();
 
         HandleCreation();
         HandleDeletion();
         HandleClipboardShortcuts(canvas);
+        HandleCommentShortcuts();
         HandleContextMenu();
+        DrawCommentRename();
         DrawEnumPicker();
 
         if (m_FramesSinceLoad++ == 1)
@@ -371,6 +385,7 @@ namespace ByteForge
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) return;
 
         std::vector<std::pair<UUID, glm::vec2>> moved;
+        std::vector<std::pair<UUID, glm::vec2>> resized;
         for (const GraphNode& node : m_Document->GetGraph().GetNodes())
         {
             const ImVec2 position = NE::GetNodePosition(GraphIds::Node(node.Id));
@@ -378,16 +393,29 @@ namespace ByteForge
 
             if (std::abs(position.x - node.Position.x) > 0.5f || std::abs(position.y - node.Position.y) > 0.5f)
                 moved.emplace_back(node.Id, glm::vec2(position.x, position.y));
+
+            const auto* comment = std::get_if<CommentNode>(&node.Data);
+            const std::optional<glm::vec2> drawn = comment != nullptr ? m_Renderer.FindCommentSize(node.Id)
+                                                                      : std::nullopt;
+            if (drawn && (std::abs(drawn->x - comment->Size.x) > CommentResizeTolerance ||
+                          std::abs(drawn->y - comment->Size.y) > CommentResizeTolerance))
+                resized.emplace_back(node.Id, glm::round(*drawn));
         }
 
-        if (moved.empty()) return;
+        if (moved.empty() && resized.empty()) return;
 
-        m_Document->Edit(moved.size() == 1 ? "Move Node" : "Move Nodes", [&](ScriptGraph& graph)
+        const char* name = !resized.empty() ? "Resize Comment" : moved.size() == 1 ? "Move Node" : "Move Nodes";
+        m_Document->Edit(name, [&](ScriptGraph& graph)
         {
             for (const auto& [id, position] : moved)
             {
                 if (GraphNode* node = graph.FindNode(id))
                     node->Position = position;
+            }
+            for (const auto& [id, size] : resized)
+            {
+                if (GraphNode* node = graph.FindNode(id))
+                    std::get<CommentNode>(node->Data).Size = size;
             }
             return true;
         });
@@ -554,6 +582,13 @@ namespace ByteForge
 
         const UUID id = node->Id;
 
+        if (std::holds_alternative<CommentNode>(node->Data))
+        {
+            if (ImGui::MenuItem("Rename"))
+                BeginCommentRename(id);
+            ImGui::Separator();
+        }
+
         if (const auto* sequence = std::get_if<SequenceNode>(&node->Data))
         {
             const u32 outputs = sequence->Outputs;
@@ -713,6 +748,95 @@ namespace ByteForge
         NE::ClearSelection();
         for (const UUID node : std::exchange(m_PendingSelection, {}))
             NE::SelectNode(GraphIds::Node(node), true);
+    }
+
+    void GraphEditorPanel::HandleCommentShortcuts()
+    {
+        if (const NE::NodeId clicked = NE::GetDoubleClickedNode(); clicked.Get() != 0)
+            BeginCommentRename(GraphIds::ToUUID(clicked));
+
+        if (ImGui::IsAnyItemActive()) return;
+
+        if (ImGui::Shortcut(ImGuiKey_C))
+            WrapInComment(GetSelectedNodes());
+    }
+
+    void GraphEditorPanel::WrapInComment(const std::span<const UUID> nodes)
+    {
+        glm::vec2 min(std::numeric_limits<f32>::max());
+        glm::vec2 max(std::numeric_limits<f32>::lowest());
+        for (const UUID id : nodes)
+        {
+            const ImVec2 position = NE::GetNodePosition(GraphIds::Node(id));
+            const ImVec2 size = NE::GetNodeSize(GraphIds::Node(id));
+            if (position.x >= FLT_MAX) continue;
+
+            min = glm::min(min, glm::vec2(position.x, position.y));
+            max = glm::max(max, glm::vec2(position.x + size.x, position.y + size.y));
+        }
+        if (min.x > max.x) return;
+
+        const f32 title = NE::GetStyle().NodePadding.y + ImGui::GetTextLineHeightWithSpacing();
+        const glm::vec2 position = glm::floor(min - glm::vec2(CommentMargin, CommentMargin + title));
+        const glm::vec2 size = glm::ceil(max - min + glm::vec2(2.0f * CommentMargin));
+
+        UUID added{ 0 };
+        m_Document->Edit("Add Comment", [&](ScriptGraph& graph)
+        {
+            added = graph.AddNode(CommentNode{ .Size = size }, position);
+            return true;
+        });
+
+        BeginCommentRename(added);
+    }
+
+    void GraphEditorPanel::BeginCommentRename(const UUID node)
+    {
+        const GraphNode* found = m_Document->GetGraph().FindNode(node);
+        const auto* comment = found != nullptr ? std::get_if<CommentNode>(&found->Data) : nullptr;
+        if (comment == nullptr) return;
+
+        m_RenamedComment = node;
+        m_RenameText = comment->Text;
+        m_OpenRenamePopup = true;
+    }
+
+    void GraphEditorPanel::DrawCommentRename()
+    {
+        NE::Suspend();
+
+        if (std::exchange(m_OpenRenamePopup, false))
+            ImGui::OpenPopup(RenameCommentPopup);
+
+        if (ImGui::BeginPopup(RenameCommentPopup))
+        {
+            if (ImGui::IsWindowAppearing())
+                ImGui::SetKeyboardFocusHere();
+
+            ImGui::SetNextItemWidth(240.0f);
+            if (ImGui::InputText("##text", &m_RenameText,
+                                 ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+            {
+                const UUID id = m_RenamedComment;
+                const std::string& text = m_RenameText;
+                m_Document->Edit("Rename Comment", [&](ScriptGraph& graph)
+                {
+                    GraphNode* node = graph.FindNode(id);
+                    auto* comment = node != nullptr ? std::get_if<CommentNode>(&node->Data) : nullptr;
+                    if (comment == nullptr || comment->Text == text)
+                        return false;
+
+                    comment->Text = text;
+                    return true;
+                });
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        NE::Resume();
     }
 
     void GraphEditorPanel::OpenPalette(const ImVec2 position, const std::optional<PaletteContext> context)

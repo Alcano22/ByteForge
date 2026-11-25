@@ -29,6 +29,7 @@ namespace ByteForge
         template<> constexpr std::string_view NodeKindName<DoOnceNode>      = "DoOnce";
         template<> constexpr std::string_view NodeKindName<FlipFlopNode>    = "FlipFlop";
         template<> constexpr std::string_view NodeKindName<GateNode>        = "Gate";
+        template<> constexpr std::string_view NodeKindName<CommentNode>     = "Comment";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -61,6 +62,11 @@ namespace ByteForge
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
                 else if constexpr (std::is_same_v<T, SequenceNode>)
                     json["outputs"] = data.Outputs;
+                else if constexpr (std::is_same_v<T, CommentNode>)
+                {
+                    json["text"] = data.Text;
+                    json["size"] = JsonValue::ToJson(data.Size);
+                }
             }, node.Data);
 
             if (!node.Defaults.empty())
@@ -116,6 +122,13 @@ namespace ByteForge
                 return FlipFlopNode{};
             if (kind == NodeKindName<GateNode>)
                 return GateNode{};
+            if (kind == NodeKindName<CommentNode>)
+            {
+                CommentNode comment{ .Text = json.value("text", std::string("Comment")) };
+                if (json.contains("size"))
+                    comment.Size = JsonValue::ToVec2(json.at("size"));
+                return comment;
+            }
 
             throw Error("unknown node kind '{}'", kind);
         }
@@ -143,10 +156,10 @@ namespace ByteForge
         nlohmann::json WriteVariable(const GraphVariable& variable)
         {
             return {
-                { "id",      static_cast<u64>(variable.Id)              },
-                { "name",    variable.Name                                   },
-                { "exposed", variable.Exposed                                },
-                { "default", JsonValue::TypedValueToJson(variable.Default)   }
+                { "id",      static_cast<u64>(variable.Id)                 },
+                { "name",    variable.Name                                 },
+                { "exposed", variable.Exposed                              },
+                { "default", JsonValue::TypedValueToJson(variable.Default) }
             };
         }
 

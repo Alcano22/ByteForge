@@ -50,6 +50,7 @@ namespace ByteForge
 
         [[nodiscard]] const DrawnPin* FindPin(ax::NodeEditor::PinId id) const;
         [[nodiscard]] const GraphLink* FindLink(ax::NodeEditor::LinkId id) const;
+        [[nodiscard]] std::optional<glm::vec2> FindCommentSize(UUID node) const;
 
         [[nodiscard]] std::vector<ValueEdit> TakeEdits() { return std::exchange(m_Edits, {}); }
         [[nodiscard]] std::optional<EnumPick> TakeEnumPick() { return std::exchange(m_EnumPick, std::nullopt); }
@@ -70,6 +71,7 @@ namespace ByteForge
         [[nodiscard]] PinView MakePinView(const GraphNode& node, const PinInfo& pin) const;
 
         void DrawNode(const ScriptGraph& graph, const GraphNode& node);
+        void DrawComment(const GraphNode& node, const CommentNode& comment);
         void DrawPin(UUID node, const PinView& view);
         void DrawInlineEditor(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);
         void DrawEnumDropdown(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);
@@ -87,6 +89,7 @@ namespace ByteForge
         std::unordered_map<uintptr_t, GraphLink> m_Links;
         std::unordered_set<uintptr_t> m_ConnectedPins;
         std::unordered_map<UUID, std::string> m_Errors;
+        std::unordered_map<UUID, glm::vec2> m_CommentSizes;
 
         std::optional<ActiveEdit> m_Active;
         std::vector<ValueEdit> m_Edits;

@@ -68,6 +68,11 @@ namespace ByteForge
         void PasteNodes(std::string name, std::string_view text, glm::vec2 position);
         void SelectPastedNodes();
 
+        void HandleCommentShortcuts();
+        void WrapInComment(std::span<const UUID> nodes);
+        void BeginCommentRename(UUID node);
+        void DrawCommentRename();
+
         void OpenUnsavedChangesPopup(UUID next);
 
         void ApplyValueEdits();
@@ -103,6 +108,9 @@ namespace ByteForge
         std::unordered_map<uintptr_t, f64> m_LinkTakenAt;
         std::unordered_set<uintptr_t> m_ActiveLinks;
         std::vector<UUID> m_PendingSelection;
+        UUID m_RenamedComment{ 0 };
+        std::string m_RenameText;
+        bool m_OpenRenamePopup = false;
 
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();
         i32 m_FramesSinceLoad = 0;

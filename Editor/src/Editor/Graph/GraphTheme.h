@@ -16,6 +16,8 @@ namespace ByteForge::GraphTheme
     [[nodiscard]] ImU32 CategoryColor(std::string_view category);
     [[nodiscard]] ImU32 ErrorTint();
     [[nodiscard]] ImU32 ActiveLinkColor();
+    [[nodiscard]] ImU32 CommentBackground();
+    [[nodiscard]] ImU32 CommentBorder();
 
     void ApplyStyle();
 }

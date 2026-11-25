@@ -278,6 +278,7 @@ namespace ByteForge
             void EmitStatement(const GraphNode&, const EventNode&, std::string_view) { Emit(GraphOp::Return); }
             void EmitStatement(const GraphNode&, const GetVariableNode&, std::string_view) { Emit(GraphOp::Return); }
             void EmitStatement(const GraphNode&, const LiteralNode&, std::string_view) { Emit(GraphOp::Return); }
+            void EmitStatement(const GraphNode&, const CommentNode&, std::string_view) { Emit(GraphOp::Return); }
 
             void EmitCall(const GraphNode& node, const CallNode& call, std::set<u64>& evaluated)
             {
