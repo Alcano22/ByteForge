@@ -22,6 +22,7 @@ namespace ByteForge
         IntToFloat,       // A: source slot, B: target slot
         Jump,             // A: target instruction
         JumpIfFalse,      // A: condition slot, B: target instruction
+        Trace,            // A: index into TracedLinks
         Delay,            // A: delay id, B: duration slot
         Gosub,            // A: target instruction
         JumpIfGreaterInt, // A: Int slot, B: Int slot, C: target instruction if A > B
@@ -39,6 +40,12 @@ namespace ByteForge
         u32 Label = 0;
     };
 
+    struct GraphLabel
+    {
+        std::string Title;
+        UUID Node{ 0 };
+    };
+
     struct GraphEntry
     {
         u32 Instruction = 0;
@@ -49,6 +56,8 @@ namespace ByteForge
     {
         static constexpr u32 SelfSlot = 0;
 
+        UUID Graph{ 0 };
+
         std::vector<GraphInstruction> Code;
         std::vector<u32> Arguments;
         std::vector<ScriptValue> InitialSlots;
@@ -58,6 +67,7 @@ namespace ByteForge
         std::vector<ScriptFieldInfo> Fields;
 
         u32 DelayCount = 0;
-        std::vector<std::string> Labels{ "Graph" };
+        std::vector<GraphLabel> Labels{ GraphLabel{ "Graph" } };
+        std::vector<GraphLink> TracedLinks;
     };
 }

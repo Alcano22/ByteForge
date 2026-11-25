@@ -4,6 +4,7 @@
 
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Scripting/Visual/GraphDebugger.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
 #include <filesystem>
@@ -56,7 +57,11 @@ namespace ByteForge
         return MakeScope<GraphScriptInstance>(graphClass->Program, entity);
     }
 
-    void GraphScriptBackend::OnRuntimeStart(Scene&) { Refresh(true); }
+    void GraphScriptBackend::OnRuntimeStart(Scene&)
+    {
+        GraphDebugger::ClearErrors();
+        Refresh(true);
+    }
 
     void GraphScriptBackend::Refresh(const bool force) const
     {
@@ -78,7 +83,10 @@ namespace ByteForge
             else if (auto program = CompileScriptGraph(*graph); !program)
                 graphClass.Error = program.error();
             else
+            {
+                program->Graph = metadata.Handle;
                 graphClass.Program = MakeRef<const GraphProgram>(std::move(*program));
+            }
 
             if (!graphClass.Error.empty())
                 CORE_WARN("Script graph '{}': {}", graphClass.DisplayName, graphClass.Error);

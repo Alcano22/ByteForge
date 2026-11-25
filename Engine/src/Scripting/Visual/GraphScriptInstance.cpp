@@ -1,6 +1,7 @@
 #include "Scripting/Visual/GraphScriptInstance.h"
 
 #include "Engine/Scripting/API/ScriptAPI.h"
+#include "Engine/Scripting/Visual/GraphDebugger.h"
 
 #include <algorithm>
 #include <exception>
@@ -28,8 +29,8 @@ namespace ByteForge
     }
 
     GraphScriptInstance::GraphScriptInstance(Ref<const GraphProgram> program, const Entity entity)
-        : m_Program(std::move(program)), m_Scene(&entity.GetScene()), m_Slots(m_Program->InitialSlots),
-          m_DelayRunning(m_Program->DelayCount, false)
+        : m_Program(std::move(program)), m_Scene(&entity.GetScene()), m_Entity(entity.GetUUID()),
+          m_Slots(m_Program->InitialSlots), m_DelayRunning(m_Program->DelayCount, false)
     {
         m_Slots[GraphProgram::SelfSlot] = EntityRef{ entity.GetUUID() };
     }
@@ -101,13 +102,19 @@ namespace ByteForge
         const ScriptCallContext context{ .ActiveScene = m_Scene };
 
         std::vector<u32> returns;
+        const bool traced = GraphDebugger::IsWatched(program.Graph);
+        u32 label = 0;
 
         for (usize budget = MaxInstructionsPerRun; budget > 0; --budget)
         {
             if (instruction >= program.Code.size())
+            {
+                ReportError(label, "The graph jumped outside its code");
                 throw ScriptError("The graph jumped outside its code");
+            }
 
             const GraphInstruction& current = program.Code[instruction++];
+            label = current.Label;
 
             try
             {
@@ -138,6 +145,10 @@ namespace ByteForge
                         if (!std::get<bool>(m_Slots[current.A]))
                             instruction = current.B;
                         break;
+                    case GraphOp::Trace:
+                        if (traced)
+                            GraphDebugger::OnLinkTaken(program.Graph, program.TracedLinks[current.A]);
+                        break;
                     case GraphOp::Delay:
                         StartDelay(current.A, std::get<f32>(m_Slots[current.B]), instruction);
                         [[fallthrough]];
@@ -161,11 +172,23 @@ namespace ByteForge
                 }
             } catch (const std::exception& e)
             {
-                throw ScriptError("{} (in '{}')", e.what(), program.Labels[current.Label]);
+                ReportError(current.Label, e.what());
+                throw ScriptError("{} (in '{}')", e.what(), program.Labels[current.Label].Title);
             }
         }
 
-        throw ScriptError("The graph ran too many steps at once; is there an exec loop without a Delay?");
+        constexpr const char* tooManySteps = "The graph ran too many steps at once; is there an exec loop without a Delay?";
+        ReportError(label, tooManySteps);
+        throw ScriptError("{} (in '{}')", tooManySteps, program.Labels[label].Title);
+    }
+
+    void GraphScriptInstance::ReportError(const u32 label, std::string message) const
+    {
+        GraphDebugger::OnError(m_Program->Graph, GraphRuntimeError{
+            .Node    = m_Program->Labels[label].Node,
+            .Entity  = m_Entity,
+            .Message = std::move(message)
+        });
     }
 
     void GraphScriptInstance::StartDelay(const u32 id, const f32 duration, const u32 resume)

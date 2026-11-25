@@ -9,6 +9,7 @@
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
+#include <Engine/Scripting/Visual/GraphDebugger.h>
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -17,6 +18,8 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace ByteForge
 {
@@ -38,7 +41,10 @@ namespace ByteForge
         bool Save() const;
 
         void HandleShortcuts() const;
-        void DrawToolbar() const;
+        void DrawToolbar();
+        void DrawRuntimeErrors();
+        void FocusRequestedNode();
+        void UpdateActiveLinks();
         void DrawCanvas();
 
         void SyncPositionsToEditor();
@@ -78,6 +84,11 @@ namespace ByteForge
         std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;
         UUID m_MenuNode{ 0 };
+
+        std::vector<GraphRuntimeError> m_RuntimeErrors;
+        std::optional<UUID> m_FocusNode;
+        std::unordered_map<uintptr_t, f64> m_LinkTakenAt;
+        std::unordered_set<uintptr_t> m_ActiveLinks;
 
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();
         i32 m_FramesSinceLoad = 0;

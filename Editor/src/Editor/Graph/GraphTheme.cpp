@@ -61,6 +61,8 @@ namespace ByteForge::GraphTheme
 
     ImU32 ErrorTint() { return IM_COL32(190, 45, 45, 255); }
 
+    ImU32 ActiveLinkColor() { return IM_COL32(255, 200, 60, 255); }
+
     void ApplyStyle()
     {
         NE::Style& style = NE::GetStyle();

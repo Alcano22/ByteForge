@@ -3,7 +3,6 @@
 #include "Engine/Scripting/API/ScriptAPI.h"
 #include "Engine/Scripting/Visual/GraphSchema.h"
 
-
 #include <format>
 #include <map>
 #include <set>
@@ -90,6 +89,9 @@ namespace ByteForge
                     Emit(GraphOp::Return);
                     return;
                 }
+
+                Emit(GraphOp::Trace, static_cast<u32>(m_Program.TracedLinks.size()));
+                m_Program.TracedLinks.push_back(*link);
 
                 if (const auto it = m_NodeCode.find({ link->To.Node, link->To.Pin }); it != m_NodeCode.end())
                 {
@@ -396,7 +398,7 @@ namespace ByteForge
                     return it->second;
 
                 const auto index = static_cast<u32>(m_Program.Labels.size());
-                m_Program.Labels.push_back(Signature(node).Title);
+                m_Program.Labels.push_back({ Signature(node).Title, node });
                 m_Labels.emplace(node, index);
                 return index;
             }

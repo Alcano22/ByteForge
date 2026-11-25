@@ -1,5 +1,6 @@
 #include "Editor/Panels/GraphEditorPanel.h"
 #include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
 #include "Editor/Graph/GraphIds.h"
 #include "Editor/Graph/GraphTheme.h"
 #include "Editor/Theme/EditorColors.h"
@@ -25,8 +26,10 @@ namespace ByteForge
         constexpr const char* EnumPopup         = "Choose Value###GraphEnumPicker";
         constexpr const char* VariableNodePopup = "Variable Node###GraphVariableNode";
         constexpr const char* NodeMenuPopup     = "Node###GraphNodeMenu";
+        constexpr const char* RuntimeErrorPopup = "Runtime Errors###GraphRuntimeErrors";
 
-        constexpr f32 SidebarWidth = 240.0f;
+        constexpr f32 SidebarWidth       = 240.0f;
+        constexpr f64 ActiveLinkHoldTime = 0.2;
 
         NE::EditorContext* CreateNodeEditor()
         {
@@ -126,6 +129,9 @@ namespace ByteForge
 
         m_Variables.Reset();
         m_DroppedVariable.reset();
+        m_FocusNode.reset();
+        m_LinkTakenAt.clear();
+        m_ActiveLinks.clear();
     }
 
     bool GraphEditorPanel::Save() const
@@ -156,14 +162,18 @@ namespace ByteForge
             m_FocusRequested = false;
         }
 
+        UUID watched{ 0 };
+
         ImGui::SetNextWindowSize(ImVec2(900.0f, 600.0f), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(title.c_str(), &m_Open))
         {
             if (!m_Document)
-            {
                 ImGui::TextDisabled("Double-click a script graph in the Assets panel to edit it");
-            } else
+            else
             {
+                watched = m_Document->GetAsset();
+                m_RuntimeErrors = GraphDebugger::GetErrors(watched);
+
                 HandleShortcuts();
                 DrawToolbar();
 
@@ -178,6 +188,8 @@ namespace ByteForge
         }
 
         ImGui::End();
+
+        GraphDebugger::Watch(watched);
     }
 
     void GraphEditorPanel::HandleShortcuts() const
@@ -190,7 +202,7 @@ namespace ByteForge
             m_Document->Redo();
     }
 
-    void GraphEditorPanel::DrawToolbar() const
+    void GraphEditorPanel::DrawToolbar()
     {
         GraphDocument& document = *m_Document;
 
@@ -234,8 +246,49 @@ namespace ByteForge
             ImGui::EndTooltip();
         }
 
+        DrawRuntimeErrors();
+
         ImGui::SameLine(0.0f, 16.0f);
         ImGui::TextDisabled("Right-click to add nodes, drag pins to connect, drag variables onto the graph");
+    }
+
+    void GraphEditorPanel::DrawRuntimeErrors()
+    {
+        if (m_RuntimeErrors.empty()) return;
+
+        ImGui::SameLine(0.0f, 16.0f);
+        {
+            const EditorUI::ScopedStyleColor red(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()));
+            if (ImGui::SmallButton(std::format("{} runtime error(s)", m_RuntimeErrors.size()).c_str()))
+                ImGui::OpenPopup(RuntimeErrorPopup);
+        }
+        ImGui::SetItemTooltip("Errors from the last time the game ran. Click to list them");
+
+        if (!ImGui::BeginPopup(RuntimeErrorPopup)) return;
+
+        const ScriptGraph& graph = m_Document->GetGraph();
+        for (usize i = 0; i < m_RuntimeErrors.size(); ++i)
+        {
+            const GraphRuntimeError& error = m_RuntimeErrors[i];
+            const GraphNode* node = graph.FindNode(error.Node);
+            const std::string title = node != nullptr ? DescribeNode(graph, *node).Title : std::string("Graph");
+
+            ImGui::PushID(static_cast<i32>(i));
+            ImGui::BeginDisabled(node == nullptr);
+            if (ImGui::Selectable(std::format("{}: {}", title, error.Message).c_str()))
+                m_FocusNode = error.Node;
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        }
+
+        ImGui::Separator();
+        if (ImGui::MenuItem("Clear"))
+        {
+            GraphDebugger::ClearErrors();
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     void GraphEditorPanel::DrawCanvas()
@@ -254,7 +307,8 @@ namespace ByteForge
         const f32 previousDensity = ImGui::GetFontRasterizerDensity();
         const f32 canvasScale = 1.0f / NE::GetCurrentZoom();
         ImGui::SetFontRasterizerDensity(SnapRasterizerDensity(previousDensity * canvasScale));
-        m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics());
+        UpdateActiveLinks();
+        m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics(), m_RuntimeErrors, m_ActiveLinks);
         ImGui::SetFontRasterizerDensity(previousDensity);
         ApplyValueEdits();
         OpenEnumPicker();
@@ -266,6 +320,7 @@ namespace ByteForge
 
         if (m_FramesSinceLoad++ == 1)
             NE::NavigateToContent(0.0f);
+        FocusRequestedNode();
 
         NE::End();
 
@@ -274,6 +329,28 @@ namespace ByteForge
 
         CommitMovedNodes();
         NE::SetCurrentEditor(nullptr);
+    }
+
+    void GraphEditorPanel::UpdateActiveLinks()
+    {
+        const f64 now = ImGui::GetTime();
+        for (const GraphLink& link : GraphDebugger::TakeLinks())
+            m_LinkTakenAt.insert_or_assign(GraphIds::Link(link).Get(), now);
+
+        std::erase_if(m_LinkTakenAt, [&](const auto& entry) { return now - entry.second > ActiveLinkHoldTime; });
+
+        m_ActiveLinks.clear();
+        for (const auto& entry : m_LinkTakenAt)
+            m_ActiveLinks.insert(entry.first);
+    }
+
+    void GraphEditorPanel::FocusRequestedNode()
+    {
+        const std::optional<UUID> node = std::exchange(m_FocusNode, std::nullopt);
+        if (!node || m_Document->GetGraph().FindNode(*node) == nullptr) return;
+
+        NE::SelectNode(GraphIds::Node(*node));
+        NE::NavigateToSelection(false, 0.3f);
     }
 
     void GraphEditorPanel::SyncPositionsToEditor()

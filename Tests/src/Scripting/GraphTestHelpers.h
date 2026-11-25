@@ -7,6 +7,7 @@
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scripting/ScriptBackend.h>
 #include <Engine/Scripting/ScriptEngine.h>
+#include <Engine/Scripting/Visual/GraphDebugger.h>
 #include <Engine/Scripting/Visual/GraphSchema.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
 #include <Engine/Scripting/Visual/ScriptGraphSerializer.h>
@@ -75,7 +76,12 @@ namespace ByteForge::Tests
             AssetRegistry::Init(Directory / "assets");
         }
 
-        ~GraphFixture() { AssetRegistry::Clear(); }
+        ~GraphFixture()
+        {
+            GraphDebugger::Watch(UUID(0));
+            GraphDebugger::ClearErrors();
+            AssetRegistry::Clear();
+        }
 
         GraphFixture(const GraphFixture&) = delete;
         GraphFixture& operator=(const GraphFixture&) = delete;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Scripting/Visual/GraphSchema.h>
+#include <Engine/Scripting/Visual/GraphDebugger.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
 
 #include <imgui_node_editor.h>
@@ -43,7 +44,9 @@ namespace ByteForge
     class GraphNodeRenderer
     {
     public:
-        void Draw(const ScriptGraph& graph, std::span<const GraphDiagnostic> diagnostics);
+        void Draw(const ScriptGraph& graph, std::span<const GraphDiagnostic> diagnostics,
+                  std::span<const GraphRuntimeError> runtimeErrors,
+                  const std::unordered_set<uintptr_t>& activeLinks);
 
         [[nodiscard]] const DrawnPin* FindPin(ax::NodeEditor::PinId id) const;
         [[nodiscard]] const GraphLink* FindLink(ax::NodeEditor::LinkId id) const;

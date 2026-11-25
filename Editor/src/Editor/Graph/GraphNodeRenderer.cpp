@@ -165,7 +165,9 @@ namespace ByteForge
         }
     }
 
-    void GraphNodeRenderer::Draw(const ScriptGraph& graph, const std::span<const GraphDiagnostic> diagnostics)
+    void GraphNodeRenderer::Draw(const ScriptGraph& graph, const std::span<const GraphDiagnostic> diagnostics,
+                                 const std::span<const GraphRuntimeError> runtimeErrors,
+                                 const std::unordered_set<uintptr_t>& activeLinks)
     {
         m_Pins.clear();
         m_Links.clear();
@@ -176,6 +178,12 @@ namespace ByteForge
         {
             if (diagnostic.Severity == GraphSeverity::Error)
                 m_Errors.try_emplace(diagnostic.Node, diagnostic.Message);
+        }
+
+        for (const GraphRuntimeError& error : runtimeErrors)
+        {
+            if (error.Node != UUID(0))
+                m_Errors.try_emplace(error.Node, std::format("Runtime error: {}", error.Message));
         }
 
         for (const GraphLink& link : graph.GetLinks())
@@ -202,6 +210,13 @@ namespace ByteForge
             m_Links.insert_or_assign(id.Get(), link);
 
             const PinType& type = source->second.Type;
+            if (activeLinks.contains(id.Get()))
+            {
+                NE::Link(id, from, to, ImGui::ColorConvertU32ToFloat4(GraphTheme::ActiveLinkColor()),
+                         GraphTheme::ActiveLinkThickness);
+                continue;
+            }
+
             NE::Link(id, from, to, ImGui::ColorConvertU32ToFloat4(GraphTheme::PinColor(type)),
                      type.IsExec ? GraphTheme::ExecLinkThickness : GraphTheme::DataLinkThickness);
         }

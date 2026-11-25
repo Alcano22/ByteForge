@@ -4,6 +4,7 @@
 #include "Scripting/Visual/GraphProgram.h"
 
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -28,6 +29,7 @@ namespace ByteForge
         void Run(u32 instruction);
         void StartDelay(u32 id, f32 duration, u32 resume);
         void AdvanceDelays(f32 deltaTime);
+        void ReportError(u32 label, std::string message) const;
 
     private:
         struct PendingDelay
@@ -39,6 +41,7 @@ namespace ByteForge
 
         Ref<const GraphProgram> m_Program;
         Scene* m_Scene;
+        UUID m_Entity;
         std::vector<ScriptValue> m_Slots;
         std::vector<PendingDelay> m_Delays;
         std::vector<bool> m_DelayRunning;
