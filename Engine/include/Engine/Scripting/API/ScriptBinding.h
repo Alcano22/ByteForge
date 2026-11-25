@@ -20,6 +20,7 @@ namespace ByteForge::Detail
     {
         static constexpr ScriptFieldType Type = Tag;
         static constexpr AssetType Asset = AssetType::None;
+        static constexpr const ScriptEnum* Enum = nullptr;
 
         static const T& FromValue(const ScriptValue& value) { return std::get<T>(value); }
         static ScriptValue ToValue(T value) { return ScriptValue(std::in_place_type<T>, std::move(value)); }
@@ -40,9 +41,29 @@ namespace ByteForge::Detail
     {
         static constexpr ScriptFieldType Type = ScriptFieldType::Asset;
         static constexpr AssetType Asset = Kind;
+        static constexpr const ScriptEnum* Enum = nullptr;
 
         static AssetHandle<Kind> FromValue(const ScriptValue& value) { return { std::get<AssetRef>(value).Handle }; }
         static ScriptValue ToValue(const AssetHandle<Kind> value) { return AssetRef{ Kind, value.Handle }; }
+    };
+
+    template<ScriptEnumType T>
+    struct ScriptTypeTraits<T>
+    {
+        static constexpr ScriptFieldType Type = ScriptFieldType::Int;
+        static constexpr AssetType Asset = AssetType::None;
+        static constexpr const ScriptEnum* Enum = &ScriptEnumOf<T>::Value;
+
+        static T FromValue(const ScriptValue& value)
+        {
+            const i32 raw = std::get<i32>(value);
+            if (Enum->Find(raw) == nullptr)
+                throw ScriptError("{} is not a valid {}", raw, Enum->Name);
+
+            return static_cast<T>(raw);
+        }
+
+        static ScriptValue ToValue(const T value) { return static_cast<i32>(value); }
     };
 
     template<typename T>
@@ -65,7 +86,7 @@ namespace ByteForge::Detail
     template<typename T>
     ScriptParameter DescribeParameter(std::string name)
     {
-        return { std::move(name), ScriptTraitsOf<T>::Type, ScriptTraitsOf<T>::Asset };
+        return { std::move(name), ScriptTraitsOf<T>::Type, ScriptTraitsOf<T>::Asset, ScriptTraitsOf<T>::Enum };
     }
 
     template<auto Fn, usize N>

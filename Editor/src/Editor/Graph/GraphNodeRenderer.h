@@ -30,6 +30,16 @@ namespace ByteForge
         ScriptValue Value;
     };
 
+    struct EnumPick
+    {
+        UUID Node{ 0 };
+        std::string Pin;
+        std::string_view Enum;
+        i32 Current = 0;
+        ImVec2 Anchor{ 0.0f, 0.0f };
+        f32 Width = 0.0f;
+    };
+
     class GraphNodeRenderer
     {
     public:
@@ -39,6 +49,7 @@ namespace ByteForge
         [[nodiscard]] const GraphLink* FindLink(ax::NodeEditor::LinkId id) const;
 
         [[nodiscard]] std::vector<ValueEdit> TakeEdits() { return std::exchange(m_Edits, {}); }
+        [[nodiscard]] std::optional<EnumPick> TakeEnumPick() { return std::exchange(m_EnumPick, std::nullopt); }
 
     private:
         struct PinView
@@ -49,6 +60,7 @@ namespace ByteForge
             std::string Label;
             std::optional<ScriptValue> Editor;
             std::string EditorKey;
+            std::string_view Enum;
             f32 Width = 0.0f;
         };
 
@@ -56,7 +68,8 @@ namespace ByteForge
 
         void DrawNode(const ScriptGraph& graph, const GraphNode& node);
         void DrawPin(UUID node, const PinView& view);
-        void DrawInlineEditor(UUID node, const std::string& key, const ScriptValue& stored);
+        void DrawInlineEditor(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);
+        void DrawEnumDropdown(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);
         void ShowHoveredError() const;
 
     private:
@@ -74,5 +87,6 @@ namespace ByteForge
 
         std::optional<ActiveEdit> m_Active;
         std::vector<ValueEdit> m_Edits;
+        std::optional<EnumPick> m_EnumPick;
     };
 }

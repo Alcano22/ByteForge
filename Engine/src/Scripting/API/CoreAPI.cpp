@@ -448,39 +448,23 @@ namespace ByteForge
             context.Require<AnimatorComponent>(entity).Speed = std::max(0.0f, speed);
         }
 
-        KeyCode ToKeyCode(const i32 key)
-        {
-            if (key < 0 || key > std::numeric_limits<u16>::max())
-                throw ScriptError("{} is not a valid key code", key);
+        bool InputIsKeyDown(const ScriptCallContext&, const KeyCode key) { return Input::IsKeyDown(key); }
+        bool InputIsKeyPressed(const ScriptCallContext&, const KeyCode key) { return Input::IsKeyPressed(key); }
+        bool InputIsKeyReleased(const ScriptCallContext&, const KeyCode key) { return Input::IsKeyReleased(key); }
 
-            return static_cast<KeyCode>(key);
+        bool InputIsMouseButtonDown(const ScriptCallContext&, const MouseButton button)
+        {
+            return Input::IsMouseButtonDown(button);
         }
 
-        MouseButton ToMouseButton(const i32 button)
+        bool InputIsMouseButtonPressed(const ScriptCallContext&, const MouseButton button)
         {
-            if (button < 0 || button > static_cast<i32>(MouseButton::ButtonLast))
-                throw ScriptError("{} is not a valid mouse button", button);
-
-            return static_cast<MouseButton>(button);
+            return Input::IsMouseButtonPressed(button);
         }
 
-        bool InputIsKeyDown(const ScriptCallContext&, const i32 key) { return Input::IsKeyDown(ToKeyCode(key)); }
-        bool InputIsKeyPressed(const ScriptCallContext&, const i32 key) { return Input::IsKeyPressed(ToKeyCode(key)); }
-        bool InputIsKeyReleased(const ScriptCallContext&, const i32 key) { return Input::IsKeyReleased(ToKeyCode(key)); }
-
-        bool InputIsMouseButtonDown(const ScriptCallContext&, const i32 button)
+        bool InputIsMouseButtonReleased(const ScriptCallContext&, const MouseButton button)
         {
-            return Input::IsMouseButtonDown(ToMouseButton(button));
-        }
-
-        bool InputIsMouseButtonPressed(const ScriptCallContext&, const i32 button)
-        {
-            return Input::IsMouseButtonPressed(ToMouseButton(button));
-        }
-
-        bool InputIsMouseButtonReleased(const ScriptCallContext&, const i32 button)
-        {
-            return Input::IsMouseButtonReleased(ToMouseButton(button));
+            return Input::IsMouseButtonReleased(button);
         }
 
         glm::vec2 InputGetMousePosition(const ScriptCallContext&) { return Input::GetViewportMousePosition(); }

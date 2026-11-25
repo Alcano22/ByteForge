@@ -5,6 +5,7 @@
 #include "Engine/Scene/Entity.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scripting/ScriptField.h"
+#include "Engine/Scripting/API/ScriptEnum.h"
 
 #include <entt/core/type_info.hpp>
 
@@ -58,6 +59,7 @@ namespace ByteForge
         std::string Name;
         ScriptFieldType Type = ScriptFieldType::Float;
         AssetType Asset = AssetType::None;
+        const ScriptEnum* Enum = nullptr;
     };
 
     using ScriptInvoker = std::optional<ScriptValue> (*)(const ScriptCallContext& context,

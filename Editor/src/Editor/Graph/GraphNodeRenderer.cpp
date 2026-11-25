@@ -6,9 +6,12 @@
 #include "Editor/Overloaded.h"
 
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Core/StringUtils.h>
+#include <Engine/Scripting/API/ScriptAPI.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
 #include <algorithm>
@@ -28,6 +31,7 @@ namespace ByteForge
         constexpr f32 NumberWidth = 56.0f;
         constexpr f32 TextWidth   = 120.0f;
         constexpr f32 AssetWidth  = 110.0f;
+        constexpr f32 EnumWidth   = 130.0f;
 
         void DrawPinIcon(const PinType& type, const PinDirection direction, const bool connected)
         {
@@ -83,6 +87,11 @@ namespace ByteForge
                 return pin.Name + " (Self)";
 
             return pin.Name;
+        }
+
+        bool FitsPin(const ScriptValue& value, const PinType& type)
+        {
+            return PinType::Of(value) == type || (!type.Enum.empty() && std::holds_alternative<i32>(value));
         }
 
         bool HasInlineEditor(const PinType& type)
@@ -223,10 +232,11 @@ namespace ByteForge
             if (pin.Direction == PinDirection::Input && !view.Connected)
             {
                 const auto stored = node.Defaults.find(pin.Name);
-                view.Editor = stored != node.Defaults.end() && PinType::Of(stored->second) == pin.Type
-                                  ? stored->second
-                                  : DefaultValueFor(pin.Type);
+                view.Editor = stored != node.Defaults.end() && FitsPin(stored->second, pin.Type)
+                            ? stored->second
+                            : DefaultValueFor(pin.Type);
                 view.EditorKey = pin.Name;
+                view.Enum = pin.Type.Enum;
             } else if (const auto* literal = std::get_if<LiteralNode>(&node.Data);
                        literal != nullptr && pin.Direction == PinDirection::Output)
             {
@@ -239,7 +249,7 @@ namespace ByteForge
         if (!view.Label.empty())
             view.Width += spacing + ImGui::CalcTextSize(view.Label.c_str()).x;
         if (view.Editor)
-            view.Width += spacing + InlineEditorWidth(*view.Editor);
+            view.Width += spacing + (view.Enum.empty() ? InlineEditorWidth(*view.Editor) : EnumWidth);
         if (!view.Label.empty() || view.Editor)
             view.Width += TextPadding;
 
@@ -328,14 +338,12 @@ namespace ByteForge
         const bool input = pin.Direction == PinDirection::Input;
         const f32 spacing = ImGui::GetStyle().ItemInnerSpacing.x;
 
-        // Outputs are right-aligned, so their padding sits on the inner side
         if (!input && (!view.Label.empty() || view.Editor))
             ImGui::SetCursorScreenPos(ImVec2(ImGui::GetCursorScreenPos().x + TextPadding, ImGui::GetCursorScreenPos().y));
 
-        // Editors stay outside the pin, so dragging a value does not start a link
         if (!input && view.Editor)
         {
-            DrawInlineEditor(node, view.EditorKey, *view.Editor);
+            DrawInlineEditor(node, view.EditorKey, *view.Editor, view.Enum);
             ImGui::SameLine(0.0f, spacing);
         }
 
@@ -360,14 +368,21 @@ namespace ByteForge
         if (input && view.Editor)
         {
             ImGui::SameLine(0.0f, spacing);
-            DrawInlineEditor(node, view.EditorKey, *view.Editor);
+            DrawInlineEditor(node, view.EditorKey, *view.Editor, view.Enum);
         }
 
         m_Pins.insert_or_assign(view.Id.Get(), DrawnPin{ PinRef{ node, pin.Name }, pin.Direction, pin.Type });
     }
 
-    void GraphNodeRenderer::DrawInlineEditor(const UUID node, const std::string& key, const ScriptValue& stored)
+    void GraphNodeRenderer::DrawInlineEditor(const UUID node, const std::string& key,
+                                             const ScriptValue& stored, const std::string_view enumName)
     {
+        if (!enumName.empty())
+        {
+            DrawEnumDropdown(node, key, stored, enumName);
+            return;
+        }
+
         const auto nodeKey = static_cast<u64>(node);
         const bool editing = m_Active && m_Active->Node == nodeKey && m_Active->Key == key;
         ScriptValue value = editing ? m_Active->Value : stored;
@@ -385,6 +400,50 @@ namespace ByteForge
 
         if (commit)
             m_Edits.push_back({ node, key, std::move(value) });
+    }
+
+    void GraphNodeRenderer::DrawEnumDropdown(const UUID node, const std::string& key,
+                                             const ScriptValue& stored, const std::string_view enumName)
+    {
+        const auto* number = std::get_if<i32>(&stored);
+        const i32 current = number != nullptr ? *number : 0;
+
+        const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(enumName);
+        const ScriptEnumValue* entry = scriptEnum != nullptr ? scriptEnum->Find(current) : nullptr;
+        const std::string preview = entry != nullptr ? NicifyString(entry->Name)
+                                                     : std::format("Invalid ({})", current);
+
+        const ImGuiStyle& style = ImGui::GetStyle();
+        ImGui::PushID(key.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_FrameBg]);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.Colors[ImGuiCol_FrameBgHovered]);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.Colors[ImGuiCol_FrameBgActive]);
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+
+        bool clicked = false;
+        {
+            const EditorUI::ScopedStyleColor invalid(ImGuiCol_Text,
+                                                     ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()),
+                                                     entry == nullptr);
+            clicked = ImGui::Button(std::format("{}##enum", preview).c_str(), ImVec2(EnumWidth, 0.0f));
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+        ImGui::PopID();
+
+        const ImVec2 min = ImGui::GetItemRectMin();
+        const ImVec2 max = ImGui::GetItemRectMax();
+        const f32 arrowSize = ImGui::GetFontSize();
+        ImGui::RenderArrow(ImGui::GetWindowDrawList(),
+                           ImVec2(max.x - arrowSize - style.FramePadding.x, min.y + style.FramePadding.y),
+                           ImGui::GetColorU32(ImGuiCol_Text), ImGuiDir_Down);
+
+        if (!clicked) return;
+
+        const ImVec2 bottomLeft = NE::CanvasToScreen(ImVec2(min.x, max.y));
+        const ImVec2 bottomRight = NE::CanvasToScreen(max);
+        m_EnumPick = EnumPick{ node, key, enumName, current, bottomLeft, bottomRight.x - bottomLeft.x };
     }
 
     void GraphNodeRenderer::ShowHoveredError() const

@@ -3,8 +3,8 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/Overloaded.h"
 #include "Editor/ScriptProject.h"
-#include "Editor/StringUtils.h"
 
+#include <Engine/Core/StringUtils.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scripting/ScriptEngine.h>

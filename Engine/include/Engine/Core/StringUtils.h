@@ -53,4 +53,27 @@ namespace ByteForge
         for (usize at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size()))
             text.replace(at, from.size(), to);
     }
+
+    [[nodiscard]] inline std::string NicifyString(std::string_view str)
+    {
+        while (str.starts_with('_'))
+            str.remove_prefix(1);
+
+        const auto isUpper = [&](const usize i) { return std::isupper(static_cast<u8>(str[i])) != 0; };
+        const auto isLower = [&](const usize i) { return std::islower(static_cast<u8>(str[i])) != 0; };
+
+        std::string result;
+        result.reserve(str.size() + 4);
+
+        for (usize i = 0; i < str.size(); ++i)
+        {
+            const bool afterWord = i > 0 && str[i - 1] != ' ' && !isUpper(i - 1);
+            const bool endsAcronym = i > 0 && isUpper(i - 1) && i + 1 < str.size() && isLower(i + 1);
+            if (isUpper(i) && (afterWord || endsAcronym))
+                result += ' ';
+
+            result += i == 0 ? static_cast<char>(std::toupper(static_cast<u8>(str[i]))) : str[i];
+        }
+        return result;
+    }
 }

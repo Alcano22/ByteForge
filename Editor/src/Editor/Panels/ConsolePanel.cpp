@@ -2,7 +2,8 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 #include "Editor/LogFormat.h"
-#include "Editor/StringUtils.h"
+
+#include <Engine/Core/StringUtils.h>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>

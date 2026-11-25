@@ -28,7 +28,20 @@ namespace ByteForge
 
         PinType ParameterType(const ScriptParameter& parameter)
         {
+            if (parameter.Enum != nullptr)
+                return PinType::OfEnum(parameter.Enum->Name);
+
             return PinType::Of(parameter.Type, parameter.Asset);
+        }
+
+        bool IsValidEnumName(const PinType& type, const ScriptValue& value)
+        {
+            if (type.Enum.empty())
+                return true;
+
+            const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(type.Enum);
+            const auto* number = std::get_if<i32>(&value);
+            return scriptEnum == nullptr || (number != nullptr && scriptEnum->Find(*number) != nullptr);
         }
 
         const char* EventTitle(const GraphEvent event)
@@ -261,6 +274,9 @@ namespace ByteForge
         if (type.IsExec)
             return "Exec";
 
+        if (!type.Enum.empty())
+            return std::string(type.Enum);
+
         std::string name(ScriptFieldTypeName(type.Value));
         if (type.Value == ScriptFieldType::Asset)
             name += ':' + std::string(AssetTypeToString(type.Asset));
@@ -274,6 +290,9 @@ namespace ByteForge
 
         if (from == to)
             return true;
+
+        if (from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Int)
+            return from.Enum.empty() || to.Enum.empty();
 
         return from.Value == ScriptFieldType::Int && to.Value == ScriptFieldType::Float;
     }
@@ -350,11 +369,14 @@ namespace ByteForge
                 {
                     report(node.Id, GraphSeverity::Warning,
                            std::format("Stored value for unknown input '{}' is ignored", pin));
-                }
-                else if (!IsAssignable(PinType::Of(value), input->Type))
+                } else if (!IsAssignable(PinType::Of(value), input->Type))
                 {
                     report(node.Id, GraphSeverity::Warning,
                            std::format("Stored value for '{}' has the wrong type and is ignored", pin));
+                } else if (!IsValidEnumName(input->Type, value))
+                {
+                    report(node.Id, GraphSeverity::Warning,
+                           std::format("Stored value for '{}' is not a valid {}", pin, input->Type.Enum));
                 }
             }
         }
@@ -411,6 +433,13 @@ namespace ByteForge
 
     ScriptValue DefaultValueFor(const PinType& type)
     {
+        if (!type.Enum.empty())
+        {
+            const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(type.Enum);
+            if (scriptEnum != nullptr && !scriptEnum->Values.empty())
+                return scriptEnum->Values.front().Value;
+        }
+
         switch (type.Value)
         {
             case ScriptFieldType::Bool:    return false;
@@ -462,6 +491,9 @@ namespace ByteForge
     {
         if (type.IsExec)
             return "Exec";
+
+        if (!type.Enum.empty())
+            return std::string(type.Enum);
 
         return type.Value == ScriptFieldType::Asset ? std::string(AssetTypeToString(type.Asset))
                                                     : std::string(ScriptFieldTypeName(type.Value));

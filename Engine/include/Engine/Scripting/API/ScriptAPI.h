@@ -54,6 +54,8 @@ namespace ByteForge
 
         [[nodiscard]] const ScriptFunction& GetFunction(u32 index) const;
 
+        [[nodiscard]] const ScriptEnum* FindEnum(std::string_view name) const;
+
         [[nodiscard]] static const ScriptAPI& Get();
 
     private:
@@ -67,5 +69,6 @@ namespace ByteForge
     private:
         std::vector<ScriptFunction> m_Functions;
         std::map<std::string, u32, std::less<>> m_Indices;
+        std::map<std::string_view, const ScriptEnum*, std::less<>> m_Enums;
     };
 }

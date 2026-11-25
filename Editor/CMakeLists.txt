@@ -79,6 +79,7 @@ add_executable(Editor
         src/Editor/Graph/GraphNodeRenderer.cpp
         src/Editor/Graph/GraphNodePalette.cpp
         src/Editor/Graph/GraphVariablesPanel.cpp
+        src/Editor/Graph/GraphEnumPicker.cpp
 )
 
 target_include_directories(Editor PRIVATE src)

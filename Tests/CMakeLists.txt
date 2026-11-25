@@ -9,6 +9,7 @@ add_executable(ByteForgeTests
         src/Core/Utf8Tests.cpp
         src/Core/RandomTests.cpp
         src/Core/DotNetLocatorTests.cpp
+        src/Core/StringUtilsTests.cpp
         src/Scene/UUIDTests.cpp
         src/Scene/SceneTests.cpp
         src/Scene/SpriteRendererTests.cpp
@@ -24,6 +25,7 @@ add_executable(ByteForgeTests
         src/Scripting/ScriptAPICompatibilityTests.cpp
         src/Scripting/ScriptGraphTests.cpp
         src/Scripting/ScriptGraphVariableTests.cpp
+        src/Scripting/ScriptEnumTests.cpp
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp
         src/Input/InputActionSystemTests.cpp

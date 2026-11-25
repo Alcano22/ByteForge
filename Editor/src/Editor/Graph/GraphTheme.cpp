@@ -15,6 +15,9 @@ namespace ByteForge::GraphTheme
         if (type.IsExec)
             return IM_COL32(235, 235, 235, 255);
 
+        if (!type.Enum.empty())
+            return IM_COL32(20, 140, 120, 255);
+
         switch (type.Value)
         {
             case ScriptFieldType::Bool:    return IM_COL32(220, 60, 60, 255);

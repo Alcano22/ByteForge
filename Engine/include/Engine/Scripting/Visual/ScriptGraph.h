@@ -27,8 +27,14 @@ namespace ByteForge
         bool IsExec = false;
         ScriptFieldType Value = ScriptFieldType::Float;
         AssetType Asset = AssetType::None;
+        std::string_view Enum;
 
         [[nodiscard]] static constexpr PinType Exec() { return { .IsExec = true }; }
+
+        [[nodiscard]] static constexpr PinType OfEnum(const std::string_view name)
+        {
+            return { .IsExec = false, .Value = ScriptFieldType::Int, .Asset = AssetType::None, .Enum = name };
+        }
 
         [[nodiscard]] static constexpr PinType Of(const ScriptFieldType value,
                                                   const AssetType asset = AssetType::None)

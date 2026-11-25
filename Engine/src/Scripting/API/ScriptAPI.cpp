@@ -105,6 +105,12 @@ namespace ByteForge
         return m_Functions[index];
     }
 
+    const ScriptEnum* ScriptAPI::FindEnum(const std::string_view name) const
+    {
+        const auto it = m_Enums.find(name);
+        return it != m_Enums.end() ? it->second : nullptr;
+    }
+
     void ScriptAPI::Add(ScriptFunction function)
     {
         const usize dot = function.Id.find('.');
@@ -115,6 +121,15 @@ namespace ByteForge
             throw LogicError("Script function '{}' is registered twice", function.Id);
 
         function.Category = function.Id.substr(0, dot);
+
+        for (const ScriptParameter& parameter : function.Parameters)
+        {
+            if (parameter.Enum != nullptr)
+                m_Enums.try_emplace(parameter.Enum->Name, parameter.Enum);
+        }
+        if (function.Result && function.Result->Enum != nullptr)
+            m_Enums.try_emplace(function.Result->Enum->Name, function.Result->Enum);
+
         m_Indices.emplace(function.Id, static_cast<u32>(m_Functions.size()));
         m_Functions.push_back(std::move(function));
     }

@@ -22,6 +22,7 @@ namespace ByteForge
     namespace
     {
         constexpr const char* AddNodePopup      = "Add Node###GraphAddNode";
+        constexpr const char* EnumPopup         = "Choose Value###GraphEnumPicker";
         constexpr const char* VariableNodePopup = "Variable Node###GraphVariableNode";
 
         constexpr f32 SidebarWidth = 240.0f;
@@ -119,6 +120,8 @@ namespace ByteForge
 
         m_SyncedRevision = std::numeric_limits<u64>::max();
         m_FramesSinceLoad = 0;
+
+        m_EnumTarget.reset();
 
         m_Variables.Reset();
         m_DroppedVariable.reset();
@@ -257,6 +260,7 @@ namespace ByteForge
         HandleCreation();
         HandleDeletion();
         HandleContextMenu();
+        DrawEnumPicker();
 
         if (m_FramesSinceLoad++ == 1)
             NE::NavigateToContent(0.0f);
@@ -483,31 +487,67 @@ namespace ByteForge
     void GraphEditorPanel::ApplyValueEdits()
     {
         for (ValueEdit& edit : m_Renderer.TakeEdits())
+            ApplyValueEdit(std::move(edit));
+    }
+
+    void GraphEditorPanel::ApplyValueEdit(ValueEdit edit)
+    {
+        m_Document->Edit("Change Value", [&](ScriptGraph& graph)
         {
-            m_Document->Edit("Change Value", [&](ScriptGraph& graph)
+            GraphNode* node = graph.FindNode(edit.Node);
+            if (node == nullptr)
+                return false;
+
+            if (edit.Pin.empty())
             {
-                GraphNode* node = graph.FindNode(edit.Node);
-                if (node == nullptr)
+                auto* literal = std::get_if<LiteralNode>(&node->Data);
+                if (literal == nullptr || literal->Value == edit.Value)
                     return false;
 
-                if (edit.Pin.empty())
-                {
-                    auto* literal = std::get_if<LiteralNode>(&node->Data);
-                    if (literal == nullptr || literal->Value == edit.Value)
-                        return false;
-
-                    literal->Value = std::move(edit.Value);
-                    return true;
-                }
-
-                if (const auto it = node->Defaults.find(edit.Pin);
-                    it != node->Defaults.end() && it->second == edit.Value)
-                    return false;
-
-                node->Defaults.insert_or_assign(edit.Pin, std::move(edit.Value));
+                literal->Value = std::move(edit.Value);
                 return true;
-            });
-        }
+            }
+
+            if (const auto it = node->Defaults.find(edit.Pin);
+                it != node->Defaults.end() && it->second == edit.Value)
+                return false;
+
+            node->Defaults.insert_or_assign(edit.Pin, std::move(edit.Value));
+            return true;
+        });
+    }
+
+    void GraphEditorPanel::OpenEnumPicker()
+    {
+        std::optional<EnumPick> pick = m_Renderer.TakeEnumPick();
+        if (!pick) return;
+
+        m_EnumPicker.Open(pick->Enum, pick->Current, pick->Width);
+        m_EnumTarget = std::move(*pick);
+
+        NE::Suspend();
+        ImGui::OpenPopup(EnumPopup);
+        NE::Resume();
+    }
+
+    void GraphEditorPanel::DrawEnumPicker()
+    {
+        NE::Suspend();
+
+        if (m_EnumTarget && ImGui::IsPopupOpen(EnumPopup))
+            ImGui::SetNextWindowPos(m_EnumTarget->Anchor, ImGuiCond_Appearing);
+
+        if (ImGui::BeginPopup(EnumPopup))
+        {
+            if (const std::optional<i32> value = m_EnumPicker.Draw(); value && m_EnumTarget)
+            {
+                ApplyValueEdit(ValueEdit{ m_EnumTarget->Node, m_EnumTarget->Pin, ScriptValue(*value) });
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        } else
+            m_EnumTarget.reset();
+        NE::Resume();
     }
 
     void GraphEditorPanel::AcceptVariableDrop(const ImRect& canvas)

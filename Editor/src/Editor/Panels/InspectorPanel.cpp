@@ -2,13 +2,13 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 #include "Editor/Overloaded.h"
-#include "Editor/StringUtils.h"
 #include "Editor/Inspectors/AssetInspector.h"
 #include "Editor/Inspectors/ComponentInspectors.h"
 #include "Editor/Inspectors/ComponentOrdering.h"
 #include "Editor/Inspectors/LogEntryInspector.h"
 #include "Editor/Inspectors/ScriptInspector.h"
 
+#include <Engine/Core/StringUtils.h>
 #include <Engine/Scene/Components.h>
 #include <Engine/Scene/ComponentRegistry.h>
 #include <Engine/Assets/AssetRegistry.h>

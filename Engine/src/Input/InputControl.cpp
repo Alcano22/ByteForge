@@ -6,21 +6,10 @@
 #include <array>
 #include <format>
 
-template<>
-struct magic_enum::customize::enum_range<ByteForge::KeyCode>
-{
-    static constexpr int min = 0;
-    static constexpr int max = 350;
-};
-
 namespace ByteForge
 {
     namespace
     {
-        constexpr std::array<std::string_view, static_cast<usize>(MouseButton::ButtonLast) + 1> MouseButtonNames{
-            "Left", "Right", "Middle", "Button3", "Button4", "Button5", "Button6", "Button7"
-        };
-
         template<typename E>
         std::string_view NameOf(const u16 code)
         {

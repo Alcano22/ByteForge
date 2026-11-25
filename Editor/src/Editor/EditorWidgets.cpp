@@ -1,8 +1,8 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/EditorIcons.h"
 #include "Editor/AssetPayload.h"
-#include "Editor/StringUtils.h"
 
+#include <Engine/Core/StringUtils.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Scene/Entity.h>

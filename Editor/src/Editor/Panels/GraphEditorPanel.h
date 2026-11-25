@@ -2,6 +2,7 @@
 
 #include "Editor/EditorPanel.h"
 #include "Editor/Graph/GraphDocument.h"
+#include "Editor/Graph/GraphEnumPicker.h"
 #include "Editor/Graph/GraphNodeRenderer.h"
 #include "Editor/Graph/GraphNodePalette.h"
 #include "Editor/Graph/GraphVariablesPanel.h"
@@ -50,6 +51,10 @@ namespace ByteForge
         void OpenUnsavedChangesPopup(UUID next);
 
         void ApplyValueEdits();
+        void ApplyValueEdit(ValueEdit edit);
+
+        void OpenEnumPicker();
+        void DrawEnumPicker();
 
         void AcceptVariableDrop(const ImRect& canvas);
         void DrawVariableNodePopup();
@@ -66,6 +71,8 @@ namespace ByteForge
         Scope<GraphDocument> m_Document;
         GraphNodeRenderer m_Renderer;
         GraphNodePalette m_Palette;
+        GraphEnumPicker m_EnumPicker;
+        std::optional<EnumPick> m_EnumTarget;
         GraphVariablesPanel m_Variables;
         std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;

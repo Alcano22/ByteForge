@@ -1,5 +1,7 @@
 #pragma once
 
+#include <magic_enum/magic_enum.hpp>
+
 #include <cstdint>
 
 namespace ByteForge
@@ -38,3 +40,10 @@ namespace ByteForge
         Menu = 348
     };
 }
+
+template<>
+struct magic_enum::customize::enum_range<ByteForge::KeyCode>
+{
+    static constexpr int min = 0;
+    static constexpr int max = 350;
+};
