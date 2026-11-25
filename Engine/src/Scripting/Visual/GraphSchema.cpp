@@ -180,6 +180,28 @@ namespace ByteForge
             return { .Title = node.Text, .Category = "Comments" };
         }
 
+        NodeSignature Describe(const ScriptGraph&, const RerouteNode& node)
+        {
+            const PinType type = node.Type.value_or(PinType::Any());
+
+            NodeSignature signature{ .Title = "Reroute", .Category = "Flow", .Pure = !type.IsExec };
+            signature.Pins.push_back(In(GraphPin::In, type));
+            signature.Pins.push_back(Out(GraphPin::Out, type));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph&, const SelectNode& node)
+        {
+            const PinType type = node.Type.value_or(PinType::AnyData());
+
+            NodeSignature signature{ .Title = "Select", .Category = "Flow", .Pure = true };
+            signature.Pins.push_back(In(GraphPin::Condition, PinType::Of(ScriptFieldType::Bool)));
+            signature.Pins.push_back(In(GraphPin::IfTrue, type));
+            signature.Pins.push_back(In(GraphPin::IfFalse, type));
+            signature.Pins.push_back(Out(GraphPin::Value, type));
+            return signature;
+        }
+
         NodeSignature Describe(const ScriptGraph& graph, const GetVariableNode& node)
         {
             const GraphVariable* variable = graph.FindVariable(node.Variable);
@@ -327,6 +349,9 @@ namespace ByteForge
 
     std::string DescribePinType(const PinType& type)
     {
+        if (type.IsWildcard())
+            return "Wildcard";
+
         if (type.IsExec)
             return "Exec";
 
@@ -341,6 +366,9 @@ namespace ByteForge
 
     bool IsAssignable(const PinType& from, const PinType& to)
     {
+        if (from.IsWildcard() || to.IsWildcard())
+            return false;
+
         if (from.IsExec || to.IsExec)
             return from.IsExec && to.IsExec;
 
@@ -351,6 +379,20 @@ namespace ByteForge
             return from.Enum.empty() || to.Enum.empty();
 
         return from.Value == ScriptFieldType::Int && from.Enum.empty() && to.Value == ScriptFieldType::Float;
+    }
+
+    bool CanLink(const PinType& from, const PinType& to)
+    {
+        const auto takes = [](const PinType& wildcard, const PinType& type)
+        {
+            return !type.IsWildcard() && (!type.IsExec || wildcard.Wildcard == WildcardKind::Any);
+        };
+
+        if (to.IsWildcard())
+            return takes(to, from);
+        if (from.IsWildcard())
+            return takes(from, to);
+        return IsAssignable(from, to);
     }
 
     Result<PinType> CanConnect(const ScriptGraph& graph, const PinRef& from, const PinRef& to)
@@ -369,13 +411,18 @@ namespace ByteForge
         if (output == nullptr || input == nullptr)
             return Unexpected("The pin does not exist");
 
-        if (!IsAssignable(output->Type, input->Type))
+        if (!CanLink(output->Type, input->Type))
+        {
+            if (output->Type.IsWildcard() && input->Type.IsWildcard())
+                return Unexpected("Connect one of these pins to a typed pin first");
             return Unexpected("Cannot connect {} to {}", DescribePinType(output->Type), DescribePinType(input->Type));
+        }
 
-        if (!output->Type.IsExec && Reaches(CollectDataEdges(graph, cache), to.Node, from.Node))
+        const PinType type = output->Type.IsWildcard() ? input->Type : output->Type;
+        if (!type.IsExec && Reaches(CollectDataEdges(graph, cache), to.Node, from.Node))
             return Unexpected("This connection would create a loop");
 
-        return output->Type;
+        return type;
     }
 
     std::vector<GraphDiagnostic> ValidateGraph(const ScriptGraph& graph)
@@ -545,6 +592,9 @@ namespace ByteForge
 
     std::string GetValueTypeName(const PinType& type)
     {
+        if (type.IsWildcard())
+            return "Wildcard";
+
         if (type.IsExec)
             return "Exec";
 

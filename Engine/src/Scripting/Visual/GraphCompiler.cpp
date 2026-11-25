@@ -282,6 +282,13 @@ namespace ByteForge
             void EmitStatement(const GraphNode&, const LiteralNode&, std::string_view) { Emit(GraphOp::Return); }
             void EmitStatement(const GraphNode&, const CommentNode&, std::string_view) { Emit(GraphOp::Return); }
 
+            void EmitStatement(const GraphNode& node, const RerouteNode&, std::string_view)
+            {
+                EmitContinuation(node.Id, GraphPin::Out);
+            }
+
+            void EmitStatement(const GraphNode&, const SelectNode&, std::string_view) { Emit(GraphOp::Return); }
+
             void EmitCall(const GraphNode& node, const CallNode& call, std::set<u64>& evaluated)
             {
                 std::vector<u32> arguments;
@@ -309,19 +316,50 @@ namespace ByteForge
             {
                 if (const auto* call = std::get_if<CallNode>(&node.Data))
                     EmitCall(node, *call, evaluated);
+                else if (std::holds_alternative<SelectNode>(node.Data))
+                    EmitSelect(node, evaluated);
+            }
+
+            void EmitSelect(const GraphNode& node, std::set<u64>& evaluated)
+            {
+                const u32 condition = ResolveInput(node, RequirePin(node.Id, GraphPin::Condition,
+                                                   PinDirection::Input), evaluated);
+                const u32 ifTrue = ResolveInput(node, RequirePin(node.Id, GraphPin::IfTrue,
+                                                PinDirection::Input), evaluated);
+                const u32 ifFalse = ResolveInput(node, RequirePin(node.Id, GraphPin::IfFalse,
+                                                 PinDirection::Input), evaluated);
+                const u32 result = OutputSlot(node.Id, RequirePin(node.Id, GraphPin::Value, PinDirection::Output));
+
+                m_Label = Label(node.Id);
+                const u32 pickFalse = Emit(GraphOp::JumpIfFalse, condition);
+                Emit(GraphOp::Copy, ifTrue, result);
+                const u32 done = Emit(GraphOp::Jump);
+
+                m_Program.Code[pickFalse].B = Here();
+                Emit(GraphOp::Copy, ifFalse, result);
+                m_Program.Code[done].A = Here();
             }
 
             u32 ResolveInput(const GraphNode& node, const PinInfo& input, std::set<u64>& evaluated)
             {
                 if (const GraphLink* link = FindLinkTo(node.Id, input.Name))
                 {
+                    const GraphNode& sourceNode = *m_Graph.FindNode(link->From.Node);
                     const NodeSignature& source = Signature(link->From.Node);
                     const PinInfo& output = *FindPin(source, link->From.Pin, PinDirection::Output);
 
-                    if (source.Pure && evaluated.insert(link->From.Node).second)
-                        EmitPure(*m_Graph.FindNode(link->From.Node), evaluated);
+                    u32 slot = 0;
+                    if (std::holds_alternative<RerouteNode>(sourceNode.Data))
+                    {
+                        slot = ResolveInput(sourceNode, RequirePin(sourceNode.Id, GraphPin::In, PinDirection::Input),
+                                            evaluated);
+                    } else
+                    {
+                        if (source.Pure && evaluated.insert(link->From.Node).second)
+                            EmitPure(sourceNode, evaluated);
+                        slot = OutputSlot(link->From.Node, output);
+                    }
 
-                    const u32 slot = OutputSlot(link->From.Node, output);
                     if (!NeedsIntToFloat(output.Type, input.Type))
                         return slot;
 

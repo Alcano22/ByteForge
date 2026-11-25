@@ -1,4 +1,5 @@
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
+#include "Engine/Scripting/API/ScriptAPI.h"
 #include "Scripting/ScriptValueJson.h"
 #include "Engine/Core/FileSystem.h"
 
@@ -30,6 +31,8 @@ namespace ByteForge
         template<> constexpr std::string_view NodeKindName<FlipFlopNode>    = "FlipFlop";
         template<> constexpr std::string_view NodeKindName<GateNode>        = "Gate";
         template<> constexpr std::string_view NodeKindName<CommentNode>     = "Comment";
+        template<> constexpr std::string_view NodeKindName<RerouteNode>     = "Reroute";
+        template<> constexpr std::string_view NodeKindName<SelectNode>      = "Select";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -39,6 +42,43 @@ namespace ByteForge
         PinRef ReadPinRef(const nlohmann::json& json)
         {
             return { UUID(json.at("node").get<u64>()), json.at("pin").get<std::string>() };
+        }
+
+        nlohmann::json WritePinType(const PinType& type)
+        {
+            nlohmann::json json{ { "exec", type.IsExec } };
+            if (type.IsExec)
+                return json;
+
+            json["value"] = std::string(magic_enum::enum_name(type.Value));
+            if (type.Value == ScriptFieldType::Asset)
+                json["asset"] = std::string(magic_enum::enum_name(type.Asset));
+            if (!type.Enum.empty())
+                json["enum"] = std::string(type.Enum);
+            return json;
+        }
+
+        std::optional<PinType> ReadPinType(const nlohmann::json& node)
+        {
+            const auto json = node.find("type");
+            if (json == node.end() || !json->is_object())
+                return std::nullopt;
+
+            if (json->value("exec", false))
+                return PinType::Exec();
+
+            if (const auto name = json->find("enum"); name != json->end() && name->is_string())
+            {
+                const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(name->get<std::string>());
+                return scriptEnum != nullptr ? std::optional(PinType::OfEnum(scriptEnum->Name)) : std::nullopt;
+            }
+
+            const auto value = magic_enum::enum_cast<ScriptFieldType>(json->value("value", std::string()));
+            if (!value)
+                return std::nullopt;
+
+            const auto asset = magic_enum::enum_cast<AssetType>(json->value("asset", std::string("None")));
+            return PinType::Of(*value, asset.value_or(AssetType::None));
         }
 
         nlohmann::json WriteNode(const GraphNode& node)
@@ -66,6 +106,10 @@ namespace ByteForge
                 {
                     json["text"] = data.Text;
                     json["size"] = JsonValue::ToJson(data.Size);
+                } else if constexpr (std::is_same_v<T, RerouteNode> || std::is_same_v<T, SelectNode>)
+                {
+                    if (data.Type)
+                        json["type"] = WritePinType(*data.Type);
                 }
             }, node.Data);
 
@@ -129,6 +173,10 @@ namespace ByteForge
                     comment.Size = JsonValue::ToVec2(json.at("size"));
                 return comment;
             }
+            if (kind == NodeKindName<RerouteNode>)
+                return RerouteNode{ ReadPinType(json) };
+            if (kind == NodeKindName<SelectNode>)
+                return SelectNode{ ReadPinType(json) };
 
             throw Error("unknown node kind '{}'", kind);
         }

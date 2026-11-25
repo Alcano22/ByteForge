@@ -3,10 +3,33 @@
 
 #include <algorithm>
 #include <format>
+#include <functional>
+#include <span>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
+    namespace
+    {
+        std::optional<PinType>* WildcardType(NodeData& data)
+        {
+            if (auto* reroute = std::get_if<RerouteNode>(&data))
+                return &reroute->Type;
+            if (auto* select = std::get_if<SelectNode>(&data))
+                return &select->Type;
+            return nullptr;
+        }
+
+        bool IsWildcardPin(const GraphNode& node, const std::string_view pin)
+        {
+            if (std::holds_alternative<RerouteNode>(node.Data))
+                return true;
+            return std::holds_alternative<SelectNode>(node.Data) && pin != GraphPin::Condition;
+        }
+    }
+
     PinType PinType::Of(const ScriptValue& value)
     {
         const auto* asset = std::get_if<AssetRef>(&value);
@@ -58,8 +81,12 @@ namespace ByteForge
 
     void ScriptGraph::RemoveNode(const UUID id)
     {
-        std::erase_if(m_Links, [id](const GraphLink& link) { return link.From.Node == id || link.To.Node == id; });
+        const std::vector<UUID> touched = EraseLinks([id](const GraphLink& link)
+        {
+            return link.From.Node == id || link.To.Node == id;
+        });
         std::erase_if(m_Nodes, [id](const GraphNode& node) { return node.Id == id; });
+        ResetUnlinkedWildcards(touched);
     }
 
     Result<> ScriptGraph::Connect(const PinRef& from, const PinRef& to)
@@ -68,29 +95,34 @@ namespace ByteForge
         if (!type)
             return Unexpected(type.error());
 
-        if (type->IsExec)
-            std::erase_if(m_Links, [&](const GraphLink& link) { return link.From == from; });
-        else
-            std::erase_if(m_Links, [&](const GraphLink& link) { return link.To == to; });
+        AssignWildcardType(from, *type);
+        AssignWildcardType(to, *type);
+
+        const std::vector<UUID> touched = type->IsExec
+            ? EraseLinks([&](const GraphLink& link) { return link.From == from; })
+            : EraseLinks([&](const GraphLink& link) { return link.To == to; });
 
         m_Links.push_back({ from, to });
+        ResetUnlinkedWildcards(touched);
         return {};
     }
 
     void ScriptGraph::Disconnect(const PinRef& pin, const PinDirection direction)
     {
-        std::erase_if(m_Links, [&](const GraphLink& link)
+        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
         {
             return (direction == PinDirection::Output ? link.From : link.To) == pin;
         });
+        ResetUnlinkedWildcards(touched);
     }
 
     void ScriptGraph::RemoveLink(const GraphLink& link)
     {
-        std::erase_if(m_Links, [&](const GraphLink& existing)
+        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& existing)
         {
             return existing.From == link.From && existing.To == link.To;
         });
+        ResetUnlinkedWildcards(touched);
     }
 
     Result<UUID> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
@@ -168,7 +200,7 @@ namespace ByteForge
 
         const PinType type = PinType::Of(declared->Default);
 
-        std::erase_if(m_Links, [&](const GraphLink& link)
+        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
         {
             const GraphNode* from = FindNode(link.From.Node);
             const GraphNode* to = FindNode(link.To.Node);
@@ -184,6 +216,7 @@ namespace ByteForge
             const PinInfo* input = FindPin(target, link.To.Pin, PinDirection::Input);
             return output != nullptr && input != nullptr && !IsAssignable(output->Type, input->Type);
         });
+        ResetUnlinkedWildcards(touched);
 
         for (GraphNode& node : m_Nodes)
         {
@@ -192,6 +225,50 @@ namespace ByteForge
             const auto stored = node.Defaults.find(GraphPin::Value);
             if (stored != node.Defaults.end() && !IsAssignable(PinType::Of(stored->second), type))
                 node.Defaults.erase(stored);
+        }
+    }
+
+    std::vector<UUID> ScriptGraph::EraseLinks(const std::function<bool(const GraphLink&)>& matches)
+    {
+        std::vector<UUID> touched;
+        std::erase_if(m_Links, [&](const GraphLink& link)
+        {
+            if (!matches(link)) return false;
+
+            touched.push_back(link.From.Node);
+            touched.push_back(link.To.Node);
+            return true;
+        });
+        return touched;
+    }
+
+    void ScriptGraph::AssignWildcardType(const PinRef& pin, const PinType& type)
+    {
+        GraphNode* node = FindNode(pin.Node);
+        if (node == nullptr || !IsWildcardPin(*node, pin.Pin)) return;
+
+        std::optional<PinType>* stored = WildcardType(node->Data);
+        if (stored != nullptr && !stored->has_value())
+            *stored = type;
+    }
+
+    void ScriptGraph::ResetUnlinkedWildcards(const std::span<const UUID> nodes)
+    {
+        for (const UUID id : nodes)
+        {
+            GraphNode* node = FindNode(id);
+            std::optional<PinType>* type = node != nullptr ? WildcardType(node->Data) : nullptr;
+            if (type == nullptr || !type->has_value()) continue;
+
+            const bool linked = std::ranges::any_of(m_Links, [&](const GraphLink& link)
+            {
+                return (link.From.Node == id && IsWildcardPin(*node, link.From.Pin)) ||
+                       (link.To.Node == id && IsWildcardPin(*node, link.To.Pin));
+            });
+            if (linked) continue;
+
+            type->reset();
+            std::erase_if(node->Defaults, [&](const auto& entry) { return IsWildcardPin(*node, entry.first); });
         }
     }
 

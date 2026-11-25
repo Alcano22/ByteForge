@@ -69,6 +69,7 @@ namespace ByteForge
         void SelectPastedNodes();
 
         void HandleCommentShortcuts();
+        void HandleLinkDoubleClick();
         void WrapInComment(std::span<const UUID> nodes);
         void BeginCommentRename(UUID node);
         void DrawCommentRename();

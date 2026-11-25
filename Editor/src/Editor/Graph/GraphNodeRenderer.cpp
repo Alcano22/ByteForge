@@ -47,7 +47,18 @@ namespace ByteForge
             const ImVec2 center(min.x + size * 0.5f, min.y + size * 0.5f);
             constexpr f32 thickness = 1.5f;
 
-            if (type.IsExec)
+            if (type.IsWildcard())
+            {
+                const f32 half = size * 0.28f;
+                const ImVec2 top(center.x, center.y - half);
+                const ImVec2 right(center.x + half, center.y);
+                const ImVec2 bottom(center.x, center.y + half);
+                const ImVec2 left(center.x - half, center.y);
+                if (connected)
+                    drawList.AddQuadFilled(top, right, bottom, left, color);
+                else
+                    drawList.AddQuad(top, right, bottom, left, color, thickness);
+            } else if (type.IsExec)
             {
                 const ImVec2 a(min.x + size * 0.22f, min.y + size * 0.18f);
                 const ImVec2 b(min.x + size * 0.82f, center.y);
@@ -96,7 +107,7 @@ namespace ByteForge
 
         bool HasInlineEditor(const PinType& type)
         {
-            return !type.IsExec && type.Value != ScriptFieldType::Entity;
+            return !type.IsExec && !type.IsWildcard() && type.Value != ScriptFieldType::Entity;
         }
 
         f32 InlineEditorWidth(const ScriptValue& value)
@@ -286,6 +297,12 @@ namespace ByteForge
             return;
         }
 
+        if (std::holds_alternative<RerouteNode>(node.Data))
+        {
+            DrawReroute(graph, node);
+            return;
+        }
+
         const NodeSignature signature = DescribeNode(graph, node);
         const auto error = m_Errors.find(node.Id);
         const bool failed = error != m_Errors.end();
@@ -381,6 +398,40 @@ namespace ByteForge
         NE::EndNode();
 
         NE::PopStyleColor(2);
+    }
+
+    void GraphNodeRenderer::DrawReroute(const ScriptGraph& graph, const GraphNode& node)
+    {
+        const NodeSignature signature = DescribeNode(graph, node);
+        const bool failed = m_Errors.contains(node.Id);
+
+        NE::PushStyleVar(NE::StyleVar_NodePadding, ImVec4(4.0f, 2.0f, 4.0f, 2.0f));
+        NE::PushStyleVar(NE::StyleVar_NodeRounding, ImGui::GetTextLineHeight() * 0.5f);
+        if (failed)
+            NE::PushStyleColor(NE::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(GraphTheme::ErrorTint()));
+
+        NE::BeginNode(GraphIds::Node(node.Id));
+        EditorUI::PushID(node.Id);
+
+        bool first = true;
+        for (const PinInfo& pin : signature.Pins)
+        {
+            PinView view = MakePinView(node, pin);
+            view.Label.clear();
+            view.Editor.reset();
+
+            if (!first)
+                ImGui::SameLine(0.0f, 0.0f);
+            DrawPin(node.Id, view);
+            first = false;
+        }
+
+        ImGui::PopID();
+        NE::EndNode();
+
+        if (failed)
+            NE::PopStyleColor();
+        NE::PopStyleVar(2);
     }
 
     void GraphNodeRenderer::DrawPin(const UUID node, const PinView& view)

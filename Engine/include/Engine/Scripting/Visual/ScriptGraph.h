@@ -9,7 +9,9 @@
 
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -22,12 +24,15 @@ namespace ByteForge
 
     enum class PinDirection : u8 { Input, Output };
 
+    enum class WildcardKind : u8 { None, Data, Any };
+
     struct BYTEFORGE_API PinType
     {
         bool IsExec = false;
         ScriptFieldType Value = ScriptFieldType::Float;
         AssetType Asset = AssetType::None;
         std::string_view Enum;
+        WildcardKind Wildcard = WildcardKind::None;
 
         [[nodiscard]] static constexpr PinType Exec() { return { .IsExec = true }; }
 
@@ -43,6 +48,11 @@ namespace ByteForge
         }
 
         [[nodiscard]] static PinType Of(const ScriptValue& value);
+
+        [[nodiscard]] static constexpr PinType Any() { return { .Wildcard = WildcardKind::Any }; }
+        [[nodiscard]] static constexpr PinType AnyData() { return { .Wildcard = WildcardKind::Data }; }
+
+        [[nodiscard]] constexpr bool IsWildcard() const { return Wildcard != WildcardKind::None; }
 
         [[nodiscard]] bool operator==(const PinType&) const = default;
     };
@@ -90,9 +100,12 @@ namespace ByteForge
         glm::vec2 Size{ 400.0f, 200.0f };
     };
 
+    struct RerouteNode { std::optional<PinType> Type; };
+    struct SelectNode { std::optional<PinType> Type; };
+
     using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode,
                                   LiteralNode, SequenceNode, ForLoopNode, DoOnceNode, FlipFlopNode, GateNode,
-                                  CommentNode>;
+                                  CommentNode, RerouteNode, SelectNode>;
 
     struct GraphNode
     {
@@ -160,6 +173,10 @@ namespace ByteForge
 
         [[nodiscard]] GraphVariable* FindVariableForEdit(UUID id);
         void DropMismatchedVariableUses(UUID variable);
+
+        std::vector<UUID> EraseLinks(const std::function<bool(const GraphLink&)>& matches);
+        void AssignWildcardType(const PinRef& pin, const PinType& type);
+        void ResetUnlinkedWildcards(std::span<const UUID> nodes);
 
     public:
         static constexpr i32 FormatVersion = 1;

@@ -12,6 +12,9 @@ namespace ByteForge::GraphTheme
 
     ImU32 PinColor(const PinType& type)
     {
+        if (type.IsWildcard())
+            return IM_COL32(160, 160, 160, 255);
+
         if (type.IsExec)
             return IM_COL32(235, 235, 235, 255);
 

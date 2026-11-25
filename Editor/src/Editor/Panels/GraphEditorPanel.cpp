@@ -79,8 +79,8 @@ namespace ByteForge
                     if (pin.Direction == dragged.Direction) continue;
 
                     const bool fits = exact ? pin.Type == dragged.Type
-                                            : fromOutput ? IsAssignable(dragged.Type, pin.Type)
-                                                         : IsAssignable(pin.Type, dragged.Type);
+                                            : fromOutput ? CanLink(dragged.Type, pin.Type)
+                                                         : CanLink(pin.Type, dragged.Type);
                     if (!fits) continue;
 
                     const PinRef target{ node, pin.Name };
@@ -332,6 +332,7 @@ namespace ByteForge
         HandleDeletion();
         HandleClipboardShortcuts(canvas);
         HandleCommentShortcuts();
+        HandleLinkDoubleClick();
         HandleContextMenu();
         DrawCommentRename();
         DrawEnumPicker();
@@ -759,6 +760,28 @@ namespace ByteForge
 
         if (ImGui::Shortcut(ImGuiKey_C))
             WrapInComment(GetSelectedNodes());
+    }
+
+    void GraphEditorPanel::HandleLinkDoubleClick()
+    {
+        const NE::LinkId clicked = NE::GetDoubleClickedLink();
+        if (clicked.Get() == 0) return;
+
+        const GraphLink* link = m_Renderer.FindLink(clicked);
+        if (link == nullptr) return;
+
+        const GraphLink split = *link;
+        const ImVec2 mouse = NE::ScreenToCanvas(ImGui::GetMousePos());
+        const f32 pin = ImGui::GetTextLineHeight();
+        const glm::vec2 position(mouse.x - pin, mouse.y - pin * 0.5f);
+
+        m_Document->Edit("Add Reroute", [&](ScriptGraph& graph)
+        {
+            const UUID reroute = graph.AddNode(RerouteNode{}, position);
+            static_cast<void>(graph.Connect(split.From, { reroute, std::string(GraphPin::In) }));
+            static_cast<void>(graph.Connect({ reroute, std::string(GraphPin::Out) }, split.To));
+            return true;
+        });
     }
 
     void GraphEditorPanel::WrapInComment(const std::span<const UUID> nodes)

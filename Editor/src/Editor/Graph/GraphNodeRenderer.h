@@ -72,6 +72,7 @@ namespace ByteForge
 
         void DrawNode(const ScriptGraph& graph, const GraphNode& node);
         void DrawComment(const GraphNode& node, const CommentNode& comment);
+        void DrawReroute(const ScriptGraph& graph, const GraphNode& node);
         void DrawPin(UUID node, const PinView& view);
         void DrawInlineEditor(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);
         void DrawEnumDropdown(UUID node, const std::string& key, const ScriptValue& stored, std::string_view enumName);

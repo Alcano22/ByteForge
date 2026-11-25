@@ -21,7 +21,6 @@ namespace ByteForge
         inline constexpr std::string_view Condition = "Condition";
         inline constexpr std::string_view Duration  = "Duration";
         inline constexpr std::string_view Value     = "Value";
-
         inline constexpr std::string_view LoopBody  = "Loop Body";
         inline constexpr std::string_view Completed = "Completed";
         inline constexpr std::string_view First     = "First";
@@ -36,6 +35,10 @@ namespace ByteForge
         inline constexpr std::string_view Close     = "Close";
         inline constexpr std::string_view Toggle    = "Toggle";
         inline constexpr std::string_view Exit      = "Exit";
+        inline constexpr std::string_view In        = "In";
+        inline constexpr std::string_view Out       = "Out";
+        inline constexpr std::string_view IfTrue    = "If True";
+        inline constexpr std::string_view IfFalse   = "If False";
     }
 
     [[nodiscard]] BYTEFORGE_API std::string SequencePinName(u32 index);
@@ -57,6 +60,8 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API std::string DescribePinType(const PinType& type);
 
     [[nodiscard]] BYTEFORGE_API bool IsAssignable(const PinType& from, const PinType& to);
+
+    [[nodiscard]] BYTEFORGE_API bool CanLink(const PinType& from, const PinType& to);
 
     [[nodiscard]] BYTEFORGE_API Result<PinType> CanConnect(const ScriptGraph& graph,
                                                            const PinRef& from, const PinRef& to);

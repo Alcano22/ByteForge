@@ -39,8 +39,8 @@ namespace ByteForge
                 if (pin.Direction == context.Direction)
                     return false;
 
-                return context.Direction == PinDirection::Output ? IsAssignable(context.Type, pin.Type)
-                                                                 : IsAssignable(pin.Type, context.Type);
+                return context.Direction == PinDirection::Output ? CanLink(context.Type, pin.Type)
+                                                                 : CanLink(pin.Type, context.Type);
             });
         }
 
@@ -92,6 +92,8 @@ namespace ByteForge
         add(DoOnceNode{});
         add(FlipFlopNode{});
         add(GateNode{});
+        add(SelectNode{});
+        add(RerouteNode{});
         add(CommentNode{});
 
         for (const PinType& type : GetLiteralTypes())
