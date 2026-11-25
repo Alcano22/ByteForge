@@ -27,6 +27,7 @@ add_executable(ByteForgeTests
         src/Scripting/ScriptGraphFlowTests.cpp
         src/Scripting/ScriptGraphVariableTests.cpp
         src/Scripting/ScriptGraphDebugTests.cpp
+        src/Scripting/ScriptGraphClipboardTests.cpp
         src/Scripting/ScriptEnumTests.cpp
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp

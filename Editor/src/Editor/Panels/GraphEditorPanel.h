@@ -18,8 +18,12 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <span>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace ByteForge
 {
@@ -55,6 +59,15 @@ namespace ByteForge
         void OpenPalette(ImVec2 position, std::optional<PaletteContext> context);
         void DrawNodeMenu();
 
+        void HandleClipboardShortcuts(const ImRect& canvas);
+        [[nodiscard]] std::vector<UUID> GetSelectedNodes() const;
+        [[nodiscard]] std::vector<UUID> GetMenuTargets() const;
+        void CopyNodes(std::span<const UUID> nodes) const;
+        void CutNodes(std::span<const UUID> nodes);
+        void DuplicateNodes(std::span<const UUID> nodes);
+        void PasteNodes(std::string name, std::string_view text, glm::vec2 position);
+        void SelectPastedNodes();
+
         void OpenUnsavedChangesPopup(UUID next);
 
         void ApplyValueEdits();
@@ -89,6 +102,7 @@ namespace ByteForge
         std::optional<UUID> m_FocusNode;
         std::unordered_map<uintptr_t, f64> m_LinkTakenAt;
         std::unordered_set<uintptr_t> m_ActiveLinks;
+        std::vector<UUID> m_PendingSelection;
 
         u64 m_SyncedRevision = std::numeric_limits<u64>::max();
         i32 m_FramesSinceLoad = 0;

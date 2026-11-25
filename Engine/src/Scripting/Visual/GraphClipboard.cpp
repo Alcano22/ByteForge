@@ -1,0 +1,202 @@
+#include "Engine/Scripting/Visual/GraphClipboard.h"
+#include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
+
+#include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <format>
+#include <limits>
+#include <map>
+#include <optional>
+#include <set>
+#include <utility>
+
+namespace ByteForge
+{
+    namespace
+    {
+        constexpr const char* ClipboardKey = "byteforgeGraphNodes";
+        constexpr i32 ClipboardVersion = 1;
+
+        bool HasEvent(const ScriptGraph& graph, const GraphEvent event)
+        {
+            return std::ranges::any_of(graph.GetNodes(), [event](const GraphNode& node)
+            {
+                const auto* data = std::get_if<EventNode>(&node.Data);
+                return data != nullptr && data->Event == event;
+            });
+        }
+
+        std::optional<UUID> UsedVariable(const NodeData& data)
+        {
+            if (const auto* get = std::get_if<GetVariableNode>(&data))
+                return get->Variable;
+            if (const auto* set = std::get_if<SetVariableNode>(&data))
+                return set->Variable;
+            return std::nullopt;
+        }
+
+        void ReplaceVariable(NodeData& data, const UUID variable)
+        {
+            if (auto* get = std::get_if<GetVariableNode>(&data))
+                get->Variable = variable;
+            else if (auto* set = std::get_if<SetVariableNode>(&data))
+                set->Variable = variable;
+        }
+
+        std::string FreeVariableName(const ScriptGraph& graph, const std::string& name)
+        {
+            if (graph.FindVariable(std::string_view(name)) == nullptr)
+                return name;
+
+            for (u32 suffix = 2;; ++suffix)
+            {
+                std::string candidate = std::format("{} {}", name, suffix);
+                if (graph.FindVariable(std::string_view(candidate)) == nullptr)
+                    return candidate;
+            }
+        }
+
+        bool SameType(const GraphVariable& a, const GraphVariable& b)
+        {
+            return PinType::Of(a.Default) == PinType::Of(b.Default);
+        }
+
+        Result<UUID> MatchVariable(ScriptGraph& target, const GraphVariable& source)
+        {
+            if (const GraphVariable* same = target.FindVariable(source.Id); same != nullptr && SameType(*same, source))
+                return same->Id;
+
+            if (const GraphVariable* named = target.FindVariable(std::string_view(source.Name));
+                named != nullptr && SameType(*named, source))
+                return named->Id;
+
+            const Result<UUID> added = target.AddVariable(FreeVariableName(target, source.Name), source.Default);
+            if (!added)
+                return added;
+
+            if (const Result<> exposed = target.SetVariableExposed(*added, source.Exposed); !exposed)
+                return Unexpected(exposed.error());
+            return added;
+        }
+
+        Result<ScriptGraph> ReadClipboard(const std::string_view text)
+        {
+            const nlohmann::json json = nlohmann::json::parse(text, nullptr, false);
+            if (json.is_discarded() || !json.is_object())
+                return Unexpected("The clipboard holds no script graph nodes");
+
+            const auto version = json.find(ClipboardKey);
+            if (version == json.end() || !version->is_number_integer() || !json.contains("graph"))
+                return Unexpected("The clipboard holds no script graph nodes");
+            if (version->get<i32>() > ClipboardVersion)
+                return Unexpected("The nodes were copied from a newer version of ByteForge");
+
+            Result<ScriptGraph> copied = DeserializeScriptGraph(json.at("graph"));
+            if (!copied)
+                return Unexpected("The copied nodes cannot be read: {}", copied.error());
+            return copied;
+        }
+    }
+
+    std::string CopyGraphNodes(const ScriptGraph& graph, const std::span<const UUID> nodes)
+    {
+        std::set<u64> selected;
+        for (const UUID node : nodes)
+        {
+            if (graph.FindNode(node) != nullptr)
+                selected.insert(node);
+        }
+
+        std::vector<GraphNode> copiedNodes;
+        std::set<u64> usedVariables;
+        for (const GraphNode& node : graph.GetNodes())
+        {
+            if (!selected.contains(node.Id)) continue;
+
+            copiedNodes.push_back(node);
+            if (const std::optional<UUID> variable = UsedVariable(node.Data))
+                usedVariables.insert(*variable);
+        }
+
+        std::vector<GraphLink> copiedLinks;
+        for (const GraphLink& link : graph.GetLinks())
+        {
+            if (selected.contains(link.From.Node) && selected.contains(link.To.Node))
+                copiedLinks.push_back(link);
+        }
+
+        std::vector<GraphVariable> copiedVariables;
+        for (const GraphVariable& variable : graph.GetVariables())
+        {
+            if (usedVariables.contains(variable.Id))
+                copiedVariables.push_back(variable);
+        }
+
+        const ScriptGraph copied = ScriptGraph::FromParts(std::move(copiedNodes), std::move(copiedLinks),
+                                                          std::move(copiedVariables));
+
+        const nlohmann::json json{
+            { ClipboardKey, ClipboardVersion            },
+            { "graph",      SerializeScriptGraph(copied) }
+        };
+        return json.dump();
+    }
+
+    Result<PastedGraphNodes> PasteGraphNodes(ScriptGraph& graph, const std::string_view text, const glm::vec2 position)
+    {
+        const Result<ScriptGraph> copied = ReadClipboard(text);
+        if (!copied)
+            return Unexpected(copied.error());
+
+        glm::vec2 origin(std::numeric_limits<f32>::max());
+        for (const GraphNode& node : copied->GetNodes())
+            origin = glm::min(origin, node.Position);
+
+        PastedGraphNodes pasted;
+        std::map<u64, UUID> nodeIds;
+        std::map<u64, UUID> variableIds;
+
+        for (const GraphNode& node : copied->GetNodes())
+        {
+            if (const auto* event = std::get_if<EventNode>(&node.Data); event != nullptr && HasEvent(graph, event->Event))
+            {
+                ++pasted.SkippedEvents;
+                continue;
+            }
+
+            NodeData data = node.Data;
+            if (const std::optional<UUID> variable = UsedVariable(data))
+            {
+                auto match = variableIds.find(*variable);
+                if (match == variableIds.end())
+                {
+                    const GraphVariable* source = copied->FindVariable(*variable);
+                    const Result<UUID> target = source != nullptr ? MatchVariable(graph, *source)
+                                                                  : Result<UUID>(*variable);
+                    if (!target) continue;
+
+                    match = variableIds.emplace(*variable, *target).first;
+                }
+                ReplaceVariable(data, match->second);
+            }
+
+            const UUID id = graph.AddNode(std::move(data), position + (node.Position - origin));
+            graph.FindNode(id)->Defaults = node.Defaults;
+
+            nodeIds.emplace(node.Id, id);
+            pasted.Nodes.push_back(id);
+        }
+
+        for (const GraphLink& link : copied->GetLinks())
+        {
+            const auto from = nodeIds.find(link.From.Node);
+            const auto to = nodeIds.find(link.To.Node);
+            if (from == nodeIds.end() || to == nodeIds.end()) continue;
+
+            static_cast<void>(graph.Connect({ from->second, link.From.Pin }, { to->second, link.To.Pin }));
+        }
+
+        return pasted;
+    }
+}

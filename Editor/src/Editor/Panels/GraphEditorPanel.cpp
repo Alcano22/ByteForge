@@ -6,6 +6,7 @@
 #include "Editor/Theme/EditorColors.h"
 
 #include <Engine/Core/Log.h>
+#include <Engine/Scripting/Visual/GraphClipboard.h>
 
 #include <algorithm>
 #include <cfloat>
@@ -30,6 +31,7 @@ namespace ByteForge
 
         constexpr f32 SidebarWidth       = 240.0f;
         constexpr f64 ActiveLinkHoldTime = 0.2;
+        constexpr glm::vec2 DuplicateOffset(40.0f, 40.0f);
 
         NE::EditorContext* CreateNodeEditor()
         {
@@ -132,6 +134,7 @@ namespace ByteForge
         m_FocusNode.reset();
         m_LinkTakenAt.clear();
         m_ActiveLinks.clear();
+        m_PendingSelection.clear();
     }
 
     bool GraphEditorPanel::Save() const
@@ -315,6 +318,7 @@ namespace ByteForge
 
         HandleCreation();
         HandleDeletion();
+        HandleClipboardShortcuts(canvas);
         HandleContextMenu();
         DrawEnumPicker();
 
@@ -576,6 +580,15 @@ namespace ByteForge
             ImGui::Separator();
         }
 
+        if (ImGui::MenuItem("Cut", "Ctrl+X"))
+            CutNodes(GetMenuTargets());
+        if (ImGui::MenuItem("Copy", "Ctrl+C"))
+            CopyNodes(GetMenuTargets());
+        if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
+            DuplicateNodes(GetMenuTargets());
+
+        ImGui::Separator();
+
         if (ImGui::MenuItem("Delete"))
         {
             m_Document->Edit("Delete Node", [&](ScriptGraph& graph)
@@ -584,6 +597,122 @@ namespace ByteForge
                 return true;
             });
         }
+    }
+
+    void GraphEditorPanel::HandleClipboardShortcuts(const ImRect& canvas)
+    {
+        if (ImGui::IsAnyItemActive()) return;
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+            CopyNodes(GetSelectedNodes());
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_X))
+            CutNodes(GetSelectedNodes());
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D))
+            DuplicateNodes(GetSelectedNodes());
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V))
+        {
+            const char* text = ImGui::GetClipboardText();
+            if (text == nullptr) return;
+
+            const ImVec2 mouse = ImGui::GetMousePos();
+            const ImVec2 anchor = canvas.Contains(mouse) ? mouse : canvas.GetCenter();
+            const ImVec2 position = NE::ScreenToCanvas(anchor);
+
+            PasteNodes("Paste Nodes", text, glm::vec2(position.x, position.y));
+        }
+    }
+
+    std::vector<UUID> GraphEditorPanel::GetSelectedNodes() const
+    {
+        const i32 count = NE::GetSelectedObjectCount();
+        if (count <= 0) return {};
+
+        std::vector<NE::NodeId> selected(static_cast<usize>(count));
+        selected.resize(static_cast<usize>(NE::GetSelectedNodes(selected.data(), count)));
+
+        std::vector<UUID> nodes;
+        nodes.reserve(selected.size());
+        for (const NE::NodeId id : selected)
+            nodes.push_back(GraphIds::ToUUID(id));
+        return nodes;
+    }
+
+    std::vector<UUID> GraphEditorPanel::GetMenuTargets() const
+    {
+        std::vector<UUID> selected = GetSelectedNodes();
+        if (std::ranges::find(selected, m_MenuNode) != selected.end())
+            return selected;
+        return { m_MenuNode };
+    }
+
+    void GraphEditorPanel::CopyNodes(const std::span<const UUID> nodes) const
+    {
+        if (!nodes.empty())
+            ImGui::SetClipboardText(CopyGraphNodes(m_Document->GetGraph(), nodes).c_str());
+    }
+
+    void GraphEditorPanel::CutNodes(const std::span<const UUID> nodes)
+    {
+        if (nodes.empty()) return;
+
+        CopyNodes(nodes);
+        m_Document->Edit("Cut Nodes", [&](ScriptGraph& graph)
+        {
+            for (const UUID node : nodes)
+                graph.RemoveNode(node);
+            return true;
+        });
+    }
+
+    void GraphEditorPanel::DuplicateNodes(const std::span<const UUID> nodes)
+    {
+        if (nodes.empty()) return;
+
+        const ScriptGraph& graph = m_Document->GetGraph();
+        glm::vec2 origin(std::numeric_limits<f32>::max());
+        for (const UUID id : nodes)
+        {
+            if (const GraphNode* node = graph.FindNode(id))
+                origin = glm::min(origin, node->Position);
+        }
+        if (origin.x == std::numeric_limits<f32>::max()) return;
+
+        PasteNodes("Duplicate Nodes", CopyGraphNodes(graph, nodes), origin + DuplicateOffset);
+    }
+
+    void GraphEditorPanel::PasteNodes(std::string name, const std::string_view text, const glm::vec2 position)
+    {
+        std::vector<UUID> added;
+        usize skipped = 0;
+
+        m_Document->Edit(std::move(name), [&](ScriptGraph& graph)
+        {
+            const Result<PastedGraphNodes> pasted = PasteGraphNodes(graph, text, position);
+            if (!pasted)
+            {
+                APP_WARN("Cannot paste: {}", pasted.error());
+                return false;
+            }
+
+            added = pasted->Nodes;
+            skipped = pasted->SkippedEvents;
+            return !added.empty();
+        });
+
+        if (skipped > 0)
+            APP_WARN("Skipped {} event node(s) the graph already has", skipped);
+
+        m_PendingSelection = std::move(added);
+    }
+
+    void GraphEditorPanel::SelectPastedNodes()
+    {
+        if (m_PendingSelection.empty()) return;
+
+        NE::ClearSelection();
+        for (const UUID node : std::exchange(m_PendingSelection, {}))
+            NE::SelectNode(GraphIds::Node(node), true);
     }
 
     void GraphEditorPanel::OpenPalette(const ImVec2 position, const std::optional<PaletteContext> context)
