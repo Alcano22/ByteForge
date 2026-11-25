@@ -256,6 +256,7 @@ namespace ByteForge
         m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics());
         ImGui::SetFontRasterizerDensity(previousDensity);
         ApplyValueEdits();
+        OpenEnumPicker();
 
         HandleCreation();
         HandleDeletion();
