@@ -111,17 +111,17 @@ namespace ByteForge::EditorUI
         void DrawStoredField(ScriptEntry& script, const ScriptFieldInfo& field,
                              const char* label, Scene& scene, Selection& selection)
         {
-            const auto it = script.Fields.find(field.Name);
-            const bool overridden = it != script.Fields.end() && IsCompatible(it->second, field);
+            const ScriptValue* stored = script.FindField(field);
+            const bool overridden = stored != nullptr && IsCompatible(*stored, field);
 
-            ScriptValue value = overridden ? it->second : field.Default;
+            ScriptValue value = overridden ? *stored : field.Default;
             if (EditScriptValue(label, value, scene, selection))
-                script.Fields.insert_or_assign(field.Name, std::move(value));
+                script.SetField(field, std::move(value));
 
             if (ImGui::BeginPopupContextItem("##FieldMenu"))
             {
                 if (ImGui::MenuItem("Reset to Default", nullptr, false, overridden))
-                    script.Fields.erase(field.Name);
+                    script.ResetField(field);
                 ImGui::EndPopup();
             }
         }

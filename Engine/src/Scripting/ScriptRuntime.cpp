@@ -23,10 +23,10 @@ namespace ByteForge
         {
             for (const ScriptFieldInfo& field : backend.GetFields(className))
             {
-                const auto it = entry.Fields.find(field.Name);
-                if (it == entry.Fields.end() || !IsCompatible(it->second, field)) continue;
+                const ScriptValue* stored = entry.FindField(field);
+                if (stored == nullptr || !IsCompatible(*stored, field)) continue;
 
-                if (!script.SetField(field.Name, it->second))
+                if (!script.SetField(field.Name, *stored))
                     CORE_WARN("Could not set field '{}' of script '{}'", field.Name, className);
             }
         }

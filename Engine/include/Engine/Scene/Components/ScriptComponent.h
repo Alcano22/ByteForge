@@ -12,11 +12,16 @@
 
 namespace ByteForge
 {
-    struct ScriptEntry
+    struct BYTEFORGE_API ScriptEntry
     {
         UUID Id;
         std::string ClassName;
         std::map<std::string, ScriptValue, std::less<>> Fields;
+        std::map<std::string, UUID, std::less<>> FieldIds;
+
+        [[nodiscard]] const ScriptValue* FindField(const ScriptFieldInfo& field) const;
+        void SetField(const ScriptFieldInfo& field, ScriptValue value);
+        void ResetField(const ScriptFieldInfo& field);
     };
 
     struct BYTEFORGE_API ScriptComponent

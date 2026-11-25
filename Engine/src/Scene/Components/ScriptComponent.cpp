@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <optional>
 #include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -19,11 +20,22 @@ namespace ByteForge
             for (const auto& [name, value] : entry.Fields)
                 fields[name] = TypedValueToJson(value);
 
-            return {
+            nlohmann::json json{
                 { "id",     static_cast<u64>(entry.Id) },
                 { "class",  entry.ClassName            },
                 { "fields", std::move(fields)          }
             };
+
+            nlohmann::json fieldIds = nlohmann::json::object();
+            for (const auto& [name, id] : entry.FieldIds)
+            {
+                if (entry.Fields.contains(name))
+                    fieldIds[name] = static_cast<u64>(id);
+            }
+            if (!fieldIds.empty())
+                json["fieldIds"] = std::move(fieldIds);
+
+            return json;
         }
 
         ScriptEntry ReadEntry(const nlohmann::json& json)
@@ -44,7 +56,70 @@ namespace ByteForge
                 }
             }
 
+            if (const auto ids = json.find("fieldIds"); ids != json.end() && ids->is_object())
+            {
+                for (const auto& [name, idJson] : ids->items())
+                {
+                    if (idJson.is_number_unsigned() && entry.Fields.contains(name))
+                        entry.FieldIds.insert_or_assign(name, UUID(idJson.get<u64>()));
+                }
+            }
+
             return entry;
+        }
+    }
+
+    const ScriptValue* ScriptEntry::FindField(const ScriptFieldInfo& field) const
+    {
+        if (field.Id != UUID(0))
+        {
+            for (const auto& [name, id] : FieldIds)
+            {
+                if (id != field.Id) continue;
+                if (const auto it = Fields.find(name); it != Fields.end())
+                    return &it->second;
+            }
+        }
+
+        const auto it = Fields.find(field.Name);
+        if (it == Fields.end())
+            return nullptr;
+
+        if (const auto id = FieldIds.find(field.Name); id != FieldIds.end() && id->second != field.Id)
+            return nullptr;
+        return &it->second;
+    }
+
+    void ScriptEntry::SetField(const ScriptFieldInfo& field, ScriptValue value)
+    {
+        ResetField(field);
+
+        Fields.insert_or_assign(field.Name, std::move(value));
+        if (field.Id != UUID(0))
+            FieldIds.insert_or_assign(field.Name, field.Id);
+        else
+            FieldIds.erase(field.Name);
+    }
+
+    void ScriptEntry::ResetField(const ScriptFieldInfo& field)
+    {
+        std::vector<std::string> names;
+        if (field.Id != UUID(0))
+        {
+            for (const auto& [name, id] : FieldIds)
+            {
+                if (id == field.Id)
+                    names.push_back(name);
+            }
+        }
+
+        if (const auto id = FieldIds.find(field.Name); id == FieldIds.end() || id->second == field.Id)
+            names.push_back(field.Name);
+
+        for (const std::string& name : names)
+        {
+            Fields.erase(name);
+            FieldIds.erase(name);
         }
     }
 

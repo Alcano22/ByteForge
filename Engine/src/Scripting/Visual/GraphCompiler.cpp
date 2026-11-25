@@ -40,8 +40,10 @@ namespace ByteForge
                     m_Program.VariableSlots.emplace(variable.Name, slot);
 
                     if (variable.Exposed)
+                    {
                         m_Program.Fields.push_back({ .Name = variable.Name, .Type = GetFieldType(variable.Default),
-                                                     .Default = variable.Default });
+                                                     .Default = variable.Default, .Id = variable.Id });
+                    }
                 }
 
                 for (const GraphNode& node : m_Graph.GetNodes())
