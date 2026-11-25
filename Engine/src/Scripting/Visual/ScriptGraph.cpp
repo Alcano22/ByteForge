@@ -4,7 +4,10 @@
 #include <algorithm>
 #include <format>
 #include <functional>
+#include <map>
+#include <set>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -37,12 +40,13 @@ namespace ByteForge
     }
 
     ScriptGraph ScriptGraph::FromParts(std::vector<GraphNode> nodes, std::vector<GraphLink> links,
-                                       std::vector<GraphVariable> variables)
+                                       std::vector<GraphVariable> variables, std::vector<GraphCustomEvent> events)
     {
         ScriptGraph graph;
         graph.m_Nodes = std::move(nodes);
         graph.m_Links = std::move(links);
         graph.m_Variables = std::move(variables);
+        graph.m_Events = std::move(events);
         return graph;
     }
 
@@ -284,6 +288,142 @@ namespace ByteForge
         return {};
     }
 
+    const GraphCustomEvent* ScriptGraph::FindEvent(const UUID id) const
+    {
+        const auto it = std::ranges::find(m_Events, id, &GraphCustomEvent::Id);
+        return it != m_Events.end() ? &*it : nullptr;
+    }
+
+    const GraphCustomEvent* ScriptGraph::FindEvent(const std::string_view name) const
+    {
+        const auto it = std::ranges::find(m_Events, name, &GraphCustomEvent::Name);
+        return it != m_Events.end() ? &*it : nullptr;
+    }
+
+    Result<UUID> ScriptGraph::AddEvent(std::string name)
+    {
+        if (auto valid = CheckEventName(name, UUID(0)); !valid)
+            return Unexpected(valid.error());
+
+        return m_Events.emplace_back(GraphCustomEvent{ .Id = UUID(), .Name = std::move(name) }).Id;
+    }
+
+    Result<> ScriptGraph::UpdateEvent(GraphCustomEvent updated)
+    {
+        const auto it = std::ranges::find(m_Events, updated.Id, &GraphCustomEvent::Id);
+        if (it == m_Events.end())
+            return Unexpected("The event does not exist");
+
+        if (auto valid = CheckEventName(updated.Name, updated.Id); !valid)
+            return valid;
+
+        std::set<std::string, std::less<>> names;
+        for (const GraphParameter& parameter : updated.Parameters)
+        {
+            if (parameter.Name.empty())
+                return Unexpected("A parameter needs a name");
+            if (parameter.Name == GraphPin::Exec || parameter.Name == GraphPin::Then)
+                return Unexpected("'{}' is reserved for the exec pins", parameter.Name);
+            if (!names.insert(parameter.Name).second)
+                return Unexpected("Two parameters are named '{}'", parameter.Name);
+        }
+
+        std::set<std::string, std::less<>> dropped;
+        std::map<std::string, std::string, std::less<>> renamed;
+        for (const GraphParameter& before : it->Parameters)
+        {
+            const auto after = std::ranges::find(updated.Parameters, before.Id, &GraphParameter::Id);
+            if (after == updated.Parameters.end() || PinType::Of(after->Default) != PinType::Of(before.Default))
+                dropped.insert(before.Name);
+            else if (after->Name != before.Name)
+                renamed.emplace(before.Name, after->Name);
+        }
+
+        const UUID id = updated.Id;
+        *it = std::move(updated);
+
+        std::set<u64> entries;
+        std::set<u64> calls;
+        for (const GraphNode& node : m_Nodes)
+        {
+            if (const auto* entry = std::get_if<CustomEventNode>(&node.Data); entry != nullptr && entry->Event == id)
+                entries.insert(node.Id);
+            else if (const auto* call = std::get_if<CallEventNode>(&node.Data); call != nullptr && call->Event == id)
+                calls.insert(node.Id);
+        }
+
+        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
+        {
+            return (entries.contains(link.From.Node) && dropped.contains(link.From.Pin)) ||
+                   (calls.contains(link.To.Node) && dropped.contains(link.To.Pin));
+        });
+        ResetUnlinkedWildcards(touched);
+
+        const auto rename = [&](std::string& pin)
+        {
+            if (const auto found = renamed.find(pin); found != renamed.end())
+                pin = found->second;
+        };
+
+        for (GraphLink& link : m_Links)
+        {
+            if (entries.contains(link.From.Node))
+                rename(link.From.Pin);
+            if (calls.contains(link.To.Node))
+                rename(link.To.Pin);
+        }
+
+        for (GraphNode& node : m_Nodes)
+        {
+            if (!calls.contains(node.Id)) continue;
+
+            std::map<std::string, ScriptValue, std::less<>> defaults;
+            for (auto& [pin, value] : node.Defaults)
+            {
+                if (dropped.contains(pin)) continue;
+
+                std::string name = pin;
+                rename(name);
+                defaults.insert_or_assign(std::move(name), std::move(value));
+            }
+            node.Defaults = std::move(defaults);
+        }
+
+        return {};
+    }
+
+    void ScriptGraph::RemoveEvent(const UUID id)
+    {
+        std::vector<UUID> users;
+        for (const GraphNode& node : m_Nodes)
+        {
+            if (UsesEvent(node, id))
+                users.push_back(node.Id);
+        }
+
+        for (const UUID node : users)
+            RemoveNode(node);
+
+        std::erase_if(m_Events, [id](const GraphCustomEvent& event) { return event.Id == id; });
+    }
+
+    Result<> ScriptGraph::CheckEventName(const std::string_view name, const UUID ignore) const
+    {
+        if (name.empty())
+            return Unexpected("An event needs a name");
+
+        const GraphCustomEvent* existing = FindEvent(name);
+        if (existing != nullptr && existing->Id != ignore)
+            return Unexpected("An event named '{}' already exists", name);
+
+        return {};
+    }
+
+    std::string ScriptGraphClassName(const UUID graphAsset)
+    {
+        return std::format("Graph:{}", static_cast<u64>(graphAsset));
+    }
+
     bool UsesVariable(const GraphNode& node, const UUID variable)
     {
         if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
@@ -293,8 +433,21 @@ namespace ByteForge
         return false;
     }
 
-    std::string ScriptGraphClassName(const UUID graphAsset)
+    bool UsesEvent(const GraphNode& node, const UUID event)
     {
-        return std::format("Graph:{}", static_cast<u64>(graphAsset));
+        if (const auto* entry = std::get_if<CustomEventNode>(&node.Data))
+            return entry->Event == event;
+        if (const auto* call = std::get_if<CallEventNode>(&node.Data))
+            return call->Event == event;
+        return false;
+    }
+
+    bool HasEventEntry(const ScriptGraph& graph, const UUID event)
+    {
+        return std::ranges::any_of(graph.GetNodes(), [event](const GraphNode& node)
+        {
+            const auto* entry = std::get_if<CustomEventNode>(&node.Data);
+            return entry != nullptr && entry->Event == event;
+        });
     }
 }

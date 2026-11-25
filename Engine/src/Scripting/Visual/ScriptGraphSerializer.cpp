@@ -33,6 +33,8 @@ namespace ByteForge
         template<> constexpr std::string_view NodeKindName<CommentNode>     = "Comment";
         template<> constexpr std::string_view NodeKindName<RerouteNode>     = "Reroute";
         template<> constexpr std::string_view NodeKindName<SelectNode>      = "Select";
+        template<> constexpr std::string_view NodeKindName<CustomEventNode> = "CustomEvent";
+        template<> constexpr std::string_view NodeKindName<CallEventNode>   = "CallEvent";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -98,6 +100,8 @@ namespace ByteForge
                     json["function"] = data.Function;
                 else if constexpr (std::is_same_v<T, GetVariableNode> || std::is_same_v<T, SetVariableNode>)
                     json["variable"] = static_cast<u64>(data.Variable);
+                else if constexpr (std::is_same_v<T, CustomEventNode> || std::is_same_v<T, CallEventNode>)
+                    json["event"] = static_cast<u64>(data.Event);
                 else if constexpr (std::is_same_v<T, LiteralNode>)
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
                 else if constexpr (std::is_same_v<T, SequenceNode>)
@@ -177,6 +181,10 @@ namespace ByteForge
                 return RerouteNode{ ReadPinType(json) };
             if (kind == NodeKindName<SelectNode>)
                 return SelectNode{ ReadPinType(json) };
+            if (kind == NodeKindName<CustomEventNode>)
+                return CustomEventNode{ UUID(json.at("event").get<u64>()) };
+            if (kind == NodeKindName<CallEventNode>)
+                return CallEventNode{ UUID(json.at("event").get<u64>()) };
 
             throw Error("unknown node kind '{}'", kind);
         }
@@ -226,6 +234,50 @@ namespace ByteForge
                 .Exposed = json.value("exposed", true)
             };
         }
+
+        nlohmann::json WriteEvent(const GraphCustomEvent& event)
+        {
+            nlohmann::json parameters = nlohmann::json::array();
+            for (const GraphParameter& parameter : event.Parameters)
+            {
+                parameters.push_back({
+                    { "id",      static_cast<u64>(parameter.Id)                 },
+                    { "name",    parameter.Name                                 },
+                    { "default", JsonValue::TypedValueToJson(parameter.Default) }
+                });
+            }
+
+            return {
+                { "id",         static_cast<u64>(event.Id) },
+                { "name",       event.Name                 },
+                { "parameters", std::move(parameters)      }
+            };
+        }
+
+        GraphCustomEvent ReadEvent(const nlohmann::json& json)
+        {
+            GraphCustomEvent event{
+                .Id   = UUID(json.at("id").get<u64>()),
+                .Name = json.at("name").get<std::string>()
+            };
+
+            for (const auto& parameterJson : json.value("parameters", nlohmann::json::array()))
+            {
+                std::string name = parameterJson.at("name").get<std::string>();
+
+                std::optional<ScriptValue> value = JsonValue::ReadScriptValue(parameterJson.at("default"));
+                if (!value)
+                    throw Error("parameter '{}' of event '{}' has an unreadable type", name, event.Name);
+
+                event.Parameters.push_back({
+                    .Id      = UUID(parameterJson.at("id").get<u64>()),
+                    .Name    = std::move(name),
+                    .Default = std::move(*value)
+                });
+            }
+
+            return event;
+        }
     }
 
     nlohmann::json SerializeScriptGraph(const ScriptGraph& graph)
@@ -233,6 +285,10 @@ namespace ByteForge
         nlohmann::json variables = nlohmann::json::array();
         for (const GraphVariable& variable : graph.GetVariables())
             variables.push_back(WriteVariable(variable));
+
+        nlohmann::json events = nlohmann::json::array();
+        for (const GraphCustomEvent& event : graph.GetEvents())
+            events.push_back(WriteEvent(event));
 
         nlohmann::json nodes = nlohmann::json::array();
         for (const GraphNode& node : graph.GetNodes())
@@ -245,6 +301,7 @@ namespace ByteForge
         return {
             { "version",   ScriptGraph::FormatVersion },
             { "variables", std::move(variables)       },
+            { "events",    std::move(events)          },
             { "nodes",     std::move(nodes)           },
             { "links",     std::move(links)           }
         };
@@ -270,6 +327,10 @@ namespace ByteForge
             for (const auto& json : data.value("variables", nlohmann::json::array()))
                 variables.push_back(ReadVariable(json));
 
+            std::vector<GraphCustomEvent> events;
+            for (const auto& json : data.value("events", nlohmann::json::array()))
+                events.push_back(ReadEvent(json));
+
             std::vector<GraphNode> nodes;
             for (const auto& json : data.value("nodes", nlohmann::json::array()))
                 nodes.push_back(ReadNode(json));
@@ -278,7 +339,7 @@ namespace ByteForge
             for (const auto& json : data.value("links", nlohmann::json::array()))
                 links.push_back({ ReadPinRef(json.at("from")), ReadPinRef(json.at("to")) });
 
-            return ScriptGraph::FromParts(std::move(nodes), std::move(links), std::move(variables));
+            return ScriptGraph::FromParts(std::move(nodes), std::move(links), std::move(variables), std::move(events));
         } catch (const std::exception& e)
         {
             return Unexpected(e.what());

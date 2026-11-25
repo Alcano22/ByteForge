@@ -139,6 +139,7 @@ namespace ByteForge
         m_EnumTarget.reset();
 
         m_Variables.Reset();
+        m_Events.Reset();
         m_DroppedVariable.reset();
         m_FocusNode.reset();
         m_LinkTakenAt.clear();
@@ -194,6 +195,11 @@ namespace ByteForge
                 ImGui::BeginChild("##Sidebar", ImVec2(SidebarWidth, 0.0f),
                                   ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
                 m_Variables.Draw(*m_Document, GetContext().SelectionContext);
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                m_Events.Draw(*m_Document);
                 ImGui::EndChild();
 
                 ImGui::SameLine();
@@ -991,6 +997,20 @@ namespace ByteForge
                     m_DroppedVariable = DroppedVariable{ *variable, position };
                     ImGui::OpenPopup(VariableNodePopup);
                 }
+            }
+        }
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphEventPayloadType))
+        {
+            if (const std::optional<UUID> event = ReadGraphEventPayload(payload))
+            {
+                const ImVec2 dropped = NE::ScreenToCanvas(ImGui::GetMousePos());
+                const glm::vec2 position(dropped.x, dropped.y);
+
+                if (HasEventEntry(m_Document->GetGraph(), *event))
+                    AddVariableNode(CallEventNode{ *event }, position);
+                else
+                    AddVariableNode(CustomEventNode{ *event }, position);
             }
         }
 

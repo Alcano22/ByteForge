@@ -80,6 +80,55 @@ namespace ByteForge
             return added;
         }
 
+        std::optional<UUID> UsedEvent(const NodeData& data)
+        {
+            if (const auto* entry = std::get_if<CustomEventNode>(&data))
+                return entry->Event;
+            if (const auto* call = std::get_if<CallEventNode>(&data))
+                return call->Event;
+            return std::nullopt;
+        }
+
+        void ReplaceEvent(NodeData& data, const UUID event)
+        {
+            if (auto* entry = std::get_if<CustomEventNode>(&data))
+                entry->Event = event;
+            else if (auto* call = std::get_if<CallEventNode>(&data))
+                call->Event = event;
+        }
+
+        std::string FreeEventName(const ScriptGraph& graph, const std::string& name)
+        {
+            if (graph.FindEvent(std::string_view(name)) == nullptr)
+                return name;
+
+            for (u32 suffix = 2;; ++suffix)
+            {
+                std::string candidate = std::format("{} {}", name, suffix);
+                if (graph.FindEvent(std::string_view(candidate)) == nullptr)
+                    return candidate;
+            }
+        }
+
+        Result<UUID> MatchEvent(ScriptGraph& target, const GraphCustomEvent& source)
+        {
+            if (const GraphCustomEvent* same = target.FindEvent(source.Id))
+                return same->Id;
+            if (const GraphCustomEvent* named = target.FindEvent(std::string_view(source.Name)))
+                return named->Id;
+
+            const Result<UUID> added = target.AddEvent(FreeEventName(target, source.Name));
+            if (!added)
+                return added;
+
+            GraphCustomEvent copy = source;
+            copy.Id = *added;
+            copy.Name = target.FindEvent(*added)->Name;
+            if (const Result<> updated = target.UpdateEvent(std::move(copy)); !updated)
+                return Unexpected(updated.error());
+            return added;
+        }
+
         Result<ScriptGraph> ReadClipboard(const std::string_view text)
         {
             const nlohmann::json json = nlohmann::json::parse(text, nullptr, false);
@@ -110,6 +159,7 @@ namespace ByteForge
 
         std::vector<GraphNode> copiedNodes;
         std::set<u64> usedVariables;
+        std::set<u64> usedEvents;
         for (const GraphNode& node : graph.GetNodes())
         {
             if (!selected.contains(node.Id)) continue;
@@ -117,6 +167,8 @@ namespace ByteForge
             copiedNodes.push_back(node);
             if (const std::optional<UUID> variable = UsedVariable(node.Data))
                 usedVariables.insert(*variable);
+            if (const std::optional<UUID> event = UsedEvent(node.Data))
+                usedEvents.insert(*event);
         }
 
         std::vector<GraphLink> copiedLinks;
@@ -133,11 +185,18 @@ namespace ByteForge
                 copiedVariables.push_back(variable);
         }
 
+        std::vector<GraphCustomEvent> copiedEvents;
+        for (const GraphCustomEvent& event : graph.GetEvents())
+        {
+            if (usedEvents.contains(event.Id))
+                copiedEvents.push_back(event);
+        }
+
         const ScriptGraph copied = ScriptGraph::FromParts(std::move(copiedNodes), std::move(copiedLinks),
-                                                          std::move(copiedVariables));
+                                                          std::move(copiedVariables), std::move(copiedEvents));
 
         const nlohmann::json json{
-            { ClipboardKey, ClipboardVersion            },
+            { ClipboardKey, ClipboardVersion             },
             { "graph",      SerializeScriptGraph(copied) }
         };
         return json.dump();
@@ -156,6 +215,7 @@ namespace ByteForge
         PastedGraphNodes pasted;
         std::map<u64, UUID> nodeIds;
         std::map<u64, UUID> variableIds;
+        std::map<u64, UUID> eventIds;
 
         for (const GraphNode& node : copied->GetNodes())
         {
@@ -179,6 +239,28 @@ namespace ByteForge
                     match = variableIds.emplace(*variable, *target).first;
                 }
                 ReplaceVariable(data, match->second);
+            }
+
+            if (const std::optional<UUID> event = UsedEvent(data))
+            {
+                auto match = eventIds.find(*event);
+                if (match == eventIds.end())
+                {
+                    const GraphCustomEvent* source = copied->FindEvent(*event);
+                    const Result<UUID> target = source != nullptr ? MatchEvent(graph, *source)
+                                                                  : Result<UUID>(*event);
+                    if (!target) continue;
+
+                    match = eventIds.emplace(*event, *target).first;
+                }
+                ReplaceEvent(data, match->second);
+
+                if (const auto* entry = std::get_if<CustomEventNode>(&data);
+                    entry != nullptr && HasEventEntry(graph, entry->Event))
+                {
+                    ++pasted.SkippedEvents;
+                    continue;
+                }
             }
 
             const UUID id = graph.AddNode(std::move(data), position + (node.Position - origin));

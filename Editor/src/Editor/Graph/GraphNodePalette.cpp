@@ -85,6 +85,15 @@ namespace ByteForge
                 add(EventNode{ event });
         }
 
+        for (const GraphCustomEvent& event : graph.GetEvents())
+        {
+            if (!HasEventEntry(graph, event.Id))
+                add(CustomEventNode{ event.Id });
+        }
+
+        for (const GraphCustomEvent& event : graph.GetEvents())
+            add(CallEventNode{ event.Id });
+
         add(BranchNode{});
         add(DelayNode{});
         add(SequenceNode{});

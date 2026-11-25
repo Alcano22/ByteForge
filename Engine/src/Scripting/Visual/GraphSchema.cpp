@@ -202,6 +202,33 @@ namespace ByteForge
             return signature;
         }
 
+        NodeSignature Describe(const ScriptGraph& graph, const CustomEventNode& node)
+        {
+            const GraphCustomEvent* event = graph.FindEvent(node.Event);
+            if (event == nullptr)
+                return { .Title = "Event ?", .Category = "Events", .Error = "The event no longer exists" };
+
+            NodeSignature signature{ .Title = event->Name, .Category = "Events" };
+            signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
+            for (const GraphParameter& parameter : event->Parameters)
+                signature.Pins.push_back(Out(parameter.Name, PinType::Of(parameter.Default)));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph& graph, const CallEventNode& node)
+        {
+            const GraphCustomEvent* event = graph.FindEvent(node.Event);
+            if (event == nullptr)
+                return { .Title = "Call ?", .Category = "Custom Events", .Error = "The event no longer exists" };
+
+            NodeSignature signature{ .Title = std::format("Call {}", event->Name), .Category = "Custom Events" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            for (const GraphParameter& parameter : event->Parameters)
+                signature.Pins.push_back(In(parameter.Name, PinType::Of(parameter.Default)));
+            signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
+            return signature;
+        }
+
         NodeSignature Describe(const ScriptGraph& graph, const GetVariableNode& node)
         {
             const GraphVariable* variable = graph.FindVariable(node.Variable);
@@ -442,9 +469,19 @@ namespace ByteForge
                 report(UUID(0), GraphSeverity::Error, std::format("Variable '{}' is declared twice", variable.Name));
         }
 
+        std::set<std::string, std::less<>> eventNames;
+        for (const GraphCustomEvent& event : graph.GetEvents())
+        {
+            if (event.Name.empty())
+                report(UUID(0), GraphSeverity::Error, "An event has no name");
+            else if (!eventNames.insert(event.Name).second)
+                report(UUID(0), GraphSeverity::Error, std::format("Event '{}' is declared twice", event.Name));
+        }
+
         SignatureCache cache(graph);
         std::set<u64> nodeIds;
         std::set<GraphEvent> events;
+        std::set<u64> customEntries;
 
         for (const GraphNode& node : graph.GetNodes())
         {
@@ -464,6 +501,18 @@ namespace ByteForge
             if (const auto* event = std::get_if<EventNode>(&node.Data);
                 event != nullptr && !events.insert(event->Event).second)
                 report(node.Id, GraphSeverity::Error, std::format("'{}' exists more than once", signature.Title));
+
+            if (const auto* entry = std::get_if<CustomEventNode>(&node.Data);
+                entry != nullptr && !customEntries.insert(entry->Event).second)
+                report(node.Id, GraphSeverity::Error, std::format("'{}' exists more than once", signature.Title));
+
+            if (const auto* call = std::get_if<CallEventNode>(&node.Data);
+                call != nullptr && !HasEventEntry(graph, call->Event))
+            {
+                report(node.Id, GraphSeverity::Warning,
+                       std::format("'{}' has no event node, so the call does nothing",
+                                   graph.FindEvent(call->Event)->Name));
+            }
 
             for (const auto& [pin, value] : node.Defaults)
             {

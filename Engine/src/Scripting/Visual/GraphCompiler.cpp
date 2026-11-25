@@ -3,6 +3,7 @@
 #include "Engine/Scripting/API/ScriptAPI.h"
 #include "Engine/Scripting/Visual/GraphSchema.h"
 
+#include <algorithm>
 #include <format>
 #include <map>
 #include <set>
@@ -46,6 +47,12 @@ namespace ByteForge
                     }
                 }
 
+                for (const GraphCustomEvent& event : m_Graph.GetEvents())
+                {
+                    for (const GraphParameter& parameter : event.Parameters)
+                        m_ParameterSlots.emplace(ParameterKey(event.Id, parameter.Name), AddSlot(parameter.Default));
+                }
+
                 for (const GraphNode& node : m_Graph.GetNodes())
                 {
                     const auto* event = std::get_if<EventNode>(&node.Data);
@@ -64,6 +71,19 @@ namespace ByteForge
 
                     m_Program.Events[static_cast<usize>(event->Event)] = GraphEntry{ entry, payload };
                 }
+
+                for (const GraphNode& node : m_Graph.GetNodes())
+                {
+                    const auto* entry = std::get_if<CustomEventNode>(&node.Data);
+                    if (entry == nullptr) continue;
+
+                    m_EventEntries.emplace(entry->Event, Here());
+                    m_Label = Label(node.Id);
+                    EmitContinuation(node.Id, GraphPin::Then);
+                }
+
+                for (const auto& [call, event] : m_EventCalls)
+                    m_Program.Code[call].A = m_EventEntries.at(event);
 
                 return std::move(m_Program);
             }
@@ -289,6 +309,34 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode&, const SelectNode&, std::string_view) { Emit(GraphOp::Return); }
 
+            void EmitStatement(const GraphNode& node, const CallEventNode& call, std::string_view)
+            {
+                std::set<u64> evaluated;
+                std::vector<std::pair<u32, u32>> arguments;
+                for (const GraphParameter& parameter : m_Graph.FindEvent(call.Event)->Parameters)
+                {
+                    const u32 value = ResolveInput(node, RequirePin(node.Id, parameter.Name, PinDirection::Input),
+                                                   evaluated);
+                    arguments.emplace_back(value, m_ParameterSlots.at(ParameterKey(call.Event, parameter.Name)));
+                }
+
+                m_Label = Label(node.Id);
+                for (const auto& [value, slot] : arguments)
+                    Emit(GraphOp::Copy, value, slot);
+
+                if (HasEventEntry(m_Graph, call.Event))
+                    m_EventCalls.emplace_back(Emit(GraphOp::Gosub), call.Event);
+
+                EmitContinuation(node.Id, GraphPin::Then);
+            }
+
+            void EmitStatement(const GraphNode&, const CustomEventNode&, std::string_view) { Emit(GraphOp::Return); }
+
+            static std::pair<u64, std::string> ParameterKey(const UUID event, std::string name)
+            {
+                return { static_cast<u64>(event), std::move(name) };
+            }
+
             void EmitCall(const GraphNode& node, const CallNode& call, std::set<u64>& evaluated)
             {
                 std::vector<u32> arguments;
@@ -389,6 +437,8 @@ namespace ByteForge
                     return m_VariableSlots.at(get->Variable);
                 if (const auto* set = std::get_if<SetVariableNode>(&graphNode.Data))
                     return m_VariableSlots.at(set->Variable);
+                if (const auto* entry = std::get_if<CustomEventNode>(&graphNode.Data))
+                    return m_ParameterSlots.at(ParameterKey(entry->Event, pin.Name));
 
                 std::pair<u64, std::string> key{ node, pin.Name };
                 if (const auto it = m_OutputSlots.find(key); it != m_OutputSlots.end())
@@ -469,6 +519,9 @@ namespace ByteForge
             std::map<std::pair<u64, std::string>, u32, std::less<>> m_NodeCode;
             std::map<u64, u32> m_StateSlots;
             std::map<UUID, u32> m_Labels;
+            std::map<std::pair<u64, std::string>, u32> m_ParameterSlots;
+            std::map<u64, u32> m_EventEntries;
+            std::vector<std::pair<u32, u64>> m_EventCalls;
             u32 m_Label = 0;
         };
     }

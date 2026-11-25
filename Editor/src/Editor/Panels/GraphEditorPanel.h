@@ -6,6 +6,7 @@
 #include "Editor/Graph/GraphNodeRenderer.h"
 #include "Editor/Graph/GraphNodePalette.h"
 #include "Editor/Graph/GraphVariablesPanel.h"
+#include "Editor/Graph/GraphEventsPanel.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
@@ -100,6 +101,7 @@ namespace ByteForge
         GraphEnumPicker m_EnumPicker;
         std::optional<EnumPick> m_EnumTarget;
         GraphVariablesPanel m_Variables;
+        GraphEventsPanel m_Events;
         std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;
         UUID m_MenuNode{ 0 };

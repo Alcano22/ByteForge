@@ -102,10 +102,12 @@ namespace ByteForge
 
     struct RerouteNode { std::optional<PinType> Type; };
     struct SelectNode { std::optional<PinType> Type; };
+    struct CustomEventNode { UUID Event{ 0 }; };
+    struct CallEventNode { UUID Event{ 0 }; };
 
     using NodeData = std::variant<EventNode, CallNode, BranchNode, DelayNode, GetVariableNode, SetVariableNode,
                                   LiteralNode, SequenceNode, ForLoopNode, DoOnceNode, FlipFlopNode, GateNode,
-                                  CommentNode, RerouteNode, SelectNode>;
+                                  CommentNode, RerouteNode, SelectNode, CustomEventNode, CallEventNode>;
 
     struct GraphNode
     {
@@ -138,20 +140,38 @@ namespace ByteForge
         bool Exposed = true;
     };
 
+    struct GraphParameter
+    {
+        UUID Id;
+        std::string Name;
+        ScriptValue Default = 0.0f;
+    };
+
+    struct GraphCustomEvent
+    {
+        UUID Id;
+        std::string Name;
+        std::vector<GraphParameter> Parameters;
+    };
+
     class BYTEFORGE_API ScriptGraph
     {
     public:
         [[nodiscard]] static ScriptGraph FromParts(std::vector<GraphNode> nodes, std::vector<GraphLink> links,
-                                                   std::vector<GraphVariable> variables);
+                                                   std::vector<GraphVariable> variables,
+                                                   std::vector<GraphCustomEvent> events = {});
 
         [[nodiscard]] std::span<const GraphNode> GetNodes() const { return m_Nodes; }
         [[nodiscard]] std::span<const GraphLink> GetLinks() const { return m_Links; }
         [[nodiscard]] std::span<const GraphVariable> GetVariables() const { return m_Variables; }
+        [[nodiscard]] std::span<const GraphCustomEvent> GetEvents() const { return m_Events; }
 
         [[nodiscard]] const GraphNode* FindNode(UUID id) const;
         [[nodiscard]] GraphNode* FindNode(UUID id);
         [[nodiscard]] const GraphVariable* FindVariable(UUID id) const;
         [[nodiscard]] const GraphVariable* FindVariable(std::string_view name) const;
+        [[nodiscard]] const GraphCustomEvent* FindEvent(UUID id) const;
+        [[nodiscard]] const GraphCustomEvent* FindEvent(std::string_view name) const;
 
         UUID AddNode(NodeData data, glm::vec2 position);
         void RemoveNode(UUID id);
@@ -168,8 +188,13 @@ namespace ByteForge
         Result<> SetVariableDefault(UUID id, ScriptValue value);
         Result<> SetVariableExposed(UUID id, bool exposed);
 
+        Result<UUID> AddEvent(std::string name);
+        Result<> UpdateEvent(GraphCustomEvent updated);
+        void RemoveEvent(UUID id);
+
     private:
         [[nodiscard]] Result<> CheckVariableName(std::string_view name, UUID ignore) const;
+        [[nodiscard]] Result<> CheckEventName(std::string_view name, UUID ignore) const;
 
         [[nodiscard]] GraphVariable* FindVariableForEdit(UUID id);
         void DropMismatchedVariableUses(UUID variable);
@@ -185,8 +210,13 @@ namespace ByteForge
         std::vector<GraphNode> m_Nodes;
         std::vector<GraphLink> m_Links;
         std::vector<GraphVariable> m_Variables;
+        std::vector<GraphCustomEvent> m_Events;
     };
 
     [[nodiscard]] BYTEFORGE_API std::string ScriptGraphClassName(UUID graphAsset);
+
     [[nodiscard]] BYTEFORGE_API bool UsesVariable(const GraphNode& node, UUID variable);
+    [[nodiscard]] BYTEFORGE_API bool UsesEvent(const GraphNode& node, UUID event);
+
+    [[nodiscard]] BYTEFORGE_API bool HasEventEntry(const ScriptGraph& graph, UUID event);
 }
