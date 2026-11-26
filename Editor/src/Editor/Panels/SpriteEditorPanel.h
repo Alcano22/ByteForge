@@ -23,7 +23,7 @@ namespace ByteForge
 
         explicit SpriteEditorPanel(EditorContext& context);
 
-        void OpenTexture(UUID texture);
+        void OpenTexture(UUID texture, std::optional<UUID> sprite = std::nullopt);
 
         void OnImGuiRender() override;
 

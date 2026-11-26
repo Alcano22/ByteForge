@@ -1,11 +1,11 @@
 #include "Editor/Panels/AssetsPanel.h"
-#include "Editor/EditorContext.h"
-#include "Editor/EditorWidgets.h"
-#include "Editor/AssetPayload.h"
 #include "Editor/Panels/GraphEditorPanel.h"
 #include "Editor/Panels/AnimationClipPanel.h"
 #include "Editor/Panels/InputActionsPanel.h"
 #include "Editor/Panels/SpriteEditorPanel.h"
+#include "Editor/EditorContext.h"
+#include "Editor/EditorWidgets.h"
+#include "Editor/AssetPayload.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/FileSystem.h>
@@ -14,6 +14,7 @@
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/InputActions.h>
 #include <Engine/Assets/Prefab.h>
+#include <Engine/Assets/SpriteSheet.h>
 #include <Engine/Scene/SceneSerializer.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
@@ -284,6 +285,36 @@ namespace ByteForge
             const std::string trimmed(Trim(stem));
             return trimmed.empty() || trimmed == "." || trimmed == ".." ? "New Prefab" : trimmed;
         }
+
+        bool HasSheetSprites(const UUID texture)
+        {
+            AssetMetadata metadata;
+            if (!AssetRegistry::TryGetMetadata(texture, metadata)) return false;
+
+            const auto* settings = metadata.GetSettings<TextureAssetSettings>();
+            return settings != nullptr && settings->Mode == SpriteMode::Multiple
+                && !AssetRegistry::GetSubAssets(texture).empty();
+        }
+
+        void DrawExpandArrow(ImDrawList& drawList, const ImVec2& min,
+                             const f32 size, const bool expanded, const bool hovered)
+        {
+            const ImVec2 center{ min.x + size * 0.5f, min.y + size * 0.5f };
+            drawList.AddCircleFilled(center, size * 0.45f,
+                                     ImGui::GetColorU32(hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button));
+
+            const f32 half = size * 0.2f;
+            const ImU32 color = ImGui::GetColorU32(ImGuiCol_Text);
+            if (expanded)
+            {
+                drawList.AddTriangleFilled(ImVec2(center.x + half, center.y + half), ImVec2(center.x - half, center.y),
+                                           ImVec2(center.x + half, center.y - half), color);
+            } else
+            {
+                drawList.AddTriangleFilled(ImVec2(center.x - half, center.y - half), ImVec2(center.x + half, center.y),
+                                           ImVec2(center.x - half, center.y + half), color);
+            }
+        }
     }
 
     void AssetsPanel::OnImGuiRender()
@@ -424,6 +455,36 @@ namespace ByteForge
                 entry.Handle = AssetRegistry::Import(entry.Path);
         }
 
+        std::vector<Entry> withSprites;
+        withSprites.reserve(m_Entries.size());
+
+        for (Entry& entry : m_Entries)
+        {
+            const std::optional<UUID> texture = entry.Type == AssetType::Texture2D ? entry.Handle : std::nullopt;
+            entry.HasSprites = texture && HasSheetSprites(*texture);
+            const bool expanded = entry.HasSprites && m_Expanded.contains(*texture);
+            const fs::path path = entry.Path;
+
+            withSprites.push_back(std::move(entry));
+            if (!expanded) continue;
+
+            for (const UUID sprite : AssetRegistry::GetSubAssets(*texture))
+            {
+                AssetMetadata metadata;
+                if (!AssetRegistry::TryGetMetadata(sprite, metadata)) continue;
+
+                withSprites.push_back(Entry{
+                    .Path   = path,
+                    .Name   = metadata.GetDisplayName(),
+                    .Type   = AssetType::Sprite,
+                    .Handle = sprite,
+                    .Owner  = *texture
+                });
+            }
+        }
+
+        m_Entries = std::move(withSprites);
+
         m_SeenAssetRevision = AssetRegistry::GetRevision();
     }
 
@@ -486,17 +547,20 @@ namespace ByteForge
     {
         Selection& selection = GetContext().SelectionContext;
 
+        const auto findSelectedFile = [this]
+        {
+            return std::ranges::find_if(m_Entries, [this](const Entry& entry) { return !entry.Owner && IsSelected(entry); });
+        };
+
         if (!m_RenamingPath && ImGui::Shortcut(ImGuiKey_F2))
         {
-            const auto it = std::ranges::find_if(m_Entries, [this](const Entry& entry) { return IsSelected(entry); });
-            if (it != m_Entries.end())
+            if (const auto it = findSelectedFile(); it != m_Entries.end())
                 BeginRename(*it);
         }
 
         if (!m_RenamingPath && ImGui::Shortcut(ImGuiKey_Delete))
         {
-            const auto it = std::ranges::find_if(m_Entries, [this](const Entry& entry) { return IsSelected(entry); });
-            if (it != m_Entries.end())
+            if (const auto it = findSelectedFile(); it != m_Entries.end())
                 RequestDelete(*it);
         }
 
@@ -530,9 +594,14 @@ namespace ByteForge
     {
         const ImGuiStyle& style = ImGui::GetStyle();
         const bool selected = IsSelected(entry);
-        const bool renaming = IsRenaming(entry);
 
-        ImGui::PushID(entry.Name.c_str());
+        const bool isSprite = entry.Owner.has_value();
+        const bool renaming = !isSprite && IsRenaming(entry);
+
+        if (isSprite)
+            EditorUI::PushID(static_cast<u64>(*entry.Handle));
+        else
+            ImGui::PushID(entry.Name.c_str());
 
         const f32 padding = style.FramePadding.x;
         const f32 lineHeight = ImGui::GetTextLineHeight();
@@ -545,15 +614,23 @@ namespace ByteForge
         const ImVec2 tileMax{ tileMin.x + tileSize.x, tileMin.y + tileSize.y };
         const f32 labelY = tileMin.y + padding + m_ThumbnailSize + style.ItemInnerSpacing.y;
 
-        Ref<Texture2D> image;
+        Ref<Texture2D> thumbnail;
+        const Sprite* sprite = nullptr;
         if (ImGui::IsRectVisible(tileSize))
-            image = GetThumbnail(entry);
+        {
+            if (isSprite)
+                sprite = GetSpritePreview(entry);
+            else
+                thumbnail = GetThumbnail(entry);
+        }
 
-        const bool isIcon = image == nullptr;
-        if (isIcon)
-            image = GetContext().Icons.Get(GetIcon(entry));
-
+        const bool isIcon = thumbnail == nullptr;
+        const Ref<Texture2D> image = isIcon ? GetContext().Icons.Get(GetIcon(entry)) : thumbnail;
         const ImVec4 tint = isIcon ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+        const bool expandable = entry.HasSprites && !renaming;
+        if (expandable)
+            ImGui::SetNextItemAllowOverlap();
 
         const f32 buttonHeight = renaming ? labelY - tileMin.y : tileSize.y;
         const bool pressed = ImGui::InvisibleButton("##tile", ImVec2(tileSize.x, buttonHeight));
@@ -569,19 +646,30 @@ namespace ByteForge
 
         if (ImGui::BeginPopupContextItem("##tileMenu"))
         {
-            if (ImGui::MenuItem("Rename", "F2"))
-                BeginRename(entry);
+            if (isSprite)
+            {
+                if (ImGui::MenuItem("Open in Sprite Editor"))
+                    Activate(entry);
+            } else
+            {
+                if (entry.Type == AssetType::Texture2D && entry.Handle && ImGui::MenuItem("Open Sprite Editor"))
+                    Activate(entry);
 
-            ImGui::Separator();
-            if (ImGui::MenuItem("Delete", "Del"))
-                RequestDelete(entry);
+                if (ImGui::MenuItem("Rename", "F2"))
+                    BeginRename(entry);
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Delete", "Del"))
+                    RequestDelete(entry);
+            }
 
             ImGui::EndPopup();
         }
 
         if (!renaming && ImGui::BeginDragDropSource())
         {
-            m_DraggedPath = entry.Path;
+            if (!isSprite)
+                m_DraggedPath = entry.Path;
 
             if (entry.Handle)
             {
@@ -590,7 +678,15 @@ namespace ByteForge
             } else
                 ImGui::SetDragDropPayload(EntryPayloadType, nullptr, 0);
 
-            UI::Image(image, ImVec2(32.0f, 32.0f), tint);
+            if (sprite != nullptr)
+            {
+                const ImVec2 previewMin = ImGui::GetCursorScreenPos();
+                ImGui::Dummy(ImVec2(32.0f, 32.0f));
+                EditorUI::DrawSpriteImage(*ImGui::GetWindowDrawList(), *sprite, previewMin,
+                                          ImVec2(previewMin.x + 32.0f, previewMin.y + 32.0f));
+            } else
+                UI::Image(image, ImVec2(32.0f, 32.0f), tint);
+
             ImGui::SameLine();
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(entry.Name.c_str());
@@ -603,23 +699,57 @@ namespace ByteForge
         if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             Activate(entry);
 
+        const f32 arrowSize = ImGui::GetFrameHeight();
+        const ImVec2 arrowMin{ tileMax.x - arrowSize, tileMin.y + padding + (m_ThumbnailSize - arrowSize) * 0.5f };
+        const bool expanded = expandable && m_Expanded.contains(*entry.Handle);
+        bool arrowHovered = false;
+
+        if (expandable)
+        {
+            ImGui::SetCursorScreenPos(arrowMin);
+            if (ImGui::InvisibleButton("##expand", ImVec2(arrowSize, arrowSize)))
+            {
+                if (expanded)
+                    m_Expanded.erase(*entry.Handle);
+                else
+                    m_Expanded.insert(*entry.Handle);
+                m_RefreshRequested = true;
+            }
+            arrowHovered = ImGui::IsItemHovered();
+            ImGui::SetItemTooltip(expanded ? "Hide sprites" : "Show sprites");
+        }
+
         ImDrawList& drawList = *ImGui::GetWindowDrawList();
+
+        if (isSprite)
+            drawList.AddRectFilled(tileMin, tileMax, ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
 
         if (selected)
             drawList.AddRectFilled(tileMin, tileMax, ImGui::GetColorU32(ImGuiCol_Header), style.FrameRounding);
 
-        const ImVec2 imageSize = FitToSquare(*image, m_ThumbnailSize);
-        const ImVec2 imageMin{ tileMin.x + padding + (m_ThumbnailSize - imageSize.x) * 0.5f,
-                               tileMin.y + padding + (m_ThumbnailSize - imageSize.y) * 0.5f };
-        UI::DrawImage(drawList, image, imageMin, ImVec2(imageMin.x + imageSize.x,
-                      imageMin.y + imageSize.y), ImGui::GetColorU32(tint));
+        const ImVec2 thumbnailMin{ tileMin.x + padding, tileMin.y + padding };
+        const ImVec2 thumbnailMax{ thumbnailMin.x + m_ThumbnailSize, thumbnailMin.y + m_ThumbnailSize };
+
+        if (sprite != nullptr)
+            EditorUI::DrawSpriteImage(drawList, *sprite, thumbnailMin, thumbnailMax);
+        else
+        {
+            const ImVec2 imageSize = FitToSquare(*image, m_ThumbnailSize);
+            const ImVec2 imageMin{ thumbnailMin.x + (m_ThumbnailSize - imageSize.x) * 0.5f,
+                                   thumbnailMin.y + (m_ThumbnailSize - imageSize.y) * 0.5f };
+            UI::DrawImage(drawList, image, imageMin, ImVec2(imageMin.x + imageSize.x,
+                          imageMin.y + imageSize.y), ImGui::GetColorU32(tint));
+        }
+
+        if (expandable)
+            DrawExpandArrow(drawList, arrowMin, arrowSize, expanded, arrowHovered);
 
         if (renaming)
             DrawRenameField(ImVec2(tileMin.x, labelY), tileSize.x, tileMax.y);
         else
         {
-            const std::vector<std::string> lines = LayoutLabel(GetDisplayName(entry.Path, entry.IsDirectory),
-                                                               m_ThumbnailSize, MaxLabelLines);
+            const std::string label = isSprite ? entry.Name : GetDisplayName(entry.Path, entry.IsDirectory);
+            const std::vector<std::string> lines = LayoutLabel(label, m_ThumbnailSize, MaxLabelLines);
 
             f32 lineY = labelY;
             for (const std::string& line : lines)
@@ -1109,6 +1239,8 @@ namespace ByteForge
             GetContext().Dialogs.RequestOpenPrefab(*entry.Handle);
         else if (entry.Type == AssetType::Texture2D && entry.Handle)
             GetContext().Open<SpriteEditorPanel>().OpenTexture(*entry.Handle);
+        else if (entry.Type == AssetType::Sprite && entry.Owner)
+            GetContext().Open<SpriteEditorPanel>().OpenTexture(*entry.Owner, entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)
@@ -1123,6 +1255,17 @@ namespace ByteForge
             return nullptr;
 
         return entry.Texture->GetTexture();
+    }
+
+    const Sprite* AssetsPanel::GetSpritePreview(Entry& entry)
+    {
+        if (!entry.Handle) return nullptr;
+
+        if (!entry.SpritePreview)
+            entry.SpritePreview = AssetManager::LoadSprite(*entry.Handle);
+
+        return entry.SpritePreview->GetTextureAsset()->GetState() == AssetLoadState::Loaded
+             ? entry.SpritePreview.get() : nullptr;
     }
 
     EditorIcon AssetsPanel::GetIcon(const Entry& entry)

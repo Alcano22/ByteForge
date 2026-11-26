@@ -191,20 +191,24 @@ namespace ByteForge
     SpriteEditorPanel::SpriteEditorPanel(EditorContext& context)
         : EditorPanel(context, Name) {}
 
-    void SpriteEditorPanel::OpenTexture(const UUID texture)
+    void SpriteEditorPanel::OpenTexture(const UUID texture, const std::optional<UUID> sprite)
     {
         m_Open = true;
         RequestFocus();
 
-        if (m_Texture && *m_Texture == texture) return;
-
-        if (m_Texture && m_Dirty)
+        if (!m_Texture || *m_Texture != texture)
         {
-            OpenUnsavedChangesPopup(texture);
-            return;
+            if (m_Texture && m_Dirty)
+            {
+                OpenUnsavedChangesPopup(texture);
+                return;
+            }
+
+            Load(texture);
         }
 
-        Load(texture);
+        if (sprite)
+            m_Selected = *sprite;
     }
 
     void SpriteEditorPanel::Load(const UUID texture)

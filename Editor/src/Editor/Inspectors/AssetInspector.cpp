@@ -70,9 +70,31 @@ namespace ByteForge::EditorUI
                 EditorContext::ApplyTextureSettings(metadata.Handle, settings);
         }
 
-        void DrawSpriteInspector(const AssetMetadata& metadata)
+        void DrawSpriteInspector(const AssetMetadata& metadata, EditorContext& context)
         {
+            constexpr f32 SpritePreviewSize = 128.0f;
+
+            const Ref<Sprite> sprite = AssetManager::LoadSprite(metadata.Handle);
+
+            const ImVec2 min = ImGui::GetCursorScreenPos();
+            const ImVec2 max{ min.x + SpritePreviewSize, min.y + SpritePreviewSize };
+            ImGui::Dummy(ImVec2(SpritePreviewSize, SpritePreviewSize));
+
+            ImDrawList& drawList = *ImGui::GetWindowDrawList();
+            drawList.AddRectFilled(min, max, ImGui::GetColorU32(ImGuiCol_FrameBg));
+            if (sprite->GetTextureAsset()->GetState() == AssetLoadState::Loaded)
+                EditorUI::DrawSpriteImage(drawList, *sprite, min, max);
+
             ImGui::TextDisabled("Part of %s", ToUtf8(metadata.Path.filename()).c_str());
+
+            const glm::vec2 pixels = sprite->GetPixelSize();
+            const glm::vec2 units = sprite->GetWorldSize();
+            ImGui::Text("%.0f x %.0f px, %.2f x %.2f units", pixels.x, pixels.y, units.x, units.y);
+            ImGui::Text("Pivot %.2f, %.2f", sprite->GetPivot().x, sprite->GetPivot().y);
+
+            ImGui::Spacing();
+            if (ImGui::Button("Open in Sprite Editor"))
+                context.Open<SpriteEditorPanel>().OpenTexture(metadata.Parent, metadata.Handle);
         }
 
         void DrawFontInspector(const AssetMetadata& metadata)
@@ -488,7 +510,7 @@ namespace ByteForge::EditorUI
             case AssetType::Font:         DrawFontInspector(metadata);                  break;
             case AssetType::InputActions: DrawInputActionsInspector(metadata, context); break;
             case AssetType::Material:     DrawMaterialInspector(metadata, context);     break;
-            case AssetType::Sprite:       DrawSpriteInspector(metadata);                break;
+            case AssetType::Sprite:       DrawSpriteInspector(metadata, context);       break;
             case AssetType::None:                                                       break;
         }
     }

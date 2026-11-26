@@ -6,17 +6,19 @@
 #include <Engine/Core/Core.h>
 #include <Engine/Assets/TextureAsset.h>
 #include <Engine/Assets/AssetType.h>
+#include <Engine/Assets/Sprite.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 
 #include <imgui.h>
 
 #include <array>
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
-#include <cstdint>
 
 namespace ByteForge
 {
@@ -49,6 +51,10 @@ namespace ByteForge
             AssetType Type = AssetType::None;
             std::optional<UUID> Handle;
             Ref<TextureAsset> Texture;
+
+            std::optional<UUID> Owner;
+            bool HasSprites = false;
+            Ref<Sprite> SpritePreview;
         };
 
         void ApplyPendingChanges();
@@ -99,6 +105,8 @@ namespace ByteForge
 
         [[nodiscard]] static Ref<Texture2D> GetThumbnail(Entry& entry);
 
+        [[nodiscard]] static const Sprite* GetSpritePreview(Entry& entry);
+
         [[nodiscard]] static DirectoryNode BuildTree(const fs::path& root,
                                                      const fs::path& relative);
 
@@ -125,6 +133,7 @@ namespace ByteForge
         bool m_FocusRename = false;
         std::optional<fs::path> m_NewScript;
         std::optional<fs::path> m_DraggedPath;
+        std::unordered_set<UUID> m_Expanded;
 
         std::optional<fs::path> m_PendingDirectory;
         bool m_RefreshRequested = true;
