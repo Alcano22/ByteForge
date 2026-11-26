@@ -2,10 +2,12 @@
 #include "Editor/EditorContext.h"
 #include "Editor/EditorWidgets.h"
 #include "Editor/AssetPayload.h"
+#include "Editor/Panels/SpriteEditorPanel.h"
 
+#include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
-#include <Engine/Core/Log.h>
+#include <Engine/Assets/SpriteSheet.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
@@ -42,62 +44,41 @@ namespace ByteForge
             AnimationLoopMode::PingPong
         };
 
-        struct SliceSettings
+        std::vector<AnimationFrame> FramesFromAsset(const AssetPayload& asset)
         {
-            UUID Texture{ 0 };
-            i32 Columns = 4;
-            i32 Rows = 1;
-            i32 FirstCell = 0;
-            i32 Count = 0;
-        };
-
-        ImVec2 ToImVec2(const glm::vec2& value) { return { value.x, value.y }; }
-
-        void DrawSprite(ImDrawList& drawList, const Sprite& sprite, const ImVec2& min, const ImVec2& max)
-        {
-            const Ref<Texture2D>& texture = sprite.GetTexture();
-            const glm::vec2 uvSize = glm::abs(sprite.GetUVMax() - sprite.GetUVMin());
-            const f32 width = static_cast<f32>(texture->GetWidth()) * uvSize.x;
-            const f32 height = static_cast<f32>(texture->GetHeight()) * uvSize.y;
-            if (width <= 0.0f || height <= 0.0f) return;
-
-            const ImVec2 bounds(max.x - min.x, max.y - min.y);
-            const f32 scale = std::min(bounds.x / width, bounds.y / height);
-            const ImVec2 size(width * scale, height * scale);
-            const ImVec2 imageMin(min.x + (bounds.x - size.x) * 0.5f, min.y + (bounds.y - size.y) * 0.5f);
-
-            UI::DrawImage(drawList, texture, imageMin, ImVec2(imageMin.x + size.x, imageMin.y + size.y),
-                          IM_COL32_WHITE, ToImVec2(sprite.GetUVMin()), ToImVec2(sprite.GetUVMax()));
-        }
-
-        AnimationFrame MakeFrame(const UUID texture) { return { .Texture = texture }; }
-
-        std::vector<AnimationFrame> SliceGrid(const SliceSettings& settings)
-        {
-            const i32 columns = std::max(1, settings.Columns);
-            const i32 rows = std::max(1, settings.Rows);
-            const i32 cells = columns * rows;
-            const i32 first = std::clamp(settings.FirstCell, 0, cells - 1);
-            const i32 end = settings.Count > 0 ? std::min(cells, first + settings.Count) : cells;
-
-            const auto columnCount = static_cast<f32>(columns);
-            const auto rowCount = static_cast<f32>(rows);
-
             std::vector<AnimationFrame> frames;
-            frames.reserve(static_cast<usize>(end - first));
 
-            for (i32 cell = first; cell < end; ++cell)
+            if (asset.Type == AssetType::Sprite)
+                frames.push_back(AnimationFrame{ .Sprite = UUID(asset.Handle) });
+            else if (asset.Type == AssetType::Texture2D)
             {
-                const auto column = static_cast<f32>(cell % columns);
-                const auto row = static_cast<f32>(cell / columns);
-
-                AnimationFrame frame = MakeFrame(settings.Texture);
-                frame.UVMin = { column / columnCount, row / rowCount };
-                frame.UVMax = { (column + 1.0f) / columnCount, (row + 1.0f) / rowCount };
-                frames.push_back(frame);
+                for (const UUID sprite : AssetRegistry::GetSubAssets(UUID(asset.Handle)))
+                    frames.push_back(AnimationFrame{ .Sprite = sprite });
             }
 
             return frames;
+        }
+
+        bool AcceptFrameDrop(std::vector<AnimationFrame>& frames)
+        {
+            const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
+            if (!dragged) return false;
+
+            std::vector<AnimationFrame> candidates = FramesFromAsset(*dragged);
+            if (candidates.empty() || ImGui::AcceptDragDropPayload(AssetPayloadType) == nullptr)
+                return false;
+
+            frames = std::move(candidates);
+            return true;
+        }
+
+        UUID TextureOf(const AnimationFrame& frame)
+        {
+            if (!frame.Sprite.IsSet())
+                return frame.Texture;
+
+            AssetMetadata metadata;
+            return AssetRegistry::TryGetMetadata(frame.Sprite, metadata) ? metadata.Parent : UUID(0);
         }
 
         isize Offset(const usize index) { return static_cast<isize>(index); }
@@ -283,8 +264,9 @@ namespace ByteForge
         }
 
         ImGui::SameLine(0.0f, 16.0f);
-        if (ImGui::Button("Slice Sheet..."))
-            OpenSliceDialog();
+        if (ImGui::Button("From Sheet..."))
+            OpenSheetDialog();
+        ImGui::SetItemTooltip("Add frames from the sprites of a texture");
 
         ImGui::SameLine(0.0f, 16.0f);
         ImGui::AlignTextToFramePadding();
@@ -304,7 +286,7 @@ namespace ByteForge
 
         if (m_Preview->IsEmpty())
         {
-            constexpr const char* hint = "Drop textures on the frame strip or use Slice Sheet...";
+            constexpr const char* hint = "Drop a sprite sheet or sprites on the frame strip, or use From Sheet...";
             const ImVec2 textSize = ImGui::CalcTextSize(hint);
             ImGui::SetCursorScreenPos(ImVec2(min.x + (avail.x - textSize.x) * 0.5f,
                                              min.y + (avail.y - textSize.y) * 0.5f));
@@ -312,8 +294,8 @@ namespace ByteForge
         } else if (const Ref<Sprite>& sprite = m_Preview->GetSprite(GetDisplayedFrame()))
         {
             constexpr f32 margin = 8.0f;
-            DrawSprite(drawList, *sprite,
-                       ImVec2(min.x + margin, min.y + margin), ImVec2(max.x - margin, max.y - margin));
+            EditorUI::DrawSpriteImage(drawList, *sprite,
+                                      ImVec2(min.x + margin, min.y + margin), ImVec2(max.x - margin, max.y - margin));
         }
 
         ImGui::EndChild();
@@ -356,17 +338,15 @@ namespace ByteForge
 
             if (ImGui::BeginDragDropTarget())
             {
+                std::vector<AnimationFrame> dropped;
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(FramePayloadType);
                     payload != nullptr && payload->DataSize == static_cast<i32>(sizeof(usize)))
                 {
                     usize from = 0;
                     std::memcpy(&from, payload->Data, sizeof(from));
                     action = [this, from, i] { MoveFrame(from, i); };
-                } else if (const auto asset = ReadAssetPayload(ImGui::AcceptDragDropPayload(AssetPayloadType));
-                           asset && asset->Type == AssetType::Texture2D)
-                {
-                    action = [this, i, handle = asset->Handle] { InsertFrame(i, MakeFrame(UUID(handle))); };
-                }
+                } else if (AcceptFrameDrop(dropped))
+                    action = [this, i, frames = std::move(dropped)] { InsertFrames(i, frames); };
                 ImGui::EndDragDropTarget();
             }
 
@@ -384,8 +364,8 @@ namespace ByteForge
 
             if (const Ref<Sprite>& sprite = m_Preview->GetSprite(static_cast<u32>(i)))
             {
-                DrawSprite(drawList, *sprite, ImVec2(min.x + ThumbnailPadding, min.y + ThumbnailPadding),
-                           ImVec2(max.x - ThumbnailPadding, max.y - ThumbnailPadding));
+                EditorUI::DrawSpriteImage(drawList, *sprite, ImVec2(min.x + ThumbnailPadding, min.y + ThumbnailPadding),
+                                          ImVec2(max.x - ThumbnailPadding, max.y - ThumbnailPadding));
             }
 
             if (playing == i)
@@ -407,17 +387,14 @@ namespace ByteForge
             ImGui::SameLine();
 
         ImGui::Button("+##appendFrames", ImVec2(ThumbnailSize, ThumbnailSize));
-        ImGui::SetItemTooltip("Drop textures here to append frames");
+        ImGui::SetItemTooltip("Drop a sprite sheet or sprites here to append frames");
 
         if (ImGui::BeginDragDropTarget())
         {
-            if (const auto asset = ReadAssetPayload(ImGui::AcceptDragDropPayload(AssetPayloadType));
-                asset && asset->Type == AssetType::Texture2D)
+            std::vector<AnimationFrame> dropped;
+            if (AcceptFrameDrop(dropped))
             {
-                action = [this, handle = asset->Handle]
-                {
-                    InsertFrame(m_Working.Frames.size(), MakeFrame(UUID(handle)));
-                };
+                action = [this, frames = std::move(dropped)] { InsertFrames(m_Working.Frames.size(), frames); };
             } else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(FramePayloadType);
                        payload != nullptr && payload->DataSize == static_cast<i32>(sizeof(usize)))
             {
@@ -450,14 +427,31 @@ namespace ByteForge
 
         ImGui::SeparatorText(std::format("Frame {}", index + 1).c_str());
 
-        AssetMetadata metadata;
-        const bool known = AssetRegistry::TryGetMetadata(frame.Texture, metadata);
-        ImGui::TextDisabled("Texture: %s", known ? ToGenericUtf8(metadata.Path).c_str() : "missing");
+        if (frame.Sprite.IsSet())
+        {
+            UUID sprite = frame.Sprite;
+            ImGui::SetNextItemWidth(240.0f);
+            if (EditorUI::AssetReferenceField("Sprite", AssetType::Sprite, sprite, GetContext().SelectionContext)
+                && sprite.IsSet())
+            {
+                BeginChange();
+                frame.Sprite = sprite;
+                OnDataChanged();
+            }
+        } else
+        {
+            AssetMetadata metadata;
+            const bool known = AssetRegistry::TryGetMetadata(frame.Texture, metadata);
+            ImGui::TextDisabled("Texture region of %s, from before sprite assets",
+                                known ? ToGenericUtf8(metadata.Path).c_str() : "a missing texture");
+        }
 
         if (ImGui::DragFloat("Duration", &frame.Duration, 0.05f, 0.05f, 20.0f, "x%.2f", ImGuiSliderFlags_AlwaysClamp))
             OnDataChanged();
         TrackItemEdit();
         ImGui::SetItemTooltip("Multiplier of the clip's frame time (1 / FPS)");
+
+        if (frame.Sprite.IsSet()) return;
 
         if (ImGui::DragFloat2("UV Min", &frame.UVMin.x, 0.001f, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
             OnDataChanged();
@@ -468,15 +462,15 @@ namespace ByteForge
         TrackItemEdit();
     }
 
-    void AnimationClipPanel::OpenSliceDialog()
+    void AnimationClipPanel::OpenSheetDialog()
     {
-        SliceSettings settings;
+        UUID texture{ 0 };
         if (m_Selected && *m_Selected < m_Working.Frames.size())
-            settings.Texture = m_Working.Frames[*m_Selected].Texture;
+            texture = TextureOf(m_Working.Frames[*m_Selected]);
 
         const UUID asset = *m_Asset;
 
-        GetContext().Popups.Open("Slice Sprite Sheet", [this, settings, asset](Popup& popup) mutable
+        GetContext().Popups.Open("Frames from Sprite Sheet", [this, asset, texture, first = 0, count = 0](Popup& popup) mutable
         {
             if (!m_Asset || *m_Asset != asset)
             {
@@ -486,27 +480,47 @@ namespace ByteForge
 
             ImGui::PushItemWidth(200.0f);
 
-            EditorUI::AssetReferenceField("Texture", AssetType::Texture2D, settings.Texture,
-                                          GetContext().SelectionContext);
+            EditorUI::AssetReferenceField("Texture", AssetType::Texture2D, texture, GetContext().SelectionContext);
 
-            ImGui::DragInt("Columns", &settings.Columns, 0.1f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::DragInt("Rows", &settings.Rows, 0.1f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
+            const std::vector<UUID> sprites = texture.IsSet() ? AssetRegistry::GetSubAssets(texture) : std::vector<UUID>{};
+            const i32 total = static_cast<i32>(sprites.size());
 
-            const i32 cells = settings.Columns * settings.Rows;
-            ImGui::DragInt("First Cell", &settings.FirstCell, 0.1f, 0, cells - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SetItemTooltip("Cells are counted row by row from the top left, starting at 0");
+            ImGui::DragInt("First Sprite", &first, 0.1f, 0, std::max(0, total - 1), "%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SetItemTooltip("Sprites are counted in sheet order, starting at 0");
 
-            ImGui::DragInt("Count", &settings.Count, 0.1f, 0, cells, "%d", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SetItemTooltip("0 uses all cells from the first one");
+            ImGui::DragInt("Count", &count, 0.1f, 0, total, "%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SetItemTooltip("0 uses all sprites from the first one");
 
             ImGui::PopItemWidth();
 
-            const std::vector<AnimationFrame> frames = SliceGrid(settings);
+            const usize begin = static_cast<usize>(std::clamp(first, 0, total));
+            const usize end = count > 0 ? std::min(sprites.size(), begin + static_cast<usize>(count)) : sprites.size();
+
+            std::vector<AnimationFrame> frames;
+            for (usize i = begin; i < end; ++i)
+                frames.push_back(AnimationFrame{ .Sprite = sprites[i] });
+
+            AssetMetadata metadata;
+            const auto* settings = texture.IsSet() && AssetRegistry::TryGetMetadata(texture, metadata)
+                                 ? metadata.GetSettings<TextureAssetSettings>() : nullptr;
+
             ImGui::Spacing();
             ImGui::TextDisabled("Creates %zu frames", frames.size());
+
+            if (settings != nullptr && settings->Mode == SpriteMode::Single)
+            {
+                ImGui::TextDisabled("This texture is not sliced, so it is a single frame.");
+                if (ImGui::SmallButton("Slice it in the Sprite Editor"))
+                {
+                    popup.Close();
+                    GetContext().Open<SpriteEditorPanel>().OpenTexture(texture);
+                    return;
+                }
+            }
+
             ImGui::Spacing();
 
-            ImGui::BeginDisabled(!settings.Texture.IsSet());
+            ImGui::BeginDisabled(frames.empty());
             if (ImGui::Button("Append"))
             {
                 AddFrames(frames, false);
@@ -641,12 +655,14 @@ namespace ByteForge
             m_Selected = m_Working.Frames.size() - 1;
     }
 
-    void AnimationClipPanel::InsertFrame(const usize index, const AnimationFrame& frame)
+    void AnimationClipPanel::InsertFrames(const usize index, const std::vector<AnimationFrame>& frames)
     {
+        if (frames.empty()) return;
+
         BeginChange();
 
         const usize at = std::min(index, m_Working.Frames.size());
-        m_Working.Frames.insert(m_Working.Frames.begin() + Offset(at), frame);
+        m_Working.Frames.insert(m_Working.Frames.begin() + Offset(at), frames.begin(), frames.end());
         m_Selected = at;
 
         OnDataChanged();
@@ -698,6 +714,6 @@ namespace ByteForge
         if (index >= m_Working.Frames.size()) return;
 
         const AnimationFrame copy = m_Working.Frames[index];
-        InsertFrame(index + 1, copy);
+        InsertFrames(index + 1, { copy });
     }
 }

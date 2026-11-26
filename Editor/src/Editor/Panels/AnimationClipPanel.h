@@ -36,7 +36,7 @@ namespace ByteForge
         void DrawFrameStrip(f32 height);
         void DrawFrameProperties();
 
-        void OpenSliceDialog();
+        void OpenSheetDialog();
         void OpenUnsavedChangesPopup(UUID next);
 
         void TogglePlayback();
@@ -51,7 +51,7 @@ namespace ByteForge
         void OnDataChanged();
         void RebuildPreview();
 
-        void InsertFrame(usize index, const AnimationFrame& frame);
+        void InsertFrames(usize index, const std::vector<AnimationFrame>& frames);
         void AddFrames(const std::vector<AnimationFrame>& frames, bool replace);
         void MoveFrame(usize from, usize to);
         void DeleteFrame(usize index);

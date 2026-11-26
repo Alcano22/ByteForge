@@ -294,7 +294,7 @@ namespace ByteForge::EditorUI
         std::string AssetLabel(const AssetMetadata& metadata)
         {
             return std::format("{}  {}", EditorIcons::Glyph(EditorIcons::ForFile(metadata.Path)),
-                               ToUtf8(metadata.Path.stem()));
+                               metadata.GetDisplayName());
         }
 
         bool DrawAssetPicker(const AssetType type, UUID& handle)
@@ -329,12 +329,12 @@ namespace ByteForge::EditorUI
             for (const AssetMetadata& metadata : s_Candidates)
             {
                 const std::string path = ToGenericUtf8(metadata.Path);
-                if (!ContainsIgnoreCase(path, query)) continue;
+                if (!ContainsIgnoreCase(path, query) && !ContainsIgnoreCase(metadata.GetDisplayName(), query)) continue;
 
                 const bool pickedByEnter = submitted && !anyMatch;
                 anyMatch = true;
 
-                ImGui::PushID(path.c_str());
+                PushID(static_cast<u64>(metadata.Handle));
 
                 const bool selected = handle == metadata.Handle;
                 if ((ImGui::Selectable(AssetLabel(metadata).c_str(), selected) || pickedByEnter) && !selected)
