@@ -49,6 +49,8 @@ namespace ByteForge
         constexpr f32 CommentMargin          = 24.0f;
         constexpr f32 CommentResizeTolerance = 1.5f;
 
+        constexpr i32 SettledFrames = 2;
+
         NE::EditorContext* CreateNodeEditor()
         {
             NE::Config config;
@@ -476,8 +478,7 @@ namespace ByteForge
         DrawCommentRename();
         DrawEnumPicker();
 
-        if (current.FramesSinceLoad++ == 1)
-            NE::NavigateToContent(0.0f);
+        FrameContentOnce(current, available);
         FocusRequestedNode();
 
         NE::End();
@@ -487,6 +488,27 @@ namespace ByteForge
 
         CommitMovedNodes();
         NE::SetCurrentEditor(nullptr);
+    }
+
+    void GraphEditorPanel::FrameContentOnce(Canvas& canvas, const ImVec2 size) const
+    {
+        if (canvas.Framed) return;
+
+        const bool sameSize = size.x == canvas.LastSize.x && size.y == canvas.LastSize.y;
+        canvas.StableFrames = sameSize && size.x > 0.0f && size.y > 0.0f ? canvas.StableFrames + 1 : 0;
+        canvas.LastSize = size;
+        if (canvas.StableFrames < SettledFrames) return;
+
+        for (const GraphNode& node : m_Document->GetGraph().GetNodes())
+        {
+            if (node.Scope != m_Scope) continue;
+
+            const ImVec2 nodeSize = NE::GetNodeSize(GraphIds::Node(node.Id));
+            if (nodeSize.x <= 0.0f || nodeSize.y <= 0.0f || nodeSize.x >= FLT_MAX) return;
+        }
+
+        NE::NavigateToContent(0.0f);
+        canvas.Framed = true;
     }
 
     void GraphEditorPanel::ShowHoveredValue() const

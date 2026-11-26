@@ -49,7 +49,10 @@ namespace ByteForge
         {
             ax::NodeEditor::EditorContext* Editor = nullptr;
             u64 SyncedRevision = std::numeric_limits<u64>::max();
-            i32 FramesSinceLoad = 0;
+
+            bool Framed = false;
+            ImVec2 LastSize{ 0.0f, 0.0f };
+            i32 StableFrames = 0;
         };
 
         void Load(UUID asset);
@@ -62,6 +65,7 @@ namespace ByteForge
         void UpdateActiveLinks();
         void DrawTabs();
         void DrawCanvas();
+        void FrameContentOnce(Canvas& canvas, ImVec2 size) const;
 
         void ShowHoveredValue() const;
         [[nodiscard]] ScriptInstance* FindWatchedInstance() const;
