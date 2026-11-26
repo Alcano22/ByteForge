@@ -76,6 +76,7 @@ namespace ByteForge
         ScriptFieldType Type = ScriptFieldType::Float;
         ScriptValue Default;
         UUID Id{ 0 };
+        std::string_view Enum;
     };
 
     [[nodiscard]] inline bool IsCompatible(const ScriptValue& value, const ScriptFieldInfo& field)

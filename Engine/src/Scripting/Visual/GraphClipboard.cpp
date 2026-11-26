@@ -1,4 +1,5 @@
 #include "Engine/Scripting/Visual/GraphClipboard.h"
+#include "Engine/Scripting/Visual/GraphSchema.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
 #include <nlohmann/json.hpp>
@@ -57,10 +58,7 @@ namespace ByteForge
             }
         }
 
-        bool SameType(const GraphVariable& a, const GraphVariable& b)
-        {
-            return PinType::Of(a.Default) == PinType::Of(b.Default);
-        }
+        bool SameType(const GraphVariable& a, const GraphVariable& b) { return TypeOf(a) == TypeOf(b); }
 
         Result<UUID> MatchVariable(ScriptGraph& target, const GraphVariable& source, const UUID scope)
         {
@@ -78,6 +76,14 @@ namespace ByteForge
             const Result<UUID> added = target.AddVariable(FreeVariableName(target, source.Name), source.Default, owner);
             if (!added)
                 return added;
+
+            if (!source.Enum.empty())
+            {
+                if (const Result<> typed = target.SetVariableType(*added, TypeOf(source)); !typed)
+                    return Unexpected(typed.error());
+                if (const Result<> value = target.SetVariableDefault(*added, source.Default); !value)
+                    return Unexpected(value.error());
+            }
 
             if (owner == UUID(0))
             {

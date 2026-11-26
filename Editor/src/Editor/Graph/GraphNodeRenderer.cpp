@@ -278,6 +278,7 @@ namespace ByteForge
                        literal != nullptr && pin.Direction == PinDirection::Output)
             {
                 view.Editor = literal->Value;
+                view.Enum = pin.Type.Enum;
             }
         }
 

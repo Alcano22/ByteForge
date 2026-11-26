@@ -49,7 +49,8 @@ namespace ByteForge
                     if (variable.Exposed)
                     {
                         m_Program.Fields.push_back({ .Name = variable.Name, .Type = GetFieldType(variable.Default),
-                                                     .Default = variable.Default, .Id = variable.Id });
+                                                     .Default = variable.Default, .Id = variable.Id,
+                                                     .Enum = TypeOf(variable).Enum });
                     }
                 }
 

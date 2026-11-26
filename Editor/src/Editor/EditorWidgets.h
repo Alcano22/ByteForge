@@ -174,4 +174,6 @@ namespace ByteForge::EditorUI
 
         return changed;
     }
+
+    bool EnumCombo(const char* label, std::string_view enumName, i32& value);
 }

@@ -76,11 +76,12 @@ namespace ByteForge::EditorUI
             return dropped;
         }
 
-        bool EditScriptValue(const char* label, ScriptValue& value, Scene& scene, Selection& selection)
+        bool EditScriptValue(const char* label, ScriptValue& value, Scene& scene,
+                             Selection& selection, const std::string_view enumName)
         {
             return std::visit(Overloaded{
                 [&](bool& v)        { return ImGui::Checkbox(label, &v); },
-                [&](i32& v)         { return ImGui::DragInt(label, &v); },
+                [&](i32& v)         { return enumName.empty() ? ImGui::DragInt(label, &v) : EnumCombo(label, enumName, v); },
                 [&](f32& v)         { return ImGui::DragFloat(label, &v, 0.1f); },
                 [&](f64& v)         { return ImGui::DragScalar(label, ImGuiDataType_Double, &v, 0.1f); },
                 [&](glm::vec2& v)   { return ImGui::DragFloat2(label, glm::value_ptr(v), 0.1f); },
@@ -97,14 +98,14 @@ namespace ByteForge::EditorUI
         {
             if (std::optional<ScriptValue> value = live != nullptr ? live->GetField(field.Name) : std::nullopt)
             {
-                if (EditScriptValue(label, *value, scene, selection))
+                if (EditScriptValue(label, *value, scene, selection, field.Enum))
                     live->SetField(field.Name, *value);
                 return;
             }
 
             ScriptValue fallback = field.Default;
             ImGui::BeginDisabled();
-            EditScriptValue(label, fallback, scene, selection);
+            EditScriptValue(label, fallback, scene, selection, field.Enum);
             ImGui::EndDisabled();
         }
 
@@ -115,7 +116,7 @@ namespace ByteForge::EditorUI
             const bool overridden = stored != nullptr && IsCompatible(*stored, field);
 
             ScriptValue value = overridden ? *stored : field.Default;
-            if (EditScriptValue(label, value, scene, selection))
+            if (EditScriptValue(label, value, scene, selection, field.Enum))
                 script.SetField(field, std::move(value));
 
             if (ImGui::BeginPopupContextItem("##FieldMenu"))

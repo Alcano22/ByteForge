@@ -111,6 +111,15 @@ namespace ByteForge
         return it != m_Enums.end() ? it->second : nullptr;
     }
 
+    std::vector<const ScriptEnum*> ScriptAPI::GetEnums() const
+    {
+        std::vector<const ScriptEnum*> enums;
+        enums.reserve(m_Enums.size());
+        for (const auto& [name, scriptEnum] : m_Enums)
+            enums.push_back(scriptEnum);
+        return enums;
+    }
+
     void ScriptAPI::Add(ScriptFunction function)
     {
         const usize dot = function.Id.find('.');

@@ -112,7 +112,11 @@ namespace ByteForge
                                    std::is_same_v<T, CallFunctionNode>)
                     json["function"] = static_cast<u64>(data.Function);
                 else if constexpr (std::is_same_v<T, LiteralNode>)
+                {
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
+                    if (!data.Enum.empty())
+                        json["enum"] = data.Enum;
+                }
                 else if constexpr (std::is_same_v<T, SequenceNode>)
                     json["outputs"] = data.Outputs;
                 else if constexpr (std::is_same_v<T, CommentNode>)
@@ -165,7 +169,7 @@ namespace ByteForge
                 std::optional<ScriptValue> value = JsonValue::ReadScriptValue(json.at("value"));
                 if (!value)
                     throw Error("literal node has an unreadable value");
-                return LiteralNode{ std::move(*value) };
+                return LiteralNode{ std::move(*value), json.value("enum", std::string()) };
             }
             if (kind == NodeKindName<SequenceNode>)
             {
@@ -237,6 +241,8 @@ namespace ByteForge
 
             if (variable.Scope != UUID(0))
                 json["scope"] = static_cast<u64>(variable.Scope);
+            if (!variable.Enum.empty())
+                json["enum"] = variable.Enum;
             return json;
         }
 
@@ -254,7 +260,8 @@ namespace ByteForge
                 .Name    = std::move(name),
                 .Default = std::move(*value),
                 .Exposed = scope == UUID(0) && json.value("exposed", true),
-                .Scope   = scope
+                .Scope   = scope,
+                .Enum    = json.value("enum", std::string())
             };
         }
 
@@ -263,11 +270,15 @@ namespace ByteForge
             nlohmann::json json = nlohmann::json::array();
             for (const GraphParameter& parameter : parameters)
             {
-                json.push_back({
+                nlohmann::json entry{
                     { "id",      static_cast<u64>(parameter.Id)                 },
                     { "name",    parameter.Name                                 },
                     { "default", JsonValue::TypedValueToJson(parameter.Default) }
-                });
+                };
+                if (!parameter.Enum.empty())
+                    entry["enum"] = parameter.Enum;
+
+                json.push_back(std::move(entry));
             }
             return json;
         }
@@ -287,7 +298,8 @@ namespace ByteForge
                 parameters.push_back({
                     .Id      = UUID(parameterJson.at("id").get<u64>()),
                     .Name    = std::move(name),
-                    .Default = std::move(*value)
+                    .Default = std::move(*value),
+                    .Enum    = parameterJson.value("enum", std::string())
                 });
             }
             return parameters;

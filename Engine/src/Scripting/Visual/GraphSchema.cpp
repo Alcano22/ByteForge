@@ -4,6 +4,7 @@
 #include <format>
 #include <map>
 #include <set>
+#include <span>
 #include <utility>
 
 namespace ByteForge
@@ -42,6 +43,23 @@ namespace ByteForge
             const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(type.Enum);
             const auto* number = std::get_if<i32>(&value);
             return scriptEnum == nullptr || (number != nullptr && scriptEnum->Find(*number) != nullptr);
+        }
+
+        std::optional<std::string> MissingEnum(const std::string_view name)
+        {
+            if (name.empty() || ScriptAPI::Get().FindEnum(name) != nullptr)
+                return std::nullopt;
+            return std::format("The enum '{}' no longer exists", name);
+        }
+
+        std::optional<std::string> MissingEnum(const std::span<const GraphParameter> parameters)
+        {
+            for (const GraphParameter& parameter : parameters)
+            {
+                if (std::optional<std::string> missing = MissingEnum(parameter.Enum))
+                    return missing;
+            }
+            return std::nullopt;
         }
 
         const char* EventTitle(const GraphEvent event)
@@ -208,10 +226,11 @@ namespace ByteForge
             if (event == nullptr)
                 return { .Title = "Event ?", .Category = "Events", .Error = "The event no longer exists" };
 
-            NodeSignature signature{ .Title = event->Name, .Category = "Events" };
+            NodeSignature signature{ .Title = event->Name, .Category = "Events",
+                                     .Error = MissingEnum(event->Parameters) };
             signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
             for (const GraphParameter& parameter : event->Parameters)
-                signature.Pins.push_back(Out(parameter.Name, PinType::Of(parameter.Default)));
+                signature.Pins.push_back(Out(parameter.Name, TypeOf(parameter)));
             return signature;
         }
 
@@ -221,10 +240,11 @@ namespace ByteForge
             if (event == nullptr)
                 return { .Title = "Call ?", .Category = "Custom Events", .Error = "The event no longer exists" };
 
-            NodeSignature signature{ .Title = std::format("Call {}", event->Name), .Category = "Custom Events" };
+            NodeSignature signature{ .Title = std::format("Call {}", event->Name), .Category = "Custom Events",
+                                     .Error = MissingEnum(event->Parameters) };
             signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
             for (const GraphParameter& parameter : event->Parameters)
-                signature.Pins.push_back(In(parameter.Name, PinType::Of(parameter.Default)));
+                signature.Pins.push_back(In(parameter.Name, TypeOf(parameter)));
             signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
             return signature;
         }
@@ -235,8 +255,9 @@ namespace ByteForge
             if (variable == nullptr)
                 return { .Title = "Get ?", .Category = "Variables", .Error = "The variable no longer exists" };
 
-            NodeSignature signature{ .Title = variable->Name, .Category = "Variables", .Pure = true };
-            signature.Pins.push_back(Out(GraphPin::Value, PinType::Of(variable->Default)));
+            NodeSignature signature{ .Title = variable->Name, .Category = "Variables", .Pure = true,
+                                     .Error = MissingEnum(variable->Enum) };
+            signature.Pins.push_back(Out(GraphPin::Value, TypeOf(*variable)));
             return signature;
         }
 
@@ -246,9 +267,10 @@ namespace ByteForge
             if (variable == nullptr)
                 return { .Title = "Set ?", .Category = "Variables", .Error = "The variable no longer exists" };
 
-            const PinType type = PinType::Of(variable->Default);
+            const PinType type = TypeOf(*variable);
 
-            NodeSignature signature{ .Title = std::format("Set {}", variable->Name), .Category = "Variables" };
+            NodeSignature signature{ .Title = std::format("Set {}", variable->Name), .Category = "Variables",
+                                     .Error = MissingEnum(variable->Enum) };
             AddExecPins(signature);
             signature.Pins.push_back(In(GraphPin::Value, type));
             signature.Pins.push_back(Out(GraphPin::Value, type));
@@ -257,11 +279,13 @@ namespace ByteForge
 
         NodeSignature Describe(const ScriptGraph&, const LiteralNode& node)
         {
-            const PinType type = PinType::Of(node.Value);
-            std::string title = type.Value == ScriptFieldType::Asset ? AssetTypeToString(type.Asset)
+            const PinType type = TypeOf(node.Value, node.Enum);
+            std::string title = !type.Enum.empty()                   ? std::string(type.Enum)
+                              : type.Value == ScriptFieldType::Asset ? AssetTypeToString(type.Asset)
                                                                      : std::string(ScriptFieldTypeName(type.Value));
 
-            NodeSignature signature{ .Title = std::move(title), .Category = "Literals", .Pure = true };
+            NodeSignature signature{ .Title = std::move(title), .Category = "Literals", .Pure = true,
+                                     .Error = MissingEnum(node.Enum) };
             signature.Pins.push_back(Out(GraphPin::Value, type));
             return signature;
         }
@@ -272,10 +296,11 @@ namespace ByteForge
             if (function == nullptr)
                 return { .Title = "Entry ?", .Category = "Functions", .Error = "The function no longer exists" };
 
-            NodeSignature signature{ .Title = function->Name, .Category = "Functions" };
+            NodeSignature signature{ .Title = function->Name, .Category = "Functions",
+                                     .Error = MissingEnum(function->Inputs) };
             signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
             for (const GraphParameter& input : function->Inputs)
-                signature.Pins.push_back(Out(input.Name, PinType::Of(input.Default)));
+                signature.Pins.push_back(Out(input.Name, TypeOf(input)));
             return signature;
         }
 
@@ -285,10 +310,11 @@ namespace ByteForge
             if (function == nullptr)
                 return { .Title = "Return", .Category = "Functions", .Error = "The function no longer exists" };
 
-            NodeSignature signature{ .Title = "Return", .Category = "Functions" };
+            NodeSignature signature{ .Title = "Return", .Category = "Functions",
+                                     .Error = MissingEnum(function->Outputs) };
             signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
             for (const GraphParameter& output : function->Outputs)
-                signature.Pins.push_back(In(output.Name, PinType::Of(output.Default)));
+                signature.Pins.push_back(In(output.Name, TypeOf(output)));
             return signature;
         }
 
@@ -298,13 +324,18 @@ namespace ByteForge
             if (function == nullptr)
                 return { .Title = "Call ?", .Category = "Functions", .Error = "The function no longer exists" };
 
-            NodeSignature signature{ .Title = function->Name, .Category = "Functions", .Pure = function->Pure };
+            std::optional<std::string> missing = MissingEnum(function->Inputs);
+            if (!missing)
+                missing = MissingEnum(function->Outputs);
+
+            NodeSignature signature{ .Title = function->Name, .Category = "Functions", .Pure = function->Pure,
+                                     .Error = std::move(missing) };
             if (!function->Pure)
                 AddExecPins(signature);
             for (const GraphParameter& input : function->Inputs)
-                signature.Pins.push_back(In(input.Name, PinType::Of(input.Default)));
+                signature.Pins.push_back(In(input.Name, TypeOf(input)));
             for (const GraphParameter& output : function->Outputs)
-                signature.Pins.push_back(Out(output.Name, PinType::Of(output.Default)));
+                signature.Pins.push_back(Out(output.Name, TypeOf(output)));
             return signature;
         }
 
@@ -754,6 +785,16 @@ namespace ByteForge
         return 0.0f;
     }
 
+    PinType TypeOf(const ScriptValue& value, const std::string_view enumName)
+    {
+        if (!enumName.empty() && std::holds_alternative<i32>(value))
+        {
+            if (const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(enumName))
+                return PinType::OfEnum(scriptEnum->Name);
+        }
+        return PinType::Of(value);
+    }
+
     std::vector<PinType> GetLiteralTypes()
     {
         std::vector<PinType> types;
@@ -774,6 +815,9 @@ namespace ByteForge
 
         for (const AssetType asset : assets)
             types.push_back(PinType::Of(ScriptFieldType::Asset, asset));
+
+        for (const ScriptEnum* scriptEnum : ScriptAPI::Get().GetEnums())
+            types.push_back(PinType::OfEnum(scriptEnum->Name));
 
         return types;
     }

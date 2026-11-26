@@ -8,6 +8,7 @@
 #include <Engine/Scene/Entity.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scripting/ComponentReference.h>
+#include <Engine/Scripting/API/ScriptAPI.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 
 #include <imgui.h>
@@ -618,5 +619,39 @@ namespace ByteForge::EditorUI
             ImGui::PopStyleColor();
 
         return pressed;
+    }
+
+    bool EnumCombo(const char* label, const std::string_view enumName, i32& value)
+    {
+        const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(enumName);
+        if (scriptEnum == nullptr)
+            return ImGui::DragInt(label, &value);
+
+        const ScriptEnumValue* current = scriptEnum->Find(value);
+        const std::string preview = current != nullptr ? NicifyString(current->Name)
+                                                       : std::format("Invalid ({})", value);
+
+        bool changed = false;
+        if (ImGui::BeginCombo(label, preview.c_str(), ImGuiComboFlags_HeightLarge))
+        {
+            for (usize i = 0; i < scriptEnum->Values.size(); ++i)
+            {
+                const ScriptEnumValue& entry = scriptEnum->Values[i];
+                const bool selected = entry.Value == value;
+
+                ImGui::PushID(static_cast<i32>(i));
+                if (ImGui::Selectable(NicifyString(entry.Name).c_str(), selected) && !selected)
+                {
+                    value = entry.Value;
+                    changed = true;
+                }
+                ImGui::PopID();
+
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        return changed;
     }
 }

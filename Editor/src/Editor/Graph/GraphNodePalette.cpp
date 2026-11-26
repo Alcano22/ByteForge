@@ -123,7 +123,7 @@ namespace ByteForge
         add(CommentNode{});
 
         for (const PinType& type : GetLiteralTypes())
-            add(LiteralNode{ DefaultValueFor(type) });
+            add(LiteralNode{ .Value = DefaultValueFor(type), .Enum = std::string(type.Enum) });
 
         for (const GraphVariable& variable : graph.GetVariables())
         {

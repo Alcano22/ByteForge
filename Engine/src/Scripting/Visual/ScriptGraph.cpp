@@ -56,7 +56,7 @@ namespace ByteForge
             for (const GraphParameter& old : before)
             {
                 const auto now = std::ranges::find(after, old.Id, &GraphParameter::Id);
-                if (now == after.end() || PinType::Of(now->Default) != PinType::Of(old.Default))
+                if (now == after.end() || TypeOf(*now) != TypeOf(old))
                     changes.Dropped.insert(old.Name);
                 else if (now->Name != old.Name)
                     changes.Renamed.emplace(old.Name, now->Name);
@@ -213,10 +213,30 @@ namespace ByteForge
         if (variable == nullptr)
             return Unexpected("The variable does not exist");
 
-        const bool retyped = PinType::Of(variable->Default) != PinType::Of(value);
+        const PinType before = TypeOf(*variable);
+        if (PinType::Of(variable->Default) != PinType::Of(value))
+            variable->Enum.clear();
+
         variable->Default = std::move(value);
 
-        if (retyped)
+        if (TypeOf(*variable) != before)
+            DropMismatchedVariableUses(id);
+        return {};
+    }
+
+    Result<> ScriptGraph::SetVariableType(const UUID id, const PinType& type)
+    {
+        GraphVariable* variable = FindVariableForEdit(id);
+        if (variable == nullptr)
+            return Unexpected("The variable does not exist");
+        if (type.IsExec || type.IsWildcard())
+            return Unexpected("A variable cannot be of type {}", DescribePinType(type));
+
+        const PinType before = TypeOf(*variable);
+        variable->Default = DefaultValueFor(type);
+        variable->Enum = std::string(type.Enum);
+
+        if (TypeOf(*variable) != before)
             DropMismatchedVariableUses(id);
         return {};
     }
@@ -239,7 +259,7 @@ namespace ByteForge
         const GraphVariable* declared = FindVariable(variable);
         if (declared == nullptr) return;
 
-        const PinType type = PinType::Of(declared->Default);
+        const PinType type = TypeOf(*declared);
 
         const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
         {

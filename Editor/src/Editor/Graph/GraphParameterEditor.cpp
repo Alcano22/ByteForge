@@ -91,8 +91,8 @@ namespace ByteForge
         ImGui::SameLine();
         ImGui::SetNextItemWidth(TypeWidth);
 
-        const PinType current = PinType::Of(parameter.Default);
-        if (ImGui::BeginCombo("##Type", GetValueTypeName(current).c_str()))
+        const PinType current = TypeOf(parameter);
+        if (ImGui::BeginCombo("##Type", GetValueTypeName(current).c_str(), ImGuiComboFlags_HeightLarge))
         {
             for (const PinType& type : GetVariableTypes())
             {
@@ -101,6 +101,7 @@ namespace ByteForge
                 {
                     std::vector<GraphParameter> changed = parameters;
                     changed[index].Default = DefaultValueFor(type);
+                    changed[index].Enum = std::string(type.Enum);
                     change = Change{ std::move(changed), "Change Parameter Type" };
                 }
 

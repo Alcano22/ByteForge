@@ -48,11 +48,11 @@ namespace ByteForge
                                                         size * 0.25f, GraphTheme::PinColor(type));
         }
 
-        bool EditDefaultValue(ScriptValue& value, Selection& selection)
+        bool EditDefaultValue(ScriptValue& value, const std::string_view enumName, Selection& selection)
         {
             return std::visit(Overloaded{
                 [](bool& v)        { return ImGui::Checkbox("Default", &v); },
-                [](i32& v)         { return ImGui::DragInt("Default", &v, 0.1f); },
+                [&](i32& v)        { return enumName.empty() ? ImGui::DragInt("Default", &v, 0.1f) : EditorUI::EnumCombo("Default", enumName, v); },
                 [](f32& v)         { return ImGui::DragFloat("Default", &v, 0.01f, 0.0f, 0.0f, "%.3g"); },
                 [](f64& v)         { return ImGui::DragScalar("Default", ImGuiDataType_Double, &v, 0.01f, nullptr, nullptr, "%.3g"); },
                 [](glm::vec2& v)   { return ImGui::DragFloat2("Default", glm::value_ptr(v), 0.01f, 0.0f, 0.0f, "%.3g"); },
@@ -137,7 +137,7 @@ namespace ByteForge
             if (variable.Scope != m_Scope) continue;
 
             EditorUI::PushID(variable.Id);
-            const PinType type = PinType::Of(variable.Default);
+            const PinType type = TypeOf(variable);
 
             DrawTypeDot(type);
             ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
@@ -252,10 +252,10 @@ namespace ByteForge
 
     void GraphVariablesPanel::DrawType(GraphDocument& document, const GraphVariable& variable)
     {
-        const PinType current = PinType::Of(variable.Default);
+        const PinType current = TypeOf(variable);
         std::optional<PinType> chosen;
 
-        if (ImGui::BeginCombo("Type", GetValueTypeName(current).c_str()))
+        if (ImGui::BeginCombo("Type", GetValueTypeName(current).c_str(), ImGuiComboFlags_HeightLarge))
         {
             for (const PinType& type : GetVariableTypes())
             {
@@ -274,7 +274,7 @@ namespace ByteForge
 
         document.Edit("Change Variable Type", [&](ScriptGraph& graph)
         {
-            return graph.SetVariableDefault(variable.Id, DefaultValueFor(*chosen)).has_value();
+            return graph.SetVariableType(variable.Id, *chosen).has_value();
         });
     }
 
@@ -290,7 +290,7 @@ namespace ByteForge
         const bool editing = m_DefaultEdit && m_DefaultEdit->Variable == variable.Id;
         ScriptValue value = editing ? m_DefaultEdit->Value : variable.Default;
 
-        const bool changed = EditDefaultValue(value, selection);
+        const bool changed = EditDefaultValue(value, TypeOf(variable).Enum, selection);
         const bool active = ImGui::IsItemActive();
         const bool commit = ImGui::IsItemDeactivatedAfterEdit() || (changed && !active);
 

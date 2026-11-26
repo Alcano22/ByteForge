@@ -84,7 +84,12 @@ namespace ByteForge
     struct DelayNode {};
     struct GetVariableNode { UUID Variable{ 0 }; };
     struct SetVariableNode { UUID Variable{ 0 }; };
-    struct LiteralNode { ScriptValue Value = 0.0f; };
+
+    struct LiteralNode
+    {
+        ScriptValue Value = 0.0f;
+        std::string Enum;
+    };
 
     inline constexpr u32 MinSequenceOutputs = 2;
     inline constexpr u32 MaxSequenceOutputs = 16;
@@ -145,6 +150,7 @@ namespace ByteForge
         ScriptValue Default = 0.0f;
         bool Exposed = true;
         UUID Scope{ 0 };
+        std::string Enum;
     };
 
     [[nodiscard]] inline bool IsVisibleIn(const GraphVariable& variable, const UUID scope)
@@ -157,6 +163,7 @@ namespace ByteForge
         UUID Id;
         std::string Name;
         ScriptValue Default = 0.0f;
+        std::string Enum;
     };
 
     struct GraphCustomEvent
@@ -217,6 +224,7 @@ namespace ByteForge
         void RemoveVariable(UUID id);
 
         Result<> SetVariableDefault(UUID id, ScriptValue value);
+        Result<> SetVariableType(UUID id, const PinType& type);
         Result<> SetVariableExposed(UUID id, bool exposed);
 
         Result<UUID> AddEvent(std::string name);
