@@ -503,29 +503,30 @@ namespace ByteForge
         const ScriptGraph& graph = m_Document->GetGraph();
         const PinRef source = FindValueSource(graph, link->From);
         const bool playing = !GetContext().IsEditing();
+        const ScriptInstance* instance = playing ? FindWatchedInstance() : nullptr;
 
         std::optional<ScriptValue> value;
         std::string origin;
         const Scene* scene = nullptr;
 
-        if (playing)
+        if (instance != nullptr)
         {
-            if (const ScriptInstance* instance = FindWatchedInstance())
-            {
-                const Entity entity = GetContext().SelectionContext.GetEntity();
-                scene = &entity.GetScene();
+            const Entity entity = GetContext().SelectionContext.GetEntity();
+            scene = &entity.GetScene();
 
-                value = instance->GetPinValue(source.Node, source.Pin);
-                if (value)
-                    origin = std::format("Last value in '{}'", entity.GetTag());
-            }
+            value = EvaluatePin(graph, source, [instance](const PinRef& live)
+            {
+                return instance->GetPinValue(live.Node, live.Pin);
+            });
+            if (value)
+                origin = std::format("in '{}'", entity.GetTag());
         }
 
         if (!value)
         {
             value = EvaluateConstant(graph, source);
             if (value)
-                origin = "Constant";
+                origin = "constant";
         }
 
         NE::Suspend();
@@ -535,7 +536,7 @@ namespace ByteForge
             {
                 ImGui::TextUnformatted(FormatValue(*value, pin->Type, scene).c_str());
                 ImGui::TextDisabled("%s, %s", GetValueTypeName(pin->Type).c_str(), origin.c_str());
-            } else if (playing && FindWatchedInstance() == nullptr)
+            } else if (playing && instance == nullptr)
                 ImGui::TextDisabled("Select an entity with this graph in the Scene Hierarchy to see its values");
             else if (playing)
                 ImGui::TextDisabled("Not computed yet");

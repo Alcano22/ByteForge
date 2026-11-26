@@ -138,3 +138,30 @@ TEST_CASE("A running graph reports the last value of a pin", "[scripting][graph]
 
     CHECK_FALSE(instance->GetPinValue(unused, GraphPin::Value).has_value());
 }
+
+TEST_CASE("A pure chain is worked out from the current values of a running graph", "[scripting][graph][watch]")
+{
+    GraphFixture fixture;
+    GraphBuilder builder;
+    const UUID x = builder.Variable("X", 8.0f);
+    const UUID square = DeclareSquare(builder);
+
+    const UUID get = builder.Add(GetVariableNode{ x });
+    const UUID call = builder.Add(CallFunctionNode{ square });
+    const UUID text = builder.Add(CallNode{ "String.FromFloat" });
+    const UUID log = builder.Add(CallNode{ "Debug.Log" });
+    const UUID start = builder.Add(EventNode{ GraphEvent::OnCreate });
+    builder.Link(get, GraphPin::Value, call, "X");
+    builder.Link(call, "Result", text, "Value");
+    builder.Link(text, "Result", log, "Message");
+    builder.Link(start, GraphPin::Then, log, GraphPin::Exec);
+
+    const Scope<ScriptInstance> instance = fixture.Instantiate(fixture.Import(builder.Graph, "LiveChain.bfgraph"));
+    instance->OnCreate();
+    REQUIRE(instance->SetField("X", 3.0f));
+
+    CHECK(instance->GetPinValue(call, "Result") == std::optional<ScriptValue>(64.0f));
+
+    const LivePinValue live = [&](const PinRef& pin) { return instance->GetPinValue(pin.Node, pin.Pin); };
+    CHECK(EvaluatePin(builder.Graph, Pin(call, "Result"), live) == std::optional<ScriptValue>(9.0f));
+}
