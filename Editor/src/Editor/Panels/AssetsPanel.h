@@ -63,6 +63,8 @@ namespace ByteForge
         void BeginRename(const Entry& entry);
         void CommitRename();
         void DrawRenameField(const ImVec2& position, f32 width, f32 bottom);
+        [[nodiscard]] bool RenameEntry(const fs::path& from);
+        void CancelRename();
 
         void RequestDelete(const Entry& entry);
         void Delete(const fs::path& path);
@@ -75,6 +77,7 @@ namespace ByteForge
         void CreateAnimatorController();
         void CreateScriptGraph();
         void CreateInputActions();
+        void CreateScript();
         void CreateMaterial();
         void CreatePrefab(Entity entity);
 
@@ -116,6 +119,7 @@ namespace ByteForge
         std::string m_RenameText;
         std::optional<fs::path> m_RenameAfterRefresh;
         bool m_FocusRename = false;
+        std::optional<fs::path> m_NewScript;
 
         std::optional<fs::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

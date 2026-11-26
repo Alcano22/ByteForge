@@ -7,6 +7,7 @@
 #include "Editor/Panels/InputActionsPanel.h"
 
 #include <Engine/Core/Log.h>
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetType.h>
@@ -18,15 +19,16 @@
 #include <imgui_stdlib.h>
 
 #include <algorithm>
-#include <exception>
-#include <system_error>
-#include <string>
-#include <string_view>
-#include <vector>
 #include <cstring>
-#include <utility>
+#include <exception>
 #include <expected>
 #include <format>
+#include <regex>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 namespace ByteForge
 {
@@ -186,6 +188,77 @@ namespace ByteForge
             if (name.ends_with(".meta"))
                 return "'.meta' is reserved for asset metadata";
             return nullptr;
+        }
+
+        bool IsCSharpIdentifier(const std::string_view name)
+        {
+            if (name.empty() || (name.front() >= '0' && name.front() <= '9'))
+                return false;
+
+            return std::ranges::all_of(name, [](const char c)
+            {
+                return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+            });
+        }
+
+        bool IsCSharpScript(const fs::path& path)
+        {
+            return AssetTypeFromExtension(ToUtf8(path.extension())) == AssetType::Script;
+        }
+
+        std::string MakeScriptSource(const std::string_view className)
+        {
+            return std::format("using ByteForge;\n"
+                               "\n"
+                               "public class {} : ScriptBehaviour\n"
+                               "{{\n"
+                               "    protected override void OnCreate()\n"
+                               "    {{\n"
+                               "    }}\n"
+                               "\n"
+                               "    protected override void OnUpdate(float deltaTime)\n"
+                               "    {{\n"
+                               "    }}\n"
+                               "}}\n",
+                               className);
+        }
+
+        void RenameScriptClass(const fs::path& relativePath,
+                               const std::string_view oldName, const std::string_view newName)
+        {
+            if (!IsCSharpIdentifier(oldName)) return;
+
+            const fs::path file = AssetRegistry::GetAssetRoot() / relativePath;
+            const Result<std::vector<std::byte>> bytes = ReadBinaryFile(file);
+            if (!bytes)
+            {
+                APP_WARN("Renamed '{}', but cannot read it to rename the class: {}", ToGenericUtf8(relativePath), bytes.error());
+                return;
+            }
+
+            std::string source(reinterpret_cast<const char*>(bytes->data()), bytes->size());
+            const std::regex declaration(std::format(R"(\bclass\s+{}\b)", oldName));
+
+            std::smatch match;
+            if (!std::regex_search(source, match, declaration))
+            {
+                APP_WARN("Renamed '{}', but it declares no class '{}', rename the class to '{}' yourself",
+                         ToGenericUtf8(relativePath), oldName, newName);
+                return;
+            }
+
+            const usize position = static_cast<usize>(match.position(0));
+            const usize length = static_cast<usize>(match.length(0));
+            if (std::regex_search(source.cbegin() + static_cast<std::ptrdiff_t>(position + length), source.cend(), declaration))
+            {
+                APP_WARN("Renamed '{}', but it declares more than one class '{}', rename the right one to '{}' yourself",
+                         ToGenericUtf8(relativePath), oldName, newName);
+                return;
+            }
+
+            source.replace(position, length, std::format("class {}", newName));
+            if (const Result<> written = WriteFileAtomic(file, source); !written)
+                APP_WARN("Renamed '{}', but cannot rename the class: {}", ToGenericUtf8(relativePath), written.error());
         }
 
         std::string_view Trim(std::string_view text)
@@ -552,32 +625,60 @@ namespace ByteForge
         const std::optional<fs::path> from = std::exchange(m_RenamingPath, std::nullopt);
         if (!from) return;
 
+        const bool isNewScript = std::exchange(m_NewScript, std::nullopt) == from;
+        if (RenameEntry(*from) || isNewScript)
+            GetContext().Scripts.RequestReload();
+    }
+
+    bool AssetsPanel::RenameEntry(const fs::path& from)
+    {
         const std::string_view name = Trim(m_RenameText);
 
         std::error_code error;
-        const bool isDirectory = fs::is_directory(AssetRegistry::GetAssetRoot() / *from, error);
+        const bool isDirectory = fs::is_directory(AssetRegistry::GetAssetRoot() / from, error);
         fs::path newFileName = PathFromUtf8(name);
         if (!isDirectory)
-            newFileName += from->extension();
-        if (newFileName == from->filename()) return;
+            newFileName += from.extension();
+        if (newFileName == from.filename()) return false;
 
         if (const char* invalid = ValidateFileName(name))
         {
-            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from->filename()), invalid);
-            return;
+            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from.filename()), invalid);
+            return false;
         }
 
-        const fs::path to = from->parent_path() / newFileName;
-        if (const Result<> moved = AssetRegistry::Move(*from, to); !moved)
+        const bool isScript = !isDirectory && IsCSharpScript(from);
+        if (isScript && !IsCSharpIdentifier(name))
         {
-            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from->filename()), moved.error());
-            return;
+            APP_ERROR("Cannot rename '{}': a script name is its class name, so only letters, digits and _ "
+                      "are allowed and it must not start with a digit", ToUtf8(from.filename()));
+            return false;
         }
 
-        if (m_LocalSelection && m_LocalSelection->Path == *from)
+        const fs::path to = from.parent_path() / newFileName;
+        if (const Result<> moved = AssetRegistry::Move(from, to); !moved)
+        {
+            APP_ERROR("Cannot rename '{}': {}", ToUtf8(from.filename()), moved.error());
+            return false;
+        }
+
+        if (m_LocalSelection && m_LocalSelection->Path == from)
             m_LocalSelection->Path = to;
 
         m_RefreshRequested = true;
+
+        if (!isScript) return false;
+
+        RenameScriptClass(to, ToUtf8(from.stem()), name);
+        return true;
+    }
+
+    void AssetsPanel::CancelRename()
+    {
+        m_RenamingPath.reset();
+
+        if (std::exchange(m_NewScript, std::nullopt))
+            GetContext().Scripts.RequestReload();
     }
 
     void AssetsPanel::DrawRenameField(const ImVec2& position, const f32 width, const f32 bottom)
@@ -596,7 +697,7 @@ namespace ByteForge
         else if (ImGui::IsItemDeactivated())
         {
             if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-                m_RenamingPath.reset();
+                CancelRename();
             else
                 CommitRename();
         }
@@ -707,6 +808,13 @@ namespace ByteForge
 
             ImGui::Separator();
 
+            if (ImGui::MenuItem("C# Script"))
+                CreateScript();
+            if (ImGui::MenuItem("Script Graph"))
+                CreateScriptGraph();
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Material"))
                 CreateMaterial();
             if (ImGui::MenuItem("Physics Material 2D"))
@@ -715,8 +823,6 @@ namespace ByteForge
                 CreateAnimationClip();
             if (ImGui::MenuItem("Animator Controller"))
                 CreateAnimatorController();
-            if (ImGui::MenuItem("Script Graph"))
-                CreateScriptGraph();
             if (ImGui::MenuItem("Input Actions"))
                 CreateInputActions();
 
@@ -823,6 +929,32 @@ namespace ByteForge
             return;
         }
 
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateScript()
+    {
+        const fs::path& root = AssetRegistry::GetAssetRoot();
+        std::error_code error;
+
+        fs::path path;
+        for (i32 index = 0;; ++index)
+        {
+            const std::string name = index == 0 ? "NewScript.cs" : std::format("NewScript{}.cs", index);
+            path = m_CurrentDirectory / PathFromUtf8(name);
+            if (!fs::exists(root / path, error))
+                break;
+        }
+
+        if (const Result<> written = WriteFileAtomic(root / path, MakeScriptSource(ToUtf8(path.stem()))); !written)
+        {
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), written.error());
+            return;
+        }
+
+        AssetRegistry::Import(path);
+
+        m_NewScript = path;
         RenameAfterRefresh(path);
     }
 
