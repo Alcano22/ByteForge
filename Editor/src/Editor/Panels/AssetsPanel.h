@@ -70,6 +70,9 @@ namespace ByteForge
         void Delete(const fs::path& path);
         [[nodiscard]] const char* GetDeleteBlocker(const fs::path& path) const;
 
+        void DrawMoveTarget(const fs::path& directory);
+        void MoveEntry(const fs::path& from, const fs::path& directory);
+
         void DrawContextMenu();
         void CreateFolder();
         void CreatePhysicsMaterial();
@@ -121,6 +124,7 @@ namespace ByteForge
         std::optional<fs::path> m_RenameAfterRefresh;
         bool m_FocusRename = false;
         std::optional<fs::path> m_NewScript;
+        std::optional<fs::path> m_DraggedPath;
 
         std::optional<fs::path> m_PendingDirectory;
         bool m_RefreshRequested = true;

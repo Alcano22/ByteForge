@@ -35,6 +35,8 @@ namespace ByteForge
 {
     namespace
     {
+        constexpr const char* EntryPayloadType = "ByteForge.AssetEntry";
+
         bool IsEmptyDirectory(const fs::path& path)
         {
             std::error_code ec;
@@ -290,6 +292,9 @@ namespace ByteForge
         if (AssetRegistry::GetRevision() != m_SeenAssetRevision)
             m_RefreshRequested = true;
 
+        if (ImGui::GetDragDropPayload() == nullptr)
+            m_DraggedPath.reset();
+
         ApplyPendingChanges();
 
         if (!ImGui::Begin(GetName().c_str(), &m_Open))
@@ -466,6 +471,8 @@ namespace ByteForge
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
             m_PendingDirectory = node.Path;
 
+        DrawMoveTarget(node.Path);
+
         if (!open) return;
 
         for (const DirectoryNode& child : node.Children)
@@ -551,6 +558,9 @@ namespace ByteForge
         const bool pressed = ImGui::InvisibleButton("##tile", ImVec2(tileSize.x, buttonHeight));
         const bool hovered = ImGui::IsItemHovered();
 
+        if (entry.IsDirectory && !renaming)
+            DrawMoveTarget(entry.Path);
+
         ImGui::SetItemTooltip("%s", entry.Name.c_str());
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
@@ -560,16 +570,24 @@ namespace ByteForge
         {
             if (ImGui::MenuItem("Rename", "F2"))
                 BeginRename(entry);
+
             ImGui::Separator();
             if (ImGui::MenuItem("Delete", "Del"))
                 RequestDelete(entry);
+
             ImGui::EndPopup();
         }
 
-        if (!renaming && entry.Handle && ImGui::BeginDragDropSource())
+        if (!renaming && ImGui::BeginDragDropSource())
         {
-            const AssetPayload payload{ .Handle = *entry.Handle, .Type = entry.Type };
-            ImGui::SetDragDropPayload(AssetPayloadType, &payload, sizeof(payload));
+            m_DraggedPath = entry.Path;
+
+            if (entry.Handle)
+            {
+                const AssetPayload payload{ .Handle = *entry.Handle, .Type = entry.Type };
+                ImGui::SetDragDropPayload(AssetPayloadType, &payload, sizeof(payload));
+            } else
+                ImGui::SetDragDropPayload(EntryPayloadType, nullptr, 0);
 
             UI::Image(image, ImVec2(32.0f, 32.0f), tint);
             ImGui::SameLine();
@@ -775,6 +793,39 @@ namespace ByteForge
         if (hadScripts)
             context.Scripts.RequestReload();
 
+        m_RefreshRequested = true;
+    }
+
+    void AssetsPanel::DrawMoveTarget(const fs::path& directory)
+    {
+        if (!m_DraggedPath || !ImGui::BeginDragDropTarget()) return;
+
+        const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+        const bool fromThisPanel = payload != nullptr
+                                && (payload->IsDataType(AssetPayloadType) || payload->IsDataType(EntryPayloadType));
+
+        const fs::path& source = *m_DraggedPath;
+        const bool valid = source.parent_path() != directory && !IsSameOrInside(directory, source);
+
+        if (fromThisPanel && valid && ImGui::AcceptDragDropPayload(payload->DataType))
+            MoveEntry(source, directory);
+
+        ImGui::EndDragDropTarget();
+    }
+
+    void AssetsPanel::MoveEntry(const fs::path& from, const fs::path& directory)
+    {
+        const fs::path to = directory / from.filename();
+        if (const Result<> moved = AssetRegistry::Move(from, to); !moved)
+        {
+            APP_ERROR("Cannot move '{}' to 'Assets/{}': {}", ToUtf8(from.filename()), ToGenericUtf8(directory), moved.error());
+            return;
+        }
+
+        if (m_LocalSelection && IsSameOrInside(m_LocalSelection->Path, from))
+            m_LocalSelection.reset();
+
+        m_DraggedPath.reset();
         m_RefreshRequested = true;
     }
 
