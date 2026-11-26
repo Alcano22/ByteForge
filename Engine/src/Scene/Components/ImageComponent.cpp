@@ -1,5 +1,6 @@
 #include "Engine/Scene/Components/ImageComponent.h"
 #include "Engine/Assets/AssetManager.h"
+#include "Engine/Assets/SpriteReference.h"
 #include "Scripting/ScriptValueJson.h"
 
 #include <magic_enum/magic_enum.hpp>
@@ -19,13 +20,7 @@ namespace ByteForge
         json["raycastTarget"] = component.RaycastTarget;
 
         if (component.Sprite)
-        {
-            json["sprite"] = {
-                { "texture", static_cast<u64>(component.Sprite->GetTextureAsset()->GetHandle()) },
-                { "uvMin",   ToJson(component.Sprite->GetUVMin())                               },
-                { "uvMax",   ToJson(component.Sprite->GetUVMax())                               }
-            };
-        }
+            json["sprite"] = WriteSpriteReference(*component.Sprite);
     }
 
     void ImageComponent::Read(ImageComponent& component, const nlohmann::json& json)
@@ -40,12 +35,6 @@ namespace ByteForge
         component.Sprite        = nullptr;
 
         if (json.contains("sprite"))
-        {
-            const auto& sprite = json.at("sprite");
-
-            component.Sprite = MakeRef<ByteForge::Sprite>(
-                AssetManager::LoadTexture2D(UUID(sprite.at("texture").get<u64>())),
-                ToVec2(sprite.at("uvMin")), ToVec2(sprite.at("uvMax")));
-        }
+            component.Sprite = json.contains("sprite") ? ReadSpriteReference(json.at("sprite")) : nullptr;
     }
 }

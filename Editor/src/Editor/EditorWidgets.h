@@ -5,6 +5,7 @@
 
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/TextureAsset.h>
+#include <Engine/Assets/Sprite.h>
 #include <Engine/Scene/UUID.h>
 #include <Engine/Renderer/Texture2D.h>
 #include <Engine/Scripting/ScriptField.h>
@@ -68,6 +69,10 @@ namespace ByteForge::EditorUI
     bool PopupSearchField(const char* hint, std::string& query, f32 width = -FLT_MIN);
 
     bool TextureAssetField(const char* label, Ref<TextureAsset>& asset, Selection& selection);
+
+    bool SpriteAssetField(const char* label, Ref<Sprite>& sprite, Selection& selection);
+
+    void DrawSpriteImage(ImDrawList& drawList, const Sprite& sprite, const ImVec2& min, const ImVec2& max);
 
     bool AssetReferenceField(const char* label, AssetType type, UUID& handle,
                              Selection& selection, const char* noneText = "None");

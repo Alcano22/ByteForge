@@ -127,6 +127,7 @@ add_library(Engine SHARED
         src/Assets/AnimatorController.cpp
         src/Assets/InputActions.cpp
         src/Assets/MaterialAsset.cpp
+        src/Assets/SpriteReference.cpp
         src/Audio/AudioEngine.cpp
         src/Audio/AudioSystem.cpp
         src/Audio/MiniAudioImpl.cpp

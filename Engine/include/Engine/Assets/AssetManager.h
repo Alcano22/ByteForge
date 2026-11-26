@@ -27,6 +27,7 @@ namespace ByteForge
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(const fs::path& relativePath);
 
         [[nodiscard]] static Ref<Sprite> LoadSprite(UUID handle);
+        static void ReloadSprites(UUID texture);
 
         [[nodiscard]] static Ref<PhysicsMaterialAsset> LoadPhysicsMaterial(UUID handle);
 

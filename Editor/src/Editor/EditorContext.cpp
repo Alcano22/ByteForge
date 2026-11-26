@@ -125,8 +125,17 @@ namespace ByteForge
 
     void EditorContext::ApplyTextureSettings(const UUID handle, const TextureAssetSettings& settings)
     {
-        if (AssetRegistry::SetSettings(handle, settings))
+        AssetMetadata before;
+        const TextureAssetSettings* stored = AssetRegistry::TryGetMetadata(handle, before)
+                                           ? before.GetSettings<TextureAssetSettings>() : nullptr;
+        const bool resample = stored == nullptr || !(stored->Sampling == settings.Sampling);
+
+        if (!AssetRegistry::SetSettings(handle, settings)) return;
+
+        if (resample)
             AssetManager::Reload(handle);
+        else
+            AssetManager::ReloadSprites(handle);
     }
 
     void EditorContext::CreateEntity(std::string name, std::function<void(Entity)> setup)

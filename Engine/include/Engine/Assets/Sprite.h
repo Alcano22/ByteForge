@@ -58,6 +58,13 @@ namespace ByteForge
             return glm::abs(m_UVMax - m_UVMin) * GetTextureSize();
         }
 
+        [[nodiscard]] glm::vec2 GetWorldSize() const
+        {
+            if (!IsAsset())
+                return glm::vec2(1.0f);
+            return GetPixelSize() / m_PixelsPerUnit;
+        }
+
         [[nodiscard]] const std::optional<SpriteRect>& GetRect() const { return m_Rect; }
         [[nodiscard]] const glm::vec2& GetPivot() const { return m_Pivot; }
         [[nodiscard]] f32 GetPixelsPerUnit() const { return m_PixelsPerUnit; }

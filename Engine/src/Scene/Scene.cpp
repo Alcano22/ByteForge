@@ -453,7 +453,6 @@ namespace ByteForge
 
         for (const SpriteDrawItem& item : queue)
         {
-            const TransformComponent& transform = item.World;
             const auto& spriteRenderer = view.get<SpriteRendererComponent>(item.Handle);
             const u32 pickingId = ToPickingId(item.Handle);
 
@@ -462,7 +461,9 @@ namespace ByteForge
             const glm::vec2 uvMin = sprite ? sprite->GetUVMin() : glm::vec2(0.0f);
             const glm::vec2 uvMax = sprite ? sprite->GetUVMax() : glm::vec2(1.0f);
 
-            renderer.DrawRotatedQuad(transform.Position, transform.Scale, transform.Rotation, texture,
+            const SpriteQuad quad = spriteRenderer.GetWorldQuad(item.World);
+
+            renderer.DrawRotatedQuad(quad.Center, quad.Size, item.World.Rotation, texture,
                                      uvMin, uvMax, spriteRenderer.Color, spriteRenderer.Material, pickingId);
         }
 

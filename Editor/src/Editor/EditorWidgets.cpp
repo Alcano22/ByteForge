@@ -30,12 +30,14 @@ namespace ByteForge::EditorUI
 {
     namespace
     {
-        constexpr f32 FieldPadding = 4.0f;
-        constexpr f32 PreviewSize = 64.0f;
-        constexpr f32 TooltipPreviewSize = 192.0f;
+        constexpr f32 FieldPadding        = 4.0f;
+        constexpr f32 PreviewSize         = 64.0f;
+        constexpr f32 TooltipPreviewSize  = 192.0f;
         constexpr f32 PickerThumbnailSize = 32.0f;
-        constexpr const char* PickerPopupId = "##TexturePicker";
-        constexpr const char* AssetPickerPopupId = "##AssetPicker";
+
+        constexpr const char* PickerPopupId       = "##TexturePicker";
+        constexpr const char* AssetPickerPopupId  = "##AssetPicker";
+        constexpr const char* SpritePickerPopupId = "##SpritePicker";
 
         constexpr ImU32 CheckerLight = IM_COL32(88, 88, 88, 255);
         constexpr ImU32 CheckerDark  = IM_COL32(62, 62, 62, 255);
@@ -355,6 +357,183 @@ namespace ByteForge::EditorUI
             ImGui::EndPopup();
             return changed;
         }
+
+        void DrawSpritePreview(ImDrawList& drawList, const Sprite* sprite, const ImVec2& min, const ImVec2& size)
+        {
+            if (sprite == nullptr || sprite->GetTextureAsset()->GetState() != AssetLoadState::Loaded)
+            {
+                DrawAssetPreview(drawList, sprite != nullptr ? sprite->GetTextureAsset().get() : nullptr, min, size);
+                return;
+            }
+
+            const ImVec2 max{ min.x + size.x, min.y + size.y };
+            DrawCheckerboard(drawList, min, max);
+            DrawSpriteImage(drawList, *sprite, min, max);
+            drawList.AddRect(min, max, ImGui::GetColorU32(ImGuiCol_Border));
+        }
+
+        void DrawSpriteInfo(const Sprite* sprite)
+        {
+            if (sprite == nullptr)
+            {
+                ImGui::TextUnformatted("None");
+                ImGui::TextDisabled("Drop a sprite or texture here");
+                return;
+            }
+
+            AssetMetadata metadata;
+            if (!sprite->IsAsset())
+            {
+                const bool known = AssetRegistry::TryGetMetadata(sprite->GetTextureAsset()->GetHandle(), metadata);
+                ImGui::TextUnformatted(known ? ToUtf8(metadata.Path.filename()).c_str() : "Missing texture");
+                ImGui::TextDisabled("Texture region, one unit large");
+                ImGui::SetItemTooltip("Saved before sprite assets existed. Drop a sprite to use pixels per unit and pivot.");
+                return;
+            }
+
+            if (!AssetRegistry::TryGetMetadata(sprite->GetHandle(), metadata))
+            {
+                ErrorText("Missing sprite");
+                return;
+            }
+
+            ImGui::TextUnformatted(metadata.GetDisplayName().c_str());
+            const glm::vec2 pixels = sprite->GetPixelSize();
+            ImGui::TextDisabled("%s, %.0f x %.0f px", ToUtf8(metadata.Path.filename()).c_str(), pixels.x, pixels.y);
+        }
+
+        UUID ResolveSpriteHandle(const AssetPayload& payload)
+        {
+            if (payload.Type == AssetType::Sprite)
+                return UUID(payload.Handle);
+            if (payload.Type != AssetType::Texture2D)
+                return UUID(0);
+
+            const std::vector<UUID> sprites = AssetRegistry::GetSubAssets(UUID(payload.Handle));
+            return sprites.empty() ? UUID(0) : sprites.front();
+        }
+
+        bool AcceptSpriteDrop(ImDrawList& drawList, Ref<Sprite>& sprite, const ImVec2& min, const ImVec2& max)
+        {
+            const std::optional<AssetPayload> dragged = ReadAssetPayload(ImGui::GetDragDropPayload());
+            if (!dragged)
+                return false;
+
+            const f32 rounding = ImGui::GetStyle().FrameRounding;
+            const UUID handle = ResolveSpriteHandle(*dragged);
+            const bool compatible = handle.IsSet();
+
+            if (compatible)
+                drawList.AddRect(min, max, ImGui::GetColorU32(ImGuiCol_DragDropTarget, 0.35f), rounding);
+
+            if (!ImGui::BeginDragDropTarget())
+                return false;
+
+            bool changed = false;
+            constexpr ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery
+                                               | ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayloadType, flags))
+            {
+                const ImU32 color = compatible ? ImGui::GetColorU32(ImGuiCol_DragDropTarget)
+                                               : ImGui::GetColorU32(ErrorColor);
+                drawList.AddRect(min, max, color, rounding, 0, 2.0f);
+
+                if (compatible && payload->IsDelivery() && (!sprite || sprite->GetHandle() != handle))
+                {
+                    sprite = AssetManager::LoadSprite(handle);
+                    changed = true;
+                }
+            }
+
+            ImGui::EndDragDropTarget();
+            return changed;
+        }
+
+        void DrawSpritePickerRow(const AssetMetadata& metadata, const std::string& name,
+                                 const ImVec2& min, const f32 rowHeight)
+        {
+            ImDrawList& drawList = *ImGui::GetWindowDrawList();
+
+            const Ref<Sprite> candidate = AssetManager::LoadSprite(metadata.Handle);
+            const ImVec2 thumbnailMin{ min.x, min.y + (rowHeight - PickerThumbnailSize) * 0.5f };
+            DrawSpritePreview(drawList, candidate.get(), thumbnailMin, ImVec2(PickerThumbnailSize, PickerThumbnailSize));
+
+            const std::string source = "Assets/" + ToGenericUtf8(metadata.Path);
+
+            const f32 lineHeight = ImGui::GetTextLineHeight();
+            const ImVec2 textPos{ thumbnailMin.x + PickerThumbnailSize + ImGui::GetStyle().ItemSpacing.x,
+                                  min.y + (rowHeight - lineHeight * 2.0f) * 0.5f };
+
+            drawList.AddText(textPos, ImGui::GetColorU32(ImGuiCol_Text), name.c_str());
+            drawList.AddText(ImVec2(textPos.x, textPos.y + lineHeight), ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                             source.c_str());
+        }
+
+        bool DrawSpritePicker(Ref<Sprite>& sprite)
+        {
+            ImGui::SetNextWindowSize(ImVec2(320.0f, 360.0f), ImGuiCond_Appearing);
+            if (!ImGui::BeginPopup(SpritePickerPopupId))
+                return false;
+
+            static std::string s_Filter;
+            static std::vector<AssetMetadata> s_Candidates;
+
+            if (ImGui::IsWindowAppearing())
+                s_Candidates = AssetRegistry::GetAssetsOfType(AssetType::Sprite);
+
+            const bool submitted = PopupSearchField("Search sprites...", s_Filter);
+            ImGui::Separator();
+
+            bool changed = false;
+            ImGui::BeginChild("##results");
+
+            if (ImGui::Selectable("None", sprite == nullptr) && sprite)
+            {
+                sprite.reset();
+                changed = true;
+            }
+
+            const std::string_view query = s_Filter;
+            const f32 rowHeight = std::max(PickerThumbnailSize, ImGui::GetTextLineHeight() * 2.0f + 2.0f);
+            bool anyMatch = false;
+
+            for (const AssetMetadata& metadata : s_Candidates)
+            {
+                const std::string name = metadata.GetDisplayName();
+                if (!ContainsIgnoreCase(name, query) && !ContainsIgnoreCase(ToGenericUtf8(metadata.Path), query))
+                    continue;
+
+                const bool firstMatch = !anyMatch;
+                anyMatch = true;
+
+                PushID(static_cast<u64>(metadata.Handle));
+
+                const bool selected = sprite && sprite->GetHandle() == metadata.Handle;
+                const bool clicked = ImGui::Selectable("##row", selected, ImGuiSelectableFlags_None,
+                                                       ImVec2(0.0f, rowHeight));
+                if (ImGui::IsItemVisible())
+                    DrawSpritePickerRow(metadata, name, ImGui::GetItemRectMin(), rowHeight);
+
+                const bool pickedByEnter = submitted && firstMatch;
+                if ((clicked || pickedByEnter) && !selected)
+                {
+                    sprite = AssetManager::LoadSprite(metadata.Handle);
+                    changed = true;
+                }
+                if (pickedByEnter)
+                    ImGui::CloseCurrentPopup();
+
+                ImGui::PopID();
+            }
+
+            if (!anyMatch)
+                ImGui::TextDisabled("No sprites match");
+
+            ImGui::EndChild();
+            ImGui::EndPopup();
+            return changed;
+        }
     }
 
     void ErrorText(const char* format, ...)
@@ -456,6 +635,88 @@ namespace ByteForge::EditorUI
 
         ImGui::PopID();
         return changed;
+    }
+
+    bool SpriteAssetField(const char* label, Ref<Sprite>& sprite, Selection& selection)
+    {
+        const ImGuiStyle& style = ImGui::GetStyle();
+        ImDrawList& drawList = *ImGui::GetWindowDrawList();
+        bool changed = false;
+
+        ImGui::PushID(label);
+
+        const ImVec2 start = ImGui::GetCursorScreenPos();
+        const ImVec2 fieldSize{ std::max(ImGui::GetContentRegionAvail().x, 180.0f), PreviewSize + FieldPadding * 2.0f };
+        const ImVec2 end{ start.x + fieldSize.x, start.y + fieldSize.y };
+
+        drawList.AddRectFilled(start, end, ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
+
+        const ImVec2 previewMin{ start.x + FieldPadding, start.y + FieldPadding };
+        ImGui::SetCursorScreenPos(previewMin);
+        ImGui::InvisibleButton("##preview", ImVec2(PreviewSize, PreviewSize));
+        DrawSpritePreview(drawList, sprite.get(), previewMin, ImVec2(PreviewSize, PreviewSize));
+
+        if (sprite)
+        {
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                selection.SelectAsset(sprite->IsAsset() ? sprite->GetHandle() : sprite->GetTextureAsset()->GetHandle());
+            else if (ImGui::GetDragDropPayload() == nullptr && ImGui::BeginItemTooltip())
+            {
+                const ImVec2 tooltipMin = ImGui::GetCursorScreenPos();
+                ImGui::Dummy(ImVec2(TooltipPreviewSize, TooltipPreviewSize));
+                DrawSpritePreview(*ImGui::GetWindowDrawList(), sprite.get(), tooltipMin,
+                                  ImVec2(TooltipPreviewSize, TooltipPreviewSize));
+                ImGui::EndTooltip();
+            }
+        }
+
+        ImGui::SetCursorScreenPos(ImVec2(previewMin.x + PreviewSize + style.ItemSpacing.x, previewMin.y));
+        ImGui::BeginGroup();
+        ImGui::TextDisabled("%s", label);
+        DrawSpriteInfo(sprite.get());
+        ImGui::EndGroup();
+
+        const f32 browseWidth = ButtonWidth("Browse");
+        const f32 clearWidth = sprite ? ButtonWidth("Clear") + style.ItemSpacing.x : 0.0f;
+        ImGui::SetCursorScreenPos(ImVec2(end.x - FieldPadding - browseWidth - clearWidth, previewMin.y));
+
+        if (sprite)
+        {
+            if (ImGui::SmallButton("Clear"))
+            {
+                sprite.reset();
+                changed = true;
+            }
+            ImGui::SameLine();
+        }
+
+        if (ImGui::SmallButton("Browse"))
+            ImGui::OpenPopup(SpritePickerPopupId);
+
+        ImGui::SetCursorScreenPos(start);
+        ImGui::Dummy(fieldSize);
+        changed |= AcceptSpriteDrop(drawList, sprite, start, end);
+
+        changed |= DrawSpritePicker(sprite);
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    void DrawSpriteImage(ImDrawList& drawList, const Sprite& sprite, const ImVec2& min, const ImVec2& max)
+    {
+        const glm::vec2 pixels = sprite.GetPixelSize();
+        if (pixels.x <= 0.0f || pixels.y <= 0.0f) return;
+
+        const ImVec2 bounds(max.x - min.x, max.y - min.y);
+        const f32 scale = std::min(bounds.x / pixels.x, bounds.y / pixels.y);
+        const ImVec2 size(pixels.x * scale, pixels.y * scale);
+        const ImVec2 imageMin(min.x + (bounds.x - size.x) * 0.5f, min.y + (bounds.y - size.y) * 0.5f);
+
+        const glm::vec2 uvMin = sprite.GetUVMin();
+        const glm::vec2 uvMax = sprite.GetUVMax();
+        UI::DrawImage(drawList, sprite.GetTexture(), imageMin, ImVec2(imageMin.x + size.x, imageMin.y + size.y),
+                      IM_COL32_WHITE, ImVec2(uvMin.x, uvMin.y), ImVec2(uvMax.x, uvMax.y));
     }
 
     bool AssetReferenceField(const char* label, const AssetType type, UUID& handle,

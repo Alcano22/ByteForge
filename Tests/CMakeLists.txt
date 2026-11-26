@@ -49,6 +49,7 @@ add_executable(ByteForgeTests
         src/Assets/InputActionsTests.cpp
         src/Assets/MaterialAssetTests.cpp
         src/Assets/SpriteSheetTests.cpp
+        src/Assets/SpriteTests.cpp
         src/Project/ProjectTests.cpp
         src/Project/ProjectSettingsTests.cpp
         src/Project/RecentProjectsTests.cpp

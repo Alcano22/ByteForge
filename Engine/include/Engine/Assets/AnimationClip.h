@@ -22,6 +22,7 @@ namespace ByteForge
 
     struct AnimationFrame
     {
+        UUID Sprite{ 0 };
         UUID Texture{ 0 };
         glm::vec2 UVMin{ 0.0f };
         glm::vec2 UVMax{ 1.0f };

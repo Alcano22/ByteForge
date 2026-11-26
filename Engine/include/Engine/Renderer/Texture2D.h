@@ -19,6 +19,8 @@ namespace ByteForge
         TextureFilter Filter = TextureFilter::Linear;
         TextureWrap Wrap = TextureWrap::Repeat;
         bool GenerateMips = true;
+
+        [[nodiscard]] bool operator==(const TextureSettings&) const = default;
     };
 
     class BYTEFORGE_API Texture2D

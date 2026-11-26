@@ -34,10 +34,35 @@ namespace ByteForge::EditorUI
     {
         void DrawTextureAssetInspector(const AssetMetadata& metadata)
         {
-            const TextureAssetSettings* stored = metadata.GetSettings<TextureAssetSettings>();
-            TextureAssetSettings settings = stored != nullptr ? *stored : TextureAssetSettings{};
+            static UUID s_Handle{ 0 };
+            static TextureAssetSettings s_Settings;
 
-            if (EditTextureSettings(settings.Sampling))
+            if (s_Handle != metadata.Handle || !ImGui::IsAnyItemActive())
+            {
+                const TextureAssetSettings* stored = metadata.GetSettings<TextureAssetSettings>();
+                s_Handle = metadata.Handle;
+                s_Settings = stored != nullptr ? *stored : TextureAssetSettings{};
+            }
+
+            TextureAssetSettings& settings = s_Settings;
+            bool apply = EditTextureSettings(settings.Sampling);
+
+            ImGui::SeparatorText("Sprite");
+
+            ImGui::DragFloat("Pixels Per Unit", &settings.PixelsPerUnit, 0.5f, 0.01f, 10000.0f, "%.2f",
+                             ImGuiSliderFlags_AlwaysClamp);
+            apply |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::SetItemTooltip("How many texture pixels make one world unit");
+
+            if (settings.Mode == SpriteMode::Single)
+            {
+                ImGui::DragFloat2("Pivot", &settings.Pivot.x, 0.01f, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+                apply |= ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::SetItemTooltip("Point of the sprite that sits on the entity position, (0, 0) is the bottom left");
+            } else
+                ImGui::TextDisabled("%zu sprites, each with its own pivot", settings.Sprites.size());
+
+            if (apply)
                 EditorContext::ApplyTextureSettings(metadata.Handle, settings);
         }
 

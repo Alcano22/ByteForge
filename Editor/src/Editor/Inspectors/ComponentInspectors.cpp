@@ -51,9 +51,7 @@ namespace ByteForge
         {
             ImGui::ColorEdit4("Color", glm::value_ptr(spriteRenderer.Color));
 
-            Ref<TextureAsset> texture = spriteRenderer.Sprite ? spriteRenderer.Sprite->GetTextureAsset() : nullptr;
-            if (EditorUI::TextureAssetField("Texture", texture, context.SelectionContext))
-                spriteRenderer.Sprite = texture ? Sprite::Create(texture) : nullptr;
+            EditorUI::SpriteAssetField("Sprite", spriteRenderer.Sprite, context.SelectionContext);
 
             UUID material = spriteRenderer.Material ? spriteRenderer.Material->GetHandle() : UUID(0);
             if (EditorUI::AssetReferenceField("Material", AssetType::Material, material, context.SelectionContext,
@@ -394,9 +392,7 @@ namespace ByteForge
         {
             ImGui::ColorEdit4("Color", glm::value_ptr(image.Color));
 
-            Ref<TextureAsset> texture = image.Sprite ? image.Sprite->GetTextureAsset() : nullptr;
-            if (EditorUI::TextureAssetField("Texture", texture, context.SelectionContext))
-                image.Sprite = texture ? Sprite::Create(texture) : nullptr;
+            EditorUI::SpriteAssetField("Sprite", image.Sprite, context.SelectionContext);
 
             EditorUI::EnumCombo<ImageComponent::DrawMode>("Mode", image.Mode,
                                                           magic_enum::enum_values<ImageComponent::DrawMode>());
@@ -411,12 +407,7 @@ namespace ByteForge
             auto* transform = entity.TryGetComponent<RectTransformComponent>();
             ImGui::BeginDisabled(!image.Sprite || transform == nullptr);
             if (ImGui::Button("Set Native Size") && image.Sprite && transform != nullptr)
-            {
-                const Ref<Texture2D>& pixels = image.Sprite->GetTexture();
-                const glm::vec2 span = image.Sprite->GetUVMax() - image.Sprite->GetUVMin();
-                transform->Size = glm::abs(span) * glm::vec2(static_cast<f32>(pixels->GetWidth()),
-                                                             static_cast<f32>(pixels->GetHeight()));
-            }
+                transform->Size = image.Sprite->GetPixelSize();
             ImGui::EndDisabled();
             ImGui::SetItemTooltip("Makes the element as large as the sprite's pixels (in canvas units)");
         }

@@ -193,8 +193,11 @@ namespace ByteForge
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Sprite)
         {
-            CORE_ERROR("AssetManager: {} is not a known sprite asset", static_cast<u64>(handle));
-            return nullptr;
+            CORE_WARN("AssetManager: sprite {} is missing", static_cast<u64>(handle));
+
+            auto missing = MakeRef<TextureAsset>(UUID(0), Fallback());
+            missing->m_State = AssetLoadState::Failed;
+            return MakeRef<Sprite>(handle, std::move(missing), std::nullopt, glm::vec2(0.5f), 1.0f);
         }
 
         auto sprite = MakeRef<Sprite>(handle, LoadTexture2D(metadata.Parent), std::nullopt,
@@ -203,6 +206,15 @@ namespace ByteForge
 
         s_Sprites.emplace(handle, sprite);
         return sprite;
+    }
+
+    void AssetManager::ReloadSprites(const UUID texture)
+    {
+        for (const auto& [handle, sprite] : s_Sprites)
+        {
+            if (sprite->GetTextureAsset()->GetHandle() == texture)
+                RefreshSprite(*sprite);
+        }
     }
 
     void AssetManager::RefreshSprite(Sprite& sprite)

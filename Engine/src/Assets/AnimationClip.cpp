@@ -89,7 +89,9 @@ namespace ByteForge
 
         for (const AnimationFrame& frame : m_Data.Frames)
         {
-            m_Sprites.push_back(MakeRef<Sprite>(AssetManager::LoadTexture2D(frame.Texture), frame.UVMin, frame.UVMax));
+            m_Sprites.push_back(frame.Sprite.IsSet()
+                              ? AssetManager::LoadSprite(frame.Sprite)
+                              : MakeRef<Sprite>(AssetManager::LoadTexture2D(frame.Texture), frame.UVMin, frame.UVMax));
 
             m_Duration += std::max(MinFrameDuration, frame.Duration) * frameTime;
             m_FrameEnds.push_back(m_Duration);
@@ -121,6 +123,7 @@ namespace ByteForge
                         return Unexpected("every frame must be a JSON object");
 
                     AnimationFrame frame;
+                    frame.Sprite   = UUID(frameJson.value("sprite", u64{ 0 }));
                     frame.Texture  = UUID(frameJson.value("texture", u64{ 0 }));
                     frame.UVMin    = Vec2Or(frameJson, "uvMin", frame.UVMin);
                     frame.UVMax    = Vec2Or(frameJson, "uvMax", frame.UVMax);
@@ -141,12 +144,18 @@ namespace ByteForge
         nlohmann::json frames = nlohmann::json::array();
         for (const AnimationFrame& frame : clip.Frames)
         {
-            frames.push_back(nlohmann::json{
-                { "texture",  static_cast<u64>(frame.Texture) },
-                { "uvMin",    ToJson(frame.UVMin)             },
-                { "uvMax",    ToJson(frame.UVMax)             },
-                { "duration", frame.Duration                  }
-            });
+            nlohmann::json entry{ { "duration", frame.Duration } };
+
+            if (frame.Sprite.IsSet())
+                entry["sprite"] = static_cast<u64>(frame.Sprite);
+            else
+            {
+                entry["texture"] = static_cast<u64>(frame.Texture);
+                entry["uvMin"]   = ToJson(frame.UVMin);
+                entry["uvMax"]   = ToJson(frame.UVMax);
+            }
+
+            frames.push_back(std::move(entry));
         }
 
         return nlohmann::json{
