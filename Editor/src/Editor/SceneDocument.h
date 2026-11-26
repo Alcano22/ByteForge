@@ -42,6 +42,7 @@ namespace ByteForge
         [[nodiscard]] bool IsDirty() const;
 
         [[nodiscard]] fs::path GetPath() const;
+        [[nodiscard]] fs::path GetScenePath() const;
         [[nodiscard]] std::string GetName() const;
 
         void Update() const;

@@ -2,6 +2,7 @@
 #include "Engine/Assets/Pak.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Core/FileSystem.h"
+#include "Engine/Core/Platform.h"
 
 #include <nlohmann/json.hpp>
 
@@ -235,6 +236,44 @@ namespace ByteForge
             s_PathToHandle[ToGenericUtf8(newPath)] = handle;
             metadata.Path = std::move(newPath);
         }
+
+        ++s_Revision;
+        return {};
+    }
+
+    Result<> AssetRegistry::MoveToTrash(const fs::path& relativePath)
+    {
+        if (IsPacked())
+            return Unexpected("the assets are packed and read-only");
+
+        const fs::path normal = relativePath.lexically_normal();
+        if (normal.empty() || normal == ".")
+            return Unexpected("the asset root cannot be deleted");
+
+        const fs::path absolute = s_AssetRoot / normal;
+
+        std::error_code error;
+        const bool isDirectory = fs::is_directory(absolute, error);
+
+        if (Result<> trashed = Platform::MoveToTrash(absolute); !trashed)
+            return trashed;
+
+        if (const fs::path metaPath = GetMetaPath(absolute); !isDirectory && fs::exists(metaPath, error))
+        {
+            if (const Result<> trashedMeta = Platform::MoveToTrash(metaPath); !trashedMeta)
+                CORE_WARN("AssetRegistry: '{}' stays next to the deleted asset: {}",
+                          ToGenericUtf8(metaPath.filename()), trashedMeta.error());
+        }
+
+        std::erase_if(s_Assets, [&](const auto& pair)
+        {
+            const fs::path& path = pair.second.Path;
+            if (path != normal && !(isDirectory && IsInside(path, normal)))
+                return false;
+
+            s_PathToHandle.erase(ToGenericUtf8(path));
+            return true;
+        });
 
         ++s_Revision;
         return {};

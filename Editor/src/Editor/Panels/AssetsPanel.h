@@ -64,6 +64,10 @@ namespace ByteForge
         void CommitRename();
         void DrawRenameField(const ImVec2& position, f32 width, f32 bottom);
 
+        void RequestDelete(const Entry& entry);
+        void Delete(const fs::path& path);
+        [[nodiscard]] const char* GetDeleteBlocker(const fs::path& path) const;
+
         void DrawContextMenu();
         void CreateFolder();
         void CreatePhysicsMaterial();

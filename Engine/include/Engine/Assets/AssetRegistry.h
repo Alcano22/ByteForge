@@ -48,6 +48,7 @@ namespace ByteForge
 
         static UUID Import(const fs::path& relativePath);
         static Result<> Move(const fs::path& from, const fs::path& to);
+        static Result<> MoveToTrash(const fs::path& relativePath);
 
         [[nodiscard]] static bool TryGetMetadata(UUID handle, AssetMetadata& outMetadata);
         [[nodiscard]] static UUID GetHandle(const fs::path& relativePath);

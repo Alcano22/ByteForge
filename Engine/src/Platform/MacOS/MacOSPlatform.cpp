@@ -1,5 +1,6 @@
 #include "Platform/PlatformDetail.h"
 #include "Platform/SharedLibrary.h"
+#include "Engine/Core/Platform.h"
 
 #include <array>
 #include <cstdint>
@@ -79,4 +80,32 @@ namespace ByteForge::Platform::Detail
     }
 
     fs::path QueryUserDataDirectory() { return QueryUserConfigDirectory(); }
+}
+
+namespace ByteForge::Platform
+{
+    Result<> MoveToTrash(const fs::path& path)
+    {
+        std::error_code error;
+        const fs::path absolute = fs::absolute(path, error).lexically_normal();
+        if (error)
+            return Unexpected(error.message());
+
+        std::string literal;
+        for (const char c : absolute.native())
+        {
+            if (c == '\\' || c == '"')
+                literal += '\\';
+            literal += c;
+        }
+
+        const ProcessResult result = RunProcess({
+            "osascript", "-e", std::format("tell application \"Finder\" to delete (POSIX file \"{}\")", literal)
+        });
+
+        if (result.ExitCode != 0)
+            return Unexpected("Finder could not move '{}' to the trash: {}", ToUtf8(absolute), result.Output);
+
+        return {};
+    }
 }

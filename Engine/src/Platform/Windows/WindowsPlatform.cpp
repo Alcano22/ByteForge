@@ -10,6 +10,8 @@
 #endif
 #include <Windows.h>
 #include <shellapi.h>
+#include <shobjidl.h>
+#include <wrl/client.h>
 #undef FindExecutable
 
 #include <array>
@@ -247,6 +249,51 @@ namespace ByteForge
         }
 
         return std::nullopt;
+    }
+
+    Result<> Platform::MoveToTrash(const fs::path& path)
+    {
+        std::error_code error;
+        const fs::path absolute = fs::absolute(path, error).lexically_normal();
+        if (error)
+            return Unexpected(error.message());
+
+        const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        if (FAILED(com) && com != RPC_E_CHANGED_MODE)
+            return Unexpected("cannot initialize COM (0x{:08X})", static_cast<u32>(com));
+
+        struct ComScope
+        {
+            bool Owned;
+            ~ComScope() { if (Owned) CoUninitialize(); }
+        } const comScope{ SUCCEEDED(com) };
+
+        Microsoft::WRL::ComPtr<IFileOperation> operation;
+        HRESULT result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&operation));
+        if (FAILED(result))
+            return Unexpected("cannot create a file operation (0x{:08X})", static_cast<u32>(result));
+
+        result = operation->SetOperationFlags(FOF_ALLOWUNDO | FOFX_RECYCLEONDELETE | FOF_NOCONFIRMATION
+                                            | FOF_SILENT | FOF_NOERRORUI | FOF_WANTNUKEWARNING);
+        if (FAILED(result))
+            return Unexpected("cannot configure the file operation (0x{:08X})", static_cast<u32>(result));
+
+        Microsoft::WRL::ComPtr<IShellItem> item;
+        result = SHCreateItemFromParsingName(absolute.c_str(), nullptr, IID_PPV_ARGS(&item));
+        if (FAILED(result))
+            return Unexpected("cannot find '{}' (0x{:08X})", ToUtf8(absolute), static_cast<u32>(result));
+
+        result = operation->DeleteItem(item.Get(), nullptr);
+        if (SUCCEEDED(result))
+            result = operation->PerformOperations();
+        if (FAILED(result))
+            return Unexpected("cannot move '{}' to the recycle bin (0x{:08X})", ToUtf8(absolute), static_cast<u32>(result));
+
+        BOOL aborted = FALSE;
+        if (SUCCEEDED(operation->GetAnyOperationsAborted(&aborted)) && aborted)
+            return Unexpected("moving '{}' to the recycle bin was cancelled", ToUtf8(absolute));
+
+        return {};
     }
 }
 

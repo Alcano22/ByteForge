@@ -35,7 +35,7 @@ if (WIN32)
     target_sources(ByteForgeCore PRIVATE
             src/Platform/Windows/WindowsPlatform.cpp
             src/Platform/Windows/WindowsFileLock.cpp)
-    target_link_libraries(ByteForgeCore PRIVATE shell32)
+    target_link_libraries(ByteForgeCore PRIVATE shell32 ole32)
 elseif (APPLE)
     target_sources(ByteForgeCore PRIVATE
             src/Platform/MacOS/MacOSPlatform.cpp

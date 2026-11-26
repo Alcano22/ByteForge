@@ -271,6 +271,11 @@ namespace ByteForge
         return m_Handle ? GetAssetPath(*m_Handle) : fs::path{};
     }
 
+    fs::path SceneDocument::GetScenePath() const
+    {
+        return m_Handle ? GetAssetPath(*m_Handle) : fs::path{};
+    }
+
     std::string SceneDocument::GetName() const
     {
         const fs::path path = GetPath();

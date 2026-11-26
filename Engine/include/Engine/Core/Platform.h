@@ -31,4 +31,6 @@ namespace ByteForge::Platform
     [[nodiscard]] BYTEFORGE_CORE_API Result<> LaunchProcess(const std::vector<std::string>& arguments);
 
     [[nodiscard]] BYTEFORGE_CORE_API std::optional<fs::path> FindExecutable(std::string_view name);
+
+    [[nodiscard]] BYTEFORGE_CORE_API Result<> MoveToTrash(const fs::path& path);
 }

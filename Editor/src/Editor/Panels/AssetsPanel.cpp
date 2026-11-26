@@ -43,6 +43,28 @@ namespace ByteForge
             return true;
         }
 
+        bool IsSameOrInside(const fs::path& path, const fs::path& directory)
+        {
+            const auto [directoryIt, pathIt] = std::mismatch(directory.begin(), directory.end(),
+                                                             path.begin(), path.end());
+            return directoryIt == directory.end();
+        }
+
+        bool ContainsScripts(const fs::path& absolutePath)
+        {
+            std::error_code error;
+            if (!fs::is_directory(absolutePath, error))
+                return absolutePath.extension() == ".cs";
+
+            for (auto it = fs::recursive_directory_iterator(absolutePath, error);
+                 !error && it != fs::recursive_directory_iterator(); it.increment(error))
+            {
+                if (it->path().extension() == ".cs")
+                    return true;
+            }
+            return false;
+        }
+
         fs::path MakeUniquePath(const fs::path& directory, const std::string_view stem,
                                 const std::string_view extension)
         {
@@ -389,6 +411,13 @@ namespace ByteForge
                 BeginRename(*it);
         }
 
+        if (!m_RenamingPath && ImGui::Shortcut(ImGuiKey_Delete))
+        {
+            const auto it = std::ranges::find_if(m_Entries, [this](const Entry& entry) { return IsSelected(entry); });
+            if (it != m_Entries.end())
+                RequestDelete(*it);
+        }
+
         const ImGuiStyle& style = ImGui::GetStyle();
         const f32 cellWidth = m_ThumbnailSize + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
         const i32 columns = std::max(1, static_cast<i32>(ImGui::GetContentRegionAvail().x / cellWidth));
@@ -457,6 +486,9 @@ namespace ByteForge
         {
             if (ImGui::MenuItem("Rename", "F2"))
                 BeginRename(entry);
+            ImGui::Separator();
+            if (ImGui::MenuItem("Delete", "Del"))
+                RequestDelete(entry);
             ImGui::EndPopup();
         }
 
@@ -572,6 +604,95 @@ namespace ByteForge
         const f32 fieldBottom = ImGui::GetItemRectMax().y;
         ImGui::SetCursorScreenPos(ImVec2(position.x, fieldBottom));
         ImGui::Dummy(ImVec2(width, std::max(0.0f, bottom - fieldBottom)));
+    }
+
+    void AssetsPanel::RequestDelete(const Entry& entry)
+    {
+        if (const char* blocker = GetDeleteBlocker(entry.Path))
+        {
+            APP_WARN("Cannot delete '{}': {}", entry.Name, blocker);
+            return;
+        }
+
+        const std::string question = entry.IsDirectory && !entry.IsDirectoryEmpty
+                                   ? std::format("Move the folder '{}' and everything in it to the trash?", entry.Name)
+                                   : std::format("Move '{}' to the trash?", entry.Name);
+
+        GetContext().Popups.Open("Delete", [this, path = entry.Path, question](Popup& popup)
+        {
+            ImGui::TextUnformatted(question.c_str());
+            ImGui::TextDisabled("Anything that references it will show it as missing.");
+            ImGui::Spacing();
+
+            if (ImGui::Button("Move to Trash"))
+            {
+                popup.Close();
+                Delete(path);
+            }
+            ImGui::SetItemDefaultFocus();
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+                popup.Close();
+        });
+    }
+
+    void AssetsPanel::Delete(const fs::path& path)
+    {
+        EditorContext& context = GetContext();
+
+        if (const char* blocker = GetDeleteBlocker(path))
+        {
+            APP_WARN("Cannot delete '{}': {}", ToUtf8(path.filename()), blocker);
+            return;
+        }
+
+        const bool hadScripts = ContainsScripts(AssetRegistry::GetAssetRoot() / path);
+
+        if (const Result<> trashed = AssetRegistry::MoveToTrash(path); !trashed)
+        {
+            APP_ERROR("Cannot delete '{}': {}", ToUtf8(path.filename()), trashed.error());
+            return;
+        }
+
+        APP_INFO("Moved '{}' to the trash", ToGenericUtf8(path));
+
+        Selection& selection = context.SelectionContext;
+        if (const std::optional<UUID> asset = selection.GetAsset())
+        {
+            AssetMetadata metadata;
+            if (!AssetRegistry::TryGetMetadata(*asset, metadata))
+                selection.Clear();
+        }
+
+        if (m_LocalSelection && IsSameOrInside(m_LocalSelection->Path, path))
+            m_LocalSelection.reset();
+        if (m_RenamingPath && IsSameOrInside(*m_RenamingPath, path))
+            m_RenamingPath.reset();
+
+        if (hadScripts)
+            context.Scripts.RequestReload();
+
+        m_RefreshRequested = true;
+    }
+
+    const char* AssetsPanel::GetDeleteBlocker(const fs::path& path) const
+    {
+        const EditorContext& context = GetContext();
+        if (!context.IsEditing())
+            return "stop play mode first";
+
+        const SceneDocument& document = context.Document;
+        if (const fs::path scene = document.GetScenePath(); !scene.empty() && IsSameOrInside(scene, path))
+            return "the open scene would be deleted, open another scene first";
+
+        if (document.IsEditingPrefab())
+        {
+            if (const fs::path prefab = document.GetPath(); !prefab.empty() && IsSameOrInside(prefab, path))
+                return "the prefab you are editing would be deleted, close it first";
+        }
+
+        return nullptr;
     }
 
     void AssetsPanel::DrawContextMenu()

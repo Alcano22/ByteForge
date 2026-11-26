@@ -212,6 +212,16 @@ namespace ByteForge
     {
         if (!m_Open) return;
 
+        if (m_Document)
+        {
+            AssetMetadata metadata;
+            if (!AssetRegistry::TryGetMetadata(m_Document->GetAsset(), metadata))
+            {
+                m_Document.reset();
+                DestroyCanvases();
+            }
+        }
+
         const std::string title = m_Document
             ? std::format("{}{}{}", m_Document->GetName(), m_Document->IsDirty() ? " *" : "", WindowId)
             : std::format("{}{}", Name, WindowId);
