@@ -4,9 +4,16 @@
 #include "Editor/Graph/GraphIds.h"
 #include "Editor/Graph/GraphTheme.h"
 #include "Editor/Theme/EditorColors.h"
+#include "Editor/Overloaded.h"
 
 #include <Engine/Core/Log.h>
+#include <Engine/Core/StringUtils.h>
+#include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Scene/Components/ScriptComponent.h>
+#include <Engine/Scene/Scene.h>
+#include <Engine/Scripting/API/ScriptAPI.h>
 #include <Engine/Scripting/Visual/GraphClipboard.h>
+#include <Engine/Scripting/Visual/GraphEvaluator.h>
 
 #include <imgui_stdlib.h>
 
@@ -90,6 +97,46 @@ namespace ByteForge
                         return;
                 }
             }
+        }
+
+        std::string FormatValue(const ScriptValue& value, const PinType& type, const Scene* scene)
+        {
+            if (const auto* number = std::get_if<i32>(&value); number != nullptr && !type.Enum.empty())
+            {
+                const ScriptEnum* scriptEnum = ScriptAPI::Get().FindEnum(type.Enum);
+                const ScriptEnumValue* entry = scriptEnum != nullptr ? scriptEnum->Find(*number) : nullptr;
+                return entry != nullptr ? NicifyString(entry->Name) : std::format("Invalid ({})", *number);
+            }
+
+            return std::visit(Overloaded{
+                [](const bool v)             { return std::string(v ? "true" : "false"); },
+                [](const i32 v)              { return std::format("{}", v); },
+                [](const f32 v)              { return std::format("{:.4g}", v); },
+                [](const f64 v)              { return std::format("{:.6g}", v); },
+                [](const glm::vec2& v)       { return std::format("({:.4g}, {:.4g})", v.x, v.y); },
+                [](const glm::vec3& v)       { return std::format("({:.4g}, {:.4g}, {:.4g})", v.x, v.y, v.z); },
+                [](const glm::vec4& v)       { return std::format("({:.4g}, {:.4g}, {:.4g}, {:.4g})", v.x, v.y, v.z, v.w); },
+                [&](const EntityRef& v)
+                {
+                    if (!v.IsSet())
+                        return std::string("None");
+                    if (scene != nullptr)
+                    {
+                        if (const Entity entity = scene->FindEntityByUUID(v.Id); entity.IsValid())
+                            return std::format("'{}'", entity.GetTag());
+                    }
+                    return std::format("Entity {}", static_cast<u64>(v.Id));
+                },
+                [](const AssetRef& v)
+                {
+                    AssetMetadata metadata;
+                    if (!v.IsSet())
+                        return std::string("None");
+                    return AssetRegistry::TryGetMetadata(v.Handle, metadata) ? ToUtf8(metadata.Path.stem())
+                                                                             : std::string("Missing");
+                },
+                [](const std::string& v)     { return std::format("\"{}\"", v); }
+            }, value);
         }
     }
 
@@ -418,6 +465,7 @@ namespace ByteForge
         SelectPastedNodes();
         ApplyValueEdits();
         OpenEnumPicker();
+        ShowHoveredValue();
 
         HandleCreation();
         HandleDeletion();
@@ -439,6 +487,86 @@ namespace ByteForge
 
         CommitMovedNodes();
         NE::SetCurrentEditor(nullptr);
+    }
+
+    void GraphEditorPanel::ShowHoveredValue() const
+    {
+        const NE::LinkId hovered = NE::GetHoveredLink();
+        if (hovered.Get() == 0) return;
+
+        const GraphLink* link = m_Renderer.FindLink(hovered);
+        const DrawnPin* pin = link != nullptr
+                            ? m_Renderer.FindPin(GraphIds::Pin(link->From.Node, link->From.Pin, PinDirection::Output))
+                            : nullptr;
+        if (pin == nullptr || pin->Type.IsExec) return;
+
+        const ScriptGraph& graph = m_Document->GetGraph();
+        const PinRef source = FindValueSource(graph, link->From);
+        const bool playing = !GetContext().IsEditing();
+
+        std::optional<ScriptValue> value;
+        std::string origin;
+        const Scene* scene = nullptr;
+
+        if (playing)
+        {
+            if (const ScriptInstance* instance = FindWatchedInstance())
+            {
+                const Entity entity = GetContext().SelectionContext.GetEntity();
+                scene = &entity.GetScene();
+
+                value = instance->GetPinValue(source.Node, source.Pin);
+                if (value)
+                    origin = std::format("Last value in '{}'", entity.GetTag());
+            }
+        }
+
+        if (!value)
+        {
+            value = EvaluateConstant(graph, source);
+            if (value)
+                origin = "Constant";
+        }
+
+        NE::Suspend();
+        if (ImGui::BeginTooltip())
+        {
+            if (value)
+            {
+                ImGui::TextUnformatted(FormatValue(*value, pin->Type, scene).c_str());
+                ImGui::TextDisabled("%s, %s", GetValueTypeName(pin->Type).c_str(), origin.c_str());
+            } else if (playing && FindWatchedInstance() == nullptr)
+                ImGui::TextDisabled("Select an entity with this graph in the Scene Hierarchy to see its values");
+            else if (playing)
+                ImGui::TextDisabled("Not computed yet");
+            else
+                ImGui::TextDisabled("Known once the game runs");
+
+            ImGui::EndTooltip();
+        }
+        NE::Resume();
+    }
+
+    ScriptInstance* GraphEditorPanel::FindWatchedInstance() const
+    {
+        const Entity entity = GetContext().SelectionContext.GetEntity();
+        if (!entity.IsValid())
+            return nullptr;
+
+        Scene& scene = entity.GetScene();
+        const auto* scripts = entity.TryGetComponent<ScriptComponent>();
+        if (!scene.IsRunning() || scripts == nullptr)
+            return nullptr;
+
+        const std::string className = ScriptGraphClassName(m_Document->GetAsset());
+        for (const ScriptEntry& entry : scripts->Scripts)
+        {
+            if (entry.ClassName != className) continue;
+
+            if (ScriptInstance* instance = scene.FindScriptInstance(entity, entry.Id))
+                return instance;
+        }
+        return nullptr;
     }
 
     void GraphEditorPanel::UpdateActiveLinks()

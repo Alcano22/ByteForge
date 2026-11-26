@@ -34,6 +34,11 @@ namespace ByteForge
 
         [[nodiscard]] virtual std::optional<ScriptValue> GetField(std::string_view) const { return std::nullopt; }
         virtual bool SetField(std::string_view, const ScriptValue&) { return false; }
+
+        [[nodiscard]] virtual std::optional<ScriptValue> GetPinValue(UUID, std::string_view) const
+        {
+            return std::nullopt;
+        }
     };
 
     class BYTEFORGE_API ScriptBackend

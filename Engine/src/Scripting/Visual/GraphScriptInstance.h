@@ -24,6 +24,8 @@ namespace ByteForge
         [[nodiscard]] std::optional<ScriptValue> GetField(std::string_view name) const override;
         bool SetField(std::string_view name, const ScriptValue& value) override;
 
+        [[nodiscard]] std::optional<ScriptValue> GetPinValue(UUID node, std::string_view pin) const override;
+
     private:
         void Fire(GraphEvent event, std::optional<ScriptValue> payload);
         void Run(u32 instruction);

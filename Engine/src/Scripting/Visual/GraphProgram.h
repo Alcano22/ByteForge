@@ -9,6 +9,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ByteForge
@@ -69,5 +70,6 @@ namespace ByteForge
         u32 DelayCount = 0;
         std::vector<GraphLabel> Labels{ GraphLabel{ "Graph" } };
         std::vector<GraphLink> TracedLinks;
+        std::map<std::pair<u64, std::string>, u32> PinSlots;
     };
 }

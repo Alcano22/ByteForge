@@ -11,6 +11,7 @@
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
+#include <Engine/Scripting/ScriptBackend.h>
 #include <Engine/Scripting/Visual/GraphDebugger.h>
 
 #include <glm/glm.hpp>
@@ -61,6 +62,9 @@ namespace ByteForge
         void UpdateActiveLinks();
         void DrawTabs();
         void DrawCanvas();
+
+        void ShowHoveredValue() const;
+        [[nodiscard]] ScriptInstance* FindWatchedInstance() const;
 
         void OpenScope(UUID scope);
         Canvas& CanvasFor(UUID scope);

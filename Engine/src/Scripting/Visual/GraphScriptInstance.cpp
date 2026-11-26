@@ -85,6 +85,15 @@ namespace ByteForge
         return true;
     }
 
+    std::optional<ScriptValue> GraphScriptInstance::GetPinValue(const UUID node, const std::string_view pin) const
+    {
+        const auto it = m_Program->PinSlots.find({ static_cast<u64>(node), std::string(pin) });
+        if (it == m_Program->PinSlots.end())
+            return std::nullopt;
+
+        return m_Slots[it->second];
+    }
+
     void GraphScriptInstance::Fire(const GraphEvent event, std::optional<ScriptValue> payload)
     {
         const std::optional<GraphEntry>& entry = m_Program->Events[static_cast<usize>(event)];

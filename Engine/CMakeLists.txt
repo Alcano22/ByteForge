@@ -188,6 +188,7 @@ add_library(Engine SHARED
         src/Scripting/Visual/GraphScriptBackend.cpp
         src/Scripting/Visual/GraphDebugger.cpp
         src/Scripting/Visual/GraphClipboard.cpp
+        src/Scripting/Visual/GraphEvaluator.cpp
         src/Platform/GraphicsContextFactory.cpp
         src/Platform/Vulkan/VulkanContext.cpp
         src/Platform/Vulkan/VulkanInstance.cpp

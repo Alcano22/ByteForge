@@ -520,6 +520,13 @@ namespace ByteForge
 
             u32 OutputSlot(const UUID node, const PinInfo& pin)
             {
+                const u32 slot = AllocateOutputSlot(node, pin);
+                m_Program.PinSlots.insert_or_assign({ static_cast<u64>(node), pin.Name }, slot);
+                return slot;
+            }
+
+            u32 AllocateOutputSlot(const UUID node, const PinInfo& pin)
+            {
                 const GraphNode& graphNode = *m_Graph.FindNode(node);
                 if (const auto* get = std::get_if<GetVariableNode>(&graphNode.Data))
                     return m_VariableSlots.at(get->Variable);
