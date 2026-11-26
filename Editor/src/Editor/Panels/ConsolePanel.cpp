@@ -24,17 +24,16 @@ namespace ByteForge
         constexpr usize InfoCategory    = 0;
         constexpr usize WarningCategory = 1;
         constexpr usize ErrorCategory   = 2;
-        constexpr usize VerboseCategory = 3;
 
         usize CategoryOf(const LogLevel level)
         {
             switch (level)
             {
-                case LogLevel::Trace:
-                case LogLevel::Debug:    return VerboseCategory;
                 case LogLevel::Warn:     return WarningCategory;
                 case LogLevel::Error:
                 case LogLevel::Critical: return ErrorCategory;
+                case LogLevel::Trace:
+                case LogLevel::Debug:
                 case LogLevel::Info:     return InfoCategory;
             }
             return InfoCategory;
@@ -70,6 +69,8 @@ namespace ByteForge
     {
         m_Subscription = Log::Subscribe([this](const LogEntry& entry)
         {
+            if (entry.Level < LogLevel::Info) return;
+
             const std::lock_guard lock(m_IncomingMutex);
             m_Incoming.push_back(entry);
             if (m_Incoming.size() > MaxRows)
@@ -140,10 +141,6 @@ namespace ByteForge
         ImGui::SameLine();
         CategoryToggle("Errors", m_Counts[ErrorCategory], m_ShowCategory[ErrorCategory],
                        LogLevelColor(LogLevel::Error));
-        ImGui::SameLine();
-        CategoryToggle("Verbose", m_Counts[VerboseCategory], m_ShowCategory[VerboseCategory],
-                       LogLevelColor(LogLevel::Debug));
-        ImGui::SetItemTooltip("Trace and debug details, mostly from the engine itself");
 
         ImGui::SameLine(0.0f, 16.0f);
         const bool filtered = std::ranges::find(m_ShowSource, false) != m_ShowSource.end();
@@ -226,8 +223,6 @@ namespace ByteForge
                     ImGui::TableNextColumn();
                     if (entry.Level >= LogLevel::Warn)
                         ImGui::TextColored(LogLevelColor(entry.Level), "%s", row.Summary.c_str());
-                    else if (entry.Level <= LogLevel::Debug)
-                        ImGui::TextDisabled("%s", row.Summary.c_str());
                     else
                         ImGui::TextUnformatted(row.Summary.c_str());
                 }
