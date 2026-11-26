@@ -34,7 +34,7 @@ namespace ByteForge
 
         m_Window->SetEventCallback([this](Event& e) { OnApplicationEvent(e); });
 
-        CORE_INFO("Application initialized");
+        CORE_DEBUG("Application initialized");
     }
 
     Application::~Application()

@@ -19,7 +19,7 @@ namespace ByteForge
 
         VK_CHECK(vmaCreateAllocator(&createInfo, &m_Allocator));
 
-        CORE_INFO("Vulkan memory allocator (VMA) created");
+        CORE_DEBUG("Vulkan memory allocator (VMA) created");
     }
 
     VulkanAllocator::~VulkanAllocator()

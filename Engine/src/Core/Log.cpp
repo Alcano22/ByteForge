@@ -1,4 +1,5 @@
 #include "Engine/Core/Log.h"
+#include "Engine/Core/Platform.h"
 
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -103,28 +104,48 @@ namespace ByteForge
 
             void flush_() override {}
         };
+
+        spdlog::level::level_enum TerminalLevel()
+        {
+#ifdef NDEBUG
+            constexpr spdlog::level::level_enum fallback = spdlog::level::info;
+#else
+            constexpr spdlog::level::level_enum fallback = spdlog::level::debug;
+#endif
+            const std::optional<fs::path> value = Platform::GetEnvironmentPath("BYTEFORGE_LOG_LEVEL");
+            if (!value)
+                return fallback;
+
+            const std::string name = value->string();
+            const spdlog::level::level_enum level = spdlog::level::from_str(name);
+            return level != spdlog::level::off || name == "off" ? level : fallback;
+        }
     }
 
     std::shared_ptr<spdlog::logger> Log::s_CoreLogger;
     std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
+    std::shared_ptr<spdlog::logger> Log::s_ScriptLogger;
 
     void Log::Init()
     {
         const auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         consoleSink->set_pattern("%^[%T] %n: %v%$");
+        consoleSink->set_level(TerminalLevel());
 
         const auto callbackSink = std::make_shared<CallbackSink>();
 
-        const auto createLogger = [&](const char* name)
+        const auto createLogger = [&](const std::string_view name)
         {
-            auto logger = std::make_shared<spdlog::logger>(name, spdlog::sinks_init_list{ consoleSink, callbackSink });
+            auto logger = std::make_shared<spdlog::logger>(std::string(name),
+                                                           spdlog::sinks_init_list{ consoleSink, callbackSink });
             logger->set_level(spdlog::level::trace);
             spdlog::register_logger(logger);
             return logger;
         };
 
-        s_CoreLogger = createLogger("ENGINE");
-        s_ClientLogger = createLogger("APP");
+        s_CoreLogger = createLogger(LogSource::Engine);
+        s_ClientLogger = createLogger(LogSource::App);
+        s_ScriptLogger = createLogger(LogSource::Script);
     }
 
     LogSubscription Log::Subscribe(LogCallback callback, const bool replayHistory)

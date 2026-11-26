@@ -44,7 +44,7 @@ namespace ByteForge
 
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(device, &props);
-            CORE_INFO("  Candidate: {} (score: {})", props.deviceName, score);
+            CORE_TRACE("  Candidate: {} (score: {})", props.deviceName, score);
 
             if (score > 0)
                 candidates.insert({ score, device });
@@ -58,7 +58,7 @@ namespace ByteForge
 
         VkPhysicalDeviceProperties props;
         vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
-        CORE_INFO("Selected GPU: {} (score: {})", props.deviceName, candidates.begin()->first);
+        CORE_DEBUG("Selected GPU: {} (score: {})", props.deviceName, candidates.begin()->first);
     }
 
     u64 VulkanDevice::RateDeviceSuitability(const VkPhysicalDevice device) const
@@ -239,6 +239,6 @@ namespace ByteForge
         vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
         vkGetDeviceQueue(m_Device, m_QueueFamilyIndices.PresentFamily.value(), 0, &m_PresentQueue);
 
-        CORE_INFO("Vulkan logical device created");
+        CORE_DEBUG("Vulkan logical device created");
     }
 }

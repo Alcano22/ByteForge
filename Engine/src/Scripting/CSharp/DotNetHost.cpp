@@ -94,9 +94,9 @@ namespace ByteForge
 
         m_LoadAssemblyAndGetFunctionPointer = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(loader);
 
-        CORE_INFO(".NET {} runtime started from '{}' ({})",
-                  dotnet.Runtime ? dotnet.Runtime->ToString() : std::string("?"), ToUtf8(dotnetRoot),
-                  GetSourceName(dotnet.Source));
+        CORE_DEBUG(".NET {} runtime started from '{}' ({})",
+                   dotnet.Runtime ? dotnet.Runtime->ToString() : std::string("?"), ToUtf8(dotnetRoot),
+                   GetSourceName(dotnet.Source));
     }
 
     DotNetHost::~DotNetHost()

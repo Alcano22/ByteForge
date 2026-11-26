@@ -29,7 +29,7 @@ namespace ByteForge
         for (u32 i = 0; i < threadCount; ++i)
             s_Workers.emplace_back(&JobSystem::WorkerLoop);
 
-        CORE_INFO("JobSystem initialized with {} worker threads", threadCount);
+        CORE_DEBUG("JobSystem initialized with {} worker threads", threadCount);
     }
 
     void JobSystem::Shutdown()
@@ -50,7 +50,7 @@ namespace ByteForge
         const usize count = discarded.size();
         discarded = {};
 
-        CORE_INFO("JobSystem shut down ({} queued job(s) discarded)", count);
+        CORE_DEBUG("JobSystem shut down ({} queued job(s) discarded)", count);
     }
 
     void JobSystem::WorkerLoop()

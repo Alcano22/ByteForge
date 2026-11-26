@@ -98,7 +98,7 @@ namespace ByteForge
             Import(fs::relative(entry.path(), s_AssetRoot));
         }
 
-        CORE_INFO("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), ToUtf8(s_AssetRoot));
+        CORE_DEBUG("AssetRegistry: indexed {} asset(s) under '{}'", s_Assets.size(), ToUtf8(s_AssetRoot));
     }
 
     Result<> AssetRegistry::Mount(const fs::path& archive)
@@ -135,8 +135,8 @@ namespace ByteForge
         s_Archive = std::move(*opened);
         ++s_Revision;
 
-        CORE_INFO("AssetRegistry: mounted {} asset(s) from '{}'{}", s_Assets.size(), ToGenericUtf8(archive),
-                  skipped > 0 ? std::format(" ({} skipped)", skipped) : std::string());
+        CORE_DEBUG("AssetRegistry: mounted {} asset(s) from '{}'{}", s_Assets.size(), ToGenericUtf8(archive),
+                   skipped > 0 ? std::format(" ({} skipped)", skipped) : std::string());
         return {};
     }
 

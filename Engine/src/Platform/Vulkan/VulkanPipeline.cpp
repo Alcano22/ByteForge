@@ -207,7 +207,7 @@ namespace ByteForge
         CreatePipelineLayout(reflection.PushConstants);
         CreatePipeline(spec, shader);
 
-        CORE_INFO("Vulkan graphics pipeline created");
+        CORE_TRACE("Vulkan graphics pipeline created");
     }
 
     VulkanPipeline::~VulkanPipeline()

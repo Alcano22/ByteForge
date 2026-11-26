@@ -20,7 +20,7 @@ internal static unsafe class Bootstrap
 
             ScriptHost.DiscoverClasses([typeof(ScriptBehaviour).Assembly]);
 
-            Log.Info($"ScriptCore initialized (.NET {Environment.Version}, {ScriptHost.ClassCount} script classes)");
+            Log.Trace($"ScriptCore initialized (.NET {Environment.Version}, {ScriptHost.ClassCount} script classes)");
             return 0;
         } catch
         {

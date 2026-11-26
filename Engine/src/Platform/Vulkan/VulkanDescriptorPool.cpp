@@ -57,7 +57,7 @@ namespace ByteForge
             vkUpdateDescriptorSets(m_Device.GetHandle(), 1, &descriptorWrite, 0, nullptr);
         }
 
-        CORE_INFO("Created descriptor pool with {} sets", framesInFlight);
+        CORE_TRACE("Created descriptor pool with {} sets", framesInFlight);
     }
 
     VulkanDescriptorPool::~VulkanDescriptorPool()

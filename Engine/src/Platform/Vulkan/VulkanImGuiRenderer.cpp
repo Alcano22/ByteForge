@@ -84,8 +84,8 @@ namespace ByteForge
             }
         }
 
-        CORE_INFO("ImGui Vulkan backend initialized{}",
-                  (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) ? " with detachable windows" : "");
+        CORE_DEBUG("ImGui Vulkan backend initialized{}",
+                   (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) ? " with detachable windows" : "");
     }
 
     void VulkanImGuiRenderer::Shutdown()

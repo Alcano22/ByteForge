@@ -64,6 +64,6 @@ namespace ByteForge
         context.GetUploader().UploadTexture(*m_Image, width, height, m_MipLevels, pixels.data(), pixels.size());
         m_Sampler = context.GetSamplerCache().Get(settings.Filter, settings.Wrap);
 
-        CORE_INFO("Texture created ({}x{}, mip levels: {})", width, height, m_MipLevels);
+        CORE_TRACE("Texture created ({}x{}, mip levels: {})", width, height, m_MipLevels);
     }
 }

@@ -47,7 +47,7 @@ namespace ByteForge
         if (!backend)
             throw LogicError("ScriptEngine::RegisterBackend: the backend must not be null");
 
-        CORE_INFO("Script backend '{}' registered", backend->GetName());
+        CORE_DEBUG("Script backend '{}' registered", backend->GetName());
         m_Backends.push_back(std::move(backend));
     }
 
@@ -135,7 +135,7 @@ namespace ByteForge
         std::error_code error;
         if (!fs::is_regular_file(directory / "ScriptCore.dll", error))
         {
-            CORE_INFO("C# scripting unavailable: no ScriptCore in '{}'", ToUtf8(directory));
+            CORE_WARN("C# scripting unavailable: no ScriptCore in '{}'", ToUtf8(directory));
             return;
         }
 

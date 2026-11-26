@@ -23,7 +23,7 @@ namespace ByteForge
         constexpr CameraComponent DefaultCamera;
         constexpr TransformComponent DefaultTransform;
 
-        void DebugLog(const ScriptCallContext&, const std::string& message) { APP_INFO("{}", message); }
+        void DebugLog(const ScriptCallContext&, const std::string& message) { SCRIPT_INFO("{}", message); }
 
         Scene& RequireScene(const ScriptCallContext& context)
         {

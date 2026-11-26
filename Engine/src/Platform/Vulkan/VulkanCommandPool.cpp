@@ -27,7 +27,7 @@ namespace ByteForge
 
         VK_CHECK(vkAllocateCommandBuffers(m_Device.GetHandle(), &allocInfo, m_CommandBuffers.data()));
 
-        CORE_INFO("Created command pool with {} command buffers", bufferCount);
+        CORE_TRACE("Created command pool with {} command buffers", bufferCount);
     }
 
     VulkanCommandPool::~VulkanCommandPool()

@@ -60,7 +60,7 @@ namespace ByteForge
 
         m_DeletionQueue = MakeScope<VulkanDeletionQueue>(MaxFramesInFlight);
 
-        CORE_INFO("Initializing Vulkan context");
+        CORE_DEBUG("Initializing Vulkan context");
 
         m_Instance = MakeScope<VulkanInstance>();
         CreateSurface();
@@ -122,7 +122,7 @@ namespace ByteForge
     {
         VK_CHECK(glfwCreateWindowSurface(m_Instance->GetHandle(), m_WindowHandle, nullptr, &m_Surface));
 
-        CORE_INFO("Vulkan surface created");
+        CORE_DEBUG("Vulkan surface created");
     }
 
     bool VulkanContext::RecreateSwapchain()
@@ -149,7 +149,7 @@ namespace ByteForge
 
         m_FramebufferResized = false;
 
-        CORE_INFO("Swapchain recreated ({}x{})", m_Swapchain->GetExtent().width, m_Swapchain->GetExtent().height);
+        CORE_TRACE("Swapchain recreated ({}x{})", m_Swapchain->GetExtent().width, m_Swapchain->GetExtent().height);
         return true;
     }
 

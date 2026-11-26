@@ -27,10 +27,10 @@ namespace ByteForge
             {
                 switch (level)
                 {
-                    case 0:  APP_TRACE("{}", message); break;
-                    case 1:  APP_INFO ("{}", message); break;
-                    case 2:  APP_WARN ("{}", message); break;
-                    default: APP_ERROR("{}", message); break;
+                    case 0:  SCRIPT_TRACE("{}", message); break;
+                    case 1:  SCRIPT_INFO ("{}", message); break;
+                    case 2:  SCRIPT_WARN ("{}", message); break;
+                    default: SCRIPT_ERROR("{}", message); break;
                 }
             } catch (...) {}
         }

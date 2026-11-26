@@ -10,11 +10,19 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace ByteForge
 {
     enum class LogLevel { Trace, Debug, Info, Warn, Error, Critical };
+
+    namespace LogSource
+    {
+        inline constexpr std::string_view Engine = "ENGINE";
+        inline constexpr std::string_view App    = "APP";
+        inline constexpr std::string_view Script = "SCRIPT";
+    }
 
     struct LogEntry
     {
@@ -74,6 +82,7 @@ namespace ByteForge
 
         static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
         static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+        static std::shared_ptr<spdlog::logger>& GetScriptLogger() { return s_ScriptLogger; }
 
     private:
         static void Unsubscribe(u64 id);
@@ -83,6 +92,7 @@ namespace ByteForge
 
         static std::shared_ptr<spdlog::logger> s_CoreLogger;
         static std::shared_ptr<spdlog::logger> s_ClientLogger;
+        static std::shared_ptr<spdlog::logger> s_ScriptLogger;
     };
 }
 
@@ -102,3 +112,8 @@ namespace ByteForge
 #define APP_WARN(...)      BYTEFORGE_LOG_CALL(::ByteForge::Log::GetClientLogger(), ::spdlog::level::warn, __VA_ARGS__)
 #define APP_ERROR(...)     BYTEFORGE_LOG_CALL(::ByteForge::Log::GetClientLogger(), ::spdlog::level::err, __VA_ARGS__)
 #define APP_CRITICAL(...)  BYTEFORGE_LOG_CALL(::ByteForge::Log::GetClientLogger(), ::spdlog::level::critical, __VA_ARGS__)
+
+#define SCRIPT_TRACE(...)  BYTEFORGE_LOG_CALL(::ByteForge::Log::GetScriptLogger(), ::spdlog::level::trace, __VA_ARGS__)
+#define SCRIPT_INFO(...)   BYTEFORGE_LOG_CALL(::ByteForge::Log::GetScriptLogger(), ::spdlog::level::info, __VA_ARGS__)
+#define SCRIPT_WARN(...)   BYTEFORGE_LOG_CALL(::ByteForge::Log::GetScriptLogger(), ::spdlog::level::warn, __VA_ARGS__)
+#define SCRIPT_ERROR(...)  BYTEFORGE_LOG_CALL(::ByteForge::Log::GetScriptLogger(), ::spdlog::level::err, __VA_ARGS__)

@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <string_view>
 
 namespace ByteForge
 {
@@ -86,7 +87,7 @@ namespace ByteForge
 
         VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_Instance));
 
-        CORE_INFO("Vulkan instance created successfully");
+        CORE_DEBUG("Vulkan instance created successfully");
     }
 
     void VulkanInstance::SetupDebugMessenger()
@@ -105,7 +106,7 @@ namespace ByteForge
 
         VK_CHECK(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger));
 
-        CORE_INFO("Vulkan debug messenger attached");
+        CORE_DEBUG("Vulkan debug messenger attached");
     }
 
     VkBool32 VulkanInstance::DebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -113,19 +114,33 @@ namespace ByteForge
                                            const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
                                            void*)
     {
+        constexpr std::array<std::string_view, 2> UnusedShaderOutputIds{
+            "Undefined-Value-ShaderOutputNotConsumed",
+            "UNASSIGNED-CoreValidation-Shader-OutputNotConsumed"
+        };
+        constexpr std::string_view UnusedShaderOutputText = "but there is no corresponding Input declared";
+
+        const std::string_view id = callbackData->pMessageIdName != nullptr ? callbackData->pMessageIdName : "";
+        const std::string_view message = callbackData->pMessage != nullptr ? callbackData->pMessage : "";
+
+        const bool unusedOutput = std::ranges::find(UnusedShaderOutputIds, id) != UnusedShaderOutputIds.end() ||
+                                  message.find(UnusedShaderOutputText) != std::string_view::npos;
+        if (unusedOutput)
+        {
+            CORE_TRACE("[Vulkan] [{}] {}", id, message);
+            return VK_FALSE;
+        }
+
         switch (messageSeverity)
         {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                CORE_ERROR("[Vulkan] {}", callbackData->pMessage);
+                CORE_ERROR("[Vulkan] [{}] {}", id, message);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                CORE_WARN("[Vulkan] {}", callbackData->pMessage);
-                break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                CORE_INFO("[Vulkan] {}", callbackData->pMessage);
+                CORE_WARN("[Vulkan] [{}] {}", id, message);
                 break;
             default:
-                CORE_TRACE("[Vulkan] {}", callbackData->pMessage);
+                CORE_TRACE("[Vulkan] {}", message);
                 break;
         }
 

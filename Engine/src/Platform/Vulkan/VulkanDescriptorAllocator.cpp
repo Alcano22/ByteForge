@@ -96,7 +96,7 @@ namespace ByteForge
         VkDescriptorPool pool = nullptr;
         VK_CHECK(vkCreateDescriptorPool(m_Device.GetHandle(), &poolInfo, nullptr, &pool));
 
-        CORE_INFO("Created descriptor pool for {} sets", SetsPerPool);
+        CORE_TRACE("Created descriptor pool for {} sets", SetsPerPool);
         return pool;
     }
 

@@ -250,7 +250,7 @@ namespace ByteForge
         std::error_code error;
         if (fs::exists(GetAssemblyFile(), error) && ReadFile(GetStampFile()) == m_PendingFingerprint)
         {
-            APP_INFO("C# scripts are up to date, build skipped");
+            APP_DEBUG("C# scripts are up to date, build skipped");
             m_LoadPending = true;
             return;
         }

@@ -115,8 +115,8 @@ namespace ByteForge
             .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT
         });
 
-        CORE_INFO("Vulkan swapchain created ({} images, {}x{}, depth {})",
-                  actualImageCount, extent.width, extent.height, VkFormatToString(DepthFormat));
+        CORE_TRACE("Vulkan swapchain created ({} images, {}x{}, depth {})",
+                   actualImageCount, extent.width, extent.height, VkFormatToString(DepthFormat));
     }
 
     VulkanSwapchain::~VulkanSwapchain()
@@ -158,7 +158,7 @@ namespace ByteForge
 
             VK_CHECK(vkCreateImageView(m_Device.GetHandle(), &viewInfo, nullptr, &m_ImageViews[i]));
         }
-        CORE_INFO("Created {} swapchain image views", m_ImageViews.size());
+        CORE_TRACE("Created {} swapchain image views", m_ImageViews.size());
 
         m_ImGuiImageViews.resize(m_Images.size());
         for (usize i = 0; i < m_Images.size(); ++i)
@@ -185,7 +185,7 @@ namespace ByteForge
 
             VK_CHECK(vkCreateImageView(m_Device.GetHandle(), &viewInfo, nullptr, &m_ImGuiImageViews[i]));
         }
-        CORE_INFO("Created {} swapchain image views for ImGui", m_ImGuiImageViews.size());
+        CORE_TRACE("Created {} swapchain image views for ImGui", m_ImGuiImageViews.size());
     }
 
     VkSurfaceFormatKHR VulkanSwapchain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available)

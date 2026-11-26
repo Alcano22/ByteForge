@@ -311,7 +311,7 @@ namespace ByteForge
         const u32 capacity = m_Capacity > MaxSupportedQuads / 2 ? MaxSupportedQuads : m_Capacity * 2;
         CreateBuffers(capacity);
 
-        CORE_INFO("Renderer2D: quad budget raised to {}", capacity);
+        CORE_DEBUG("Renderer2D: quad budget raised to {}", capacity);
         return true;
     }
 

@@ -75,7 +75,7 @@ namespace ByteForge
 
         InitializeLayouts();
 
-        CORE_INFO("Render target created ({}x{}, {} color attachment(s))", spec.Width, spec.Height, m_Colors.size());
+        CORE_TRACE("Render target created ({}x{}, {} color attachment(s))", spec.Width, spec.Height, m_Colors.size());
     }
 
     u32 VulkanRenderTarget::ReadPixel(const u32 attachment, const u32 x, const u32 y) const

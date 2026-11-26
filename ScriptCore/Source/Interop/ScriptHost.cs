@@ -132,7 +132,7 @@ internal static unsafe class ScriptHost
         s_GameContext = context;
 
         DiscoverClasses([typeof(ScriptBehaviour).Assembly, s_GameAssembly]);
-        Log.Info($"Loaded {s_GameAssembly.GetName().Name} ({ClassCount} script classes)");
+        Log.Trace($"Loaded {s_GameAssembly.GetName().Name} ({ClassCount} script classes)");
     }
 
     private static void UnloadGameAssembly()

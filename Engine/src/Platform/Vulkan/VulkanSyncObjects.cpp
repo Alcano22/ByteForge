@@ -32,7 +32,7 @@ namespace ByteForge
 
         CreateRenderFinished(imageCount);
 
-        CORE_INFO("Created sync objects for {} frames in flight, {} swapchain images", frameCount, imageCount);
+        CORE_TRACE("Created sync objects for {} frames in flight, {} swapchain images", frameCount, imageCount);
     }
 
     VulkanSyncObjects::~VulkanSyncObjects()

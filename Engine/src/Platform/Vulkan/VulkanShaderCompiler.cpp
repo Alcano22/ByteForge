@@ -129,7 +129,7 @@ namespace ByteForge
             throw Error("Failed to create DXC include handler");
         m_Impl->IncludeHandler = ComScope<IDxcIncludeHandler>(rawHandler, ComDeleter<IDxcIncludeHandler>{});
 
-        CORE_INFO("DXC shader compiler initialized from '{}'", ToUtf8(libraryPath));
+        CORE_DEBUG("DXC shader compiler initialized from '{}'", ToUtf8(libraryPath));
     }
 
     VulkanShaderCompiler::~VulkanShaderCompiler() = default;

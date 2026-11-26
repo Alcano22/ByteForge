@@ -68,7 +68,7 @@ namespace ByteForge
 
             const std::string mappings(reinterpret_cast<const char*>(data->data()), data->size());
             if (glfwUpdateGamepadMappings(mappings.c_str()) == GLFW_TRUE)
-                CORE_INFO("Loaded gamepad mappings from '{}'", ToGenericUtf8(file));
+                CORE_DEBUG("Loaded gamepad mappings from '{}'", ToGenericUtf8(file));
             else
                 CORE_WARN("GLFW rejected the gamepad mappings in '{}'", ToGenericUtf8(file));
         }
@@ -94,7 +94,7 @@ namespace ByteForge
             if (!glfwInit())
                 throw Error("Failed to initialize GLFW");
 
-            CORE_INFO("GLFW runs on {}", GetPlatformName());
+            CORE_DEBUG("GLFW runs on {}", GetPlatformName());
 
             LoadGamepadMappings();
 
@@ -127,9 +127,21 @@ namespace ByteForge
             glfwGetJoystickButtons(joystick, &buttonCount);
             glfwGetJoystickHats(joystick, &hatCount);
 
-            CORE_WARN("Joystick {} '{}' is connected but has no gamepad mapping (GUID {}, {} axes, {} buttons, "
-                      "{} hats), add a line for it to '{}'", joystick, name ? name : "Unknown", guid ? guid : "unknown",
-                      axisCount, buttonCount, hatCount, ToGenericUtf8(GetGamepadMappingsFile()));
+            constexpr i32 MinGamepadAxes = 4;
+            constexpr i32 MinGamepadButtons = 4;
+            constexpr i32 MaxGamepadButtons = 32;
+            const bool looksLikeGamepad = axisCount >= MinGamepadAxes && buttonCount >= MinGamepadButtons &&
+                                          buttonCount <= MaxGamepadButtons;
+
+            const std::string message = std::format(
+                "Joystick {} '{}' is connected but has no gamepad mapping (GUID {}, {} axes, {} buttons, {} hats), "
+                "add a line for it to '{}'", joystick, name ? name : "Unknown", guid ? guid : "unknown",
+                axisCount, buttonCount, hatCount, ToGenericUtf8(GetGamepadMappingsFile()));
+
+            if (looksLikeGamepad)
+                CORE_WARN("{}", message);
+            else
+                CORE_DEBUG("{}", message);
         }
 
         f32 ToEngineAxis(const usize axis, const f32 value)
@@ -187,7 +199,7 @@ namespace ByteForge
 
         SetupCallbacks();
 
-        CORE_INFO("Created window '{}' ({}x{})", m_Data.Title, m_Data.Width, m_Data.Height);
+        CORE_DEBUG("Created window '{}' ({}x{})", m_Data.Title, m_Data.Width, m_Data.Height);
 
         m_Context = GraphicsContext::Create(m_Window.get());
         m_Context->Init();

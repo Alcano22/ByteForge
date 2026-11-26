@@ -8,6 +8,8 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <format>
 #include <string_view>
@@ -22,16 +24,29 @@ namespace ByteForge
         constexpr usize InfoCategory    = 0;
         constexpr usize WarningCategory = 1;
         constexpr usize ErrorCategory   = 2;
+        constexpr usize VerboseCategory = 3;
 
         usize CategoryOf(const LogLevel level)
         {
             switch (level)
             {
+                case LogLevel::Trace:
+                case LogLevel::Debug:    return VerboseCategory;
                 case LogLevel::Warn:     return WarningCategory;
                 case LogLevel::Error:
                 case LogLevel::Critical: return ErrorCategory;
-                default:                 return InfoCategory;
+                case LogLevel::Info:     return InfoCategory;
             }
+            return InfoCategory;
+        }
+
+        constexpr std::array<const char*, 3> SourceNames{ "Script", "Editor", "Engine" };
+
+        usize SourceOf(const std::string_view logger)
+        {
+            if (logger == LogSource::Script) return 0;
+            if (logger == LogSource::App)    return 1;
+            return 2;
         }
 
         std::string FirstLine(const std::string_view text)
@@ -125,6 +140,23 @@ namespace ByteForge
         ImGui::SameLine();
         CategoryToggle("Errors", m_Counts[ErrorCategory], m_ShowCategory[ErrorCategory],
                        LogLevelColor(LogLevel::Error));
+        ImGui::SameLine();
+        CategoryToggle("Verbose", m_Counts[VerboseCategory], m_ShowCategory[VerboseCategory],
+                       LogLevelColor(LogLevel::Debug));
+        ImGui::SetItemTooltip("Trace and debug details, mostly from the engine itself");
+
+        ImGui::SameLine(0.0f, 16.0f);
+        const bool filtered = std::ranges::find(m_ShowSource, false) != m_ShowSource.end();
+        if (ImGui::Button(filtered ? "Sources*" : "Sources"))
+            ImGui::OpenPopup("##Sources");
+        ImGui::SetItemTooltip("Script: your scripts and graphs. Editor: what the editor reports. Engine: the engine");
+
+        if (ImGui::BeginPopup("##Sources"))
+        {
+            for (usize i = 0; i < SourceNames.size(); ++i)
+                ImGui::Checkbox(SourceNames[i], &m_ShowSource[i]);
+            ImGui::EndPopup();
+        }
 
         ImGui::SameLine(0.0f, 16.0f);
         ImGui::SetNextItemWidth(-FLT_MIN);
@@ -189,11 +221,13 @@ namespace ByteForge
                     ImGui::TextColored(LogLevelColor(entry.Level), "%s", LogLevelName(entry.Level));
 
                     ImGui::TableNextColumn();
-                    ImGui::TextDisabled("%s", entry.Logger.c_str());
+                    ImGui::TextDisabled("%s", SourceNames[SourceOf(entry.Logger)]);
 
                     ImGui::TableNextColumn();
                     if (entry.Level >= LogLevel::Warn)
                         ImGui::TextColored(LogLevelColor(entry.Level), "%s", row.Summary.c_str());
+                    else if (entry.Level <= LogLevel::Debug)
+                        ImGui::TextDisabled("%s", row.Summary.c_str());
                     else
                         ImGui::TextUnformatted(row.Summary.c_str());
                 }
@@ -211,6 +245,10 @@ namespace ByteForge
         if (!m_ShowCategory[CategoryOf(row.Entry.Level)])
             return false;
 
-        return ContainsIgnoreCase(row.Entry.Message, m_Filter) || ContainsIgnoreCase(row.Entry.Logger, m_Filter);
+        const usize source = SourceOf(row.Entry.Logger);
+        if (!m_ShowSource[source])
+            return false;
+
+        return ContainsIgnoreCase(row.Entry.Message, m_Filter) || ContainsIgnoreCase(SourceNames[source], m_Filter);
     }
 }

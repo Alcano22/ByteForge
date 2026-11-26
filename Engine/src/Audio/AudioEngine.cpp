@@ -283,8 +283,8 @@ namespace ByteForge
             } else
             {
                 m_Impl = std::move(impl);
-                CORE_INFO("Audio engine initialized ({} Hz, {} channels)",
-                          ma_engine_get_sample_rate(&m_Impl->Engine), ma_engine_get_channels(&m_Impl->Engine));
+                CORE_DEBUG("Audio engine initialized ({} Hz, {} channels)",
+                           ma_engine_get_sample_rate(&m_Impl->Engine), ma_engine_get_channels(&m_Impl->Engine));
             }
         }
 

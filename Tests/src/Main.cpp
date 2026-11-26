@@ -32,6 +32,7 @@ int main(const int argc, char* argv[])
     Log::Init();
     Log::GetCoreLogger()->set_level(spdlog::level::warn);
     Log::GetClientLogger()->set_level(spdlog::level::warn);
+    Log::GetScriptLogger()->set_level(spdlog::level::warn);
 
     const fs::path root = fs::temp_directory_path() / std::format("ByteForgeTests-{:016x}", static_cast<u64>(UUID()));
     Tests::SetTemporaryRoot(root);

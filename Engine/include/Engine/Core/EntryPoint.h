@@ -13,7 +13,7 @@ extern ByteForge::Application* ByteForge::CreateApplication();
 int main()
 {
     ByteForge::Log::Init();
-    CORE_INFO("Engine starting up");
+    CORE_DEBUG("Engine starting up");
 
     try
     {
