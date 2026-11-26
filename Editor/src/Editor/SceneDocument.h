@@ -3,6 +3,7 @@
 #include "Editor/Commands/CommandHistory.h"
 
 #include <Engine/Scene/UUID.h>
+#include <Engine/Scene/SceneSerializer.h>
 
 #include <nlohmann/json.hpp>
 
@@ -58,7 +59,7 @@ namespace ByteForge
         void RememberAsLast() const;
 
     public:
-        static constexpr const char* Extension = ".bfscene";
+        static constexpr const char* Extension = SceneExtension;
 
     private:
         struct PrefabStage

@@ -11,6 +11,8 @@ namespace ByteForge
     class Entity;
     class Scene;
 
+    inline constexpr const char* SceneExtension = ".bfscene";
+
     class BYTEFORGE_API SceneSerializer
     {
     public:

@@ -5,6 +5,7 @@
 #include "Engine/Assets/AnimatorController.h"
 #include "Engine/Assets/InputActions.h"
 #include "Engine/Assets/MaterialAsset.h"
+#include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Scripting/Visual/ScriptGraph.h"
 #include "Engine/Core/StringUtils.h"
 
@@ -30,7 +31,7 @@ namespace ByteForge
             return AssetType::Texture2D;
         if (ext == ".cs")
             return AssetType::Script;
-        if (ext == ".bfscene")
+        if (ext == SceneExtension)
             return AssetType::Scene;
         if (ext == PhysicsMaterialExtension)
             return AssetType::PhysicsMaterial2D;

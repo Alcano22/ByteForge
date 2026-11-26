@@ -62,6 +62,8 @@ namespace ByteForge
 
         [[nodiscard]] static Result<UUID> CreateMaterial(const fs::path& relativePath);
 
+        [[nodiscard]] static Result<UUID> CreateScene(const fs::path& relativePath);
+
         [[nodiscard]] static Ref<FontAsset> LoadFont(UUID handle);
 
         static void Reload(UUID handle);

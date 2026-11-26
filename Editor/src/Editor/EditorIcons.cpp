@@ -4,6 +4,7 @@
 #include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/StringUtils.h>
+#include <Engine/Scene/SceneSerializer.h>
 
 #include <lunasvg.h>
 
@@ -153,37 +154,37 @@ namespace ByteForge
     EditorIcon EditorIcons::ForFile(const fs::path& path)
     {
         static const std::unordered_map<std::string_view, EditorIcon> icons{
-            { ".cs",         EditorIcon::FileScript             },
+            { ".cs",          EditorIcon::FileScript             },
 
-            { ".json",       EditorIcon::FileData               },
-            { ".xml",        EditorIcon::FileData               },
-            { ".yaml",       EditorIcon::FileData               },
-            { ".yml",        EditorIcon::FileData               },
-            { ".toml",       EditorIcon::FileData               },
-            { ".csv",        EditorIcon::FileData               },
+            { ".json",        EditorIcon::FileData               },
+            { ".xml",         EditorIcon::FileData               },
+            { ".yaml",        EditorIcon::FileData               },
+            { ".yml",         EditorIcon::FileData               },
+            { ".toml",        EditorIcon::FileData               },
+            { ".csv",         EditorIcon::FileData               },
 
-            { ".ttf",        EditorIcon::FileFont               },
-            { ".otf",        EditorIcon::FileFont               },
+            { ".ttf",         EditorIcon::FileFont               },
+            { ".otf",         EditorIcon::FileFont               },
 
-            { ".wav",        EditorIcon::FileAudio              },
-            { ".ogg",        EditorIcon::FileAudio              },
-            { ".mp3",        EditorIcon::FileAudio              },
-            { ".flac",       EditorIcon::FileAudio              },
+            { ".wav",         EditorIcon::FileAudio              },
+            { ".ogg",         EditorIcon::FileAudio              },
+            { ".mp3",         EditorIcon::FileAudio              },
+            { ".flac",        EditorIcon::FileAudio              },
 
-            { ".bfscene",    EditorIcon::FileScene              },
-            { ".bfprefab",   EditorIcon::FileScene              },
+            { SceneExtension, EditorIcon::FileScene              },
+            { ".bfprefab",    EditorIcon::FileScene              },
 
-            { ".bfphysmat",  EditorIcon::FilePhysicsMaterial    },
+            { ".bfphysmat",   EditorIcon::FilePhysicsMaterial    },
 
-            { ".bfgraph",    EditorIcon::FileScriptGraph        },
+            { ".bfgraph",     EditorIcon::FileScriptGraph        },
 
-            { ".bfanim",     EditorIcon::FileAnimationClip      },
+            { ".bfanim",      EditorIcon::FileAnimationClip      },
 
-            { ".bfanimator", EditorIcon::FileAnimatorController },
+            { ".bfanimator",  EditorIcon::FileAnimatorController },
 
-            { ".bfinput",    EditorIcon::FileInputActions       },
+            { ".bfinput",     EditorIcon::FileInputActions       },
 
-            { ".bfmat",      EditorIcon::FileMaterial           }
+            { ".bfmat",       EditorIcon::FileMaterial           }
         };
 
         const std::string extension = ToLower(ToUtf8(path.extension()));

@@ -13,6 +13,7 @@
 #include <Engine/Assets/AssetType.h>
 #include <Engine/Assets/InputActions.h>
 #include <Engine/Assets/Prefab.h>
+#include <Engine/Scene/SceneSerializer.h>
 #include <Engine/ImGui/ImGuiWidgets.h>
 #include <Engine/Scripting/Visual/ScriptGraph.h>
 
@@ -808,6 +809,11 @@ namespace ByteForge
 
             ImGui::Separator();
 
+            if (ImGui::MenuItem("Scene"))
+                CreateScene();
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("C# Script"))
                 CreateScript();
             if (ImGui::MenuItem("Script Graph"))
@@ -955,6 +961,19 @@ namespace ByteForge
         AssetRegistry::Import(path);
 
         m_NewScript = path;
+        RenameAfterRefresh(path);
+    }
+
+    void AssetsPanel::CreateScene()
+    {
+        const fs::path path = MakeUniquePath(m_CurrentDirectory, "New Scene", SceneExtension);
+
+        if (const auto created = AssetManager::CreateScene(path); !created)
+        {
+            APP_ERROR("Cannot create '{}': {}", ToGenericUtf8(path), created.error());
+            return;
+        }
+
         RenameAfterRefresh(path);
     }
 

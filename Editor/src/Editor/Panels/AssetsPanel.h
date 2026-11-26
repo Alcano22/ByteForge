@@ -78,6 +78,7 @@ namespace ByteForge
         void CreateScriptGraph();
         void CreateInputActions();
         void CreateScript();
+        void CreateScene();
         void CreateMaterial();
         void CreatePrefab(Entity entity);
 

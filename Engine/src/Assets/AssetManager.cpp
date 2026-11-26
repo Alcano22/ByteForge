@@ -5,6 +5,8 @@
 #include "Engine/Core/Log.h"
 #include "Engine/Core/FileSystem.h"
 #include "Engine/Core/RuntimePaths.h"
+#include "Engine/Scene/Scene.h"
+#include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Renderer/ImageDecoder.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
@@ -566,6 +568,26 @@ namespace ByteForge
 
         if (const auto written = WriteJsonFile(path, SerializeMaterial(MaterialData{})); !written)
             return Unexpected(written.error());
+
+        return AssetRegistry::Import(relativePath);
+    }
+
+    Result<UUID> AssetManager::CreateScene(const fs::path& relativePath)
+    {
+        const fs::path path = AssetRegistry::GetAssetRoot() / relativePath;
+
+        std::error_code error;
+        if (fs::exists(path, error))
+            return Unexpected("'{}' already exists", ToGenericUtf8(relativePath));
+
+        try
+        {
+            Scene scene;
+            SceneSerializer::SerializeToFile(scene, path);
+        } catch (const std::exception& e)
+        {
+            return Unexpected(e.what());
+        }
 
         return AssetRegistry::Import(relativePath);
     }
