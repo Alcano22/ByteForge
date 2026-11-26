@@ -123,7 +123,7 @@ namespace ByteForge
             m_StepRequested = true;
     }
 
-    void EditorContext::ApplyTextureSettings(const UUID handle, const TextureSettings& settings)
+    void EditorContext::ApplyTextureSettings(const UUID handle, const TextureAssetSettings& settings)
     {
         if (AssetRegistry::SetSettings(handle, settings))
             AssetManager::Reload(handle);

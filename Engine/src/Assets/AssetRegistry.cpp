@@ -77,6 +77,7 @@ namespace ByteForge
     fs::path AssetRegistry::s_AssetRoot;
     std::unordered_map<UUID, AssetMetadata> AssetRegistry::s_Assets;
     std::unordered_map<std::string, UUID> AssetRegistry::s_PathToHandle;
+    std::unordered_map<UUID, std::vector<UUID>> AssetRegistry::s_SubAssets;
     Ref<PakArchive> AssetRegistry::s_Archive;
 
     u64 AssetRegistry::s_Revision = 0;
@@ -130,6 +131,7 @@ namespace ByteForge
 
             metadata.Path = path;
             s_PathToHandle[entry.Path] = metadata.Handle;
+            RegisterSubAssets(metadata);
             s_Assets[metadata.Handle] = std::move(metadata);
         }
 
@@ -183,6 +185,7 @@ namespace ByteForge
 
         s_Assets[metadata.Handle] = metadata;
         s_PathToHandle[key] = metadata.Handle;
+        RegisterSubAssets(metadata);
         ++s_Revision;
         return metadata.Handle;
     }
@@ -232,8 +235,11 @@ namespace ByteForge
             else
                 continue;
 
-            s_PathToHandle.erase(ToGenericUtf8(metadata.Path));
-            s_PathToHandle[ToGenericUtf8(newPath)] = handle;
+            if (!metadata.IsSubAsset())
+            {
+                s_PathToHandle.erase(ToGenericUtf8(metadata.Path));
+                s_PathToHandle[ToGenericUtf8(newPath)] = handle;
+            }
             metadata.Path = std::move(newPath);
         }
 
@@ -272,6 +278,7 @@ namespace ByteForge
                 return false;
 
             s_PathToHandle.erase(ToGenericUtf8(path));
+            s_SubAssets.erase(pair.first);
             return true;
         });
 
@@ -357,8 +364,19 @@ namespace ByteForge
                 result.push_back(metadata);
         }
 
-        std::ranges::sort(result, [](const AssetMetadata& a, const AssetMetadata& b) { return a.Path < b.Path; });
+        std::ranges::sort(result, [](const AssetMetadata& a, const AssetMetadata& b)
+        {
+            if (a.Path != b.Path)
+                return a.Path < b.Path;
+            return a.Name < b.Name;
+        });
         return result;
+    }
+
+    std::vector<UUID> AssetRegistry::GetSubAssets(const UUID owner)
+    {
+        const auto it = s_SubAssets.find(owner);
+        return it != s_SubAssets.end() ? it->second : std::vector<UUID>{};
     }
 
     bool AssetRegistry::SetSettings(const UUID handle, AssetSettings settings)
@@ -375,6 +393,12 @@ namespace ByteForge
 
         it->second.Settings = std::move(settings);
         WriteMeta(s_AssetRoot / it->second.Path, it->second);
+
+        const AssetMetadata owner = it->second;
+        UnregisterSubAssets(handle);
+        RegisterSubAssets(owner);
+
+        ++s_Revision;
         return true;
     }
 
@@ -389,6 +413,7 @@ namespace ByteForge
         s_AssetRoot.clear();
         s_Assets.clear();
         s_PathToHandle.clear();
+        s_SubAssets.clear();
         s_Archive.reset();
         ++s_Revision;
     }
@@ -420,5 +445,51 @@ namespace ByteForge
         }
 
         return ParseMeta(*data, outMetadata);
+    }
+
+    void AssetRegistry::RegisterSubAssets(const AssetMetadata& owner)
+    {
+        const auto* texture = owner.GetSettings<TextureAssetSettings>();
+        if (texture == nullptr) return;
+
+        std::vector<UUID>& children = s_SubAssets[owner.Handle];
+
+        const auto add = [&](const UUID id, std::string name)
+        {
+            if (!id.IsSet() || s_Assets.contains(id))
+            {
+                CORE_ERROR("AssetRegistry: sprite {} of '{}' clashes with another asset and is skipped",
+                           static_cast<u64>(id), ToGenericUtf8(owner.Path));
+                return;
+            }
+
+            s_Assets[id] = AssetMetadata{
+                .Handle = id,
+                .Type   = AssetType::Sprite,
+                .Path   = owner.Path,
+                .Parent = owner.Handle,
+                .Name   = std::move(name)
+            };
+            children.push_back(id);
+        };
+
+        if (texture->Mode == SpriteMode::Single)
+            add(GetSingleSpriteId(owner.Handle), {});
+        else
+        {
+            for (const SpriteRegion& region : texture->Sprites)
+                add(region.Id, region.Name);
+        }
+    }
+
+    void AssetRegistry::UnregisterSubAssets(const UUID owner)
+    {
+        const auto it = s_SubAssets.find(owner);
+        if (it == s_SubAssets.end()) return;
+
+        for (const UUID child : it->second)
+            s_Assets.erase(child);
+
+        s_SubAssets.erase(it);
     }
 }

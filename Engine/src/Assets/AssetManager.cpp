@@ -36,6 +36,7 @@ namespace ByteForge
         };
 
         std::unordered_map<UUID, Ref<TextureAsset>> s_Assets;
+        std::unordered_map<UUID, Ref<Sprite>> s_Sprites;
         std::unordered_map<UUID, std::future<DecodedTexture>> s_Pending;
         std::unordered_map<UUID, Ref<PhysicsMaterialAsset>> s_PhysicsMaterials;
         std::unordered_map<UUID, Ref<AnimationClipAsset>> s_AnimationClips;
@@ -67,8 +68,8 @@ namespace ByteForge
 
         void RequestLoad(const UUID handle, const AssetMetadata& metadata)
         {
-            const TextureSettings* stored = metadata.GetSettings<TextureSettings>();
-            const TextureSettings settings = stored != nullptr ? *stored : TextureSettings{};
+            const TextureAssetSettings* stored = metadata.GetSettings<TextureAssetSettings>();
+            const TextureSettings settings = stored != nullptr ? stored->Sampling : TextureSettings{};
             const fs::path path = metadata.Path;
             AssetSource source = AssetRegistry::GetSource();
 
@@ -182,6 +183,52 @@ namespace ByteForge
     Ref<TextureAsset> AssetManager::LoadTexture2D(const fs::path& relativePath)
     {
         return LoadTexture2D(AssetRegistry::Import(relativePath));
+    }
+
+    Ref<Sprite> AssetManager::LoadSprite(const UUID handle)
+    {
+        if (const auto it = s_Sprites.find(handle); it != s_Sprites.end())
+            return it->second;
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(handle, metadata) || metadata.Type != AssetType::Sprite)
+        {
+            CORE_ERROR("AssetManager: {} is not a known sprite asset", static_cast<u64>(handle));
+            return nullptr;
+        }
+
+        auto sprite = MakeRef<Sprite>(handle, LoadTexture2D(metadata.Parent), std::nullopt,
+                                      glm::vec2(0.5f), DefaultPixelsPerUnit);
+        RefreshSprite(*sprite);
+
+        s_Sprites.emplace(handle, sprite);
+        return sprite;
+    }
+
+    void AssetManager::RefreshSprite(Sprite& sprite)
+    {
+        const UUID texture = sprite.GetTextureAsset()->GetHandle();
+
+        AssetMetadata metadata;
+        if (!AssetRegistry::TryGetMetadata(texture, metadata)) return;
+
+        const auto* settings = metadata.GetSettings<TextureAssetSettings>();
+        if (settings == nullptr) return;
+
+        sprite.m_PixelsPerUnit = settings->PixelsPerUnit;
+
+        if (sprite.m_Handle == GetSingleSpriteId(texture))
+        {
+            sprite.m_Rect.reset();
+            sprite.m_Pivot = settings->Pivot;
+            return;
+        }
+
+        const auto region = std::ranges::find(settings->Sprites, sprite.m_Handle, &SpriteRegion::Id);
+        if (region == settings->Sprites.end()) return;
+
+        sprite.m_Rect = region->Rect;
+        sprite.m_Pivot = region->Pivot;
     }
 
     void AssetManager::RequestFontLoad(const UUID handle)
@@ -597,6 +644,12 @@ namespace ByteForge
         AssetMetadata metadata;
         if (!AssetRegistry::TryGetMetadata(handle, metadata)) return;
 
+        for (const auto& [spriteHandle, sprite] : s_Sprites)
+        {
+            if (sprite->GetTextureAsset()->GetHandle() == handle)
+                RefreshSprite(*sprite);
+        }
+
         if (s_Assets.contains(handle))
             RequestLoad(handle, metadata);
 
@@ -683,6 +736,7 @@ namespace ByteForge
     {
         s_Pending.clear();
         s_Assets.clear();
+        s_Sprites.clear();
         s_PhysicsMaterials.clear();
         s_AnimationClips.clear();
         s_AnimatorControllers.clear();

@@ -128,7 +128,7 @@ namespace ByteForge
             return true;
         }
 
-        static void ApplyTextureSettings(UUID handle, const TextureSettings& settings);
+        static void ApplyTextureSettings(UUID handle, const TextureAssetSettings& settings);
 
         void CreateEntity(std::string name, std::function<void(Entity)> setup = {});
         void RenameEntity(Entity entity, std::string name);

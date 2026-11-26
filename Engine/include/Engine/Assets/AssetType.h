@@ -21,7 +21,8 @@ namespace ByteForge
         AnimatorController,
         Font,
         InputActions,
-        Material
+        Material,
+        Sprite
     };
 
     BYTEFORGE_API const char* AssetTypeToString(AssetType type);

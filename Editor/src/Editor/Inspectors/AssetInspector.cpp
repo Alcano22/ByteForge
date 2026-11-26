@@ -34,11 +34,16 @@ namespace ByteForge::EditorUI
     {
         void DrawTextureAssetInspector(const AssetMetadata& metadata)
         {
-            const TextureSettings* stored = metadata.GetSettings<TextureSettings>();
-            TextureSettings settings = stored != nullptr ? *stored : TextureSettings{};
+            const TextureAssetSettings* stored = metadata.GetSettings<TextureAssetSettings>();
+            TextureAssetSettings settings = stored != nullptr ? *stored : TextureAssetSettings{};
 
-            if (EditTextureSettings(settings))
+            if (EditTextureSettings(settings.Sampling))
                 EditorContext::ApplyTextureSettings(metadata.Handle, settings);
+        }
+
+        void DrawSpriteInspector(const AssetMetadata& metadata)
+        {
+            ImGui::TextDisabled("Part of %s", ToUtf8(metadata.Path.filename()).c_str());
         }
 
         void DrawFontInspector(const AssetMetadata& metadata)
@@ -427,7 +432,8 @@ namespace ByteForge::EditorUI
             return;
         }
 
-        ImGui::TextUnformatted(ToUtf8(metadata.Path.filename()).c_str());
+        const std::string title = metadata.IsSubAsset() ? metadata.GetDisplayName() : ToUtf8(metadata.Path.filename());
+        ImGui::TextUnformatted(title.c_str());
         ImGui::TextDisabled("%s", AssetTypeToString(metadata.Type));
         ImGui::Separator();
 
@@ -453,6 +459,7 @@ namespace ByteForge::EditorUI
             case AssetType::Font:         DrawFontInspector(metadata);                  break;
             case AssetType::InputActions: DrawInputActionsInspector(metadata, context); break;
             case AssetType::Material:     DrawMaterialInspector(metadata, context);     break;
+            case AssetType::Sprite:       DrawSpriteInspector(metadata);                break;
             case AssetType::None:                                                       break;
         }
     }

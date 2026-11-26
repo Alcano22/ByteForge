@@ -62,6 +62,7 @@ namespace ByteForge
         [[nodiscard]] static AssetSource GetSource();
 
         [[nodiscard]] static std::vector<AssetMetadata> GetAssetsOfType(AssetType type);
+        [[nodiscard]] static std::vector<UUID> GetSubAssets(UUID owner);
 
         static bool SetSettings(UUID handle, AssetSettings settings);
 
@@ -73,10 +74,14 @@ namespace ByteForge
         static void WriteMeta(const fs::path& absolutePath, const AssetMetadata& metadata);
         [[nodiscard]] static bool ReadMeta(const fs::path& metaPath, AssetMetadata& outMetadata);
 
+        static void RegisterSubAssets(const AssetMetadata& owner);
+        static void UnregisterSubAssets(UUID owner);
+
     private:
         static fs::path s_AssetRoot;
         static std::unordered_map<UUID, AssetMetadata> s_Assets;
         static std::unordered_map<std::string, UUID> s_PathToHandle;
+        static std::unordered_map<UUID, std::vector<UUID>> s_SubAssets;
         static Ref<PakArchive> s_Archive;
 
         static u64 s_Revision;

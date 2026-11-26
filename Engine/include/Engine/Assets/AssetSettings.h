@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Assets/AssetType.h"
+#include "Engine/Assets/SpriteSheet.h"
 #include "Engine/Audio/AudioEngine.h"
 #include "Engine/Renderer/Texture2D.h"
 
@@ -10,9 +11,9 @@
 
 namespace ByteForge
 {
-    using AssetSettings = std::variant<std::monostate, TextureSettings, AudioClipSettings>;
+    using AssetSettings = std::variant<std::monostate, TextureAssetSettings, AudioClipSettings>;
 
-    [[nodiscard]] AssetSettings DefaultAssetSettings(AssetType type);
-    [[nodiscard]] nlohmann::json SerializeAssetSettings(const AssetSettings& settings);
-    [[nodiscard]] AssetSettings DeserializeAssetSettings(AssetType type, const nlohmann::json& data);
+    [[nodiscard]] BYTEFORGE_API AssetSettings DefaultAssetSettings(AssetType type);
+    [[nodiscard]] BYTEFORGE_API nlohmann::json SerializeAssetSettings(const AssetSettings& settings);
+    [[nodiscard]] BYTEFORGE_API AssetSettings DeserializeAssetSettings(AssetType type, const nlohmann::json& data);
 }

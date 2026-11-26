@@ -8,6 +8,7 @@
 #include "Engine/Assets/FontAsset.h"
 #include "Engine/Assets/InputActions.h"
 #include "Engine/Assets/MaterialAsset.h"
+#include "Engine/Assets/Sprite.h"
 #include "Engine/Scene/UUID.h"
 
 #include <expected>
@@ -24,6 +25,8 @@ namespace ByteForge
 
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(UUID handle);
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(const fs::path& relativePath);
+
+        [[nodiscard]] static Ref<Sprite> LoadSprite(UUID handle);
 
         [[nodiscard]] static Ref<PhysicsMaterialAsset> LoadPhysicsMaterial(UUID handle);
 
@@ -71,5 +74,7 @@ namespace ByteForge
     private:
         static void RequestFontLoad(UUID handle);
         static void FinishFontLoads();
+
+        static void RefreshSprite(Sprite& sprite);
     };
 }
