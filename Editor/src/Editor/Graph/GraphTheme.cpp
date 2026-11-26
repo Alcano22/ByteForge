@@ -39,9 +39,10 @@ namespace ByteForge::GraphTheme
 
     ImU32 CategoryColor(const std::string_view category)
     {
-        static constexpr std::array<std::pair<std::string_view, ImU32>, 13> colors{{
+        static constexpr std::array<std::pair<std::string_view, ImU32>, 14> colors{{
             { "Events",        IM_COL32(140, 40,  40,  255) },
             { "Custom Events", IM_COL32(45,  80,  150, 255) },
+            { "Functions",     IM_COL32(85,  60,  145, 255) },
             { "Flow",          IM_COL32(85,  85,  95,  255) },
             { "Variables",     IM_COL32(60,  70,  90,  255) },
             { "Entity",        IM_COL32(35,  105, 125, 255) },

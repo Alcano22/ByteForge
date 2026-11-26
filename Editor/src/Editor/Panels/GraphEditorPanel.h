@@ -3,10 +3,11 @@
 #include "Editor/EditorPanel.h"
 #include "Editor/Graph/GraphDocument.h"
 #include "Editor/Graph/GraphEnumPicker.h"
+#include "Editor/Graph/GraphEventsPanel.h"
+#include "Editor/Graph/GraphFunctionsPanel.h"
 #include "Editor/Graph/GraphNodeRenderer.h"
 #include "Editor/Graph/GraphNodePalette.h"
 #include "Editor/Graph/GraphVariablesPanel.h"
-#include "Editor/Graph/GraphEventsPanel.h"
 
 #include <Engine/Core/Core.h>
 #include <Engine/Scene/UUID.h>
@@ -18,6 +19,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -42,6 +44,13 @@ namespace ByteForge
         void OnImGuiRender() override;
 
     private:
+        struct Canvas
+        {
+            ax::NodeEditor::EditorContext* Editor = nullptr;
+            u64 SyncedRevision = std::numeric_limits<u64>::max();
+            i32 FramesSinceLoad = 0;
+        };
+
         void Load(UUID asset);
         bool Save() const;
 
@@ -50,9 +59,14 @@ namespace ByteForge
         void DrawRuntimeErrors();
         void FocusRequestedNode();
         void UpdateActiveLinks();
+        void DrawTabs();
         void DrawCanvas();
 
-        void SyncPositionsToEditor();
+        void OpenScope(UUID scope);
+        Canvas& CanvasFor(UUID scope);
+        void DestroyCanvases();
+
+        void SyncPositionsToEditor(Canvas& canvas) const;
         void CommitMovedNodes() const;
         void HandleCreation();
         void HandleDeletion() const;
@@ -94,14 +108,20 @@ namespace ByteForge
             glm::vec2 Position{ 0.0f };
         };
 
-        ax::NodeEditor::EditorContext* m_Editor = nullptr;
+        std::map<u64, Canvas> m_Canvases;
+        UUID m_Scope{ 0 };
+        std::vector<UUID> m_OpenFunctions;
+        std::optional<UUID> m_SelectScope;
+
         Scope<GraphDocument> m_Document;
         GraphNodeRenderer m_Renderer;
         GraphNodePalette m_Palette;
         GraphEnumPicker m_EnumPicker;
         std::optional<EnumPick> m_EnumTarget;
         GraphVariablesPanel m_Variables;
+        GraphVariablesPanel m_Locals;
         GraphEventsPanel m_Events;
+        GraphFunctionsPanel m_Functions;
         std::optional<DroppedVariable> m_DroppedVariable;
         std::optional<DrawnPin> m_PendingPin;
         UUID m_MenuNode{ 0 };
@@ -114,9 +134,6 @@ namespace ByteForge
         UUID m_RenamedComment{ 0 };
         std::string m_RenameText;
         bool m_OpenRenamePopup = false;
-
-        u64 m_SyncedRevision = std::numeric_limits<u64>::max();
-        i32 m_FramesSinceLoad = 0;
 
         bool m_FocusRequested = false;
         ImVec2 m_NewNodePosition{ 0.0f, 0.0f };

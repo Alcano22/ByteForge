@@ -31,6 +31,38 @@ namespace ByteForge
                 return true;
             return std::holds_alternative<SelectNode>(node.Data) && pin != GraphPin::Condition;
         }
+
+        constexpr f32 FunctionReturnOffset = 400.0f;
+
+        Result<> CheckParameters(const std::span<const GraphParameter> parameters)
+        {
+            std::set<std::string, std::less<>> names;
+            for (const GraphParameter& parameter : parameters)
+            {
+                if (parameter.Name.empty())
+                    return Unexpected("A parameter needs a name");
+                if (parameter.Name == GraphPin::Exec || parameter.Name == GraphPin::Then)
+                    return Unexpected("'{}' is reserved for the exec pins", parameter.Name);
+                if (!names.insert(parameter.Name).second)
+                    return Unexpected("Two parameters are named '{}'", parameter.Name);
+            }
+            return {};
+        }
+
+        GraphPinChanges DiffParameters(const std::span<const GraphParameter> before,
+                                       const std::span<const GraphParameter> after)
+        {
+            GraphPinChanges changes;
+            for (const GraphParameter& old : before)
+            {
+                const auto now = std::ranges::find(after, old.Id, &GraphParameter::Id);
+                if (now == after.end() || PinType::Of(now->Default) != PinType::Of(old.Default))
+                    changes.Dropped.insert(old.Name);
+                else if (now->Name != old.Name)
+                    changes.Renamed.emplace(old.Name, now->Name);
+            }
+            return changes;
+        }
     }
 
     PinType PinType::Of(const ScriptValue& value)
@@ -40,13 +72,15 @@ namespace ByteForge
     }
 
     ScriptGraph ScriptGraph::FromParts(std::vector<GraphNode> nodes, std::vector<GraphLink> links,
-                                       std::vector<GraphVariable> variables, std::vector<GraphCustomEvent> events)
+                                       std::vector<GraphVariable> variables, std::vector<GraphCustomEvent> events,
+                                       std::vector<GraphFunction> functions)
     {
         ScriptGraph graph;
         graph.m_Nodes = std::move(nodes);
         graph.m_Links = std::move(links);
         graph.m_Variables = std::move(variables);
         graph.m_Events = std::move(events);
+        graph.m_Functions = std::move(functions);
         return graph;
     }
 
@@ -78,9 +112,11 @@ namespace ByteForge
         return it != m_Variables.end() ? &*it : nullptr;
     }
 
-    UUID ScriptGraph::AddNode(NodeData data, const glm::vec2 position)
+    UUID ScriptGraph::AddNode(NodeData data, const glm::vec2 position, const UUID scope)
     {
-        return m_Nodes.emplace_back(GraphNode{ .Id = UUID(), .Data = std::move(data), .Position = position }).Id;
+        return m_Nodes.emplace_back(GraphNode{
+            .Id = UUID(), .Data = std::move(data), .Position = position, .Scope = scope
+        }).Id;
     }
 
     void ScriptGraph::RemoveNode(const UUID id)
@@ -129,32 +165,30 @@ namespace ByteForge
         ResetUnlinkedWildcards(touched);
     }
 
-    Result<UUID> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue)
+    Result<UUID> ScriptGraph::AddVariable(std::string name, ScriptValue defaultValue, const UUID scope)
     {
-        if (auto valid = CheckVariableName(name, UUID(0)); !valid)
+        if (auto valid = CheckVariableName(name, UUID(0), scope); !valid)
             return Unexpected(valid.error());
 
         return m_Variables.emplace_back(GraphVariable{
             .Id      = UUID(),
             .Name    = std::move(name),
-            .Default = std::move(defaultValue)
+            .Default = std::move(defaultValue),
+            .Exposed = scope == UUID(0),
+            .Scope   = scope
         }).Id;
     }
 
     Result<> ScriptGraph::RenameVariable(const UUID id, std::string name)
     {
-        const auto it = std::ranges::find(m_Variables, static_cast<u64>(id),
-                                          [](const GraphVariable& variable)
-                                          {
-                                              return static_cast<u64>(variable.Id);
-                                          });
-        if (it == m_Variables.end())
+        GraphVariable* variable = FindVariableForEdit(id);
+        if (variable == nullptr)
             return Unexpected("The variable does not exist");
 
-        if (auto valid = CheckVariableName(name, id); !valid)
+        if (auto valid = CheckVariableName(name, id, variable->Scope); !valid)
             return valid;
 
-        it->Name = std::move(name);
+        variable->Name = std::move(name);
         return {};
     }
 
@@ -187,11 +221,14 @@ namespace ByteForge
         return {};
     }
 
-    Result<> ScriptGraph::SetVariableExposed(const UUID id, bool exposed)
+    Result<> ScriptGraph::SetVariableExposed(const UUID id, const bool exposed)
     {
         GraphVariable* variable = FindVariableForEdit(id);
         if (variable == nullptr)
             return Unexpected("The variable does not exist");
+
+        if (exposed && variable->Scope != UUID(0))
+            return Unexpected("Local variables cannot be shown in the Inspector");
 
         variable->Exposed = exposed;
         return {};
@@ -276,14 +313,18 @@ namespace ByteForge
         }
     }
 
-    Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore) const
+    Result<> ScriptGraph::CheckVariableName(const std::string_view name, const UUID ignore, const UUID scope) const
     {
         if (name.empty())
             return Unexpected("A variable needs a name");
 
-        const GraphVariable* existing = FindVariable(name);
-        if (existing != nullptr && existing->Id != ignore)
-            return Unexpected("A variable named '{}' already exists", name);
+        for (const GraphVariable& existing : m_Variables)
+        {
+            if (existing.Id == ignore || existing.Name != name) continue;
+
+            if (existing.Scope == scope || existing.Scope == UUID(0) || scope == UUID(0))
+                return Unexpected("A variable named '{}' already exists", name);
+        }
 
         return {};
     }
@@ -308,39 +349,20 @@ namespace ByteForge
         return m_Events.emplace_back(GraphCustomEvent{ .Id = UUID(), .Name = std::move(name) }).Id;
     }
 
-    Result<> ScriptGraph::UpdateEvent(GraphCustomEvent updated)
+    Result<> ScriptGraph::UpdateEvent(GraphCustomEvent event)
     {
-        const auto it = std::ranges::find(m_Events, updated.Id, &GraphCustomEvent::Id);
+        const auto it = std::ranges::find(m_Events, event.Id, &GraphCustomEvent::Id);
         if (it == m_Events.end())
             return Unexpected("The event does not exist");
 
-        if (auto valid = CheckEventName(updated.Name, updated.Id); !valid)
+        if (auto valid = CheckEventName(event.Name, event.Id); !valid)
+            return valid;
+        if (auto valid = CheckParameters(event.Parameters); !valid)
             return valid;
 
-        std::set<std::string, std::less<>> names;
-        for (const GraphParameter& parameter : updated.Parameters)
-        {
-            if (parameter.Name.empty())
-                return Unexpected("A parameter needs a name");
-            if (parameter.Name == GraphPin::Exec || parameter.Name == GraphPin::Then)
-                return Unexpected("'{}' is reserved for the exec pins", parameter.Name);
-            if (!names.insert(parameter.Name).second)
-                return Unexpected("Two parameters are named '{}'", parameter.Name);
-        }
-
-        std::set<std::string, std::less<>> dropped;
-        std::map<std::string, std::string, std::less<>> renamed;
-        for (const GraphParameter& before : it->Parameters)
-        {
-            const auto after = std::ranges::find(updated.Parameters, before.Id, &GraphParameter::Id);
-            if (after == updated.Parameters.end() || PinType::Of(after->Default) != PinType::Of(before.Default))
-                dropped.insert(before.Name);
-            else if (after->Name != before.Name)
-                renamed.emplace(before.Name, after->Name);
-        }
-
-        const UUID id = updated.Id;
-        *it = std::move(updated);
+        const GraphPinChanges changes = DiffParameters(it->Parameters, event.Parameters);
+        const UUID id = event.Id;
+        *it = std::move(event);
 
         std::set<u64> entries;
         std::set<u64> calls;
@@ -352,43 +374,7 @@ namespace ByteForge
                 calls.insert(node.Id);
         }
 
-        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
-        {
-            return (entries.contains(link.From.Node) && dropped.contains(link.From.Pin)) ||
-                   (calls.contains(link.To.Node) && dropped.contains(link.To.Pin));
-        });
-        ResetUnlinkedWildcards(touched);
-
-        const auto rename = [&](std::string& pin)
-        {
-            if (const auto found = renamed.find(pin); found != renamed.end())
-                pin = found->second;
-        };
-
-        for (GraphLink& link : m_Links)
-        {
-            if (entries.contains(link.From.Node))
-                rename(link.From.Pin);
-            if (calls.contains(link.To.Node))
-                rename(link.To.Pin);
-        }
-
-        for (GraphNode& node : m_Nodes)
-        {
-            if (!calls.contains(node.Id)) continue;
-
-            std::map<std::string, ScriptValue, std::less<>> defaults;
-            for (auto& [pin, value] : node.Defaults)
-            {
-                if (dropped.contains(pin)) continue;
-
-                std::string name = pin;
-                rename(name);
-                defaults.insert_or_assign(std::move(name), std::move(value));
-            }
-            node.Defaults = std::move(defaults);
-        }
-
+        ApplyPinChanges(entries, calls, changes);
         return {};
     }
 
@@ -415,6 +401,148 @@ namespace ByteForge
         const GraphCustomEvent* existing = FindEvent(name);
         if (existing != nullptr && existing->Id != ignore)
             return Unexpected("An event named '{}' already exists", name);
+
+        return {};
+    }
+
+    void ScriptGraph::ApplyPinChanges(const std::set<u64>& sources, const std::set<u64>& targets,
+                                      const GraphPinChanges& changes)
+    {
+        const std::vector<UUID> touched = EraseLinks([&](const GraphLink& link)
+        {
+            return (sources.contains(link.From.Node) && changes.Dropped.contains(link.From.Pin)) ||
+                   (targets.contains(link.To.Node) && changes.Dropped.contains(link.To.Pin));
+        });
+        ResetUnlinkedWildcards(touched);
+
+        const auto rename = [&](std::string& pin)
+        {
+            if (const auto found = changes.Renamed.find(pin); found != changes.Renamed.end())
+                pin = found->second;
+        };
+
+        for (GraphLink& link : m_Links)
+        {
+            if (sources.contains(link.From.Node))
+                rename(link.From.Pin);
+            if (targets.contains(link.To.Node))
+                rename(link.To.Pin);
+        }
+
+        for (GraphNode& node : m_Nodes)
+        {
+            if (!targets.contains(node.Id)) continue;
+
+            std::map<std::string, ScriptValue, std::less<>> defaults;
+            for (auto& [pin, value] : node.Defaults)
+            {
+                if (changes.Dropped.contains(pin)) continue;
+
+                std::string name = pin;
+                rename(name);
+                defaults.insert_or_assign(std::move(name), std::move(value));
+            }
+            node.Defaults = std::move(defaults);
+        }
+    }
+
+    const GraphFunction* ScriptGraph::FindFunction(const UUID id) const
+    {
+        const auto it = std::ranges::find(m_Functions, id, &GraphFunction::Id);
+        return it != m_Functions.end() ? &*it : nullptr;
+    }
+
+    const GraphFunction* ScriptGraph::FindFunction(const std::string_view name) const
+    {
+        const auto it = std::ranges::find(m_Functions, name, &GraphFunction::Name);
+        return it != m_Functions.end() ? &*it : nullptr;
+    }
+
+    Result<UUID> ScriptGraph::AddFunction(std::string name)
+    {
+        if (auto valid = CheckFunctionName(name, UUID(0)); !valid)
+            return Unexpected(valid.error());
+
+        const UUID id = m_Functions.emplace_back(GraphFunction{ .Id = UUID(), .Name = std::move(name) }).Id;
+
+        const UUID entry = AddNode(FunctionEntryNode{ id }, glm::vec2(0.0f), id);
+        const UUID result = AddNode(FunctionReturnNode{ id }, glm::vec2(FunctionReturnOffset, 0.0f), id);
+        static_cast<void>(Connect({ entry, std::string(GraphPin::Then) }, { result, std::string(GraphPin::Exec) }));
+
+        return id;
+    }
+
+    Result<> ScriptGraph::UpdateFunction(GraphFunction function)
+    {
+        const auto it = std::ranges::find(m_Functions, function.Id, &GraphFunction::Id);
+        if (it == m_Functions.end())
+            return Unexpected("The function does not exist");
+
+        if (auto valid = CheckFunctionName(function.Name, function.Id); !valid)
+            return valid;
+        if (auto valid = CheckParameters(function.Inputs); !valid)
+            return valid;
+        if (auto valid = CheckParameters(function.Outputs); !valid)
+            return valid;
+
+        GraphPinChanges inputs = DiffParameters(it->Inputs, function.Inputs);
+        GraphPinChanges outputs = DiffParameters(it->Outputs, function.Outputs);
+
+        if (function.Pure && !it->Pure)
+        {
+            inputs.Dropped.insert(std::string(GraphPin::Exec));
+            outputs.Dropped.insert(std::string(GraphPin::Then));
+        }
+
+        const UUID id = function.Id;
+        *it = std::move(function);
+
+        std::set<u64> entries;
+        std::set<u64> returns;
+        std::set<u64> calls;
+        for (const GraphNode& node : m_Nodes)
+        {
+            if (const auto* entry = std::get_if<FunctionEntryNode>(&node.Data);
+                entry != nullptr && entry->Function == id)
+                entries.insert(node.Id);
+            else if (const auto* result = std::get_if<FunctionReturnNode>(&node.Data);
+                     result != nullptr && result->Function == id)
+                returns.insert(node.Id);
+            else if (const auto* call = std::get_if<CallFunctionNode>(&node.Data);
+                     call != nullptr && call->Function == id)
+                calls.insert(node.Id);
+        }
+
+        ApplyPinChanges(entries, calls, inputs);
+        ApplyPinChanges(calls, returns, outputs);
+        return {};
+    }
+
+    void ScriptGraph::RemoveFunction(const UUID id)
+    {
+        std::vector<UUID> doomed;
+        for (const GraphNode& node : m_Nodes)
+        {
+            const auto* call = std::get_if<CallFunctionNode>(&node.Data);
+            if (node.Scope == id || (call != nullptr && call->Function == id))
+                doomed.push_back(node.Id);
+        }
+
+        for (const UUID node : doomed)
+            RemoveNode(node);
+
+        std::erase_if(m_Variables, [id](const GraphVariable& variable) { return variable.Scope == id; });
+        std::erase_if(m_Functions, [id](const GraphFunction& function) { return function.Id == id; });
+    }
+
+    Result<> ScriptGraph::CheckFunctionName(const std::string_view name, const UUID ignore) const
+    {
+        if (name.empty())
+            return Unexpected("A function needs a name");
+
+        const GraphFunction* existing = FindFunction(name);
+        if (existing != nullptr && existing->Id != ignore)
+            return Unexpected("A function named '{}' already exists", name);
 
         return {};
     }
@@ -448,6 +576,15 @@ namespace ByteForge
         {
             const auto* entry = std::get_if<CustomEventNode>(&node.Data);
             return entry != nullptr && entry->Event == event;
+        });
+    }
+
+    bool HasFunctionEntry(const ScriptGraph& graph, const UUID function)
+    {
+        return std::ranges::any_of(graph.GetNodes(), [function](const GraphNode& node)
+        {
+            const auto* entry = std::get_if<FunctionEntryNode>(&node.Data);
+            return entry != nullptr && entry->Function == function;
         });
     }
 }

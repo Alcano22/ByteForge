@@ -266,6 +266,107 @@ namespace ByteForge
             return signature;
         }
 
+        NodeSignature Describe(const ScriptGraph& graph, const FunctionEntryNode& node)
+        {
+            const GraphFunction* function = graph.FindFunction(node.Function);
+            if (function == nullptr)
+                return { .Title = "Entry ?", .Category = "Functions", .Error = "The function no longer exists" };
+
+            NodeSignature signature{ .Title = function->Name, .Category = "Functions" };
+            signature.Pins.push_back(Out(GraphPin::Then, PinType::Exec()));
+            for (const GraphParameter& input : function->Inputs)
+                signature.Pins.push_back(Out(input.Name, PinType::Of(input.Default)));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph& graph, const FunctionReturnNode& node)
+        {
+            const GraphFunction* function = graph.FindFunction(node.Function);
+            if (function == nullptr)
+                return { .Title = "Return", .Category = "Functions", .Error = "The function no longer exists" };
+
+            NodeSignature signature{ .Title = "Return", .Category = "Functions" };
+            signature.Pins.push_back(In(GraphPin::Exec, PinType::Exec()));
+            for (const GraphParameter& output : function->Outputs)
+                signature.Pins.push_back(In(output.Name, PinType::Of(output.Default)));
+            return signature;
+        }
+
+        NodeSignature Describe(const ScriptGraph& graph, const CallFunctionNode& node)
+        {
+            const GraphFunction* function = graph.FindFunction(node.Function);
+            if (function == nullptr)
+                return { .Title = "Call ?", .Category = "Functions", .Error = "The function no longer exists" };
+
+            NodeSignature signature{ .Title = function->Name, .Category = "Functions", .Pure = function->Pure };
+            if (!function->Pure)
+                AddExecPins(signature);
+            for (const GraphParameter& input : function->Inputs)
+                signature.Pins.push_back(In(input.Name, PinType::Of(input.Default)));
+            for (const GraphParameter& output : function->Outputs)
+                signature.Pins.push_back(Out(output.Name, PinType::Of(output.Default)));
+            return signature;
+        }
+
+        bool CallsBack(const ScriptGraph& graph, const UUID caller, const UUID callee)
+        {
+            std::vector<u64> pending{ callee };
+            std::set<u64> visited;
+
+            while (!pending.empty())
+            {
+                const u64 function = pending.back();
+                pending.pop_back();
+
+                if (function == static_cast<u64>(caller))
+                    return true;
+                if (!visited.insert(function).second) continue;
+
+                for (const GraphNode& node : graph.GetNodes())
+                {
+                    const auto* call = std::get_if<CallFunctionNode>(&node.Data);
+                    if (call != nullptr && node.Scope == UUID(function))
+                        pending.push_back(call->Function);
+                }
+            }
+            return false;
+        }
+
+        std::optional<std::string> CheckPlacement(const ScriptGraph& graph, const GraphNode& node)
+        {
+            const bool inFunction = node.Scope != UUID(0);
+
+            if (inFunction && (std::holds_alternative<EventNode>(node.Data) ||
+                               std::holds_alternative<CustomEventNode>(node.Data)))
+                return "Events cannot be placed inside a function";
+
+            if (inFunction && std::holds_alternative<DelayNode>(node.Data))
+                return "A function cannot wait; move the Delay into a custom event";
+
+            if (const auto* entry = std::get_if<FunctionEntryNode>(&node.Data);
+                entry != nullptr && entry->Function != node.Scope)
+                return "This entry belongs to another function";
+            if (const auto* result = std::get_if<FunctionReturnNode>(&node.Data);
+                result != nullptr && result->Function != node.Scope)
+                return "This return belongs to another function";
+
+            UUID variable{ 0 };
+            if (const auto* get = std::get_if<GetVariableNode>(&node.Data))
+                variable = get->Variable;
+            else if (const auto* set = std::get_if<SetVariableNode>(&node.Data))
+                variable = set->Variable;
+
+            if (const GraphVariable* found = graph.FindVariable(variable);
+                found != nullptr && !IsVisibleIn(*found, node.Scope))
+                return "The variable is local to another function";
+
+            if (const auto* call = std::get_if<CallFunctionNode>(&node.Data);
+                call != nullptr && inFunction && CallsBack(graph, node.Scope, call->Function))
+                return "Functions cannot call themselves, directly or through other functions";
+
+            return std::nullopt;
+        }
+
         class SignatureCache
         {
         public:
@@ -427,11 +528,16 @@ namespace ByteForge
         if (from.Node == to.Node)
             return Unexpected("A node cannot connect to itself");
 
+        const GraphNode* sourceNode = graph.FindNode(from.Node);
+        const GraphNode* targetNode = graph.FindNode(to.Node);
+        if (sourceNode == nullptr || targetNode == nullptr)
+            return Unexpected("The node does not exist");
+        if (sourceNode->Scope != targetNode->Scope)
+            return Unexpected("The nodes are in different functions");
+
         SignatureCache cache(graph);
         const NodeSignature* source = cache.Find(from.Node);
         const NodeSignature* target = cache.Find(to.Node);
-        if (source == nullptr || target == nullptr)
-            return Unexpected("The node does not exist");
 
         const PinInfo* output = FindPin(*source, from.Pin, PinDirection::Output);
         const PinInfo* input = FindPin(*target, to.Pin, PinDirection::Input);
@@ -465,7 +571,7 @@ namespace ByteForge
         {
             if (variable.Name.empty())
                 report(UUID(0), GraphSeverity::Error, "A variable has no name");
-            else if (!variableNames.insert(variable.Name).second)
+            else if (variable.Scope == UUID(0) && !variableNames.insert(variable.Name).second)
                 report(UUID(0), GraphSeverity::Error, std::format("Variable '{}' is declared twice", variable.Name));
         }
 
@@ -478,16 +584,32 @@ namespace ByteForge
                 report(UUID(0), GraphSeverity::Error, std::format("Event '{}' is declared twice", event.Name));
         }
 
+        std::set<std::string, std::less<>> functionNames;
+        for (const GraphFunction& function : graph.GetFunctions())
+        {
+            if (function.Name.empty())
+                report(UUID(0), GraphSeverity::Error, "A function has no name");
+            else if (!functionNames.insert(function.Name).second)
+                report(UUID(0), GraphSeverity::Error, std::format("Function '{}' is declared twice", function.Name));
+        }
+
         SignatureCache cache(graph);
         std::set<u64> nodeIds;
         std::set<GraphEvent> events;
         std::set<u64> customEntries;
+        std::set<u64> functionEntries;
 
         for (const GraphNode& node : graph.GetNodes())
         {
             if (!nodeIds.insert(node.Id).second)
             {
                 report(node.Id, GraphSeverity::Error, "Two nodes share the same id");
+                continue;
+            }
+
+            if (node.Scope != UUID(0) && graph.FindFunction(node.Scope) == nullptr)
+            {
+                report(node.Id, GraphSeverity::Error, "The node belongs to a function that no longer exists");
                 continue;
             }
 
@@ -498,6 +620,9 @@ namespace ByteForge
                 continue;
             }
 
+            if (std::optional<std::string> misplaced = CheckPlacement(graph, node))
+                report(node.Id, GraphSeverity::Error, std::move(*misplaced));
+
             if (const auto* event = std::get_if<EventNode>(&node.Data);
                 event != nullptr && !events.insert(event->Event).second)
                 report(node.Id, GraphSeverity::Error, std::format("'{}' exists more than once", signature.Title));
@@ -505,6 +630,10 @@ namespace ByteForge
             if (const auto* entry = std::get_if<CustomEventNode>(&node.Data);
                 entry != nullptr && !customEntries.insert(entry->Event).second)
                 report(node.Id, GraphSeverity::Error, std::format("'{}' exists more than once", signature.Title));
+
+            if (const auto* entry = std::get_if<FunctionEntryNode>(&node.Data);
+                entry != nullptr && !functionEntries.insert(entry->Function).second)
+                report(node.Id, GraphSeverity::Error, std::format("'{}' has more than one entry node", signature.Title));
 
             if (const auto* call = std::get_if<CallEventNode>(&node.Data);
                 call != nullptr && !HasEventEntry(graph, call->Event))
@@ -533,6 +662,13 @@ namespace ByteForge
             }
         }
 
+        for (const GraphFunction& function : graph.GetFunctions())
+        {
+            if (!functionEntries.contains(function.Id))
+                report(UUID(0), GraphSeverity::Warning,
+                       std::format("Function '{}' has no entry node, so calling it does nothing", function.Name));
+        }
+
         using PinKey = std::pair<u64, std::string>;
         std::map<PinKey, i32> dataInputLinks;
         std::map<PinKey, i32> execOutputLinks;
@@ -549,6 +685,12 @@ namespace ByteForge
                 continue;
             }
 
+            if (graph.FindNode(link.From.Node)->Scope != graph.FindNode(link.To.Node)->Scope)
+            {
+                report(link.To.Node, GraphSeverity::Error, "Link between nodes of different functions");
+                continue;
+            }
+
             if (source->Error || target->Error) continue;
 
             const PinInfo* output = FindPin(*source, link.From.Pin, PinDirection::Output);
@@ -562,14 +704,18 @@ namespace ByteForge
             }
 
             if (!IsAssignable(output->Type, input->Type))
+            {
                 report(link.To.Node, GraphSeverity::Error,
                        std::format("'{}' cannot receive {}", input->Name, DescribePinType(output->Type)));
+            }
 
             if (output->Type.IsExec)
             {
                 if (++execOutputLinks[{ link.From.Node, link.From.Pin }] == 2)
+                {
                     report(link.From.Node, GraphSeverity::Error,
                            std::format("'{}' has more than one connection", output->Name));
+                }
             } else if (++dataInputLinks[{ link.To.Node, link.To.Pin }] == 2)
             {
                 report(link.To.Node, GraphSeverity::Error,

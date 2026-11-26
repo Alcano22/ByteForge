@@ -62,21 +62,28 @@ namespace ByteForge
             return PinType::Of(a.Default) == PinType::Of(b.Default);
         }
 
-        Result<UUID> MatchVariable(ScriptGraph& target, const GraphVariable& source)
+        Result<UUID> MatchVariable(ScriptGraph& target, const GraphVariable& source, const UUID scope)
         {
-            if (const GraphVariable* same = target.FindVariable(source.Id); same != nullptr && SameType(*same, source))
+            if (const GraphVariable* same = target.FindVariable(source.Id);
+                same != nullptr && IsVisibleIn(*same, scope) && SameType(*same, source))
                 return same->Id;
 
-            if (const GraphVariable* named = target.FindVariable(std::string_view(source.Name));
-                named != nullptr && SameType(*named, source))
-                return named->Id;
+            for (const GraphVariable& named : target.GetVariables())
+            {
+                if (named.Name == source.Name && IsVisibleIn(named, scope) && SameType(named, source))
+                    return named.Id;
+            }
 
-            const Result<UUID> added = target.AddVariable(FreeVariableName(target, source.Name), source.Default);
+            const UUID owner = source.Scope == UUID(0) ? UUID(0) : scope;
+            const Result<UUID> added = target.AddVariable(FreeVariableName(target, source.Name), source.Default, owner);
             if (!added)
                 return added;
 
-            if (const Result<> exposed = target.SetVariableExposed(*added, source.Exposed); !exposed)
-                return Unexpected(exposed.error());
+            if (owner == UUID(0))
+            {
+                if (const Result<> exposed = target.SetVariableExposed(*added, source.Exposed); !exposed)
+                    return Unexpected(exposed.error());
+            }
             return added;
         }
 
@@ -129,6 +136,59 @@ namespace ByteForge
             return added;
         }
 
+        std::optional<UUID> UsedFunction(const NodeData& data)
+        {
+            if (const auto* entry = std::get_if<FunctionEntryNode>(&data))
+                return entry->Function;
+            if (const auto* result = std::get_if<FunctionReturnNode>(&data))
+                return result->Function;
+            if (const auto* call = std::get_if<CallFunctionNode>(&data))
+                return call->Function;
+            return std::nullopt;
+        }
+
+        void ReplaceFunction(NodeData& data, const UUID function)
+        {
+            if (auto* entry = std::get_if<FunctionEntryNode>(&data))
+                entry->Function = function;
+            else if (auto* result = std::get_if<FunctionReturnNode>(&data))
+                result->Function = function;
+            else if (auto* call = std::get_if<CallFunctionNode>(&data))
+                call->Function = function;
+        }
+
+        std::string FreeFunctionName(const ScriptGraph& graph, const std::string& name)
+        {
+            if (graph.FindFunction(std::string_view(name)) == nullptr)
+                return name;
+
+            for (u32 suffix = 2;; ++suffix)
+            {
+                std::string candidate = std::format("{} {}", name, suffix);
+                if (graph.FindFunction(std::string_view(candidate)) == nullptr)
+                    return candidate;
+            }
+        }
+
+        Result<UUID> MatchFunction(ScriptGraph& target, const GraphFunction& source)
+        {
+            if (const GraphFunction* same = target.FindFunction(source.Id))
+                return same->Id;
+            if (const GraphFunction* named = target.FindFunction(std::string_view(source.Name)))
+                return named->Id;
+
+            const Result<UUID> added = target.AddFunction(FreeFunctionName(target, source.Name));
+            if (!added)
+                return added;
+
+            GraphFunction copy = source;
+            copy.Id = *added;
+            copy.Name = target.FindFunction(*added)->Name;
+            if (const Result<> updated = target.UpdateFunction(std::move(copy)); !updated)
+                return Unexpected(updated.error());
+            return added;
+        }
+
         Result<ScriptGraph> ReadClipboard(const std::string_view text)
         {
             const nlohmann::json json = nlohmann::json::parse(text, nullptr, false);
@@ -160,6 +220,7 @@ namespace ByteForge
         std::vector<GraphNode> copiedNodes;
         std::set<u64> usedVariables;
         std::set<u64> usedEvents;
+        std::set<u64> usedFunctions;
         for (const GraphNode& node : graph.GetNodes())
         {
             if (!selected.contains(node.Id)) continue;
@@ -169,6 +230,8 @@ namespace ByteForge
                 usedVariables.insert(*variable);
             if (const std::optional<UUID> event = UsedEvent(node.Data))
                 usedEvents.insert(*event);
+            if (const std::optional<UUID> function = UsedFunction(node.Data))
+                usedFunctions.insert(*function);
         }
 
         std::vector<GraphLink> copiedLinks;
@@ -192,17 +255,26 @@ namespace ByteForge
                 copiedEvents.push_back(event);
         }
 
+        std::vector<GraphFunction> copiedFunctions;
+        for (const GraphFunction& function : graph.GetFunctions())
+        {
+            if (usedFunctions.contains(function.Id))
+                copiedFunctions.push_back(function);
+        }
+
         const ScriptGraph copied = ScriptGraph::FromParts(std::move(copiedNodes), std::move(copiedLinks),
-                                                          std::move(copiedVariables), std::move(copiedEvents));
+                                                          std::move(copiedVariables), std::move(copiedEvents),
+                                                          std::move(copiedFunctions));
 
         const nlohmann::json json{
-            { ClipboardKey, ClipboardVersion             },
+            { ClipboardKey, ClipboardVersion            },
             { "graph",      SerializeScriptGraph(copied) }
         };
         return json.dump();
     }
 
-    Result<PastedGraphNodes> PasteGraphNodes(ScriptGraph& graph, const std::string_view text, const glm::vec2 position)
+    Result<PastedGraphNodes> PasteGraphNodes(ScriptGraph& graph, const std::string_view text,
+                                             const glm::vec2 position, const UUID scope)
     {
         const Result<ScriptGraph> copied = ReadClipboard(text);
         if (!copied)
@@ -212,14 +284,23 @@ namespace ByteForge
         for (const GraphNode& node : copied->GetNodes())
             origin = glm::min(origin, node.Position);
 
+        const bool inFunction = scope != UUID(0);
+
         PastedGraphNodes pasted;
         std::map<u64, UUID> nodeIds;
         std::map<u64, UUID> variableIds;
         std::map<u64, UUID> eventIds;
+        std::map<u64, UUID> functionIds;
 
         for (const GraphNode& node : copied->GetNodes())
         {
-            if (const auto* event = std::get_if<EventNode>(&node.Data); event != nullptr && HasEvent(graph, event->Event))
+            if (const auto* event = std::get_if<EventNode>(&node.Data);
+                event != nullptr && (inFunction || HasEvent(graph, event->Event)))
+            {
+                ++pasted.SkippedEvents;
+                continue;
+            }
+            if (inFunction && std::holds_alternative<CustomEventNode>(node.Data))
             {
                 ++pasted.SkippedEvents;
                 continue;
@@ -232,7 +313,7 @@ namespace ByteForge
                 if (match == variableIds.end())
                 {
                     const GraphVariable* source = copied->FindVariable(*variable);
-                    const Result<UUID> target = source != nullptr ? MatchVariable(graph, *source)
+                    const Result<UUID> target = source != nullptr ? MatchVariable(graph, *source, scope)
                                                                   : Result<UUID>(*variable);
                     if (!target) continue;
 
@@ -263,7 +344,30 @@ namespace ByteForge
                 }
             }
 
-            const UUID id = graph.AddNode(std::move(data), position + (node.Position - origin));
+            if (const std::optional<UUID> function = UsedFunction(data))
+            {
+                auto match = functionIds.find(*function);
+                if (match == functionIds.end())
+                {
+                    const GraphFunction* source = copied->FindFunction(*function);
+                    const Result<UUID> target = source != nullptr ? MatchFunction(graph, *source)
+                                                                  : Result<UUID>(*function);
+                    if (!target) continue;
+
+                    match = functionIds.emplace(*function, *target).first;
+                }
+                ReplaceFunction(data, match->second);
+
+                const bool entry = std::holds_alternative<FunctionEntryNode>(data);
+                const bool result = std::holds_alternative<FunctionReturnNode>(data);
+                if (((entry || result) && match->second != scope) || (entry && HasFunctionEntry(graph, match->second)))
+                {
+                    ++pasted.SkippedEvents;
+                    continue;
+                }
+            }
+
+            const UUID id = graph.AddNode(std::move(data), position + (node.Position - origin), scope);
             graph.FindNode(id)->Defaults = node.Defaults;
 
             nodeIds.emplace(node.Id, id);

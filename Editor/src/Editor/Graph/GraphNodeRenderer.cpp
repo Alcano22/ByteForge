@@ -176,7 +176,8 @@ namespace ByteForge
         }
     }
 
-    void GraphNodeRenderer::Draw(const ScriptGraph& graph, const std::span<const GraphDiagnostic> diagnostics,
+    void GraphNodeRenderer::Draw(const ScriptGraph& graph, const UUID scope,
+                                 const std::span<const GraphDiagnostic> diagnostics,
                                  const std::span<const GraphRuntimeError> runtimeErrors,
                                  const std::unordered_set<uintptr_t>& activeLinks)
     {
@@ -206,7 +207,10 @@ namespace ByteForge
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 0.0f));
         for (const GraphNode& node : graph.GetNodes())
-            DrawNode(graph, node);
+        {
+            if (node.Scope == scope)
+                DrawNode(graph, node);
+        }
         ImGui::PopStyleVar();
 
         for (const GraphLink& link : graph.GetLinks())

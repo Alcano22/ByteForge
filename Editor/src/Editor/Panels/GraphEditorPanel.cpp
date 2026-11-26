@@ -96,11 +96,7 @@ namespace ByteForge
     GraphEditorPanel::GraphEditorPanel(EditorContext& context)
         : EditorPanel(context, Name) {}
 
-    GraphEditorPanel::~GraphEditorPanel()
-    {
-        if (m_Editor != nullptr)
-            NE::DestroyEditor(m_Editor);
-    }
+    GraphEditorPanel::~GraphEditorPanel() { DestroyCanvases(); }
 
     void GraphEditorPanel::OpenGraph(const UUID asset)
     {
@@ -129,17 +125,17 @@ namespace ByteForge
 
         m_Document = std::move(*document);
 
-        if (m_Editor != nullptr)
-            NE::DestroyEditor(m_Editor);
-        m_Editor = CreateNodeEditor();
-
-        m_SyncedRevision = std::numeric_limits<u64>::max();
-        m_FramesSinceLoad = 0;
+        DestroyCanvases();
+        m_Scope = UUID(0);
+        m_OpenFunctions.clear();
+        m_SelectScope.reset();
 
         m_EnumTarget.reset();
 
         m_Variables.Reset();
+        m_Locals.Reset();
         m_Events.Reset();
+        m_Functions.Reset();
         m_DroppedVariable.reset();
         m_FocusNode.reset();
         m_LinkTakenAt.clear();
@@ -194,22 +190,110 @@ namespace ByteForge
 
                 ImGui::BeginChild("##Sidebar", ImVec2(SidebarWidth, 0.0f),
                                   ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
-                m_Variables.Draw(*m_Document, GetContext().SelectionContext);
+                m_Variables.Draw(*m_Document, GetContext().SelectionContext, UUID(0));
+
+                if (m_Scope != UUID(0))
+                {
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+                    m_Locals.Draw(*m_Document, GetContext().SelectionContext, m_Scope);
+                }
 
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
                 m_Events.Draw(*m_Document);
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                m_Functions.Draw(*m_Document);
                 ImGui::EndChild();
 
+                if (const std::optional<UUID> open = m_Functions.TakeOpenRequest())
+                    OpenScope(*open);
+
                 ImGui::SameLine();
+                ImGui::BeginGroup();
+                DrawTabs();
                 DrawCanvas();
+                ImGui::EndGroup();
             }
         }
 
         ImGui::End();
 
         GraphDebugger::Watch(watched);
+    }
+
+    void GraphEditorPanel::DrawTabs()
+    {
+        const ScriptGraph& graph = m_Document->GetGraph();
+        std::erase_if(m_OpenFunctions, [&](const UUID function) { return graph.FindFunction(function) == nullptr; });
+        if (m_Scope != UUID(0) && graph.FindFunction(m_Scope) == nullptr)
+            m_Scope = UUID(0);
+
+        if (!ImGui::BeginTabBar("##Scopes")) return;
+
+        const auto flagsFor = [&](const UUID scope)
+        {
+            return m_SelectScope && *m_SelectScope == scope ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+        };
+
+        if (ImGui::BeginTabItem("Event Graph", nullptr, flagsFor(UUID(0))))
+        {
+            m_Scope = UUID(0);
+            ImGui::EndTabItem();
+        }
+
+        std::optional<UUID> closed;
+        for (const UUID function : m_OpenFunctions)
+        {
+            const std::string label = std::format("{}###Function{}", graph.FindFunction(function)->Name,
+                                                  static_cast<u64>(function));
+            bool open = true;
+            if (ImGui::BeginTabItem(label.c_str(), &open, flagsFor(function)))
+            {
+                m_Scope = function;
+                ImGui::EndTabItem();
+            }
+
+            if (!open)
+                closed = function;
+        }
+
+        ImGui::EndTabBar();
+        m_SelectScope.reset();
+
+        if (closed)
+        {
+            std::erase(m_OpenFunctions, *closed);
+            if (m_Scope == *closed)
+                m_Scope = UUID(0);
+        }
+    }
+
+    void GraphEditorPanel::OpenScope(const UUID scope)
+    {
+        if (scope != UUID(0) && std::ranges::find(m_OpenFunctions, scope) == m_OpenFunctions.end())
+            m_OpenFunctions.push_back(scope);
+        m_SelectScope = scope;
+    }
+
+    GraphEditorPanel::Canvas& GraphEditorPanel::CanvasFor(const UUID scope)
+    {
+        Canvas& canvas = m_Canvases[static_cast<u64>(scope)];
+        if (canvas.Editor == nullptr)
+            canvas.Editor = CreateNodeEditor();
+        return canvas;
+    }
+
+    void GraphEditorPanel::DestroyCanvases()
+    {
+        for (const auto& [scope, canvas] : m_Canvases)
+            NE::DestroyEditor(canvas.Editor);
+        m_Canvases.clear();
     }
 
     void GraphEditorPanel::HandleShortcuts() const
@@ -313,7 +397,8 @@ namespace ByteForge
 
     void GraphEditorPanel::DrawCanvas()
     {
-        NE::SetCurrentEditor(m_Editor);
+        Canvas& current = CanvasFor(m_Scope);
+        NE::SetCurrentEditor(current.Editor);
         GraphTheme::ApplyStyle();
 
         const ImVec2 canvasMin = ImGui::GetCursorScreenPos();
@@ -322,13 +407,13 @@ namespace ByteForge
 
         NE::Begin("Graph");
 
-        SyncPositionsToEditor();
+        SyncPositionsToEditor(current);
 
         const f32 previousDensity = ImGui::GetFontRasterizerDensity();
         const f32 canvasScale = 1.0f / NE::GetCurrentZoom();
         ImGui::SetFontRasterizerDensity(SnapRasterizerDensity(previousDensity * canvasScale));
         UpdateActiveLinks();
-        m_Renderer.Draw(m_Document->GetGraph(), m_Document->GetDiagnostics(), m_RuntimeErrors, m_ActiveLinks);
+        m_Renderer.Draw(m_Document->GetGraph(), m_Scope, m_Document->GetDiagnostics(), m_RuntimeErrors, m_ActiveLinks);
         ImGui::SetFontRasterizerDensity(previousDensity);
         SelectPastedNodes();
         ApplyValueEdits();
@@ -343,7 +428,7 @@ namespace ByteForge
         DrawCommentRename();
         DrawEnumPicker();
 
-        if (m_FramesSinceLoad++ == 1)
+        if (current.FramesSinceLoad++ == 1)
             NE::NavigateToContent(0.0f);
         FocusRequestedNode();
 
@@ -371,20 +456,36 @@ namespace ByteForge
 
     void GraphEditorPanel::FocusRequestedNode()
     {
-        const std::optional<UUID> node = std::exchange(m_FocusNode, std::nullopt);
-        if (!node || m_Document->GetGraph().FindNode(*node) == nullptr) return;
+        if (!m_FocusNode) return;
 
-        NE::SelectNode(GraphIds::Node(*node));
+        const GraphNode* node = m_Document->GetGraph().FindNode(*m_FocusNode);
+        if (node == nullptr)
+        {
+            m_FocusNode.reset();
+            return;
+        }
+
+        if (node->Scope != m_Scope)
+        {
+            OpenScope(node->Scope);
+            return;
+        }
+
+        NE::SelectNode(GraphIds::Node(node->Id));
         NE::NavigateToSelection(false, 0.3f);
+        m_FocusNode.reset();
     }
 
-    void GraphEditorPanel::SyncPositionsToEditor()
+    void GraphEditorPanel::SyncPositionsToEditor(Canvas& canvas) const
     {
-        if (m_SyncedRevision == m_Document->GetRevision()) return;
-        m_SyncedRevision = m_Document->GetRevision();
+        if (canvas.SyncedRevision == m_Document->GetRevision()) return;
+        canvas.SyncedRevision = m_Document->GetRevision();
 
         for (const GraphNode& node : m_Document->GetGraph().GetNodes())
-            NE::SetNodePosition(GraphIds::Node(node.Id), ImVec2(node.Position.x, node.Position.y));
+        {
+            if (node.Scope == m_Scope)
+                NE::SetNodePosition(GraphIds::Node(node.Id), ImVec2(node.Position.x, node.Position.y));
+        }
     }
 
     void GraphEditorPanel::CommitMovedNodes() const
@@ -395,6 +496,8 @@ namespace ByteForge
         std::vector<std::pair<UUID, glm::vec2>> resized;
         for (const GraphNode& node : m_Document->GetGraph().GetNodes())
         {
+            if (node.Scope != m_Scope) continue;
+
             const ImVec2 position = NE::GetNodePosition(GraphIds::Node(node.Id));
             if (position.x >= FLT_MAX) continue;
 
@@ -562,9 +665,10 @@ namespace ByteForge
                 if (pending && pending->Direction == PinDirection::Input)
                     position.x -= InputSideOffset;
 
+                const UUID scope = m_Scope;
                 m_Document->Edit(pending ? "Add Connected Node" : "Add Node", [&](ScriptGraph& graph)
                 {
-                    const UUID node = graph.AddNode(std::move(*data), position);
+                    const UUID node = graph.AddNode(std::move(*data), position, scope);
                     if (pending)
                         ConnectNewNode(graph, *pending, node);
                     return true;
@@ -593,6 +697,13 @@ namespace ByteForge
         {
             if (ImGui::MenuItem("Rename"))
                 BeginCommentRename(id);
+            ImGui::Separator();
+        }
+
+        if (const auto* call = std::get_if<CallFunctionNode>(&node->Data))
+        {
+            if (ImGui::MenuItem("Open Function"))
+                OpenScope(call->Function);
             ImGui::Separator();
         }
 
@@ -727,10 +838,11 @@ namespace ByteForge
     {
         std::vector<UUID> added;
         usize skipped = 0;
+        const UUID scope = m_Scope;
 
         m_Document->Edit(std::move(name), [&](ScriptGraph& graph)
         {
-            const Result<PastedGraphNodes> pasted = PasteGraphNodes(graph, text, position);
+            const Result<PastedGraphNodes> pasted = PasteGraphNodes(graph, text, position, scope);
             if (!pasted)
             {
                 APP_WARN("Cannot paste: {}", pasted.error());
@@ -743,7 +855,7 @@ namespace ByteForge
         });
 
         if (skipped > 0)
-            APP_WARN("Skipped {} event node(s) the graph already has", skipped);
+            APP_WARN("Skipped {} event, entry or return node(s) that cannot go here", skipped);
 
         m_PendingSelection = std::move(added);
     }
@@ -760,7 +872,15 @@ namespace ByteForge
     void GraphEditorPanel::HandleCommentShortcuts()
     {
         if (const NE::NodeId clicked = NE::GetDoubleClickedNode(); clicked.Get() != 0)
-            BeginCommentRename(GraphIds::ToUUID(clicked));
+        {
+            const UUID id = GraphIds::ToUUID(clicked);
+            const GraphNode* node = m_Document->GetGraph().FindNode(id);
+
+            if (const auto* call = node != nullptr ? std::get_if<CallFunctionNode>(&node->Data) : nullptr)
+                OpenScope(call->Function);
+            else
+                BeginCommentRename(id);
+        }
 
         if (ImGui::IsAnyItemActive()) return;
 
@@ -780,10 +900,11 @@ namespace ByteForge
         const ImVec2 mouse = NE::ScreenToCanvas(ImGui::GetMousePos());
         const f32 pin = ImGui::GetTextLineHeight();
         const glm::vec2 position(mouse.x - pin, mouse.y - pin * 0.5f);
+        const UUID scope = m_Scope;
 
         m_Document->Edit("Add Reroute", [&](ScriptGraph& graph)
         {
-            const UUID reroute = graph.AddNode(RerouteNode{}, position);
+            const UUID reroute = graph.AddNode(RerouteNode{}, position, scope);
             static_cast<void>(graph.Connect(split.From, { reroute, std::string(GraphPin::In) }));
             static_cast<void>(graph.Connect({ reroute, std::string(GraphPin::Out) }, split.To));
             return true;
@@ -810,9 +931,10 @@ namespace ByteForge
         const glm::vec2 size = glm::ceil(max - min + glm::vec2(2.0f * CommentMargin));
 
         UUID added{ 0 };
+        const UUID scope = m_Scope;
         m_Document->Edit("Add Comment", [&](ScriptGraph& graph)
         {
-            added = graph.AddNode(CommentNode{ .Size = size }, position);
+            added = graph.AddNode(CommentNode{ .Size = size }, position, scope);
             return true;
         });
 
@@ -871,7 +993,7 @@ namespace ByteForge
     void GraphEditorPanel::OpenPalette(const ImVec2 position, const std::optional<PaletteContext> context)
     {
         m_NewNodePosition = position;
-        m_Palette.Open(m_Document->GetGraph(), context);
+        m_Palette.Open(m_Document->GetGraph(), m_Scope, context);
 
         NE::Suspend();
         ImGui::OpenPopup(AddNodePopup);
@@ -980,12 +1102,13 @@ namespace ByteForge
     {
         if (!ImGui::BeginDragDropTargetCustom(canvas, ImGui::GetID("##VariableDrop"))) return;
 
+        const ImVec2 dropped = NE::ScreenToCanvas(ImGui::GetMousePos());
+        const glm::vec2 position(dropped.x, dropped.y);
+
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphVariablePayloadType))
         {
             if (const std::optional<UUID> variable = ReadGraphVariablePayload(payload))
             {
-                const ImVec2 dropped = NE::ScreenToCanvas(ImGui::GetMousePos());
-                const glm::vec2 position(dropped.x, dropped.y);
                 const ImGuiIO& io = ImGui::GetIO();
 
                 if (io.KeyCtrl)
@@ -1004,14 +1127,17 @@ namespace ByteForge
         {
             if (const std::optional<UUID> event = ReadGraphEventPayload(payload))
             {
-                const ImVec2 dropped = NE::ScreenToCanvas(ImGui::GetMousePos());
-                const glm::vec2 position(dropped.x, dropped.y);
-
-                if (HasEventEntry(m_Document->GetGraph(), *event))
+                if (m_Scope != UUID(0) || HasEventEntry(m_Document->GetGraph(), *event))
                     AddVariableNode(CallEventNode{ *event }, position);
                 else
                     AddVariableNode(CustomEventNode{ *event }, position);
             }
+        }
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphFunctionPayloadType))
+        {
+            if (const std::optional<UUID> function = ReadGraphFunctionPayload(payload))
+                AddVariableNode(CallFunctionNode{ *function }, position);
         }
 
         ImGui::EndDragDropTarget();
@@ -1058,9 +1184,10 @@ namespace ByteForge
 
     void GraphEditorPanel::AddVariableNode(NodeData data, const glm::vec2 position)
     {
+        const UUID scope = m_Scope;
         m_Document->Edit("Add Node", [&](ScriptGraph& graph)
         {
-            graph.AddNode(std::move(data), position);
+            graph.AddNode(std::move(data), position, scope);
             return true;
         });
     }

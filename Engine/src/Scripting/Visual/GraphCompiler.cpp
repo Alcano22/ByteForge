@@ -38,8 +38,14 @@ namespace ByteForge
                 {
                     const u32 slot = AddSlot(variable.Default);
                     m_VariableSlots.emplace(variable.Id, slot);
-                    m_Program.VariableSlots.emplace(variable.Name, slot);
 
+                    if (variable.Scope != UUID(0))
+                    {
+                        m_LocalResets[static_cast<u64>(variable.Scope)].emplace_back(AddSlot(variable.Default), slot);
+                        continue;
+                    }
+
+                    m_Program.VariableSlots.emplace(variable.Name, slot);
                     if (variable.Exposed)
                     {
                         m_Program.Fields.push_back({ .Name = variable.Name, .Type = GetFieldType(variable.Default),
@@ -51,6 +57,14 @@ namespace ByteForge
                 {
                     for (const GraphParameter& parameter : event.Parameters)
                         m_ParameterSlots.emplace(ParameterKey(event.Id, parameter.Name), AddSlot(parameter.Default));
+                }
+
+                for (const GraphFunction& function : m_Graph.GetFunctions())
+                {
+                    for (const GraphParameter& input : function.Inputs)
+                        m_FunctionInputs.emplace(ParameterKey(function.Id, input.Name), AddSlot(input.Default));
+                    for (const GraphParameter& output : function.Outputs)
+                        m_FunctionOutputs.emplace(ParameterKey(function.Id, output.Name), AddSlot(output.Default));
                 }
 
                 for (const GraphNode& node : m_Graph.GetNodes())
@@ -82,8 +96,27 @@ namespace ByteForge
                     EmitContinuation(node.Id, GraphPin::Then);
                 }
 
+                for (const GraphNode& node : m_Graph.GetNodes())
+                {
+                    const auto* entry = std::get_if<FunctionEntryNode>(&node.Data);
+                    if (entry == nullptr) continue;
+
+                    m_FunctionEntries.emplace(entry->Function, Here());
+                    m_Label = Label(node.Id);
+
+                    if (const auto resets = m_LocalResets.find(entry->Function); resets != m_LocalResets.end())
+                    {
+                        for (const auto& [initial, slot] : resets->second)
+                            Emit(GraphOp::Copy, initial, slot);
+                    }
+
+                    EmitContinuation(node.Id, GraphPin::Then);
+                }
+
                 for (const auto& [call, event] : m_EventCalls)
                     m_Program.Code[call].A = m_EventEntries.at(event);
+                for (const auto& [call, function] : m_FunctionCalls)
+                    m_Program.Code[call].A = m_FunctionEntries.at(function);
 
                 return std::move(m_Program);
             }
@@ -332,6 +365,58 @@ namespace ByteForge
 
             void EmitStatement(const GraphNode&, const CustomEventNode&, std::string_view) { Emit(GraphOp::Return); }
 
+            void EmitStatement(const GraphNode& node, const CallFunctionNode& call, std::string_view)
+            {
+                std::set<u64> evaluated;
+                EmitFunctionCall(node, call, evaluated);
+                EmitContinuation(node.Id, GraphPin::Then);
+            }
+
+            void EmitStatement(const GraphNode& node, const FunctionReturnNode& result, std::string_view)
+            {
+                std::set<u64> evaluated;
+                std::vector<std::pair<u32, u32>> values;
+                for (const GraphParameter& output : m_Graph.FindFunction(result.Function)->Outputs)
+                {
+                    const u32 value = ResolveInput(node, RequirePin(node.Id, output.Name, PinDirection::Input),
+                                                   evaluated);
+                    values.emplace_back(value, m_FunctionOutputs.at(ParameterKey(result.Function, output.Name)));
+                }
+
+                m_Label = Label(node.Id);
+                for (const auto& [value, slot] : values)
+                    Emit(GraphOp::Copy, value, slot);
+                Emit(GraphOp::Return);
+            }
+
+            void EmitStatement(const GraphNode&, const FunctionEntryNode&, std::string_view) { Emit(GraphOp::Return); }
+
+            void EmitFunctionCall(const GraphNode& node, const CallFunctionNode& call, std::set<u64>& evaluated)
+            {
+                const GraphFunction& function = *m_Graph.FindFunction(call.Function);
+
+                std::vector<std::pair<u32, u32>> arguments;
+                for (const GraphParameter& input : function.Inputs)
+                {
+                    const u32 value = ResolveInput(node, RequirePin(node.Id, input.Name, PinDirection::Input),
+                                                   evaluated);
+                    arguments.emplace_back(value, m_FunctionInputs.at(ParameterKey(function.Id, input.Name)));
+                }
+
+                m_Label = Label(node.Id);
+                for (const auto& [value, slot] : arguments)
+                    Emit(GraphOp::Copy, value, slot);
+
+                if (HasFunctionEntry(m_Graph, function.Id))
+                    m_FunctionCalls.emplace_back(Emit(GraphOp::Gosub), function.Id);
+
+                for (const GraphParameter& output : function.Outputs)
+                {
+                    Emit(GraphOp::Copy, m_FunctionOutputs.at(ParameterKey(function.Id, output.Name)),
+                         OutputSlot(node.Id, RequirePin(node.Id, output.Name, PinDirection::Output)));
+                }
+            }
+
             static std::pair<u64, std::string> ParameterKey(const UUID event, std::string name)
             {
                 return { static_cast<u64>(event), std::move(name) };
@@ -364,6 +449,8 @@ namespace ByteForge
             {
                 if (const auto* call = std::get_if<CallNode>(&node.Data))
                     EmitCall(node, *call, evaluated);
+                else if (const auto* function = std::get_if<CallFunctionNode>(&node.Data))
+                    EmitFunctionCall(node, *function, evaluated);
                 else if (std::holds_alternative<SelectNode>(node.Data))
                     EmitSelect(node, evaluated);
             }
@@ -439,6 +526,8 @@ namespace ByteForge
                     return m_VariableSlots.at(set->Variable);
                 if (const auto* entry = std::get_if<CustomEventNode>(&graphNode.Data))
                     return m_ParameterSlots.at(ParameterKey(entry->Event, pin.Name));
+                if (const auto* entry = std::get_if<FunctionEntryNode>(&graphNode.Data))
+                    return m_FunctionInputs.at(ParameterKey(entry->Function, pin.Name));
 
                 std::pair<u64, std::string> key{ node, pin.Name };
                 if (const auto it = m_OutputSlots.find(key); it != m_OutputSlots.end())
@@ -522,6 +611,11 @@ namespace ByteForge
             std::map<std::pair<u64, std::string>, u32> m_ParameterSlots;
             std::map<u64, u32> m_EventEntries;
             std::vector<std::pair<u32, u64>> m_EventCalls;
+            std::map<u64, std::vector<std::pair<u32, u32>>> m_LocalResets;
+            std::map<std::pair<u64, std::string>, u32> m_FunctionInputs;
+            std::map<std::pair<u64, std::string>, u32> m_FunctionOutputs;
+            std::map<u64, u32> m_FunctionEntries;
+            std::vector<std::pair<u32, u64>> m_FunctionCalls;
             u32 m_Label = 0;
         };
     }

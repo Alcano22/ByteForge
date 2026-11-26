@@ -65,8 +65,16 @@ namespace ByteForge
         }
     }
 
-    void GraphVariablesPanel::Draw(GraphDocument& document, Selection& selection)
+    void GraphVariablesPanel::Draw(GraphDocument& document, Selection& selection, const UUID scope)
     {
+        ImGui::PushID(scope == UUID(0) ? "##Members" : "##Locals");
+
+        if (m_Scope != scope)
+        {
+            Reset();
+            m_Scope = scope;
+        }
+
         if (m_Selected.IsSet() && document.GetGraph().FindVariable(m_Selected) == nullptr)
             m_Selected = UUID(0);
 
@@ -77,6 +85,7 @@ namespace ByteForge
         {
             ImGui::Spacing();
             ImGui::TextDisabled("Select a variable to edit it");
+            ImGui::PopID();
             return;
         }
 
@@ -84,6 +93,8 @@ namespace ByteForge
 
         ImGui::SeparatorText("Details");
         DrawDetails(document, variable, selection);
+
+        ImGui::PopID();
     }
 
     void GraphVariablesPanel::Reset()
@@ -98,17 +109,23 @@ namespace ByteForge
 
     void GraphVariablesPanel::DrawList(GraphDocument& document)
     {
+        const bool local = m_Scope != UUID(0);
+
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Variables");
+        ImGui::TextUnformatted(local ? "Local Variables" : "Variables");
 
         ImGui::SameLine();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - EditorUI::ButtonWidth("+"));
         if (ImGui::Button("+"))
             AddVariable(document);
-        ImGui::SetItemTooltip("Add a variable");
+        ImGui::SetItemTooltip(local ? "Add a variable that only this function sees" : "Add a variable");
 
         const ScriptGraph& graph = document.GetGraph();
-        if (graph.GetVariables().empty())
+        const bool empty = std::ranges::none_of(graph.GetVariables(), [&](const GraphVariable& variable)
+        {
+            return variable.Scope == m_Scope;
+        });
+        if (empty)
         {
             ImGui::TextDisabled("No variables yet");
             return;
@@ -117,6 +134,8 @@ namespace ByteForge
         std::optional<UUID> deleted;
         for (const GraphVariable& variable : graph.GetVariables())
         {
+            if (variable.Scope != m_Scope) continue;
+
             EditorUI::PushID(variable.Id);
             const PinType type = PinType::Of(variable.Default);
 
@@ -136,7 +155,8 @@ namespace ByteForge
             }
 
             ImGui::SetItemTooltip("%s, %s", GetValueTypeName(type).c_str(),
-                                  variable.Exposed ? "shown in the Inspector" : "private to the graph");
+                                  local ? "starts over at every call"
+                                        : variable.Exposed ? "shown in the Inspector" : "private to the graph");
 
             if (ImGui::BeginPopupContextItem("##VariableMenu"))
             {
@@ -160,15 +180,19 @@ namespace ByteForge
         DrawName(document, variable);
         DrawType(document, variable);
 
-        bool exposed = variable.Exposed;
-        if (ImGui::Checkbox("Show in Inspector", &exposed))
+        if (variable.Scope == UUID(0))
         {
-            document.Edit(exposed ? "Expose Variable" : "Hide Variable", [&](ScriptGraph& graph)
+            bool exposed = variable.Exposed;
+            if (ImGui::Checkbox("Show in Inspector", &exposed))
             {
-                return graph.SetVariableExposed(variable.Id, exposed).has_value();
-            });
-        }
-        ImGui::SetItemTooltip("Lets each entity with this graph set its own value in the Inspector");
+                document.Edit(exposed ? "Expose Variable" : "Hide Variable", [&](ScriptGraph& graph)
+                {
+                    return graph.SetVariableExposed(variable.Id, exposed).has_value();
+                });
+            }
+            ImGui::SetItemTooltip("Lets each entity with this graph set its own value in the Inspector");
+        } else
+            ImGui::TextDisabled("Starts over from its default at every call");
 
         DrawDefault(document, variable, selection);
 
@@ -293,7 +317,7 @@ namespace ByteForge
         std::optional<UUID> added;
         document.Edit("Add Variable", [&](ScriptGraph& graph)
         {
-            Result<UUID> id = graph.AddVariable(name, 0.0f);
+            Result<UUID> id = graph.AddVariable(name, 0.0f, m_Scope);
             if (!id)
                 return false;
 

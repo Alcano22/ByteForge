@@ -44,7 +44,7 @@ namespace ByteForge
     class GraphNodeRenderer
     {
     public:
-        void Draw(const ScriptGraph& graph, std::span<const GraphDiagnostic> diagnostics,
+        void Draw(const ScriptGraph& graph, UUID scope, std::span<const GraphDiagnostic> diagnostics,
                   std::span<const GraphRuntimeError> runtimeErrors,
                   const std::unordered_set<uintptr_t>& activeLinks);
 

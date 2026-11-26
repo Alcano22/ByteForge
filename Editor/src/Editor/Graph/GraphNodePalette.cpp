@@ -56,7 +56,7 @@ namespace ByteForge
         }
     }
 
-    void GraphNodePalette::Open(const ScriptGraph& graph, const std::optional<PaletteContext> context)
+    void GraphNodePalette::Open(const ScriptGraph& graph, const UUID scope, const std::optional<PaletteContext> context)
     {
         m_Entries.clear();
         m_Search.clear();
@@ -73,29 +73,46 @@ namespace ByteForge
 
             std::string title = std::holds_alternative<GetVariableNode>(data)
                                     ? std::format("Get {}", signature.Title)
+                                    : std::holds_alternative<CallFunctionNode>(data)
+                                    ? std::format("Call {}", signature.Title)
                                     : signature.Title;
             std::string searchText = ToLower(std::format("{} {}", signature.Category, title));
 
             m_Entries.push_back({ signature.Category, std::move(title), std::move(searchText), std::move(data) });
         };
 
-        for (const GraphEvent event : magic_enum::enum_values<GraphEvent>())
-        {
-            if (!HasEvent(graph, event))
-                add(EventNode{ event });
-        }
+        const bool inFunction = scope != UUID(0);
 
-        for (const GraphCustomEvent& event : graph.GetEvents())
+        if (!inFunction)
         {
-            if (!HasEventEntry(graph, event.Id))
-                add(CustomEventNode{ event.Id });
+            for (const GraphEvent event : magic_enum::enum_values<GraphEvent>())
+            {
+                if (!HasEvent(graph, event))
+                    add(EventNode{ event });
+            }
+
+            for (const GraphCustomEvent& event : graph.GetEvents())
+            {
+                if (!HasEventEntry(graph, event.Id))
+                    add(CustomEventNode{ event.Id });
+            }
         }
 
         for (const GraphCustomEvent& event : graph.GetEvents())
             add(CallEventNode{ event.Id });
 
+        if (inFunction)
+            add(FunctionReturnNode{ scope });
+
+        for (const GraphFunction& function : graph.GetFunctions())
+        {
+            if (function.Id != scope)
+                add(CallFunctionNode{ function.Id });
+        }
+
         add(BranchNode{});
-        add(DelayNode{});
+        if (!inFunction)
+            add(DelayNode{});
         add(SequenceNode{});
         add(ForLoopNode{});
         add(DoOnceNode{});
@@ -110,6 +127,8 @@ namespace ByteForge
 
         for (const GraphVariable& variable : graph.GetVariables())
         {
+            if (!IsVisibleIn(variable, scope)) continue;
+
             add(GetVariableNode{ variable.Id });
             add(SetVariableNode{ variable.Id });
         }

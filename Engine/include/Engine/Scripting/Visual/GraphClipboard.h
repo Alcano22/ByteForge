@@ -23,5 +23,5 @@ namespace ByteForge
     [[nodiscard]] BYTEFORGE_API std::string CopyGraphNodes(const ScriptGraph& graph, std::span<const UUID> nodes);
 
     [[nodiscard]] BYTEFORGE_API Result<PastedGraphNodes> PasteGraphNodes(ScriptGraph& graph, std::string_view text,
-                                                                         glm::vec2 position);
+                                                                         glm::vec2 position, UUID scope = UUID(0));
 }

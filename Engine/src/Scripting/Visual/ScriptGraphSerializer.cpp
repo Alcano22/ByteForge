@@ -18,23 +18,26 @@ namespace ByteForge
     namespace
     {
         template<typename T> constexpr std::string_view NodeKindName = {};
-        template<> constexpr std::string_view NodeKindName<EventNode>       = "Event";
-        template<> constexpr std::string_view NodeKindName<CallNode>        = "Call";
-        template<> constexpr std::string_view NodeKindName<BranchNode>      = "Branch";
-        template<> constexpr std::string_view NodeKindName<DelayNode>       = "Delay";
-        template<> constexpr std::string_view NodeKindName<GetVariableNode> = "GetVariable";
-        template<> constexpr std::string_view NodeKindName<SetVariableNode> = "SetVariable";
-        template<> constexpr std::string_view NodeKindName<LiteralNode>     = "Literal";
-        template<> constexpr std::string_view NodeKindName<SequenceNode>    = "Sequence";
-        template<> constexpr std::string_view NodeKindName<ForLoopNode>     = "ForLoop";
-        template<> constexpr std::string_view NodeKindName<DoOnceNode>      = "DoOnce";
-        template<> constexpr std::string_view NodeKindName<FlipFlopNode>    = "FlipFlop";
-        template<> constexpr std::string_view NodeKindName<GateNode>        = "Gate";
-        template<> constexpr std::string_view NodeKindName<CommentNode>     = "Comment";
-        template<> constexpr std::string_view NodeKindName<RerouteNode>     = "Reroute";
-        template<> constexpr std::string_view NodeKindName<SelectNode>      = "Select";
-        template<> constexpr std::string_view NodeKindName<CustomEventNode> = "CustomEvent";
-        template<> constexpr std::string_view NodeKindName<CallEventNode>   = "CallEvent";
+        template<> constexpr std::string_view NodeKindName<EventNode>          = "Event";
+        template<> constexpr std::string_view NodeKindName<CallNode>           = "Call";
+        template<> constexpr std::string_view NodeKindName<BranchNode>         = "Branch";
+        template<> constexpr std::string_view NodeKindName<DelayNode>          = "Delay";
+        template<> constexpr std::string_view NodeKindName<GetVariableNode>    = "GetVariable";
+        template<> constexpr std::string_view NodeKindName<SetVariableNode>    = "SetVariable";
+        template<> constexpr std::string_view NodeKindName<LiteralNode>        = "Literal";
+        template<> constexpr std::string_view NodeKindName<SequenceNode>       = "Sequence";
+        template<> constexpr std::string_view NodeKindName<ForLoopNode>        = "ForLoop";
+        template<> constexpr std::string_view NodeKindName<DoOnceNode>         = "DoOnce";
+        template<> constexpr std::string_view NodeKindName<FlipFlopNode>       = "FlipFlop";
+        template<> constexpr std::string_view NodeKindName<GateNode>           = "Gate";
+        template<> constexpr std::string_view NodeKindName<CommentNode>        = "Comment";
+        template<> constexpr std::string_view NodeKindName<RerouteNode>        = "Reroute";
+        template<> constexpr std::string_view NodeKindName<SelectNode>         = "Select";
+        template<> constexpr std::string_view NodeKindName<CustomEventNode>    = "CustomEvent";
+        template<> constexpr std::string_view NodeKindName<CallEventNode>      = "CallEvent";
+        template<> constexpr std::string_view NodeKindName<FunctionEntryNode>  = "FunctionEntry";
+        template<> constexpr std::string_view NodeKindName<FunctionReturnNode> = "FunctionReturn";
+        template<> constexpr std::string_view NodeKindName<CallFunctionNode>   = "CallFunction";
 
         nlohmann::json WritePinRef(const PinRef& pin)
         {
@@ -90,6 +93,9 @@ namespace ByteForge
                 { "position", JsonValue::ToJson(node.Position)     }
             };
 
+            if (node.Scope != UUID(0))
+                json["scope"] = static_cast<u64>(node.Scope);
+
             std::visit([&json]<typename T>(const T& data)
             {
                 json["kind"] = std::string(NodeKindName<T>);
@@ -102,6 +108,9 @@ namespace ByteForge
                     json["variable"] = static_cast<u64>(data.Variable);
                 else if constexpr (std::is_same_v<T, CustomEventNode> || std::is_same_v<T, CallEventNode>)
                     json["event"] = static_cast<u64>(data.Event);
+                else if constexpr (std::is_same_v<T, FunctionEntryNode> || std::is_same_v<T, FunctionReturnNode> ||
+                                   std::is_same_v<T, CallFunctionNode>)
+                    json["function"] = static_cast<u64>(data.Function);
                 else if constexpr (std::is_same_v<T, LiteralNode>)
                     json["value"] = JsonValue::TypedValueToJson(data.Value);
                 else if constexpr (std::is_same_v<T, SequenceNode>)
@@ -110,7 +119,8 @@ namespace ByteForge
                 {
                     json["text"] = data.Text;
                     json["size"] = JsonValue::ToJson(data.Size);
-                } else if constexpr (std::is_same_v<T, RerouteNode> || std::is_same_v<T, SelectNode>)
+                }
+                else if constexpr (std::is_same_v<T, RerouteNode> || std::is_same_v<T, SelectNode>)
                 {
                     if (data.Type)
                         json["type"] = WritePinType(*data.Type);
@@ -185,6 +195,12 @@ namespace ByteForge
                 return CustomEventNode{ UUID(json.at("event").get<u64>()) };
             if (kind == NodeKindName<CallEventNode>)
                 return CallEventNode{ UUID(json.at("event").get<u64>()) };
+            if (kind == NodeKindName<FunctionEntryNode>)
+                return FunctionEntryNode{ UUID(json.at("function").get<u64>()) };
+            if (kind == NodeKindName<FunctionReturnNode>)
+                return FunctionReturnNode{ UUID(json.at("function").get<u64>()) };
+            if (kind == NodeKindName<CallFunctionNode>)
+                return CallFunctionNode{ UUID(json.at("function").get<u64>()) };
 
             throw Error("unknown node kind '{}'", kind);
         }
@@ -194,7 +210,8 @@ namespace ByteForge
             GraphNode node{
                 .Id       = UUID(json.at("id").get<u64>()),
                 .Data     = ReadNodeData(json),
-                .Position = JsonValue::ToVec2(json.at("position"))
+                .Position = JsonValue::ToVec2(json.at("position")),
+                .Scope    = UUID(json.value("scope", u64{ 0 }))
             };
 
             if (json.contains("defaults"))
@@ -211,12 +228,16 @@ namespace ByteForge
 
         nlohmann::json WriteVariable(const GraphVariable& variable)
         {
-            return {
+            nlohmann::json json{
                 { "id",      static_cast<u64>(variable.Id)                 },
                 { "name",    variable.Name                                 },
                 { "exposed", variable.Exposed                              },
                 { "default", JsonValue::TypedValueToJson(variable.Default) }
             };
+
+            if (variable.Scope != UUID(0))
+                json["scope"] = static_cast<u64>(variable.Scope);
+            return json;
         }
 
         GraphVariable ReadVariable(const nlohmann::json& json)
@@ -227,56 +248,96 @@ namespace ByteForge
             if (!value)
                 throw Error("variable '{}' has an unreadable default value", name);
 
+            const UUID scope(json.value("scope", u64{ 0 }));
             return {
                 .Id      = UUID(json.at("id").get<u64>()),
                 .Name    = std::move(name),
                 .Default = std::move(*value),
-                .Exposed = json.value("exposed", true)
+                .Exposed = scope == UUID(0) && json.value("exposed", true),
+                .Scope   = scope
             };
         }
 
-        nlohmann::json WriteEvent(const GraphCustomEvent& event)
+        nlohmann::json WriteParameters(const std::span<const GraphParameter> parameters)
         {
-            nlohmann::json parameters = nlohmann::json::array();
-            for (const GraphParameter& parameter : event.Parameters)
+            nlohmann::json json = nlohmann::json::array();
+            for (const GraphParameter& parameter : parameters)
             {
-                parameters.push_back({
+                json.push_back({
                     { "id",      static_cast<u64>(parameter.Id)                 },
                     { "name",    parameter.Name                                 },
                     { "default", JsonValue::TypedValueToJson(parameter.Default) }
                 });
             }
-
-            return {
-                { "id",         static_cast<u64>(event.Id) },
-                { "name",       event.Name                 },
-                { "parameters", std::move(parameters)      }
-            };
+            return json;
         }
 
-        GraphCustomEvent ReadEvent(const nlohmann::json& json)
+        std::vector<GraphParameter> ReadParameters(const nlohmann::json& json, const char* key,
+                                                   const std::string_view owner)
         {
-            GraphCustomEvent event{
-                .Id   = UUID(json.at("id").get<u64>()),
-                .Name = json.at("name").get<std::string>()
-            };
-
-            for (const auto& parameterJson : json.value("parameters", nlohmann::json::array()))
+            std::vector<GraphParameter> parameters;
+            for (const auto& parameterJson : json.value(key, nlohmann::json::array()))
             {
                 std::string name = parameterJson.at("name").get<std::string>();
 
                 std::optional<ScriptValue> value = JsonValue::ReadScriptValue(parameterJson.at("default"));
                 if (!value)
-                    throw Error("parameter '{}' of event '{}' has an unreadable type", name, event.Name);
+                    throw Error("parameter '{}' of '{}' has an unreadable type", name, owner);
 
-                event.Parameters.push_back({
+                parameters.push_back({
                     .Id      = UUID(parameterJson.at("id").get<u64>()),
                     .Name    = std::move(name),
                     .Default = std::move(*value)
                 });
             }
+            return parameters;
+        }
 
-            return event;
+        nlohmann::json WriteEvent(const GraphCustomEvent& event)
+        {
+            return {
+                { "id",         static_cast<u64>(event.Id)         },
+                { "name",       event.Name                         },
+                { "parameters", WriteParameters(event.Parameters)  }
+            };
+        }
+
+        GraphCustomEvent ReadEvent(const nlohmann::json& json)
+        {
+            std::string name = json.at("name").get<std::string>();
+            std::vector<GraphParameter> parameters = ReadParameters(json, "parameters", name);
+
+            return {
+                .Id         = UUID(json.at("id").get<u64>()),
+                .Name       = std::move(name),
+                .Parameters = std::move(parameters)
+            };
+        }
+
+        nlohmann::json WriteFunction(const GraphFunction& function)
+        {
+            return {
+                { "id",      static_cast<u64>(function.Id)     },
+                { "name",    function.Name                     },
+                { "pure",    function.Pure                     },
+                { "inputs",  WriteParameters(function.Inputs)  },
+                { "outputs", WriteParameters(function.Outputs) }
+            };
+        }
+
+        GraphFunction ReadFunction(const nlohmann::json& json)
+        {
+            std::string name = json.at("name").get<std::string>();
+            std::vector<GraphParameter> inputs = ReadParameters(json, "inputs", name);
+            std::vector<GraphParameter> outputs = ReadParameters(json, "outputs", name);
+
+            return {
+                .Id      = UUID(json.at("id").get<u64>()),
+                .Name    = std::move(name),
+                .Inputs  = std::move(inputs),
+                .Outputs = std::move(outputs),
+                .Pure    = json.value("pure", false)
+            };
         }
     }
 
@@ -290,6 +351,10 @@ namespace ByteForge
         for (const GraphCustomEvent& event : graph.GetEvents())
             events.push_back(WriteEvent(event));
 
+        nlohmann::json functions = nlohmann::json::array();
+        for (const GraphFunction& function : graph.GetFunctions())
+            functions.push_back(WriteFunction(function));
+
         nlohmann::json nodes = nlohmann::json::array();
         for (const GraphNode& node : graph.GetNodes())
             nodes.push_back(WriteNode(node));
@@ -302,6 +367,7 @@ namespace ByteForge
             { "version",   ScriptGraph::FormatVersion },
             { "variables", std::move(variables)       },
             { "events",    std::move(events)          },
+            { "functions", std::move(functions)       },
             { "nodes",     std::move(nodes)           },
             { "links",     std::move(links)           }
         };
@@ -331,6 +397,10 @@ namespace ByteForge
             for (const auto& json : data.value("events", nlohmann::json::array()))
                 events.push_back(ReadEvent(json));
 
+            std::vector<GraphFunction> functions;
+            for (const auto& json : data.value("functions", nlohmann::json::array()))
+                functions.push_back(ReadFunction(json));
+
             std::vector<GraphNode> nodes;
             for (const auto& json : data.value("nodes", nlohmann::json::array()))
                 nodes.push_back(ReadNode(json));
@@ -339,7 +409,8 @@ namespace ByteForge
             for (const auto& json : data.value("links", nlohmann::json::array()))
                 links.push_back({ ReadPinRef(json.at("from")), ReadPinRef(json.at("to")) });
 
-            return ScriptGraph::FromParts(std::move(nodes), std::move(links), std::move(variables), std::move(events));
+            return ScriptGraph::FromParts(std::move(nodes), std::move(links), std::move(variables),
+                                          std::move(events), std::move(functions));
         } catch (const std::exception& e)
         {
             return Unexpected(e.what());

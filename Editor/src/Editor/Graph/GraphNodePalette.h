@@ -17,7 +17,7 @@ namespace ByteForge
     class GraphNodePalette
     {
     public:
-        void Open(const ScriptGraph& graph, std::optional<PaletteContext> context);
+        void Open(const ScriptGraph& graph, UUID scope, std::optional<PaletteContext> context);
 
         [[nodiscard]] std::optional<NodeData> Draw();
 

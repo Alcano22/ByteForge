@@ -31,7 +31,7 @@ namespace ByteForge
     class GraphVariablesPanel
     {
     public:
-        void Draw(GraphDocument& document, Selection& selection);
+        void Draw(GraphDocument& document, Selection& selection, UUID scope);
         void Reset();
 
     private:
@@ -52,6 +52,7 @@ namespace ByteForge
         };
 
         UUID m_Selected{ 0 };
+        UUID m_Scope{ 0 };
 
         std::string m_Name;
         UUID m_NameVariable{ 0 };
