@@ -5,6 +5,7 @@
 #include "Editor/Panels/GraphEditorPanel.h"
 #include "Editor/Panels/AnimationClipPanel.h"
 #include "Editor/Panels/InputActionsPanel.h"
+#include "Editor/Panels/SpriteEditorPanel.h"
 
 #include <Engine/Core/Log.h>
 #include <Engine/Core/FileSystem.h>
@@ -1106,6 +1107,8 @@ namespace ByteForge
             GetContext().CodeEditor.OpenFile(AssetRegistry::GetAssetRoot() / entry.Path);
         else if (entry.Type == AssetType::Prefab && entry.Handle)
             GetContext().Dialogs.RequestOpenPrefab(*entry.Handle);
+        else if (entry.Type == AssetType::Texture2D && entry.Handle)
+            GetContext().Open<SpriteEditorPanel>().OpenTexture(*entry.Handle);
     }
 
     Ref<Texture2D> AssetsPanel::GetThumbnail(Entry& entry)

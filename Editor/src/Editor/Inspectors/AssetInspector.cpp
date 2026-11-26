@@ -5,6 +5,7 @@
 #include "Editor/EditorWidgets.h"
 #include "Editor/Panels/AnimationClipPanel.h"
 #include "Editor/Panels/InputActionsPanel.h"
+#include "Editor/Panels/SpriteEditorPanel.h"
 
 #include <Engine/Assets/AssetMetadata.h>
 #include <Engine/Assets/AssetRegistry.h>
@@ -32,7 +33,7 @@ namespace ByteForge::EditorUI
 {
     namespace
     {
-        void DrawTextureAssetInspector(const AssetMetadata& metadata)
+        void DrawTextureAssetInspector(const AssetMetadata& metadata, EditorContext& context)
         {
             static UUID s_Handle{ 0 };
             static TextureAssetSettings s_Settings;
@@ -48,6 +49,9 @@ namespace ByteForge::EditorUI
             bool apply = EditTextureSettings(settings.Sampling);
 
             ImGui::SeparatorText("Sprite");
+
+            if (ImGui::Button("Open Sprite Editor"))
+                context.Open<SpriteEditorPanel>().OpenTexture(metadata.Handle);
 
             ImGui::DragFloat("Pixels Per Unit", &settings.PixelsPerUnit, 0.5f, 0.01f, 10000.0f, "%.2f",
                              ImGuiSliderFlags_AlwaysClamp);
@@ -464,8 +468,8 @@ namespace ByteForge::EditorUI
 
         switch (metadata.Type)
         {
-            case AssetType::Texture2D: DrawTextureAssetInspector(metadata); break;
-            case AssetType::Script:    DrawScriptAssetInspector(handle);    break;
+            case AssetType::Texture2D: DrawTextureAssetInspector(metadata, context); break;
+            case AssetType::Script:    DrawScriptAssetInspector(handle);             break;
             case AssetType::Scene:
                 if (ImGui::Button("Open Scene"))
                     context.Dialogs.RequestOpen(handle);

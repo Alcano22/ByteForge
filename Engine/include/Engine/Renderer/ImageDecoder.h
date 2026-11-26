@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Core/Core.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -17,7 +19,8 @@ namespace ByteForge
         std::vector<std::byte> Pixels;
     };
 
-    [[nodiscard]] Result<DecodedImage> DecodeImage(const fs::path& path);
+    [[nodiscard]] BYTEFORGE_API Result<DecodedImage> DecodeImage(const fs::path& path);
 
-    [[nodiscard]] Result<DecodedImage> DecodeImage(std::span<const std::byte> encoded, std::string_view name);
+    [[nodiscard]] BYTEFORGE_API Result<DecodedImage> DecodeImage(std::span<const std::byte> encoded,
+                                                                 std::string_view name);
 }

@@ -53,6 +53,7 @@ add_executable(Editor
         src/Editor/Panels/AnimationClipPanel.cpp
         src/Editor/Panels/SettingsPanel.cpp
         src/Editor/Panels/InputActionsPanel.cpp
+        src/Editor/Panels/SpriteEditorPanel.cpp
         src/Editor/Settings/ProjectGeneralPage.cpp
         src/Editor/Settings/ThemeSettingsPage.cpp
         src/Editor/Settings/ToolingSettingsPage.cpp
