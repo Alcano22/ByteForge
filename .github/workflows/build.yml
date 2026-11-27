@@ -87,7 +87,7 @@ jobs:
         run: cmake --build --preset windows-release
 
       - name: Test
-        run: ctest --preset windows-release
+        run: ctest --preset windows-release -j $env:NUMBER_OF_PROCESSORS
 
       - name: Install
         run: cmake --install build-windows-release
@@ -199,7 +199,7 @@ jobs:
         run: cmake --build --preset release
 
       - name: Test
-        run: ctest --preset release
+        run: ctest --preset release -j "$(nproc)"
 
       - name: Install
         run: cmake --install build-release
