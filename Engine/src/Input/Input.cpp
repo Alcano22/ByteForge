@@ -206,6 +206,26 @@ namespace ByteForge
         return backend && backend->SetLed(gamepad, color);
     }
 
+    bool Input::SetGamepadTriggerEffect(const GamepadTrigger trigger, const TriggerEffect& effect, const u32 gamepad)
+    {
+        GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend && backend->SetTriggerEffect(gamepad, trigger, effect);
+    }
+
+    void Input::ResetGamepadOutput()
+    {
+        for (u32 gamepad = 0; gamepad < MaxGamepads; ++gamepad)
+        {
+            GamepadBackend* backend = FindGamepadBackend(gamepad);
+            if (!backend) continue;
+
+            backend->Rumble(gamepad, 0.0f, 0.0f, 0.0f);
+            backend->RumbleTriggers(gamepad, 0.0f, 0.0f, 0.0f);
+            backend->SetTriggerEffect(gamepad, GamepadTrigger::Left, TriggerOff{});
+            backend->SetTriggerEffect(gamepad, GamepadTrigger::Right, TriggerOff{});
+        }
+    }
+
     void Input::SetGamepadBackend(GamepadBackend* backend) { s_GamepadBackend = backend; }
 
     void Input::SetViewport(const InputViewport& viewport) { s_State.Viewport = viewport; }

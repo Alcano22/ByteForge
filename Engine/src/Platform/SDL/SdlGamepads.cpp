@@ -3,6 +3,7 @@
 #include "Engine/Core/RuntimePaths.h"
 #include "Engine/Core/Utf8.h"
 #include "Engine/Event/GamepadEvent.h"
+#include "Engine/Input/DualSenseTriggerEffect.h"
 
 #include <SDL3/SDL.h>
 
@@ -113,6 +114,12 @@ namespace ByteForge
             else
                 CORE_DEBUG("Loaded {} gamepad mappings from '{}'", added, ToGenericUtf8(file));
         }
+
+        constexpr usize DualSenseEffectsSize        = 47;
+        constexpr usize DualSenseRightTriggerOffset = 10;
+        constexpr usize DualSenseLeftTriggerOffset  = 21;
+        constexpr u8 DualSenseEnableRightTrigger    = 0x04;
+        constexpr u8 DualSenseEnableLeftTrigger     = 0x08;
     }
 
     SdlGamepads::SdlGamepads()
@@ -137,8 +144,10 @@ namespace ByteForge
 
         for (const Slot& slot : m_Slots)
         {
-            if (slot.Handle)
-                SDL_CloseGamepad(slot.Handle);
+            if (!slot.Handle) continue;
+
+            ResetTriggerEffects(IndexOf(slot));
+            SDL_CloseGamepad(slot.Handle);
         }
 
         SDL_Quit();
@@ -222,6 +231,22 @@ namespace ByteForge
                                            ToColorChannel(color.g), ToColorChannel(color.b));
     }
 
+    bool SdlGamepads::SetTriggerEffect(const u32 gamepad, const GamepadTrigger trigger, const TriggerEffect& effect)
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        if (!handle || !GetFeatures(gamepad).AdaptiveTriggers)
+            return false;
+
+        const bool right = trigger == GamepadTrigger::Right;
+        const DualSenseTriggerPacket encoded = EncodeDualSenseTriggerEffect(effect);
+
+        std::array<u8, DualSenseEffectsSize> report{};
+        report[0] = right ? DualSenseEnableRightTrigger : DualSenseEnableLeftTrigger;
+        std::ranges::copy(encoded, report.data() + (right ? DualSenseRightTriggerOffset : DualSenseLeftTriggerOffset));
+
+        return SDL_SendGamepadEffect(handle, report.data(), static_cast<i32>(report.size()));
+    }
+
     void SdlGamepads::Open(const u32 instanceId, const EventCallbackFn& callback)
     {
         if (FindSlot(instanceId)) return;
@@ -266,9 +291,11 @@ namespace ByteForge
         Slot* slot = FindSlot(instanceId);
         if (!slot) return;
 
+        const u32 index = IndexOf(*slot);
+
+        ResetTriggerEffects(index);
         SDL_CloseGamepad(slot->Handle);
 
-        const u32 index = IndexOf(*slot);
         *slot = Slot{};
 
         CORE_INFO("Gamepad {} disconnected", index);
@@ -339,5 +366,11 @@ namespace ByteForge
     SDL_Gamepad* SdlGamepads::FindHandle(const u32 gamepad) const
     {
         return gamepad < m_Slots.size() ? m_Slots[gamepad].Handle : nullptr;
+    }
+
+    void SdlGamepads::ResetTriggerEffects(const u32 gamepad)
+    {
+        SetTriggerEffect(gamepad, GamepadTrigger::Left, TriggerOff{});
+        SetTriggerEffect(gamepad, GamepadTrigger::Right, TriggerOff{});
     }
 }

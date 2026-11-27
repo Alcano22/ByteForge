@@ -107,6 +107,10 @@ internal static unsafe class ScriptAPI
     private static uint s_GamepadRumble;
     private static uint s_GamepadRumbleTriggers;
     private static uint s_GamepadSetLed;
+    private static uint s_GamepadSetTriggerOff;
+    private static uint s_GamepadSetTriggerFeedback;
+    private static uint s_GamepadSetTriggerWeapon;
+    private static uint s_GamepadSetTriggerVibration;
 
     internal static bool Bind()
     {
@@ -211,6 +215,10 @@ internal static unsafe class ScriptAPI
         s_GamepadRumble                   = Resolve("Gamepad.Rumble",                   "(Int,Float,Float,Float)->Bool",        ref complete);
         s_GamepadRumbleTriggers           = Resolve("Gamepad.RumbleTriggers",           "(Int,Float,Float,Float)->Bool",        ref complete);
         s_GamepadSetLed                   = Resolve("Gamepad.SetLed",                   "(Int,Vector3)->Bool",                  ref complete);
+        s_GamepadSetTriggerOff            = Resolve("Gamepad.SetTriggerOff",            "(Int,Int)->Bool",                      ref complete);
+        s_GamepadSetTriggerFeedback       = Resolve("Gamepad.SetTriggerFeedback",       "(Int,Int,Int,Int)->Bool",              ref complete);
+        s_GamepadSetTriggerWeapon         = Resolve("Gamepad.SetTriggerWeapon",         "(Int,Int,Int,Int,Int)->Bool",          ref complete);
+        s_GamepadSetTriggerVibration      = Resolve("Gamepad.SetTriggerVibration",      "(Int,Int,Int,Int,Int)->Bool",          ref complete);
 
         return complete;
     }
@@ -518,6 +526,21 @@ internal static unsafe class ScriptAPI
 
     public static bool Gamepad_SetLed(int gamepad, Vector3 color) =>
         Call(s_GamepadSetLed, new APIValue { Int = gamepad }, new APIValue { Vector3 = color }).Bool != 0;
+
+    public static bool Gamepad_SetTriggerOff(int gamepad, int trigger) =>
+        Call(s_GamepadSetTriggerOff, new APIValue { Int = gamepad }, new APIValue { Int = trigger }).Bool != 0;
+
+    public static bool Gamepad_SetTriggerFeedback(int gamepad, int trigger, int position, int strength) =>
+        Call(s_GamepadSetTriggerFeedback, new APIValue { Int = gamepad }, new APIValue { Int = trigger },
+             new APIValue { Int = position }, new APIValue { Int = strength }).Bool != 0;
+
+    public static bool Gamepad_SetTriggerWeapon(int gamepad, int trigger, int start, int end, int strength) =>
+        Call(s_GamepadSetTriggerWeapon, new APIValue { Int = gamepad }, new APIValue { Int = trigger },
+             new APIValue { Int = start }, new APIValue { Int = end }, new APIValue { Int = strength }).Bool != 0;
+
+    public static bool Gamepad_SetTriggerVibration(int gamepad, int trigger, int position, int amplitude, int frequency) =>
+        Call(s_GamepadSetTriggerVibration, new APIValue { Int = gamepad }, new APIValue { Int = trigger },
+             new APIValue { Int = position }, new APIValue { Int = amplitude }, new APIValue { Int = frequency }).Bool != 0;
 
     // Plumbing
 

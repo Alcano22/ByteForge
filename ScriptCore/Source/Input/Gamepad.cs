@@ -18,6 +18,11 @@ public enum GamepadType : byte
     SwitchJoyConPair
 }
 
+public enum GamepadTrigger : byte
+{
+    Left, Right
+}
+
 /// <summary>What a connected gamepad can do. Everything is false for a missing gamepad.</summary>
 public readonly record struct GamepadFeatures(bool Rumble, bool TriggerRumble, bool Led, bool AdaptiveTriggers);
 
@@ -52,4 +57,21 @@ public static class Gamepad
 
     /// <summary>Light bar color, each channel in [0, 1].</summary>
     public static bool SetLed(Vector3 color, int gamepad = 0) => ScriptAPI.Gamepad_SetLed(gamepad, color);
+
+    /// <summary>Removes the effect, the trigger moves freely again.</summary>
+    public static bool SetTriggerOff(GamepadTrigger trigger, int gamepad = 0) =>
+        ScriptAPI.Gamepad_SetTriggerOff(gamepad, (int)trigger);
+
+    /// <summary>Constant resistance from position (0-9) on. Strength 1-8, 0 turns it off.</summary>
+    public static bool SetTriggerFeedback(GamepadTrigger trigger, int position, int strength, int gamepad = 0) =>
+        ScriptAPI.Gamepad_SetTriggerFeedback(gamepad, (int)trigger, position, strength);
+
+    /// <summary>Resistance between start (2-7) and end (start + 1 to 8) that gives way at end, like a gun trigger.</summary>
+    public static bool SetTriggerWeapon(GamepadTrigger trigger, int start, int end, int strength, int gamepad = 0) =>
+        ScriptAPI.Gamepad_SetTriggerWeapon(gamepad, (int)trigger, start, end, strength);
+
+    /// <summary>Vibration from position (0-9) on. Amplitude 1-8, frequency 1-255 Hz.</summary>
+    public static bool SetTriggerVibration(GamepadTrigger trigger, int position, int amplitude, int frequency,
+                                           int gamepad = 0) =>
+        ScriptAPI.Gamepad_SetTriggerVibration(gamepad, (int)trigger, position, amplitude, frequency);
 }

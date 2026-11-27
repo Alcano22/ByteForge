@@ -4,6 +4,7 @@
 #include "Engine/Input/KeyCodes.h"
 #include "Engine/Input/MouseButtons.h"
 #include "Engine/Input/GamepadFeatures.h"
+#include "Engine/Input/TriggerEffect.h"
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -71,6 +72,7 @@ namespace ByteForge
         inline constexpr auto KeyCodeValues = ReflectScriptEnumValues<KeyCode>();
         inline constexpr auto MouseButtonValues = MakeMouseButtonValues();
         inline constexpr auto GamepadTypeValues = ReflectScriptEnumValues<GamepadType>();
+        inline constexpr auto GamepadTriggerValues = ReflectScriptEnumValues<GamepadTrigger>();
     }
 
     template<>
@@ -89,5 +91,11 @@ namespace ByteForge
     struct ScriptEnumOf<GamepadType>
     {
         static constexpr ScriptEnum Value{ "Gamepad Type", Detail::GamepadTypeValues };
+    };
+
+    template<>
+    struct ScriptEnumOf<GamepadTrigger>
+    {
+        static constexpr ScriptEnum Value{ "Gamepad Trigger", Detail::GamepadTriggerValues };
     };
 }

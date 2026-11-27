@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Types.h"
 #include "Engine/Input/GamepadFeatures.h"
+#include "Engine/Input/TriggerEffect.h"
 
 #include <glm/glm.hpp>
 
@@ -18,5 +19,6 @@ namespace ByteForge
         virtual bool Rumble(u32 gamepad, f32 lowFrequency, f32 highFrequency, f32 duration) = 0;
         virtual bool RumbleTriggers(u32 gamepad, f32 left, f32 right, f32 duration) = 0;
         virtual bool SetLed(u32 gamepad, const glm::vec3& color) = 0;
+        virtual bool SetTriggerEffect(u32 gamepad, GamepadTrigger trigger, const TriggerEffect& effect) = 0;
     };
 }

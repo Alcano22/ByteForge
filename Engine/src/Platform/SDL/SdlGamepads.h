@@ -31,6 +31,7 @@ namespace ByteForge
         bool Rumble(u32 gamepad, f32 lowFrequency, f32 highFrequency, f32 duration) override;
         bool RumbleTriggers(u32 gamepad, f32 left, f32 right, f32 duration) override;
         bool SetLed(u32 gamepad, const glm::vec3& color) override;
+        bool SetTriggerEffect(u32 gamepad, GamepadTrigger trigger, const TriggerEffect& effect) override;
 
     private:
         struct Slot
@@ -52,6 +53,8 @@ namespace ByteForge
         [[nodiscard]] u32 IndexOf(const Slot& slot) const;
 
         [[nodiscard]] SDL_Gamepad* FindHandle(u32 gamepad) const;
+
+        void ResetTriggerEffects(u32 gamepad);
 
     private:
         std::array<Slot, MaxGamepads> m_Slots;

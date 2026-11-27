@@ -4,6 +4,7 @@
 #include "Engine/Input/InputActionSystem.h"
 #include "Engine/Scene/Scene.h"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 
@@ -139,6 +140,39 @@ namespace ByteForge
         {
             return Input::SetGamepadLed(color, RequireGamepad(gamepad));
         }
+
+        u8 ToEffectByte(const i32 value) { return static_cast<u8>(std::clamp(value, 0, 255)); }
+
+        bool GamepadSetTriggerOff(const ScriptCallContext&, const i32 gamepad, const GamepadTrigger trigger)
+        {
+            return Input::SetGamepadTriggerEffect(trigger, TriggerOff{}, RequireGamepad(gamepad));
+        }
+
+        bool GamepadSetTriggerFeedback(const ScriptCallContext&, const i32 gamepad, const GamepadTrigger trigger,
+                                       const i32 position, const i32 strength)
+        {
+            const TriggerFeedback effect{ .Position = ToEffectByte(position), .Strength = ToEffectByte(strength) };
+            return Input::SetGamepadTriggerEffect(trigger, effect, RequireGamepad(gamepad));
+        }
+
+        bool GamepadSetTriggerWeapon(const ScriptCallContext&, const i32 gamepad, const GamepadTrigger trigger,
+                                     const i32 start, const i32 end, const i32 strength)
+        {
+            const TriggerWeapon effect{
+                .Start = ToEffectByte(start), .End = ToEffectByte(end), .Strength = ToEffectByte(strength)
+            };
+            return Input::SetGamepadTriggerEffect(trigger, effect, RequireGamepad(gamepad));
+        }
+
+        bool GamepadSetTriggerVibration(const ScriptCallContext&, const i32 gamepad, const GamepadTrigger trigger,
+                                        const i32 position, const i32 amplitude, const i32 frequency)
+        {
+            const TriggerVibration effect{
+                .Position = ToEffectByte(position), .Amplitude = ToEffectByte(amplitude),
+                .Frequency = ToEffectByte(frequency)
+            };
+            return Input::SetGamepadTriggerEffect(trigger, effect, RequireGamepad(gamepad));
+        }
     }
 
     void RegisterInputAPI(ScriptAPI& api)
@@ -166,5 +200,9 @@ namespace ByteForge
         api.Register<&GamepadRumble>("Gamepad.Rumble", "Rumble", Impure, { "Gamepad", "Low Frequency", "High Frequency", "Duration" });
         api.Register<&GamepadRumbleTriggers>("Gamepad.RumbleTriggers", "Rumble Triggers", Impure, { "Gamepad", "Left", "Right", "Duration" });
         api.Register<&GamepadSetLed>("Gamepad.SetLed", "Set Gamepad LED", Impure, { "Gamepad", "Color" });
+        api.Register<&GamepadSetTriggerOff>("Gamepad.SetTriggerOff", "Set Trigger Off", Impure, { "Gamepad", "Trigger" });
+        api.Register<&GamepadSetTriggerFeedback>("Gamepad.SetTriggerFeedback", "Set Trigger Feedback", Impure, { "Gamepad", "Trigger", "Position", "Strength" });
+        api.Register<&GamepadSetTriggerWeapon>("Gamepad.SetTriggerWeapon", "Set Trigger Weapon", Impure, { "Gamepad", "Trigger", "Start", "End", "Strength" });
+        api.Register<&GamepadSetTriggerVibration>("Gamepad.SetTriggerVibration", "Set Trigger Vibration", Impure, { "Gamepad", "Trigger", "Position", "Amplitude", "Frequency" });
     }
 }

@@ -96,6 +96,7 @@ add_library(Engine SHARED
         src/Input/InputControl.cpp
         src/Input/InputControlSource.cpp
         src/Input/InputActionSystem.cpp
+        src/Input/DualSenseTriggerEffect.cpp
         src/Scene/Scene.cpp
         src/Scene/SceneSerializer.cpp
         src/Scene/Physics2DWorld.cpp

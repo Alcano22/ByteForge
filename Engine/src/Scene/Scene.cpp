@@ -6,6 +6,7 @@
 #include "Engine/Scene/RaycastHit2D.h"
 #include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Assets/AssetRegistry.h"
 #include "Engine/Assets/Prefab.h"
 #include "Engine/Audio/AudioSystem.h"
@@ -491,6 +492,8 @@ namespace ByteForge
         m_ScriptRuntime.reset();
 
         AudioSystem::Stop(*this);
+
+        Input::ResetGamepadOutput();
     }
 
     void Scene::RequestSceneLoad(const UUID sceneAsset) { m_PendingSceneLoad = sceneAsset; }

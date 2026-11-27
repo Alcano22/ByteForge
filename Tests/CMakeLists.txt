@@ -39,6 +39,7 @@ add_executable(ByteForgeTests
         src/Input/InputGamepadTests.cpp
         src/Input/InputControlTests.cpp
         src/Input/InputActionSystemTests.cpp
+        src/Input/DualSenseTriggerEffectTests.cpp
         src/UI/GameUITests.cpp
         src/Text/FontAtlasTests.cpp
         src/Text/TextLayoutTests.cpp

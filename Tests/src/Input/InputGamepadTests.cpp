@@ -82,6 +82,7 @@ namespace
 
         bool RumbleTriggers(u32, f32, f32, f32) override { return false; }
         bool SetLed(u32, const glm::vec3&) override { return false; }
+        bool SetTriggerEffect(u32, GamepadTrigger, const TriggerEffect&) override { return false; }
     };
 
     class BackendGuard

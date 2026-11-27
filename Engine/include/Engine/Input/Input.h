@@ -5,6 +5,7 @@
 #include "Engine/Input/MouseButtons.h"
 #include "Engine/Input/GamepadCodes.h"
 #include "Engine/Input/GamepadFeatures.h"
+#include "Engine/Input/TriggerEffect.h"
 
 #include <glm/glm.hpp>
 
@@ -55,6 +56,9 @@ namespace ByteForge
         static bool RumbleGamepad(f32 lowFrequency, f32 highFrequency, f32 duration, u32 gamepad = 0);
         static bool RumbleGamepadTriggers(f32 left, f32 right, f32 duration, u32 gamepad = 0);
         static bool SetGamepadLed(const glm::vec3& color, u32 gamepad = 0);
+        static bool SetGamepadTriggerEffect(GamepadTrigger trigger, const TriggerEffect& effect, u32 gamepad = 0);
+
+        static void ResetGamepadOutput();
 
         static void SetViewport(const InputViewport& viewport);
         static void ClearViewport();
