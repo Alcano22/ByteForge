@@ -8,6 +8,7 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Renderer/ImageDecoder.h"
+#include "Engine/Text/FontAtlasFile.h"
 #include "Engine/Scripting/Visual/ScriptGraphSerializer.h"
 
 #include <nlohmann/json.hpp>
@@ -45,6 +46,7 @@ namespace ByteForge
         std::unordered_map<UUID, Ref<MaterialAsset>> s_Materials;
         std::unordered_map<UUID, Ref<FontAsset>> s_Fonts;
         std::unordered_map<UUID, std::future<Result<FontAtlasData>>> s_PendingFonts;
+        fs::path s_FontCacheDirectory;
         Ref<Texture2D> s_Fallback;
 
         const UUID BuiltInFont{ 0 };
@@ -52,6 +54,46 @@ namespace ByteForge
         fs::path GetBuiltInFontPath()
         {
             return RuntimePaths::GetDataDirectory() / "fonts" / "inter_regular.ttf";
+        }
+
+        enum class StoredAtlas { Prebuilt, Cache };
+
+        Result<FontAtlasData> LoadOrBuildAtlas(const std::span<const std::byte> font,
+                                               const fs::path& stored, const StoredAtlas kind)
+        {
+            const FontAtlasOptions options;
+            const u64 key = MakeFontAtlasKey(font, options);
+
+            std::error_code error;
+            if (!stored.empty() && fs::exists(stored, error))
+            {
+                const Result<std::vector<std::byte>> file = ReadBinaryFile(stored);
+                Result<FontAtlasData> atlas = file ? DeserializeFontAtlas(*file, key)
+                                                   : Result<FontAtlasData>(Unexpected(file.error()));
+                if (atlas)
+                {
+                    CORE_DEBUG("Loaded the font atlas '{}'", ToGenericUtf8(stored));
+                    return atlas;
+                }
+
+                if (kind == StoredAtlas::Prebuilt)
+                    CORE_WARN("Ignoring the prebuilt font atlas '{}', building it instead: {}",
+                              ToGenericUtf8(stored), atlas.error());
+                else
+                    CORE_DEBUG("The cached font atlas '{}' is out of date, rebuilding it: {}",
+                               ToGenericUtf8(stored), atlas.error());
+            }
+
+            Result<FontAtlasData> built = BuildFontAtlas(font, options);
+
+            if (built && kind == StoredAtlas::Cache && !stored.empty())
+            {
+                fs::create_directories(stored.parent_path(), error);
+                if (const Result<> written = WriteFileAtomic(stored, SerializeFontAtlas(*built, key)); !written)
+                    CORE_WARN("Cannot cache the font atlas in '{}': {}", ToGenericUtf8(stored), written.error());
+            }
+
+            return built;
         }
 
         const Ref<Texture2D>& Fallback()
@@ -253,7 +295,11 @@ namespace ByteForge
                 const Result<std::vector<std::byte>> file = ReadBinaryFile(path);
                 if (!file)
                     return Unexpected(file.error());
-                return BuildFontAtlas(*file);
+
+                fs::path prebuilt = path;
+                prebuilt.replace_extension(FontAtlasExtension);
+
+                return LoadOrBuildAtlas(*file, prebuilt, StoredAtlas::Prebuilt);
             }));
             return;
         }
@@ -266,13 +312,17 @@ namespace ByteForge
             return;
         }
 
+        const fs::path cached = s_FontCacheDirectory.empty()
+            ? fs::path()
+            : s_FontCacheDirectory / std::format("{:016x}{}", static_cast<u64>(handle), FontAtlasExtension);
+
         s_PendingFonts.insert_or_assign(handle, JobSystem::Submit(
-            [path = metadata.Path, source = AssetRegistry::GetSource()]() -> Result<FontAtlasData>
+            [path = metadata.Path, source = AssetRegistry::GetSource(), cached]() -> Result<FontAtlasData>
         {
             const Result<std::vector<std::byte>> file = source.Read(path);
             if (!file)
                 return Unexpected(file.error());
-            return BuildFontAtlas(*file);
+            return LoadOrBuildAtlas(*file, cached, StoredAtlas::Cache);
         }));
     }
 
@@ -759,4 +809,6 @@ namespace ByteForge
         s_Fallback.reset();
         Prefab::Clear();
     }
+
+    void AssetManager::SetFontCacheDirectory(const fs::path& directory) { s_FontCacheDirectory = directory; }
 }

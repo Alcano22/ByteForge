@@ -324,6 +324,22 @@ function(byteforge_add_engine_fonts target destination)
             ${BYTEFORGE_ENGINE_FONT_DIR}
             ${destination}/fonts
     )
+
+    set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}_baked_fonts.stamp")
+
+    add_custom_command(
+        OUTPUT "${stamp}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${BYTEFORGE_BAKED_FONT_DIR}/inter_regular.bfatlas" "${destination}/fonts/"
+        COMMAND ${CMAKE_COMMAND} -E touch "${stamp}"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${target}_fonts.stamp" ${BYTEFORGE_BAKED_FONT_INPUTS}
+        COMMENT "Copying the prebuilt font atlas for ${target}"
+        VERBATIM
+    )
+
+    add_custom_target(${target}_baked_fonts DEPENDS "${stamp}")
+    add_dependencies(${target}_baked_fonts ${target}_fonts BakeEngineFonts)
+    add_dependencies(${target} ${target}_baked_fonts)
 endfunction()
 
 set(BYTEFORGE_ENGINE_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources/input

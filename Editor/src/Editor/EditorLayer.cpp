@@ -22,6 +22,8 @@
 #include <filesystem>
 #include <system_error>
 
+#include "Engine/Assets/AssetManager.h"
+
 namespace ByteForge
 {
     namespace
@@ -61,6 +63,7 @@ namespace ByteForge
         m_Context.CodeEditor.Init();
 
         AssetRegistry::Init(Project::GetActive().GetAssetDirectory());
+        AssetManager::SetFontCacheDirectory(GetStateDirectory() / "Cache" / "Fonts");
 
         m_Context.Scripts.RequestReload();
 

@@ -23,6 +23,8 @@ namespace ByteForge
         static void Update();
         static void Clear();
 
+        static void SetFontCacheDirectory(const fs::path& directory);
+
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(UUID handle);
         [[nodiscard]] static Ref<TextureAsset> LoadTexture2D(const fs::path& relativePath);
 
