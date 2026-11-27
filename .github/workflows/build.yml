@@ -134,6 +134,9 @@ jobs:
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
 
     steps:
       - name: Install system packages
@@ -146,6 +149,7 @@ jobs:
           wayland-devel libxkbcommon-devel wayland-protocols-devel systemd-devel
           qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland
           patchelf librsvg2-tools
+          ccache
 
       - name: Check out
         uses: actions/checkout@v4
@@ -185,8 +189,15 @@ jobs:
           key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'vcpkg-overlays/**') }}
           restore-keys: vcpkg-linux-${{ env.VCPKG_COMMIT }}-
 
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-linux-${{ github.sha }}
+          restore-keys: ccache-linux-
+
       - name: Configure
-        run: cmake --preset release
+        run: cmake --preset release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Save vcpkg packages
         if: ${{ !cancelled() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
@@ -197,6 +208,9 @@ jobs:
 
       - name: Build
         run: cmake --build --preset release
+
+      - name: ccache statistics
+        run: ccache --show-stats
 
       - name: Test
         run: ctest --preset release -j "$(nproc)"
