@@ -18,6 +18,23 @@ public enum GamepadType : byte
     SwitchJoyConPair
 }
 
+public enum GamepadButton : ushort
+{
+    South = 0, East = 1, West = 2, North = 3,
+    LeftBumper = 4, RightBumper = 5,
+    Back = 6, Start = 7, Guide = 8,
+    LeftThumb = 9, RightThumb = 10,
+    DPadUp = 11, DPadRight = 12, DPadDown = 13, DPadLeft = 14
+}
+
+/// <summary>Sticks are in [-1, 1] with Y pointing up, triggers in [0, 1].</summary>
+public enum GamepadAxis : ushort
+{
+    LeftX = 0, LeftY = 1,
+    RightX = 2, RightY = 3,
+    LeftTrigger = 4, RightTrigger = 5
+}
+
 public enum GamepadTrigger : byte
 {
     Left, Right
@@ -46,6 +63,18 @@ public static class Gamepad
         ScriptAPI.Gamepad_SupportsLed(gamepad),
         ScriptAPI.Gamepad_SupportsAdaptiveTriggers(gamepad)
     );
+
+    public static bool IsButtonDown(GamepadButton button, int gamepad = 0) =>
+        ScriptAPI.Gamepad_IsButtonDown(gamepad, (int)button);
+
+    public static bool IsButtonPressed(GamepadButton button, int gamepad = 0) =>
+        ScriptAPI.Gamepad_IsButtonPressed(gamepad, (int)button);
+
+    public static bool IsButtonReleased(GamepadButton button, int gamepad = 0) =>
+        ScriptAPI.Gamepad_IsButtonReleased(gamepad, (int)button);
+
+    public static float GetAxis(GamepadAxis axis, int gamepad = 0) =>
+        ScriptAPI.Gamepad_GetAxis(gamepad, (int)axis);
 
     /// <summary>Intensities in [0, 1], duration in seconds. A new call replaces the running rumble, 0 stops it.</summary>
     public static bool Rumble(float lowFrequency, float highFrequency, float duration, int gamepad = 0) =>

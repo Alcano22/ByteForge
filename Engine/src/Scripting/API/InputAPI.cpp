@@ -104,6 +104,26 @@ namespace ByteForge
             return Input::GetGamepadType(RequireGamepad(gamepad));
         }
 
+        bool GamepadIsButtonDown(const ScriptCallContext&, const i32 gamepad, const GamepadButton button)
+        {
+            return Input::IsGamepadButtonDown(button, RequireGamepad(gamepad));
+        }
+
+        bool GamepadIsButtonPressed(const ScriptCallContext&, const i32 gamepad, const GamepadButton button)
+        {
+            return Input::IsGamepadButtonPressed(button, RequireGamepad(gamepad));
+        }
+
+        bool GamepadIsButtonReleased(const ScriptCallContext&, const i32 gamepad, const GamepadButton button)
+        {
+            return Input::IsGamepadButtonReleased(button, RequireGamepad(gamepad));
+        }
+
+        f32 GamepadGetAxis(const ScriptCallContext&, const i32 gamepad, const GamepadAxis axis)
+        {
+            return Input::GetGamepadAxis(axis, RequireGamepad(gamepad));
+        }
+
         bool GamepadSupportsRumble(const ScriptCallContext&, const i32 gamepad)
         {
             return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Rumble;
@@ -192,6 +212,10 @@ namespace ByteForge
         api.Register<&GamepadIsConnected>("Gamepad.IsConnected", "Is Gamepad Connected", Pure, { "Gamepad" });
         api.Register<&GamepadGetName>("Gamepad.GetName", "Get Gamepad Name", Pure, { "Gamepad" });
         api.Register<&GamepadGetType>("Gamepad.GetType", "Get Gamepad Type", Pure, { "Gamepad" });
+        api.Register<&GamepadIsButtonDown>("Gamepad.IsButtonDown", "Is Gamepad Button Down", Pure, { "Gamepad", "Button" });
+        api.Register<&GamepadIsButtonPressed>("Gamepad.IsButtonPressed", "Is Gamepad Button Pressed", Pure, { "Gamepad", "Button" });
+        api.Register<&GamepadIsButtonReleased>("Gamepad.IsButtonReleased", "Is Gamepad Button Released", Pure, { "Gamepad", "Button" });
+        api.Register<&GamepadGetAxis>("Gamepad.GetAxis", "Get Gamepad Axis", Pure, { "Gamepad", "Axis" });
         api.Register<&GamepadSupportsRumble>("Gamepad.SupportsRumble", "Supports Rumble", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsTriggerRumble>("Gamepad.SupportsTriggerRumble", "Supports Trigger Rumble", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsLed>("Gamepad.SupportsLed", "Supports LED", Pure, { "Gamepad" });

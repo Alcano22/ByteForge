@@ -100,6 +100,10 @@ internal static unsafe class ScriptAPI
     private static uint s_GamepadIsConnected;
     private static uint s_GamepadGetName;
     private static uint s_GamepadGetType;
+    private static uint s_GamepadIsButtonDown;
+    private static uint s_GamepadIsButtonPressed;
+    private static uint s_GamepadIsButtonReleased;
+    private static uint s_GamepadGetAxis;
     private static uint s_GamepadSupportsRumble;
     private static uint s_GamepadSupportsTriggerRumble;
     private static uint s_GamepadSupportsLed;
@@ -208,6 +212,10 @@ internal static unsafe class ScriptAPI
         s_GamepadIsConnected              = Resolve("Gamepad.IsConnected",              "(Int)->Bool",                          ref complete);
         s_GamepadGetName                  = Resolve("Gamepad.GetName",                  "(Int)->String",                        ref complete);
         s_GamepadGetType                  = Resolve("Gamepad.GetType",                  "(Int)->Int",                           ref complete);
+        s_GamepadIsButtonDown             = Resolve("Gamepad.IsButtonDown",             "(Int,Int)->Bool",                      ref complete);
+        s_GamepadIsButtonPressed          = Resolve("Gamepad.IsButtonPressed",          "(Int,Int)->Bool",                      ref complete);
+        s_GamepadIsButtonReleased         = Resolve("Gamepad.IsButtonReleased",         "(Int,Int)->Bool",                      ref complete);
+        s_GamepadGetAxis                  = Resolve("Gamepad.GetAxis",                  "(Int,Int)->Float",                     ref complete);
         s_GamepadSupportsRumble           = Resolve("Gamepad.SupportsRumble",           "(Int)->Bool",                          ref complete);
         s_GamepadSupportsTriggerRumble    = Resolve("Gamepad.SupportsTriggerRumble",    "(Int)->Bool",                          ref complete);
         s_GamepadSupportsLed              = Resolve("Gamepad.SupportsLed",              "(Int)->Bool",                          ref complete);
@@ -503,6 +511,18 @@ internal static unsafe class ScriptAPI
 
     public static int Gamepad_GetType(int gamepad) =>
         Call(s_GamepadGetType, new APIValue { Int = gamepad }).Int;
+
+    public static bool Gamepad_IsButtonDown(int gamepad, int button) =>
+        Call(s_GamepadIsButtonDown, new APIValue { Int = gamepad }, new APIValue { Int = button }).Bool != 0;
+
+    public static bool Gamepad_IsButtonPressed(int gamepad, int button) =>
+        Call(s_GamepadIsButtonPressed, new APIValue { Int = gamepad }, new APIValue { Int = button }).Bool != 0;
+
+    public static bool Gamepad_IsButtonReleased(int gamepad, int button) =>
+        Call(s_GamepadIsButtonReleased, new APIValue { Int = gamepad }, new APIValue { Int = button }).Bool != 0;
+
+    public static float Gamepad_GetAxis(int gamepad, int axis) =>
+        Call(s_GamepadGetAxis, new APIValue { Int = gamepad }, new APIValue { Int = axis }).Float;
 
     public static bool Gamepad_SupportsRumble(int gamepad) =>
         Call(s_GamepadSupportsRumble, new APIValue { Int = gamepad }).Bool != 0;
