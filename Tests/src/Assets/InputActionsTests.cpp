@@ -25,6 +25,18 @@ namespace
         REQUIRE_FALSE(result.has_value());
         return result.error();
     }
+
+    InputActionsData MakeAimActions(const InputActionType type, std::vector<InputBindingData> bindings)
+    {
+        InputActionData action{ .Id = UUID(2), .Name = "Aim", .Type = type, .Bindings = std::move(bindings) };
+        InputActionMapData map{ .Id = UUID(1), .Name = "Player", .Actions = { std::move(action) } };
+        return InputActionsData{ .Maps = { std::move(map) } };
+    }
+
+    InputBindingData SingleBinding(const InputControl control)
+    {
+        return { .Kind = InputBindingKind::Single, .Controls = { control } };
+    }
 }
 
 TEST_CASE("The default input actions are valid", "[assets][input]")
@@ -148,4 +160,25 @@ TEST_CASE("Broken files are rejected with a reason", "[assets][input]")
     {
         CHECK_THAT(ParseError(R"({ "maps": {} })"), ContainsSubstring("'maps' must be an array"));
     }
+}
+
+TEST_CASE("Delta controls are only valid on their own in axis and vector actions", "[input][assets]")
+{
+    const InputControl gyro = InputControl::FromDelta(InputDelta::Gyro);
+    const InputControl mouse = InputControl::FromDelta(InputDelta::Mouse);
+
+    CHECK(ValidateInputActions(MakeAimActions(InputActionType::Vector2,
+                                              { SingleBinding(gyro), SingleBinding(mouse) })));
+
+    CHECK_FALSE(ValidateInputActions(MakeAimActions(InputActionType::Button, { SingleBinding(gyro) })));
+
+    CHECK_FALSE(ValidateInputActions(MakeAimActions(InputActionType::Vector2, {
+        SingleBinding(gyro), SingleBinding(InputControl::FromGamepadStick(GamepadStick::Right))
+    })));
+
+    const InputBindingData composite{
+        .Kind = InputBindingKind::Composite1D,
+        .Controls = { gyro, InputControl::FromKey(KeyCode::D) }
+    };
+    CHECK_FALSE(ValidateInputActions(MakeAimActions(InputActionType::Axis1D, { composite })));
 }

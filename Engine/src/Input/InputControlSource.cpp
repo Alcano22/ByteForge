@@ -52,6 +52,32 @@ namespace ByteForge
             }
         }
 
+        glm::vec2 ReadDelta(const InputDelta delta)
+        {
+            switch (delta)
+            {
+                case InputDelta::Mouse:
+                {
+                    const glm::vec2 moved = Input::GetMouseDelta();
+                    return { moved.x, -moved.y };
+                }
+
+                case InputDelta::Gyro:
+                {
+                    glm::vec2 strongest(0.0f);
+                    for (u32 gamepad = 0; gamepad < MaxGamepads; ++gamepad)
+                    {
+                        const glm::vec3 turned = Input::GetGamepadRotationDelta(gamepad);
+                        const glm::vec2 value{ -turned.y, turned.x };
+                        if (glm::dot(value, value) > glm::dot(strongest, strongest))
+                            strongest = value;
+                    }
+                    return strongest;
+                }
+            }
+            return glm::vec2(0.0f);
+        }
+
         std::optional<GamepadStick> StickOf(const GamepadAxis axis)
         {
             switch (axis)
@@ -97,6 +123,9 @@ namespace ByteForge
                 }
                 return strongest;
             }
+
+            case InputControlType::Delta:
+                return ReadDelta(static_cast<InputDelta>(control.Code));
 
             case InputControlType::None:
                 break;

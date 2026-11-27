@@ -24,12 +24,14 @@ TEST_CASE("Keys above the default magic_enum range keep their names", "[input][c
 
 TEST_CASE("Controls survive a round trip", "[input][control]")
 {
-    std::vector<InputControl> controls{
+    std::vector controls{
         InputControl::FromKey(KeyCode::Space),
         InputControl::FromKey(KeyCode::KP9),
         InputControl::FromKey(KeyCode::RightSuper),
         InputControl::FromGamepadStick(GamepadStick::Left),
-        InputControl::FromGamepadStick(GamepadStick::Right)
+        InputControl::FromGamepadStick(GamepadStick::Right),
+        InputControl::FromDelta(InputDelta::Mouse),
+        InputControl::FromDelta(InputDelta::Gyro)
     };
 
     for (u16 button = 0; button <= static_cast<u16>(MouseButton::ButtonLast); ++button)

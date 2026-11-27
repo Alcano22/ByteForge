@@ -282,3 +282,21 @@ TEST_CASE("Unknown maps and actions are handled", "[input][actions]")
     CHECK_FALSE(system.FindAction("Gameplay/Fly").has_value());
     CHECK_FALSE(system.EnableMap("UI"));
 }
+
+TEST_CASE("Delta deadzones cut off small movement without remapping the rest", "[input][actions]")
+{
+    const InputControl gyro = InputControl::FromDelta(InputDelta::Gyro);
+    const InputBindingData binding{
+        .Kind = InputBindingKind::Single,
+        .Controls = { gyro },
+        .Processors = { .Deadzone = 0.01f, .Scale = 2.0f, .Normalize = true }
+    };
+
+    FakeControlSource source;
+
+    source.Set(gyro, { 0.005f, 0.0f });
+    CHECK(EvaluateBinding(binding, source) == glm::vec2(0.0f));
+
+    source.Set(gyro, { 3.0f, 4.0f });
+    CHECK(EvaluateBinding(binding, source) == glm::vec2(6.0f, 8.0f));
+}

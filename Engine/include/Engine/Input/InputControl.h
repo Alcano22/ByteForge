@@ -17,6 +17,11 @@ namespace ByteForge
         Left = 0, Right = 1, DPad = 2
     };
 
+    enum class InputDelta : u16
+    {
+        Mouse = 0, Gyro = 1
+    };
+
     enum class InputControlType : u8
     {
         None = 0,
@@ -24,7 +29,8 @@ namespace ByteForge
         MouseButton,
         GamepadButton,
         GamepadAxis,
-        GamepadStick
+        GamepadStick,
+        Delta
     };
 
     struct InputControl
@@ -56,6 +62,13 @@ namespace ByteForge
         {
             return { InputControlType::GamepadStick, static_cast<u16>(stick) };
         }
+
+        [[nodiscard]] static constexpr InputControl FromDelta(const InputDelta delta)
+        {
+            return { InputControlType::Delta, static_cast<u16>(delta) };
+        }
+
+        [[nodiscard]] constexpr bool IsDelta() const { return Type == InputControlType::Delta; }
 
         [[nodiscard]] constexpr bool IsSet() const { return Type != InputControlType::None; }
 

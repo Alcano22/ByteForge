@@ -583,9 +583,10 @@ namespace ByteForge
                              ImGuiSliderFlags_AlwaysClamp))
             OnDataChanged();
         TrackItemEdit();
-        ImGui::SetItemTooltip("Values below this magnitude read as zero, the rest is remapped to start at zero");
+        ImGui::SetItemTooltip("Values below this magnitude read as zero, the rest is remapped to start at zero.\n"
+                              "For delta controls (mouse, gyro) it only cuts off small movement per frame.");
 
-        if (ImGui::DragFloat("Scale", &processors.Scale, 0.01f, -100.0f, 100.0f, "%.2f"))
+        if (ImGui::DragFloat("Scale", &processors.Scale, 0.01f, -1000.0f, 1000.0f, "%.4g"))
             OnDataChanged();
         TrackItemEdit();
 

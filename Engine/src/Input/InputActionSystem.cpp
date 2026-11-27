@@ -32,16 +32,21 @@ namespace ByteForge
             return value * (remapped / length);
         }
 
-        glm::vec2 ApplyProcessors(glm::vec2 value, const InputProcessors& processors)
+        glm::vec2 ApplyProcessors(glm::vec2 value, const InputProcessors& processors, const bool delta)
         {
-            value = ApplyDeadzone(value, processors.Deadzone);
+            if (delta)
+            {
+                if (processors.Deadzone > 0.0f && glm::length(value) <= processors.Deadzone)
+                    value = glm::vec2(0.0f);
+            } else
+                value = ApplyDeadzone(value, processors.Deadzone);
 
             if (processors.InvertX)
                 value.x = -value.x;
             if (processors.InvertY)
                 value.y = -value.y;
 
-            if (processors.Normalize)
+            if (processors.Normalize && !delta)
             {
                 const f32 length = glm::length(value);
                 if (length > 1.0f)
@@ -94,7 +99,8 @@ namespace ByteForge
                 break;
         }
 
-        return ApplyProcessors(value, binding.Processors);
+        const bool delta = binding.Kind == InputBindingKind::Single && controls[0].IsDelta();
+        return ApplyProcessors(value, binding.Processors, delta);
     }
 
     glm::vec2 EvaluateAction(const InputActionData& action, const InputControlSource& source)

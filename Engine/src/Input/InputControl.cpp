@@ -31,6 +31,7 @@ namespace ByteForge
                 case InputControlType::GamepadButton: return NameOf<GamepadButton>(control.Code);
                 case InputControlType::GamepadAxis:   return NameOf<GamepadAxis>(control.Code);
                 case InputControlType::GamepadStick:  return NameOf<GamepadStick>(control.Code);
+                case InputControlType::Delta:         return NameOf<InputDelta>(control.Code);
                 case InputControlType::MouseButton:   return control.Code < MouseButtonNames.size()
                                                            ? MouseButtonNames[control.Code] : std::string_view{};
                 case InputControlType::None:          break;
@@ -46,6 +47,7 @@ namespace ByteForge
                 case InputControlType::GamepadButton: return CodeOf<GamepadButton>(name);
                 case InputControlType::GamepadAxis:   return CodeOf<GamepadAxis>(name);
                 case InputControlType::GamepadStick:  return CodeOf<GamepadStick>(name);
+                case InputControlType::Delta:         return CodeOf<InputDelta>(name);
                 case InputControlType::MouseButton:
                 {
                     const auto it = std::ranges::find(MouseButtonNames, name);
@@ -109,6 +111,9 @@ namespace ByteForge
 
             for (const GamepadStick stick : magic_enum::enum_values<GamepadStick>())
                 result.push_back(InputControl::FromGamepadStick(stick));
+
+            for (const InputDelta delta : magic_enum::enum_values<InputDelta>())
+                result.push_back(InputControl::FromDelta(delta));
 
             return result;
         }();

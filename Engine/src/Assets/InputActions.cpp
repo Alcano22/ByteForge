@@ -307,6 +307,9 @@ namespace ByteForge
                 if (!claimId(action.Id))
                     return Unexpected("action '{}/{}' has a missing or duplicate id", map.Name, action.Name);
 
+                bool hasDelta = false;
+                bool hasOther = false;
+
                 for (usize i = 0; i < action.Bindings.size(); ++i)
                 {
                     const InputBindingData& binding = action.Bindings[i];
@@ -317,6 +320,31 @@ namespace ByteForge
                         return Unexpected("binding {} of '{}/{}' needs {} controls but has {}",
                                           i, map.Name, action.Name, expected, binding.Controls.size());
                     }
+
+                    const bool delta = std::ranges::any_of(binding.Controls, &InputControl::IsDelta);
+                    if (delta && binding.Kind != InputBindingKind::Single)
+                    {
+                        return Unexpected("binding {} of '{}/{}': delta controls cannot be part of a composite",
+                                          i, map.Name, action.Name);
+                    }
+
+                    if (delta && action.Type == InputActionType::Button)
+                    {
+                        return Unexpected("'{}/{}' is a Button action, delta controls need an Axis1D or Vector2 action",
+                                          map.Name, action.Name);
+                    }
+
+                    const bool bound = std::ranges::any_of(binding.Controls, &InputControl::IsSet);
+                    if (bound && delta)
+                        hasDelta = true;
+                    if (bound && !delta)
+                        hasOther = true;
+                }
+
+                if (hasDelta && hasOther)
+                {
+                    return Unexpected("'{}/{}' mixes delta controls with keys, buttons or sticks, "
+                                      "give them separate actions", map.Name, action.Name);
                 }
             }
         }

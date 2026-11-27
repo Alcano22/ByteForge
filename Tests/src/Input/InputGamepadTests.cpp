@@ -1,4 +1,5 @@
 #include <Engine/Event/GamepadEvent.h>
+#include <Engine/Input/InputControlSource.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/GamepadBackend.h>
 
@@ -306,4 +307,15 @@ TEST_CASE_METHOD(GamepadFixture, "Motion keeps the latest reading and sums the r
 
     Disconnect();
     CHECK(Input::GetGamepadAcceleration() == glm::vec3(0.0f));
+}
+
+TEST_CASE_METHOD(GamepadFixture, "The gyro delta control points right and up", "[Input][Gamepad]")
+{
+    Connect();
+
+    Move(glm::vec3(0.0f), { 0.2f, -0.1f, 0.0f }, glm::vec3(0.0f));
+
+    CHECK(RawInputSource{}.Read(InputControl::FromDelta(InputDelta::Gyro)) == glm::vec2(0.1f, 0.2f));
+
+    Disconnect();
 }
