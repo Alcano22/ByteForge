@@ -80,10 +80,12 @@ TEST_CASE("Texture settings keep sprite sheets through the meta file", "[assets]
 TEST_CASE("Texture meta files from before sprite sheets read as a single sprite", "[assets][sprites]")
 {
     const nlohmann::json old{
-        { "format", "RGBA8_SRGB" }, { "filter", "Nearest" }, { "wrap", "Repeat" }, { "generateMips", false }
+            { "format", "RGBA8_SRGB" }, { "filter", "Nearest" }, { "wrap", "Repeat" }, { "generateMips", false }
     };
 
-    const TextureAssetSettings& settings = RequireTexture(DeserializeAssetSettings(AssetType::Texture2D, old));
+    const AssetSettings restored = DeserializeAssetSettings(AssetType::Texture2D, old);
+    const TextureAssetSettings& settings = RequireTexture(restored);
+
     CHECK(settings.Sampling.Filter == TextureFilter::Nearest);
     CHECK(settings.Mode == SpriteMode::Single);
     CHECK(settings.PixelsPerUnit == DefaultPixelsPerUnit);
@@ -98,7 +100,9 @@ TEST_CASE("Broken sprite entries are skipped without losing the rest", "[assets]
     data["sprites"].push_back(nlohmann::json{ { "id", "not a number" }, { "rect", { 0, 0, 8, 8 } } });
     data["pixelsPerUnit"] = -4.0f;
 
-    const TextureAssetSettings& settings = RequireTexture(DeserializeAssetSettings(AssetType::Texture2D, data));
+    const AssetSettings restored = DeserializeAssetSettings(AssetType::Texture2D, data);
+    const TextureAssetSettings& settings = RequireTexture(restored);
+
     CHECK(settings.Sprites == MakeSheet().Sprites);
     CHECK(settings.PixelsPerUnit == DefaultPixelsPerUnit);
 }
