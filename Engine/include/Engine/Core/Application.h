@@ -15,6 +15,7 @@ namespace ByteForge
     class Event;
     class ScriptEngine;
     class AudioEngine;
+    class SdlGamepads;
 
     class BYTEFORGE_API Application : NonCopyable
     {
@@ -46,6 +47,7 @@ namespace ByteForge
         Scope<ImGuiLayer> m_ImGuiLayer;
         Scope<ScriptEngine> m_ScriptEngine;
         Scope<AudioEngine> m_AudioEngine;
+        Scope<SdlGamepads> m_Gamepads;
         LayerStack m_LayerStack;
 
         bool m_IsRunning = true;

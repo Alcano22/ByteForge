@@ -1,4 +1,5 @@
 find_package(glfw3 CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -223,6 +224,7 @@ add_library(Engine SHARED
         src/Platform/Vulkan/VulkanTexture2D.cpp
         src/Platform/Vulkan/VulkanSamplerCache.cpp
         src/Platform/Vulkan/VulkanBackend.cpp
+        src/Platform/SDL/SdlGamepads.cpp
 )
 
 target_compile_definitions(Engine PRIVATE
@@ -257,6 +259,7 @@ target_link_libraries(Engine PRIVATE
         GPUOpen::VulkanMemoryAllocator
         unofficial::spirv-reflect
         box2d::box2d
+        SDL3::SDL3
         msdfgen::msdfgen-core
         msdfgen::msdfgen-ext
         unofficial::nethost::nethost

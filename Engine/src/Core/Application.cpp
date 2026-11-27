@@ -7,6 +7,7 @@
 #include "Engine/Assets/AssetManager.h"
 #include "Engine/Audio/AudioEngine.h"
 #include "Engine/Scripting/ScriptEngine.h"
+#include "Platform/SDL/SdlGamepads.h"
 
 #include <GLFW/glfw3.h>
 
@@ -26,7 +27,8 @@ namespace ByteForge
     Application::Application(const WindowProps& props)
         : m_Window(MakeScope<Window>(props)),
           m_ScriptEngine(MakeScope<ScriptEngine>()),
-          m_AudioEngine(MakeScope<AudioEngine>())
+          m_AudioEngine(MakeScope<AudioEngine>()),
+          m_Gamepads(MakeScope<SdlGamepads>())
     {
         s_Instance = this;
 
@@ -58,6 +60,7 @@ namespace ByteForge
         while (m_IsRunning && !m_Window->ShouldClose())
         {
             m_Window->PollEvents();
+            m_Gamepads->Poll([this](Event& e) { OnApplicationEvent(e); });
 
             AssetManager::Update();
 

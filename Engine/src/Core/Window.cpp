@@ -21,9 +21,6 @@
 
 namespace ByteForge
 {
-    static_assert(GamepadButtonCount == GLFW_GAMEPAD_BUTTON_LAST + 1, "GamepadButton must match the GLFW layout");
-    static_assert(GamepadAxisCount == GLFW_GAMEPAD_AXIS_LAST + 1, "GamepadAxis must match the GLFW layout");
-
     namespace
     {
         WeakRef<void> s_GlfwContext;
@@ -41,36 +38,6 @@ namespace ByteForge
                 case GLFW_PLATFORM_WAYLAND: return "Wayland";
                 default:                    return "an unknown platform";
             }
-        }
-
-        fs::path GetGamepadMappingsFile()
-        {
-            return RuntimePaths::GetDataDirectory() / "input" / "gamecontrollerdb.txt";
-        }
-
-        void LoadGamepadMappings()
-        {
-            const fs::path file = GetGamepadMappingsFile();
-
-            std::error_code error;
-            if (!fs::exists(file, error))
-            {
-                CORE_WARN("'{}' is missing, only controllers built into GLFW will work", ToGenericUtf8(file));
-                return;
-            }
-
-            const Result<std::vector<std::byte>> data = ReadBinaryFile(file);
-            if (!data)
-            {
-                CORE_WARN("Cannot read the gamepad mappings: {}", data.error());
-                return;
-            }
-
-            const std::string mappings(reinterpret_cast<const char*>(data->data()), data->size());
-            if (glfwUpdateGamepadMappings(mappings.c_str()) == GLFW_TRUE)
-                CORE_DEBUG("Loaded gamepad mappings from '{}'", ToGenericUtf8(file));
-            else
-                CORE_WARN("GLFW rejected the gamepad mappings in '{}'", ToGenericUtf8(file));
         }
 
         Ref<void> AcquireGlfwContext(const bool preferX11)
@@ -96,69 +63,10 @@ namespace ByteForge
 
             CORE_DEBUG("GLFW runs on {}", GetPlatformName());
 
-            LoadGamepadMappings();
-
             static i32 s_GlfwSentinel = 0;
             context = Ref<void>(&s_GlfwSentinel, [](void*) { glfwTerminate(); });
             s_GlfwContext = context;
             return context;
-        }
-
-        std::bitset<GLFW_JOYSTICK_LAST + 1> s_ReportedJoysticks;
-
-        void ReportUnmappedJoystick(const i32 joystick)
-        {
-            const auto index = static_cast<usize>(joystick);
-
-            if (!glfwJoystickPresent(joystick))
-            {
-                s_ReportedJoysticks.reset(index);
-                return;
-            }
-
-            if (s_ReportedJoysticks.test(index)) return;
-            s_ReportedJoysticks.set(index);
-
-            const char* name = glfwGetJoystickName(joystick);
-            const char* guid = glfwGetJoystickGUID(joystick);
-
-            i32 axisCount = 0, buttonCount = 0, hatCount = 0;
-            glfwGetJoystickAxes(joystick, &axisCount);
-            glfwGetJoystickButtons(joystick, &buttonCount);
-            glfwGetJoystickHats(joystick, &hatCount);
-
-            constexpr i32 MinGamepadAxes = 4;
-            constexpr i32 MinGamepadButtons = 4;
-            constexpr i32 MaxGamepadButtons = 32;
-            const bool looksLikeGamepad = axisCount >= MinGamepadAxes && buttonCount >= MinGamepadButtons &&
-                                          buttonCount <= MaxGamepadButtons;
-
-            const std::string message = std::format(
-                "Joystick {} '{}' is connected but has no gamepad mapping (GUID {}, {} axes, {} buttons, {} hats), "
-                "add a line for it to '{}'", joystick, name ? name : "Unknown", guid ? guid : "unknown",
-                axisCount, buttonCount, hatCount, ToGenericUtf8(GetGamepadMappingsFile()));
-
-            if (looksLikeGamepad)
-                CORE_WARN("{}", message);
-            else
-                CORE_DEBUG("{}", message);
-        }
-
-        f32 ToEngineAxis(const usize axis, const f32 value)
-        {
-            switch (static_cast<GamepadAxis>(axis))
-            {
-                case GamepadAxis::LeftY:
-                case GamepadAxis::RightY:
-                    return -value;
-
-                case GamepadAxis::LeftTrigger:
-                case GamepadAxis::RightTrigger:
-                    return (value + 1.0f) * 0.5f;
-
-                default:
-                    return value;
-            }
         }
     }
 
@@ -213,11 +121,7 @@ namespace ByteForge
         s_PrimaryData = nullptr;
     }
 
-    void Window::PollEvents()
-    {
-        glfwPollEvents();
-        PollGamepads();
-    }
+    void Window::PollEvents() { glfwPollEvents(); }
 
     bool Window::ShouldClose() const { return glfwWindowShouldClose(m_Window.get()); }
 
@@ -264,90 +168,6 @@ namespace ByteForge
 
         if (!images.empty())
             glfwSetWindowIcon(m_Window.get(), static_cast<i32>(images.size()), images.data());
-    }
-
-    void Window::PollGamepads()
-    {
-        if (s_PrimaryData != &m_Data) return;
-
-        for (usize slot = 0; slot < m_Gamepads.size(); ++slot)
-        {
-            GamepadSlot& gamepad = m_Gamepads[slot];
-            if (gamepad.JoystickId < 0 || glfwJoystickIsGamepad(gamepad.JoystickId)) continue;
-
-            CORE_INFO("Gamepad {} disconnected", slot);
-            gamepad = GamepadSlot{};
-
-            GamepadDisconnectedEvent event(static_cast<u32>(slot));
-            m_Data.EventCallback(event);
-        }
-
-        for (i32 joystick = GLFW_JOYSTICK_1; joystick <= GLFW_JOYSTICK_LAST; ++joystick)
-        {
-            if (!glfwJoystickIsGamepad(joystick))
-            {
-                ReportUnmappedJoystick(joystick);
-                continue;
-            }
-
-            if (std::ranges::find(m_Gamepads, joystick, &GamepadSlot::JoystickId) != m_Gamepads.end()) continue;
-
-            const auto freeSlot = std::ranges::find(m_Gamepads, -1, &GamepadSlot::JoystickId);
-            if (freeSlot == m_Gamepads.end()) break;
-
-            freeSlot->JoystickId = joystick;
-
-            const auto slot = static_cast<u32>(std::distance(m_Gamepads.begin(), freeSlot));
-            const char* rawName = glfwGetGamepadName(joystick);
-            std::string name = rawName ? rawName : "Unknown Gamepad";
-
-            CORE_INFO("Gamepad {} connected: {}", slot, name);
-
-            GamepadConnectedEvent event(slot, std::move(name));
-            m_Data.EventCallback(event);
-        }
-
-        for (usize slot = 0; slot < m_Gamepads.size(); ++slot)
-        {
-            GamepadSlot& gamepad = m_Gamepads[slot];
-            if (gamepad.JoystickId < 0) continue;
-
-            GLFWgamepadstate state;
-            if (!glfwGetGamepadState(gamepad.JoystickId, &state)) continue;
-
-            const auto index = static_cast<u32>(slot);
-
-            for (usize button = 0; button < GamepadButtonCount; ++button)
-            {
-                const bool down = state.buttons[button] == GLFW_PRESS;
-                if (down == gamepad.Buttons[button]) continue;
-
-                gamepad.Buttons[button] = down;
-                const auto code = static_cast<GamepadButton>(button);
-
-                if (down)
-                {
-                    GamepadButtonPressedEvent event(index, code);
-                    m_Data.EventCallback(event);
-                }
-                else
-                {
-                    GamepadButtonReleasedEvent event(index, code);
-                    m_Data.EventCallback(event);
-                }
-            }
-
-            for (usize axis = 0; axis < GamepadAxisCount; ++axis)
-            {
-                const f32 value = ToEngineAxis(axis, state.axes[axis]);
-                if (value == gamepad.Axes[axis]) continue;
-
-                gamepad.Axes[axis] = value;
-
-                GamepadAxisMovedEvent event(index, static_cast<GamepadAxis>(axis), value);
-                m_Data.EventCallback(event);
-            }
-        }
     }
 
     void Window::SetupCallbacks() const
