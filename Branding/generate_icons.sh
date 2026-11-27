@@ -11,7 +11,7 @@ for tool in rsvg-convert magick; do
     fi
 done
 
-sizes=(16 24 32 48 64 128 256)
+sizes=(16 24 32 48 64 128 256 512 1024)
 pngs=()
 
 for size in "${sizes[@]}"; do

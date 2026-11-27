@@ -1,3 +1,5 @@
+#include "SplashScreen.h"
+
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/Prefab.h>
@@ -82,16 +84,9 @@ namespace ByteForge
 
         void OnAttach() override
         {
-            MountAssets();
-
-            LoadInputActions();
-            m_Scene.SetInputActions(&m_InputActions);
-
-            LoadGameScripts();
-            LoadStartScene();
-
             m_Renderer = MakeScope<Renderer2D>();
             m_UIRenderer = MakeScope<UIRenderer>();
+            m_Splash = MakeScope<SplashScreen>();
         }
 
         void OnDetach() override
@@ -102,6 +97,25 @@ namespace ByteForge
 
         void OnUpdate(const Timestep ts) override
         {
+            if (m_Splash)
+            {
+                if (m_Splash->IsShowingLogo() && !m_Loaded)
+                {
+                    LoadGame();
+                    m_Splash->SetGameLoaded();
+                }
+
+                m_Splash->Update(ts.GetSeconds());
+
+                if (!m_Splash->IsDone())
+                {
+                    RenderSplash();
+                    return;
+                }
+
+                m_Splash.reset();
+            }
+
             const Window& window = Application::Get().GetWindow();
 
             const u32 width = window.GetFramebufferWidth();
@@ -136,6 +150,30 @@ namespace ByteForge
         }
 
     private:
+        void LoadGame()
+        {
+            MountAssets();
+
+            LoadInputActions();
+            m_Scene.SetInputActions(&m_InputActions);
+
+            LoadGameScripts();
+            LoadStartScene();
+
+            m_Loaded = true;
+        }
+
+        void RenderSplash() const
+        {
+            const Window& window = Application::Get().GetWindow();
+            const u32 width = window.GetFramebufferWidth();
+            const u32 height = window.GetFramebufferHeight();
+            if (width < 1 || height < 1) return;
+
+            Renderer::SetViewport({ .X = 0, .Y = 0, .Width = width, .Height = height });
+            m_Splash->Render(*m_UIRenderer, { static_cast<f32>(width), static_cast<f32>(height) });
+        }
+
         [[nodiscard]] const CameraComponent& GetCameraSettings()
         {
             const Entity cameraEntity = m_Scene.GetPrimaryCamera();
@@ -254,6 +292,8 @@ namespace ByteForge
         Scene m_Scene;
         Scope<Renderer2D> m_Renderer;
         Scope<UIRenderer> m_UIRenderer;
+        Scope<SplashScreen> m_Splash;
+        bool m_Loaded = false;
     };
 
     Application* CreateApplication()

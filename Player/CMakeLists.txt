@@ -1,6 +1,9 @@
 add_executable(Player
         src/PlayerApp.cpp
+        src/SplashScreen.cpp
 )
+
+byteforge_embed_file(Player ${CMAKE_SOURCE_DIR}/Branding/icons/1024/byteforge.png SplashLogo)
 
 target_link_libraries(Player PRIVATE Engine ByteForgeWarnings)
 
