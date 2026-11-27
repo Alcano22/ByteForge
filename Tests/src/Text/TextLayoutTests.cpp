@@ -1,3 +1,5 @@
+#include "Text/TestFont.h"
+
 #include <Engine/Core/FileSystem.h>
 #include <Engine/Text/FontAtlas.h>
 #include <Engine/Text/Font.h>
@@ -23,7 +25,7 @@ namespace
             const Result<std::vector<std::byte>> file = ReadBinaryFile(BYTEFORGE_TEST_FONT);
             REQUIRE(file.has_value());
 
-            Result<FontAtlasData> atlas = BuildFontAtlas(*file);
+            Result<FontAtlasData> atlas = BuildFontAtlas(*file, Tests::TestFontAtlasOptions());
             REQUIRE(atlas.has_value());
             return FontGlyphs(std::move(atlas->Glyphs), std::move(atlas->Kerning), atlas->Metrics);
         }();
