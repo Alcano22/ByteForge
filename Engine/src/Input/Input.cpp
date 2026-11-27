@@ -1,4 +1,5 @@
 #include "Engine/Input/Input.h"
+#include "Engine/Input/GamepadBackend.h"
 #include "Engine/Event/KeyEvent.h"
 #include "Engine/Event/MouseEvent.h"
 #include "Engine/Event/GamepadEvent.h"
@@ -47,6 +48,7 @@ namespace ByteForge
         State s_State;
 
         const std::string s_EmptyGamepadName;
+        GamepadBackend* s_GamepadBackend = nullptr;
 
         template<usize N>
         bool Query(const std::bitset<N>& bits, const usize index, const bool blocked)
@@ -64,6 +66,12 @@ namespace ByteForge
         const GamepadState* QueryGamepad(const u32 gamepad)
         {
             return s_State.GamepadBlocked ? nullptr : FindGamepadSlot(gamepad);
+        }
+
+        GamepadBackend* FindGamepadBackend(const u32 gamepad)
+        {
+            const GamepadState* state = FindGamepadSlot(gamepad);
+            return state && state->Connected ? s_GamepadBackend : nullptr;
         }
 
         template<usize N>
@@ -167,6 +175,38 @@ namespace ByteForge
         const auto index = static_cast<usize>(axis);
         return state && index < GamepadAxisCount ? state->Axes[index] : 0.0f;
     }
+
+    GamepadType Input::GetGamepadType(const u32 gamepad)
+    {
+        const GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend ? backend->GetType(gamepad) : GamepadType::Unknown;
+    }
+
+    GamepadFeatures Input::GetGamepadFeatures(const u32 gamepad)
+    {
+        const GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend ? backend->GetFeatures(gamepad) : GamepadFeatures{};
+    }
+
+    bool Input::RumbleGamepad(const f32 lowFrequency, const f32 highFrequency, const f32 duration, const u32 gamepad)
+    {
+        GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend && backend->Rumble(gamepad, lowFrequency, highFrequency, duration);
+    }
+
+    bool Input::RumbleGamepadTriggers(const f32 left, const f32 right, const f32 duration, const u32 gamepad)
+    {
+        GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend && backend->RumbleTriggers(gamepad, left, right, duration);
+    }
+
+    bool Input::SetGamepadLed(const glm::vec3& color, const u32 gamepad)
+    {
+        GamepadBackend* backend = FindGamepadBackend(gamepad);
+        return backend && backend->SetLed(gamepad, color);
+    }
+
+    void Input::SetGamepadBackend(GamepadBackend* backend) { s_GamepadBackend = backend; }
 
     void Input::SetViewport(const InputViewport& viewport) { s_State.Viewport = viewport; }
 

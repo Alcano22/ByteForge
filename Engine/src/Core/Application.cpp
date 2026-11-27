@@ -34,6 +34,8 @@ namespace ByteForge
 
         JobSystem::Init();
 
+        Input::SetGamepadBackend(m_Gamepads.get());
+
         m_Window->SetEventCallback([this](Event& e) { OnApplicationEvent(e); });
 
         CORE_DEBUG("Application initialized");
@@ -41,6 +43,8 @@ namespace ByteForge
 
     Application::~Application()
     {
+        Input::SetGamepadBackend(nullptr);
+
         Renderer::WaitIdle();
 
         AssetManager::Clear();

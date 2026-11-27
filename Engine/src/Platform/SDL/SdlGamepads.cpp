@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -60,6 +61,41 @@ namespace ByteForge
             return axis == GamepadAxis::LeftY || axis == GamepadAxis::RightY ? -value : value;
         }
 
+        constexpr f32 MaxRumbleSeconds = 65.0f;
+
+        GamepadType ToEngineType(const SDL_GamepadType type)
+        {
+            switch (type)
+            {
+                case SDL_GAMEPAD_TYPE_STANDARD:                     return GamepadType::Standard;
+                case SDL_GAMEPAD_TYPE_XBOX360:                      return GamepadType::Xbox360;
+                case SDL_GAMEPAD_TYPE_XBOXONE:                      return GamepadType::XboxOne;
+                case SDL_GAMEPAD_TYPE_PS3:                          return GamepadType::PlayStation3;
+                case SDL_GAMEPAD_TYPE_PS4:                          return GamepadType::PlayStation4;
+                case SDL_GAMEPAD_TYPE_PS5:                          return GamepadType::PlayStation5;
+                case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:          return GamepadType::SwitchPro;
+                case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:  return GamepadType::SwitchJoyConLeft;
+                case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT: return GamepadType::SwitchJoyConRight;
+                case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:  return GamepadType::SwitchJoyConPair;
+                default:                                            return GamepadType::Unknown;
+            }
+        }
+
+        u16 ToMotorIntensity(const f32 intensity)
+        {
+            return static_cast<u16>(std::lround(std::clamp(intensity, 0.0f, 1.0f) * 65535.0f));
+        }
+
+        u32 ToMilliseconds(const f32 seconds)
+        {
+            return static_cast<u32>(std::lround(std::clamp(seconds, 0.0f, MaxRumbleSeconds) * 1000.0f));
+        }
+
+        u8 ToColorChannel(const f32 channel)
+        {
+            return static_cast<u8>(std::lround(std::clamp(channel, 0.0f, 1.0f) * 255.0f));
+        }
+
         void LoadGamepadMappings()
         {
             const fs::path file = RuntimePaths::GetDataDirectory() / "input" / "gamecontrollerdb.txt";
@@ -83,6 +119,7 @@ namespace ByteForge
     {
         SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
         SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+        SDL_SetHint(SDL_HINT_JOYSTICK_ENHANCED_REPORTS, "1");
 
         if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
         {
@@ -141,6 +178,50 @@ namespace ByteForge
         FlushAxes(callback);
     }
 
+    GamepadType SdlGamepads::GetType(const u32 gamepad) const
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        return handle ? ToEngineType(SDL_GetGamepadType(handle)) : GamepadType::Unknown;
+    }
+
+    GamepadFeatures SdlGamepads::GetFeatures(const u32 gamepad) const
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        if (!handle)
+            return {};
+
+        const SDL_PropertiesID properties = SDL_GetGamepadProperties(handle);
+        const bool rgbLed = SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false);
+
+        return {
+            .Rumble           = SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false),
+            .TriggerRumble    = SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_TRIGGER_RUMBLE_BOOLEAN, false),
+            .Led              = rgbLed,
+            .AdaptiveTriggers = rgbLed && SDL_GetGamepadType(handle) == SDL_GAMEPAD_TYPE_PS5
+        };
+    }
+
+    bool SdlGamepads::Rumble(const u32 gamepad, const f32 lowFrequency, const f32 highFrequency, const f32 duration)
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        return handle && SDL_RumbleGamepad(handle, ToMotorIntensity(lowFrequency),
+                                           ToMotorIntensity(highFrequency), ToMilliseconds(duration));
+    }
+
+    bool SdlGamepads::RumbleTriggers(const u32 gamepad, const f32 left, const f32 right, const f32 duration)
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        return handle && SDL_RumbleGamepadTriggers(handle, ToMotorIntensity(left),
+                                                   ToMotorIntensity(right), ToMilliseconds(duration));
+    }
+
+    bool SdlGamepads::SetLed(const u32 gamepad, const glm::vec3& color)
+    {
+        SDL_Gamepad* handle = FindHandle(gamepad);
+        return handle && SDL_SetGamepadLED(handle, ToColorChannel(color.r),
+                                           ToColorChannel(color.g), ToColorChannel(color.b));
+    }
+
     void SdlGamepads::Open(const u32 instanceId, const EventCallbackFn& callback)
     {
         if (FindSlot(instanceId)) return;
@@ -165,7 +246,16 @@ namespace ByteForge
         std::string name = rawName ? rawName : "Unknown Gamepad";
 
         const u32 index = IndexOf(*slot);
-        CORE_INFO("Gamepad {} connected: {}", index, name);
+
+        SDL_SetGamepadPlayerIndex(handle, static_cast<i32>(index));
+
+        const GamepadFeatures features = GetFeatures(index);
+        CORE_INFO("Gamepad {} connected: {} (rumble: {}, trigger rumble: {}, LED: {}, adaptive triggers: {})",
+                  index, name, features.Rumble, features.TriggerRumble, features.Led, features.AdaptiveTriggers);
+
+        const char* path = SDL_GetGamepadPath(handle);
+        const bool wireless = SDL_GetGamepadConnectionState(handle) == SDL_JOYSTICK_CONNECTION_WIRELESS;
+        CORE_DEBUG("Gamepad {} uses '{}' ({})", index, path ? path : "unknown", wireless ? "wireless" : "wired");
 
         GamepadConnectedEvent event(index, std::move(name));
         callback(event);
@@ -244,5 +334,10 @@ namespace ByteForge
     u32 SdlGamepads::IndexOf(const Slot& slot) const
     {
         return static_cast<u32>(&slot - m_Slots.data());
+    }
+
+    SDL_Gamepad* SdlGamepads::FindHandle(const u32 gamepad) const
+    {
+        return gamepad < m_Slots.size() ? m_Slots[gamepad].Handle : nullptr;
     }
 }

@@ -1,5 +1,6 @@
 #include <Engine/Event/GamepadEvent.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Input/GamepadBackend.h>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -57,6 +58,40 @@ namespace
 
             Input::EndFrame();
         }
+    };
+
+    class FakeGamepadBackend final : public GamepadBackend
+    {
+    public:
+        u32 LastGamepad = MaxGamepads;
+        f32 LastLow = 0.0f;
+        f32 LastHigh = 0.0f;
+        f32 LastDuration = 0.0f;
+
+        [[nodiscard]] GamepadType GetType(u32) const override { return GamepadType::PlayStation5; }
+        [[nodiscard]] GamepadFeatures GetFeatures(u32) const override { return { .Rumble = true }; }
+
+        bool Rumble(const u32 gamepad, const f32 low, const f32 high, const f32 duration) override
+        {
+            LastGamepad = gamepad;
+            LastLow = low;
+            LastHigh = high;
+            LastDuration = duration;
+            return true;
+        }
+
+        bool RumbleTriggers(u32, f32, f32, f32) override { return false; }
+        bool SetLed(u32, const glm::vec3&) override { return false; }
+    };
+
+    class BackendGuard
+    {
+    public:
+        explicit BackendGuard(GamepadBackend& backend) { Input::SetGamepadBackend(&backend); }
+        ~BackendGuard() { Input::SetGamepadBackend(nullptr); }
+
+        BackendGuard(const BackendGuard&) = delete;
+        BackendGuard& operator=(const BackendGuard&) = delete;
     };
 }
 
@@ -152,4 +187,45 @@ TEST_CASE_METHOD(GamepadFixture, "Events for slots out of range are ignored", "[
     CHECK_FALSE(Input::IsGamepadConnected(MaxGamepads));
     CHECK_FALSE(Input::IsGamepadButtonDown(GamepadButton::South, MaxGamepads));
     CHECK(Input::GetGamepadName(MaxGamepads).empty());
+}
+
+TEST_CASE_METHOD(GamepadFixture, "Gamepad output is forwarded to the backend for connected gamepads", "[Input][Gamepad]")
+{
+    FakeGamepadBackend backend;
+    const BackendGuard guard(backend);
+
+    SECTION("Nothing is forwarded while the gamepad is disconnected")
+    {
+        CHECK_FALSE(Input::RumbleGamepad(0.5f, 1.0f, 0.2f));
+        CHECK(Input::GetGamepadType() == GamepadType::Unknown);
+        CHECK_FALSE(Input::GetGamepadFeatures().Rumble);
+        CHECK(backend.LastGamepad == MaxGamepads);
+    }
+
+    SECTION("A connected gamepad reaches the backend")
+    {
+        Connect(1);
+
+        CHECK(Input::RumbleGamepad(0.5f, 1.0f, 0.2f, 1));
+        CHECK(backend.LastGamepad == 1);
+        CHECK(backend.LastLow == 0.5f);
+        CHECK(backend.LastHigh == 1.0f);
+        CHECK(backend.LastDuration == 0.2f);
+
+        CHECK(Input::GetGamepadType(1) == GamepadType::PlayStation5);
+        CHECK(Input::GetGamepadFeatures(1).Rumble);
+        CHECK_FALSE(Input::SetGamepadLed({ 1.0f, 0.0f, 0.0f }, 1));
+
+        Disconnect(1);
+    }
+}
+
+TEST_CASE_METHOD(GamepadFixture, "Gamepad output without a backend does nothing", "[Input][Gamepad]")
+{
+    Connect();
+
+    CHECK_FALSE(Input::RumbleGamepad(1.0f, 1.0f, 1.0f));
+    CHECK(Input::GetGamepadType() == GamepadType::Unknown);
+
+    Disconnect();
 }

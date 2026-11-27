@@ -12,7 +12,7 @@ packages=(
     autoconf autoconf-archive automake libtool bison flex gperf python3
     zip unzip tar curl which diffutils findutils file kernel-headers
     libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel mesa-libGLU-devel
-    wayland-devel libxkbcommon-devel wayland-protocols-devel
+    wayland-devel libxkbcommon-devel wayland-protocols-devel systemd-devel
     qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland
     dotnet-sdk-10.0 libicu
     patchelf librsvg2-tools

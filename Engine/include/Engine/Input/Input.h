@@ -4,6 +4,7 @@
 #include "Engine/Input/KeyCodes.h"
 #include "Engine/Input/MouseButtons.h"
 #include "Engine/Input/GamepadCodes.h"
+#include "Engine/Input/GamepadFeatures.h"
 
 #include <glm/glm.hpp>
 
@@ -12,6 +13,7 @@
 namespace ByteForge
 {
     class Event;
+    class GamepadBackend;
 
     struct InputViewport
     {
@@ -47,6 +49,13 @@ namespace ByteForge
 
         [[nodiscard]] static f32 GetGamepadAxis(GamepadAxis axis, u32 gamepad = 0);
 
+        [[nodiscard]] static GamepadType GetGamepadType(u32 gamepad = 0);
+        [[nodiscard]] static GamepadFeatures GetGamepadFeatures(u32 gamepad = 0);
+
+        static bool RumbleGamepad(f32 lowFrequency, f32 highFrequency, f32 duration, u32 gamepad = 0);
+        static bool RumbleGamepadTriggers(f32 left, f32 right, f32 duration, u32 gamepad = 0);
+        static bool SetGamepadLed(const glm::vec3& color, u32 gamepad = 0);
+
         static void SetViewport(const InputViewport& viewport);
         static void ClearViewport();
 
@@ -69,6 +78,8 @@ namespace ByteForge
 
         [[nodiscard]] static bool IsPointerOverUI();
         static void SetPointerOverUI(bool overUI);
+
+        static void SetGamepadBackend(GamepadBackend* backend);
 
         static void OnEvent(const Event& event);
         static void EndFrame();
