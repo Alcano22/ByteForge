@@ -17,6 +17,7 @@
 #include <Engine/Assets/AssetRegistry.h>
 #include <Engine/Event/ApplicationEvent.h>
 #include <Engine/Event/Event.h>
+#include <Engine/Input/Input.h>
 
 #include <filesystem>
 #include <system_error>

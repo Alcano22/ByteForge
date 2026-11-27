@@ -4,6 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
+
 using namespace ByteForge;
 
 namespace
@@ -94,6 +96,19 @@ namespace
         BackendGuard(const BackendGuard&) = delete;
         BackendGuard& operator=(const BackendGuard&) = delete;
     };
+
+    void Touch(const u32 finger, const bool down, const glm::vec2 position, const u32 slot = 0)
+    {
+        const GamepadTouchEvent event(slot, finger, down, position, down ? 1.0f : 0.0f);
+        Input::OnEvent(event);
+    }
+
+    void Move(const glm::vec3 angularVelocity, const glm::vec3 rotationDelta,
+              const glm::vec3 acceleration, const u32 slot = 0)
+    {
+        const GamepadMotionEvent event(slot, angularVelocity, rotationDelta, acceleration);
+        Input::OnEvent(event);
+    }
 }
 
 TEST_CASE_METHOD(GamepadFixture, "A connected gamepad reports its slot and name", "[input][gamepad]")
@@ -229,4 +244,66 @@ TEST_CASE_METHOD(GamepadFixture, "Gamepad output without a backend does nothing"
     CHECK(Input::GetGamepadType() == GamepadType::Unknown);
 
     Disconnect();
+}
+
+TEST_CASE_METHOD(GamepadFixture, "Touchpad fingers track landing, movement and lifting", "[Input][Gamepad]")
+{
+    Connect();
+
+    Touch(1, true, { 0.2f, 0.5f });
+    CHECK(Input::IsGamepadTouchPressed(1));
+    CHECK(Input::IsGamepadTouchDown(1));
+    CHECK(Input::GetGamepadTouchPosition(1) == glm::vec2(0.2f, 0.5f));
+    CHECK(Input::GetGamepadTouchDelta(1) == glm::vec2(0.0f));
+    CHECK_FALSE(Input::IsGamepadTouchDown(0));
+    Input::EndFrame();
+
+    Touch(1, true, { 0.3f, 0.5f });
+    CHECK_FALSE(Input::IsGamepadTouchPressed(1));
+    CHECK(std::abs(Input::GetGamepadTouchDelta(1).x - 0.1f) < 1e-5f);
+    Input::EndFrame();
+    CHECK(Input::GetGamepadTouchDelta(1) == glm::vec2(0.0f));
+
+    Touch(1, false, { 0.3f, 0.5f });
+    CHECK(Input::IsGamepadTouchReleased(1));
+    CHECK_FALSE(Input::IsGamepadTouchDown(1));
+    CHECK(Input::GetGamepadTouchPressure(1) == 0.0f);
+
+    Disconnect();
+}
+
+TEST_CASE_METHOD(GamepadFixture, "Disconnecting lifts every finger", "[Input][Gamepad]")
+{
+    Connect();
+    Touch(0, true, { 0.5f, 0.5f });
+    Input::EndFrame();
+
+    Disconnect();
+    CHECK(Input::IsGamepadTouchReleased(0));
+    CHECK_FALSE(Input::IsGamepadTouchDown(0));
+}
+
+TEST_CASE("Touches outside the tracked fingers are ignored", "[Input][Gamepad]")
+{
+    CHECK_FALSE(Input::IsGamepadTouchDown(MaxGamepadTouchFingers));
+    CHECK(Input::GetGamepadTouchPosition(MaxGamepadTouchFingers, MaxGamepads) == glm::vec2(0.0f));
+}
+
+TEST_CASE_METHOD(GamepadFixture, "Motion keeps the latest reading and sums the rotation per frame", "[Input][Gamepad]")
+{
+    Connect();
+
+    Move({ 0.0f, 2.0f, 0.0f }, { 0.0f, 0.1f, 0.0f }, { 0.0f, 9.81f, 0.0f });
+    Move({ 0.0f, 3.0f, 0.0f }, { 0.0f, 0.2f, 0.0f }, { 0.5f, 9.81f, 0.0f });
+
+    CHECK(Input::GetGamepadAngularVelocity() == glm::vec3(0.0f, 3.0f, 0.0f));
+    CHECK(std::abs(Input::GetGamepadRotationDelta().y - 0.3f) < 1e-5f);
+    CHECK(Input::GetGamepadAcceleration() == glm::vec3(0.5f, 9.81f, 0.0f));
+
+    Input::EndFrame();
+    CHECK(Input::GetGamepadRotationDelta() == glm::vec3(0.0f));
+    CHECK(Input::GetGamepadAngularVelocity() == glm::vec3(0.0f, 3.0f, 0.0f));
+
+    Disconnect();
+    CHECK(Input::GetGamepadAcceleration() == glm::vec3(0.0f));
 }

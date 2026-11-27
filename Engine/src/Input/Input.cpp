@@ -23,6 +23,20 @@ namespace ByteForge
 
             std::bitset<GamepadButtonCount> Down, Pressed, Released;
             std::array<f32, GamepadAxisCount> Axes{};
+
+            struct Touch
+            {
+                glm::vec2 Position{ 0.0f };
+                glm::vec2 Delta{ 0.0f };
+                f32 Pressure = 0.0f;
+            };
+
+            std::bitset<MaxGamepadTouchFingers> TouchDown, TouchPressed, TouchReleased;
+            std::array<Touch, MaxGamepadTouchFingers> Touches{};
+
+            glm::vec3 AngularVelocity{ 0.0f };
+            glm::vec3 RotationDelta{ 0.0f };
+            glm::vec3 Acceleration{ 0.0f };
         };
 
         struct State
@@ -66,6 +80,12 @@ namespace ByteForge
         const GamepadState* QueryGamepad(const u32 gamepad)
         {
             return s_State.GamepadBlocked ? nullptr : FindGamepadSlot(gamepad);
+        }
+
+        const GamepadState::Touch* QueryTouch(const u32 finger, const u32 gamepad)
+        {
+            const GamepadState* state = QueryGamepad(gamepad);
+            return state && finger < MaxGamepadTouchFingers ? &state->Touches[finger] : nullptr;
         }
 
         GamepadBackend* FindGamepadBackend(const u32 gamepad)
@@ -174,6 +194,60 @@ namespace ByteForge
         const GamepadState* state = QueryGamepad(gamepad);
         const auto index = static_cast<usize>(axis);
         return state && index < GamepadAxisCount ? state->Axes[index] : 0.0f;
+    }
+
+    bool Input::IsGamepadTouchDown(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->TouchDown, finger, false);
+    }
+
+    bool Input::IsGamepadTouchPressed(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->TouchPressed, finger, false);
+    }
+
+    bool Input::IsGamepadTouchReleased(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state && Query(state->TouchReleased, finger, false);
+    }
+
+    glm::vec2 Input::GetGamepadTouchPosition(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState::Touch* touch = QueryTouch(finger, gamepad);
+        return touch ? touch->Position : glm::vec2(0.0f);
+    }
+
+    glm::vec2 Input::GetGamepadTouchDelta(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState::Touch* touch = QueryTouch(finger, gamepad);
+        return touch ? touch->Delta : glm::vec2(0.0f);
+    }
+
+    f32 Input::GetGamepadTouchPressure(const u32 finger, const u32 gamepad)
+    {
+        const GamepadState::Touch* touch = QueryTouch(finger, gamepad);
+        return touch ? touch->Pressure : 0.0f;
+    }
+
+    glm::vec3 Input::GetGamepadAngularVelocity(const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state ? state->AngularVelocity : glm::vec3(0.0f);
+    }
+
+    glm::vec3 Input::GetGamepadRotationDelta(const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state ? state->RotationDelta : glm::vec3(0.0f);
+    }
+
+    glm::vec3 Input::GetGamepadAcceleration(const u32 gamepad)
+    {
+        const GamepadState* state = QueryGamepad(gamepad);
+        return state ? state->Acceleration : glm::vec3(0.0f);
     }
 
     GamepadType Input::GetGamepadType(const u32 gamepad)
@@ -341,6 +415,15 @@ namespace ByteForge
                 gamepad->Released |= gamepad->Down;
                 gamepad->Down.reset();
                 gamepad->Axes.fill(0.0f);
+
+                gamepad->TouchReleased |= gamepad->TouchDown;
+                gamepad->TouchDown.reset();
+                gamepad->Touches.fill({});
+
+                gamepad->AngularVelocity = glm::vec3(0.0f);
+                gamepad->RotationDelta = glm::vec3(0.0f);
+                gamepad->Acceleration = glm::vec3(0.0f);
+
                 gamepad->Connected = false;
                 gamepad->Name.clear();
                 break;
@@ -369,6 +452,40 @@ namespace ByteForge
                     gamepad->Axes[axis] = axisEvent.GetValue();
                 break;
             }
+            case EventType::GamepadTouch:
+            {
+                const auto& touchEvent = static_cast<const GamepadTouchEvent&>(event);
+                GamepadState* gamepad = FindGamepadSlot(touchEvent.GetGamepad());
+                const u32 finger = touchEvent.GetFinger();
+                if (!gamepad || finger >= MaxGamepadTouchFingers) break;
+
+                GamepadState::Touch& touch = gamepad->Touches[finger];
+                const bool wasDown = gamepad->TouchDown[finger];
+
+                if (touchEvent.IsDown())
+                {
+                    if (wasDown)
+                        touch.Delta += touchEvent.GetPosition() - touch.Position;
+
+                    Press(gamepad->TouchDown, gamepad->TouchPressed, finger);
+                } else
+                    Release(gamepad->TouchDown, gamepad->TouchReleased, finger);
+
+                touch.Position = touchEvent.GetPosition();
+                touch.Pressure = touchEvent.IsDown() ? touchEvent.GetPressure() : 0.0f;
+                break;
+            }
+            case EventType::GamepadMotion:
+            {
+                const auto& motionEvent = static_cast<const GamepadMotionEvent&>(event);
+                GamepadState* gamepad = FindGamepadSlot(motionEvent.GetGamepad());
+                if (!gamepad) break;
+
+                gamepad->AngularVelocity = motionEvent.GetAngularVelocity();
+                gamepad->RotationDelta += motionEvent.GetRotationDelta();
+                gamepad->Acceleration = motionEvent.GetAcceleration();
+                break;
+            }
             default: break;
         }
     }
@@ -384,6 +501,13 @@ namespace ByteForge
         {
             gamepad.Pressed.reset();
             gamepad.Released.reset();
+
+            gamepad.TouchPressed.reset();
+            gamepad.TouchReleased.reset();
+            for (GamepadState::Touch& touch : gamepad.Touches)
+                touch.Delta = glm::vec2(0.0f);
+
+            gamepad.RotationDelta = glm::vec3(0.0f);
         }
 
         s_State.MouseDelta = glm::vec2(0.0f);

@@ -3,6 +3,8 @@
 #include "Engine/Event/Event.h"
 #include "Engine/Input/GamepadCodes.h"
 
+#include <glm/glm.hpp>
+
 #include <format>
 #include <string>
 #include <utility>
@@ -117,5 +119,59 @@ namespace ByteForge
     private:
         GamepadAxis m_Axis;
         f32 m_Value;
+    };
+
+    class BYTEFORGE_API GamepadTouchEvent final : public GamepadEvent
+    {
+    public:
+        GamepadTouchEvent(const u32 gamepad, const u32 finger, const bool down,
+                          const glm::vec2 position, const f32 pressure)
+            : GamepadEvent(gamepad), m_Finger(finger), m_Down(down), m_Position(position), m_Pressure(pressure) {}
+
+        [[nodiscard]] u32 GetFinger() const { return m_Finger; }
+        [[nodiscard]] bool IsDown() const { return m_Down; }
+        [[nodiscard]] glm::vec2 GetPosition() const { return m_Position; }
+        [[nodiscard]] f32 GetPressure() const { return m_Pressure; }
+
+        [[nodiscard]] std::string ToString() const override
+        {
+            return std::format("GamepadTouchEvent: {} finger {} {} at ({}, {})", m_Gamepad, m_Finger,
+                               m_Down ? "down" : "up", m_Position.x, m_Position.y);
+        }
+
+        EVENT_CLASS_TYPE(GamepadTouch)
+
+    private:
+        u32 m_Finger;
+        bool m_Down;
+        glm::vec2 m_Position;
+        f32 m_Pressure;
+    };
+
+    class BYTEFORGE_API GamepadMotionEvent final : public GamepadEvent
+    {
+    public:
+        GamepadMotionEvent(const u32 gamepad, const glm::vec3 angularVelocity,
+                           const glm::vec3 rotationDelta, const glm::vec3 acceleration)
+            : GamepadEvent(gamepad), m_AngularVelocity(angularVelocity),
+              m_RotationDelta(rotationDelta), m_Acceleration(acceleration) {}
+
+        [[nodiscard]] glm::vec3 GetAngularVelocity() const { return m_AngularVelocity; }
+        [[nodiscard]] glm::vec3 GetRotationDelta() const { return m_RotationDelta; }
+        [[nodiscard]] glm::vec3 GetAcceleration() const { return m_Acceleration; }
+
+        [[nodiscard]] std::string ToString() const override
+        {
+            return std::format("GamepadMotionEvent: {} gyro ({}, {}, {}) accel ({}, {}, {})", m_Gamepad,
+                               m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z,
+                               m_Acceleration.x, m_Acceleration.y, m_Acceleration.z);
+        }
+
+        EVENT_CLASS_TYPE(GamepadMotion)
+
+    private:
+        glm::vec3 m_AngularVelocity;
+        glm::vec3 m_RotationDelta;
+        glm::vec3 m_Acceleration;
     };
 }

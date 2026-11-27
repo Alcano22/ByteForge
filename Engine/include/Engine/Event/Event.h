@@ -14,7 +14,7 @@ namespace ByteForge
         KeyPressed, KeyReleased, KeyTyped,
         MouseButtonPressed, MouseButtonReleased, MouseScrolled, MouseMoved,
         GamepadConnected, GamepadDisconnected,
-        GamepadButtonPressed, GamepadButtonReleased, GamepadAxisMoved
+        GamepadButtonPressed, GamepadButtonReleased, GamepadAxisMoved, GamepadTouch, GamepadMotion
     };
 
     enum EventCategory

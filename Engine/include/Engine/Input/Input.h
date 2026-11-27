@@ -50,6 +50,18 @@ namespace ByteForge
 
         [[nodiscard]] static f32 GetGamepadAxis(GamepadAxis axis, u32 gamepad = 0);
 
+        [[nodiscard]] static bool IsGamepadTouchDown(u32 finger = 0, u32 gamepad = 0);
+        [[nodiscard]] static bool IsGamepadTouchPressed(u32 finger = 0, u32 gamepad = 0);
+        [[nodiscard]] static bool IsGamepadTouchReleased(u32 finger = 0, u32 gamepad = 0);
+
+        [[nodiscard]] static glm::vec2 GetGamepadTouchPosition(u32 finger = 0, u32 gamepad = 0);
+        [[nodiscard]] static glm::vec2 GetGamepadTouchDelta(u32 finger = 0, u32 gamepad = 0);
+        [[nodiscard]] static f32 GetGamepadTouchPressure(u32 finger = 0, u32 gamepad = 0);
+
+        [[nodiscard]] static glm::vec3 GetGamepadAngularVelocity(u32 gamepad = 0);
+        [[nodiscard]] static glm::vec3 GetGamepadRotationDelta(u32 gamepad = 0);
+        [[nodiscard]] static glm::vec3 GetGamepadAcceleration(u32 gamepad = 0);
+
         [[nodiscard]] static GamepadType GetGamepadType(u32 gamepad = 0);
         [[nodiscard]] static GamepadFeatures GetGamepadFeatures(u32 gamepad = 0);
 

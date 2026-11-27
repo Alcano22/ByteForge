@@ -38,6 +38,8 @@ namespace ByteForge
                 case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:     return GamepadButton::DPadRight;
                 case SDL_GAMEPAD_BUTTON_DPAD_DOWN:      return GamepadButton::DPadDown;
                 case SDL_GAMEPAD_BUTTON_DPAD_LEFT:      return GamepadButton::DPadLeft;
+                case SDL_GAMEPAD_BUTTON_TOUCHPAD:       return GamepadButton::Touchpad;
+                case SDL_GAMEPAD_BUTTON_MISC1:          return GamepadButton::Misc;
                 default:                                return std::nullopt;
             }
         }
@@ -115,6 +117,8 @@ namespace ByteForge
                 CORE_DEBUG("Loaded {} gamepad mappings from '{}'", added, ToGenericUtf8(file));
         }
 
+        constexpr f64 MaxSensorGapSeconds = 0.05;
+
         constexpr usize DualSenseEffectsSize        = 47;
         constexpr usize DualSenseRightTriggerOffset = 10;
         constexpr usize DualSenseLeftTriggerOffset  = 21;
@@ -179,12 +183,37 @@ namespace ByteForge
                     OnAxis(event.gaxis.which, event.gaxis.axis, event.gaxis.value);
                     break;
 
+                case SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN:
+                case SDL_EVENT_GAMEPAD_TOUCHPAD_UP:
+                {
+                    const bool down = static_cast<SDL_EventType>(event.type) == SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN;
+                    OnTouch(event.gtouchpad.which, event.gtouchpad.touchpad, event.gtouchpad.finger, down,
+                            { event.gtouchpad.x, event.gtouchpad.y }, event.gtouchpad.pressure, callback);
+                    break;
+                }
+
+                case SDL_EVENT_GAMEPAD_TOUCHPAD_MOTION:
+                    OnTouch(event.gtouchpad.which, event.gtouchpad.touchpad, event.gtouchpad.finger, std::nullopt,
+                            { event.gtouchpad.x, event.gtouchpad.y }, event.gtouchpad.pressure, callback);
+                    break;
+
+                case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
+                {
+                    const u64 timestamp = event.gsensor.sensor_timestamp != 0 ? event.gsensor.sensor_timestamp
+                                                                              : event.gsensor.timestamp;
+                    OnSensor(event.gsensor.which, event.gsensor.sensor,
+                             { event.gsensor.data[0], event.gsensor.data[1], event.gsensor.data[2] }, timestamp);
+                    break;
+                }
+
                 default:
                     break;
             }
         }
 
         FlushAxes(callback);
+        FlushTouches(callback);
+        FlushMotion(callback);
     }
 
     GamepadType SdlGamepads::GetType(const u32 gamepad) const
@@ -206,7 +235,10 @@ namespace ByteForge
             .Rumble           = SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false),
             .TriggerRumble    = SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_TRIGGER_RUMBLE_BOOLEAN, false),
             .Led              = rgbLed,
-            .AdaptiveTriggers = rgbLed && SDL_GetGamepadType(handle) == SDL_GAMEPAD_TYPE_PS5
+            .AdaptiveTriggers = rgbLed && SDL_GetGamepadType(handle) == SDL_GAMEPAD_TYPE_PS5,
+            .Touchpad         = SDL_GetNumGamepadTouchpads(handle) > 0,
+            .Gyro             = SDL_GamepadHasSensor(handle, SDL_SENSOR_GYRO),
+            .Accelerometer    = SDL_GamepadHasSensor(handle, SDL_SENSOR_ACCEL)
         };
     }
 
@@ -274,13 +306,20 @@ namespace ByteForge
 
         SDL_SetGamepadPlayerIndex(handle, static_cast<i32>(index));
 
+        for (const SDL_SensorType sensor : { SDL_SENSOR_GYRO, SDL_SENSOR_ACCEL })
+        {
+            if (SDL_GamepadHasSensor(handle, sensor) && !SDL_SetGamepadSensorEnabled(handle, sensor, true))
+                CORE_WARN("Cannot enable sensor {} on gamepad {}: {}", static_cast<i32>(sensor), index, SDL_GetError());
+        }
+
         const GamepadFeatures features = GetFeatures(index);
-        CORE_INFO("Gamepad {} connected: {} (rumble: {}, trigger rumble: {}, LED: {}, adaptive triggers: {})",
-                  index, name, features.Rumble, features.TriggerRumble, features.Led, features.AdaptiveTriggers);
+        CORE_INFO("Gamepad {} connected: {} (rumble: {}, trigger rumble: {}, LED: {}, adaptive triggers: {}, "
+                  "touchpad: {}, gyro: {}, accelerometer: {})",
+                  index, name, features.Rumble, features.TriggerRumble, features.Led, features.AdaptiveTriggers,
+                  features.Touchpad, features.Gyro, features.Accelerometer);
 
         const char* path = SDL_GetGamepadPath(handle);
-        const bool wireless = SDL_GetGamepadConnectionState(handle) == SDL_JOYSTICK_CONNECTION_WIRELESS;
-        CORE_DEBUG("Gamepad {} uses '{}' ({})", index, path ? path : "unknown", wireless ? "wireless" : "wired");
+        CORE_DEBUG("Gamepad {} uses '{}'", index, path ? path : "unknown");
 
         GamepadConnectedEvent event(index, std::move(name));
         callback(event);
@@ -349,6 +388,93 @@ namespace ByteForge
             }
 
             slot.DirtyAxes.reset();
+        }
+    }
+
+    void SdlGamepads::OnTouch(const u32 instanceId, const i32 touchpad, const i32 finger,
+                              const std::optional<bool> down, const glm::vec2 position,
+                              const f32 pressure, const EventCallbackFn& callback)
+    {
+        Slot* slot = FindSlot(instanceId);
+        if (!slot || touchpad != 0 || finger < 0 || finger > static_cast<i32>(MaxGamepadTouchFingers)) return;
+
+        const auto index = static_cast<usize>(finger);
+        Touch& touch = slot->Touches[index];
+        touch.Position = position;
+        touch.Pressure = pressure;
+
+        if (!down)
+        {
+            slot->MovedTouches.set(index);
+            return;
+        }
+
+        touch.Down = *down;
+        slot->MovedTouches.reset(index);
+
+        GamepadTouchEvent event(IndexOf(*slot), static_cast<u32>(finger), touch.Down, touch.Position, touch.Pressure);
+        callback(event);
+    }
+
+    void SdlGamepads::FlushTouches(const EventCallbackFn& callback)
+    {
+        for (Slot& slot : m_Slots)
+        {
+            for (u32 finger = 0; finger < MaxGamepadTouchFingers; ++finger)
+            {
+                const Touch& touch = slot.Touches[finger];
+                if (!slot.MovedTouches.test(finger) || !touch.Down) return;
+
+                GamepadTouchEvent event(IndexOf(slot), finger, true, touch.Position, touch.Pressure);
+                callback(event);
+            }
+
+            slot.MovedTouches.reset();
+        }
+    }
+
+    void SdlGamepads::OnSensor(const u32 instanceId, const i32 sensor, const glm::vec3 value, const u64 timestamp)
+    {
+        Slot* slot = FindSlot(instanceId);
+        if (!slot) return;
+
+        switch (static_cast<SDL_SensorType>(sensor))
+        {
+            case SDL_SENSOR_GYRO:
+            {
+                if (slot->LastGyroTimestamp != 0 && timestamp > slot->LastGyroTimestamp)
+                {
+                    const f64 seconds = static_cast<f64>(timestamp - slot->LastGyroTimestamp) * 1e-9;
+                    slot->RotationDelta += value * static_cast<f32>(std::min(seconds, MaxSensorGapSeconds));
+                }
+
+                slot->LastGyroTimestamp = timestamp;
+                slot->AngularVelocity = value;
+                break;
+            }
+
+            case SDL_SENSOR_ACCEL:
+                slot->Acceleration = value;
+                break;
+
+            default:
+                return;
+        }
+
+        slot->MotionChanged = true;
+    }
+
+    void SdlGamepads::FlushMotion(const EventCallbackFn& callback)
+    {
+        for (Slot& slot : m_Slots)
+        {
+            if (!slot.MotionChanged) continue;
+
+            GamepadMotionEvent event(IndexOf(slot), slot.AngularVelocity, slot.RotationDelta, slot.Acceleration);
+            callback(event);
+
+            slot.RotationDelta = glm::vec3(0.0f);
+            slot.MotionChanged = false;
         }
     }
 

@@ -25,5 +25,8 @@ namespace ByteForge
         bool TriggerRumble = false;
         bool Led = false;
         bool AdaptiveTriggers = false;
+        bool Touchpad = false;
+        bool Gyro = false;
+        bool Accelerometer = false;
     };
 }
