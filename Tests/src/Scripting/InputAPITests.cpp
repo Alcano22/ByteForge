@@ -1,6 +1,7 @@
 #include "Scripting/ScriptTestHelpers.h"
 
 #include <Engine/Event/KeyEvent.h>
+#include <Engine/Event/GamepadEvent.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/InputActionSystem.h>
 #include <Engine/Input/GamepadFeatures.h>
@@ -125,4 +126,25 @@ TEST_CASE("Gamepad output from scripts does nothing without a connected gamepad"
     CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.SetLed", { 0, glm::vec3(1.0f) }));
     CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.SupportsAdaptiveTriggers", { 0 }));
     CHECK(CallScriptAs<i32>(context, "Gamepad.GetType", { 0 }) == static_cast<i32>(GamepadType::Unknown));
+}
+
+TEST_CASE("Gamepad buttons and axes reach scripts", "[scripting][input][gamepad]")
+{
+    Input::SetGamepadBlocked(false);
+    Input::OnEvent(GamepadConnectedEvent(0, "Test Gamepad"));
+    Input::OnEvent(GamepadButtonPressedEvent(0, GamepadButton::South));
+    Input::OnEvent(GamepadAxisMovedEvent(0, GamepadAxis::RightTrigger, 0.75f));
+
+    const ScriptCallContext context{};
+    const i32 south = static_cast<i32>(GamepadButton::South);
+
+    CHECK(CallScriptAs<bool>(context, "Gamepad.IsConnected", { 0 }));
+    CHECK(CallScriptAs<std::string>(context, "Gamepad.GetName", { 0 }) == "Test Gamepad");
+    CHECK(CallScriptAs<bool>(context, "Gamepad.IsButtonDown", { 0, south }));
+    CHECK(CallScriptAs<bool>(context, "Gamepad.IsButtonPressed", { 0, south }));
+    CHECK(CallScriptAs<f32>(context, "Gamepad.GetAxis", { 0, static_cast<i32>(GamepadAxis::RightTrigger) }) == 0.75f);
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.IsButtonDown", { 0, 99 }), ScriptError);
+
+    Input::OnEvent(GamepadDisconnectedEvent(0));
+    Input::EndFrame();
 }
