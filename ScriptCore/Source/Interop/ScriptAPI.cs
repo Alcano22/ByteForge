@@ -97,98 +97,120 @@ internal static unsafe class ScriptAPI
     private static uint s_InputActionsDisableMap;
     private static uint s_InputActionsIsMapEnabled;
 
+    private static uint s_GamepadIsConnected;
+    private static uint s_GamepadGetName;
+    private static uint s_GamepadGetType;
+    private static uint s_GamepadSupportsRumble;
+    private static uint s_GamepadSupportsTriggerRumble;
+    private static uint s_GamepadSupportsLed;
+    private static uint s_GamepadSupportsAdaptiveTriggers;
+    private static uint s_GamepadRumble;
+    private static uint s_GamepadRumbleTriggers;
+    private static uint s_GamepadSetLed;
+
     internal static bool Bind()
     {
         bool complete = true;
 
-        s_EntityIsValid                 = Resolve("Entity.IsValid",                 "(Entity)->Bool",                       ref complete);
-        s_EntityGetName                 = Resolve("Entity.GetName",                 "(Entity)->String",                     ref complete);
-        s_EntityCreate                  = Resolve("Entity.Create",                  "(String)->Entity",                     ref complete);
-        s_EntityInstantiate             = Resolve("Entity.Instantiate",             "(Entity)->Entity",                     ref complete);
-        s_EntityFindByName              = Resolve("Entity.FindByName",              "(String)->Entity",                     ref complete);
-        s_EntityDestroy                 = Resolve("Entity.Destroy",                 "(Entity)->Void",                       ref complete);
-        s_EntityGetParent               = Resolve("Entity.GetParent",               "(Entity)->Entity",                     ref complete);
-        s_EntitySetParent               = Resolve("Entity.SetParent",               "(Entity,Entity,Bool)->Void",           ref complete);
-        s_EntityGetChildCount           = Resolve("Entity.GetChildCount",           "(Entity)->Int",                        ref complete);
-        s_EntityGetChild                = Resolve("Entity.GetChild",                "(Entity,Int)->Entity",                 ref complete);
+        s_EntityIsValid                   = Resolve("Entity.IsValid",                   "(Entity)->Bool",                       ref complete);
+        s_EntityGetName                   = Resolve("Entity.GetName",                   "(Entity)->String",                     ref complete);
+        s_EntityCreate                    = Resolve("Entity.Create",                    "(String)->Entity",                     ref complete);
+        s_EntityInstantiate               = Resolve("Entity.Instantiate",               "(Entity)->Entity",                     ref complete);
+        s_EntityFindByName                = Resolve("Entity.FindByName",                "(String)->Entity",                     ref complete);
+        s_EntityDestroy                   = Resolve("Entity.Destroy",                   "(Entity)->Void",                       ref complete);
+        s_EntityGetParent                 = Resolve("Entity.GetParent",                 "(Entity)->Entity",                     ref complete);
+        s_EntitySetParent                 = Resolve("Entity.SetParent",                 "(Entity,Entity,Bool)->Void",           ref complete);
+        s_EntityGetChildCount             = Resolve("Entity.GetChildCount",             "(Entity)->Int",                        ref complete);
+        s_EntityGetChild                  = Resolve("Entity.GetChild",                  "(Entity,Int)->Entity",                 ref complete);
 
-        s_TransformGetPosition          = Resolve("Transform.GetPosition",          "(Entity)->Vector3",                    ref complete);
-        s_TransformSetPosition          = Resolve("Transform.SetPosition",          "(Entity,Vector3)->Void",               ref complete);
-        s_TransformGetRotation          = Resolve("Transform.GetRotation",          "(Entity)->Float",                      ref complete);
-        s_TransformSetRotation          = Resolve("Transform.SetRotation",          "(Entity,Float)->Void",                 ref complete);
-        s_TransformGetScale             = Resolve("Transform.GetScale",             "(Entity)->Vector2",                    ref complete);
-        s_TransformSetScale             = Resolve("Transform.SetScale",             "(Entity,Vector2)->Void",               ref complete);
-        s_TransformGetLocalPosition     = Resolve("Transform.GetLocalPosition",     "(Entity)->Vector3",                    ref complete);
-        s_TransformSetLocalPosition     = Resolve("Transform.SetLocalPosition",     "(Entity,Vector3)->Void",               ref complete);
-        s_TransformGetLocalRotation     = Resolve("Transform.GetLocalRotation",     "(Entity)->Float",                      ref complete);
-        s_TransformSetLocalRotation     = Resolve("Transform.SetLocalRotation",     "(Entity,Float)->Void",                 ref complete);
-        s_TransformGetLocalScale        = Resolve("Transform.GetLocalScale",        "(Entity)->Vector2",                    ref complete);
-        s_TransformSetLocalScale        = Resolve("Transform.SetLocalScale",        "(Entity,Vector2)->Void",               ref complete);
+        s_TransformGetPosition            = Resolve("Transform.GetPosition",            "(Entity)->Vector3",                    ref complete);
+        s_TransformSetPosition            = Resolve("Transform.SetPosition",            "(Entity,Vector3)->Void",               ref complete);
+        s_TransformGetRotation            = Resolve("Transform.GetRotation",            "(Entity)->Float",                      ref complete);
+        s_TransformSetRotation            = Resolve("Transform.SetRotation",            "(Entity,Float)->Void",                 ref complete);
+        s_TransformGetScale               = Resolve("Transform.GetScale",               "(Entity)->Vector2",                    ref complete);
+        s_TransformSetScale               = Resolve("Transform.SetScale",               "(Entity,Vector2)->Void",               ref complete);
+        s_TransformGetLocalPosition       = Resolve("Transform.GetLocalPosition",       "(Entity)->Vector3",                    ref complete);
+        s_TransformSetLocalPosition       = Resolve("Transform.SetLocalPosition",       "(Entity,Vector3)->Void",               ref complete);
+        s_TransformGetLocalRotation       = Resolve("Transform.GetLocalRotation",       "(Entity)->Float",                      ref complete);
+        s_TransformSetLocalRotation       = Resolve("Transform.SetLocalRotation",       "(Entity,Float)->Void",                 ref complete);
+        s_TransformGetLocalScale          = Resolve("Transform.GetLocalScale",          "(Entity)->Vector2",                    ref complete);
+        s_TransformSetLocalScale          = Resolve("Transform.SetLocalScale",          "(Entity,Vector2)->Void",               ref complete);
 
-        s_SpriteRendererExists          = Resolve("SpriteRenderer.Exists",          "(Entity)->Bool",                       ref complete);
-        s_SpriteRendererGetSortingLayer = Resolve("SpriteRenderer.GetSortingLayer", "(Entity)->Int",                        ref complete);
-        s_SpriteRendererSetSortingLayer = Resolve("SpriteRenderer.SetSortingLayer", "(Entity,Int)->Void",                   ref complete);
+        s_SpriteRendererExists            = Resolve("SpriteRenderer.Exists",            "(Entity)->Bool",                       ref complete);
+        s_SpriteRendererGetSortingLayer   = Resolve("SpriteRenderer.GetSortingLayer",   "(Entity)->Int",                        ref complete);
+        s_SpriteRendererSetSortingLayer   = Resolve("SpriteRenderer.SetSortingLayer",   "(Entity,Int)->Void",                   ref complete);
 
-        s_TextExists                    = Resolve("Text.Exists",                    "(Entity)->Bool",                       ref complete);
-        s_TextGetValue                  = Resolve("Text.GetValue",                  "(Entity)->String",                     ref complete);
-        s_TextSetValue                  = Resolve("Text.SetValue",                  "(Entity,String)->Void",                ref complete);
-        s_TextGetColor                  = Resolve("Text.GetColor",                  "(Entity)->Vector4",                    ref complete);
-        s_TextSetColor                  = Resolve("Text.SetColor",                  "(Entity,Vector4)->Void",               ref complete);
-        s_TextGetFontSize               = Resolve("Text.GetFontSize",               "(Entity)->Float",                      ref complete);
-        s_TextSetFontSize               = Resolve("Text.SetFontSize",               "(Entity,Float)->Void",                 ref complete);
+        s_TextExists                      = Resolve("Text.Exists",                      "(Entity)->Bool",                       ref complete);
+        s_TextGetValue                    = Resolve("Text.GetValue",                    "(Entity)->String",                     ref complete);
+        s_TextSetValue                    = Resolve("Text.SetValue",                    "(Entity,String)->Void",                ref complete);
+        s_TextGetColor                    = Resolve("Text.GetColor",                    "(Entity)->Vector4",                    ref complete);
+        s_TextSetColor                    = Resolve("Text.SetColor",                    "(Entity,Vector4)->Void",               ref complete);
+        s_TextGetFontSize                 = Resolve("Text.GetFontSize",                 "(Entity)->Float",                      ref complete);
+        s_TextSetFontSize                 = Resolve("Text.SetFontSize",                 "(Entity,Float)->Void",                 ref complete);
 
-        s_Rigidbody2DExists             = Resolve("Rigidbody2D.Exists",             "(Entity)->Bool",                       ref complete);
-        s_Rigidbody2DGetLinearVelocity  = Resolve("Rigidbody2D.GetLinearVelocity",  "(Entity)->Vector2",                    ref complete);
-        s_Rigidbody2DSetLinearVelocity  = Resolve("Rigidbody2D.SetLinearVelocity",  "(Entity,Vector2)->Void",               ref complete);
-        s_Rigidbody2DApplyForce         = Resolve("Rigidbody2D.ApplyForce",         "(Entity,Vector2)->Void",               ref complete);
-        s_Rigidbody2DApplyImpulse       = Resolve("Rigidbody2D.ApplyImpulse",       "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DExists               = Resolve("Rigidbody2D.Exists",               "(Entity)->Bool",                       ref complete);
+        s_Rigidbody2DGetLinearVelocity    = Resolve("Rigidbody2D.GetLinearVelocity",    "(Entity)->Vector2",                    ref complete);
+        s_Rigidbody2DSetLinearVelocity    = Resolve("Rigidbody2D.SetLinearVelocity",    "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyForce           = Resolve("Rigidbody2D.ApplyForce",           "(Entity,Vector2)->Void",               ref complete);
+        s_Rigidbody2DApplyImpulse         = Resolve("Rigidbody2D.ApplyImpulse",         "(Entity,Vector2)->Void",               ref complete);
 
-        s_PhysicsRaycast                = Resolve("Physics.Raycast",                "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
-        s_PhysicsRaycastPoint           = Resolve("Physics.RaycastPoint",           "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
-        s_PhysicsRaycastNormal          = Resolve("Physics.RaycastNormal",          "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
-        s_PhysicsRaycastDistance        = Resolve("Physics.RaycastDistance",        "(Vector2,Vector2,Float,Int)->Float",   ref complete);
+        s_PhysicsRaycast                  = Resolve("Physics.Raycast",                  "(Vector2,Vector2,Float,Int)->Entity",  ref complete);
+        s_PhysicsRaycastPoint             = Resolve("Physics.RaycastPoint",             "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastNormal            = Resolve("Physics.RaycastNormal",            "(Vector2,Vector2,Float,Int)->Vector2", ref complete);
+        s_PhysicsRaycastDistance          = Resolve("Physics.RaycastDistance",          "(Vector2,Vector2,Float,Int)->Float",   ref complete);
 
-        s_AudioSourceExists             = Resolve("AudioSource.Exists",             "(Entity)->Bool",                       ref complete);
-        s_AudioSourcePlay               = Resolve("AudioSource.Play",               "(Entity)->Void",                       ref complete);
-        s_AudioSourceStop               = Resolve("AudioSource.Stop",               "(Entity)->Void",                       ref complete);
-        s_AudioSourceIsPlaying          = Resolve("AudioSource.IsPlaying",          "(Entity)->Bool",                       ref complete);
-        s_AudioPlayOneShot              = Resolve("Audio.PlayOneShot",              "(Asset:AudioClip)->Void",              ref complete);
+        s_AudioSourceExists               = Resolve("AudioSource.Exists",               "(Entity)->Bool",                       ref complete);
+        s_AudioSourcePlay                 = Resolve("AudioSource.Play",                 "(Entity)->Void",                       ref complete);
+        s_AudioSourceStop                 = Resolve("AudioSource.Stop",                 "(Entity)->Void",                       ref complete);
+        s_AudioSourceIsPlaying            = Resolve("AudioSource.IsPlaying",            "(Entity)->Bool",                       ref complete);
+        s_AudioPlayOneShot                = Resolve("Audio.PlayOneShot",                "(Asset:AudioClip)->Void",              ref complete);
 
-        s_AnimatorExists                = Resolve("Animator.Exists",                "(Entity)->Bool",                       ref complete);
-        s_AnimatorPlay                  = Resolve("Animator.Play",                  "(Entity,String,Bool)->Void",           ref complete);
-        s_AnimatorStop                  = Resolve("Animator.Stop",                  "(Entity)->Void",                       ref complete);
-        s_AnimatorIsPlaying             = Resolve("Animator.IsPlaying",             "(Entity)->Bool",                       ref complete);
-        s_AnimatorGetState              = Resolve("Animator.GetState",              "(Entity)->String",                     ref complete);
-        s_AnimatorGetNormalizedTime     = Resolve("Animator.GetNormalizedTime",     "(Entity)->Float",                      ref complete);
-        s_AnimatorGetSpeed              = Resolve("Animator.GetSpeed",              "(Entity)->Float",                      ref complete);
-        s_AnimatorSetSpeed              = Resolve("Animator.SetSpeed",              "(Entity,Float)->Void",                 ref complete);
+        s_AnimatorExists                  = Resolve("Animator.Exists",                  "(Entity)->Bool",                       ref complete);
+        s_AnimatorPlay                    = Resolve("Animator.Play",                    "(Entity,String,Bool)->Void",           ref complete);
+        s_AnimatorStop                    = Resolve("Animator.Stop",                    "(Entity)->Void",                       ref complete);
+        s_AnimatorIsPlaying               = Resolve("Animator.IsPlaying",               "(Entity)->Bool",                       ref complete);
+        s_AnimatorGetState                = Resolve("Animator.GetState",                "(Entity)->String",                     ref complete);
+        s_AnimatorGetNormalizedTime       = Resolve("Animator.GetNormalizedTime",       "(Entity)->Float",                      ref complete);
+        s_AnimatorGetSpeed                = Resolve("Animator.GetSpeed",                "(Entity)->Float",                      ref complete);
+        s_AnimatorSetSpeed                = Resolve("Animator.SetSpeed",                "(Entity,Float)->Void",                 ref complete);
 
-        s_PrefabInstantiate             = Resolve("Prefab.Instantiate",             "(Asset:Prefab)->Entity",               ref complete);
-        s_PrefabInstantiateAt           = Resolve("Prefab.InstantiateAt",           "(Asset:Prefab,Vector2)->Entity",       ref complete);
-        s_PrefabInstantiateAsChild      = Resolve("Prefab.InstantiateAsChild",      "(Asset:Prefab,Entity)->Entity",        ref complete);
+        s_PrefabInstantiate               = Resolve("Prefab.Instantiate",               "(Asset:Prefab)->Entity",               ref complete);
+        s_PrefabInstantiateAt             = Resolve("Prefab.InstantiateAt",             "(Asset:Prefab,Vector2)->Entity",       ref complete);
+        s_PrefabInstantiateAsChild        = Resolve("Prefab.InstantiateAsChild",        "(Asset:Prefab,Entity)->Entity",        ref complete);
 
-        s_SceneLoad                     = Resolve("Scene.Load",                     "(Asset:Scene)->Void",                  ref complete);
-        s_SceneLoadByName               = Resolve("Scene.LoadByName",               "(String)->Void",                       ref complete);
+        s_SceneLoad                       = Resolve("Scene.Load",                       "(Asset:Scene)->Void",                  ref complete);
+        s_SceneLoadByName                 = Resolve("Scene.LoadByName",                 "(String)->Void",                       ref complete);
 
-        s_InputIsKeyDown                = Resolve("Input.IsKeyDown",                "(Int)->Bool",                          ref complete);
-        s_InputIsKeyPressed             = Resolve("Input.IsKeyPressed",             "(Int)->Bool",                          ref complete);
-        s_InputIsKeyReleased            = Resolve("Input.IsKeyReleased",            "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonDown        = Resolve("Input.IsMouseButtonDown",        "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonPressed     = Resolve("Input.IsMouseButtonPressed",     "(Int)->Bool",                          ref complete);
-        s_InputIsMouseButtonReleased    = Resolve("Input.IsMouseButtonReleased",    "(Int)->Bool",                          ref complete);
-        s_InputGetMousePosition         = Resolve("Input.GetMousePosition",         "()->Vector2",                          ref complete);
-        s_InputGetMouseWorldPosition    = Resolve("Input.GetMouseWorldPosition",    "()->Vector2",                          ref complete);
-        s_InputGetMouseDelta            = Resolve("Input.GetMouseDelta",            "()->Vector2",                          ref complete);
-        s_InputGetScrollDelta           = Resolve("Input.GetScrollDelta",           "()->Vector2",                          ref complete);
+        s_InputIsKeyDown                  = Resolve("Input.IsKeyDown",                  "(Int)->Bool",                          ref complete);
+        s_InputIsKeyPressed               = Resolve("Input.IsKeyPressed",               "(Int)->Bool",                          ref complete);
+        s_InputIsKeyReleased              = Resolve("Input.IsKeyReleased",              "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonDown          = Resolve("Input.IsMouseButtonDown",          "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonPressed       = Resolve("Input.IsMouseButtonPressed",       "(Int)->Bool",                          ref complete);
+        s_InputIsMouseButtonReleased      = Resolve("Input.IsMouseButtonReleased",      "(Int)->Bool",                          ref complete);
+        s_InputGetMousePosition           = Resolve("Input.GetMousePosition",           "()->Vector2",                          ref complete);
+        s_InputGetMouseWorldPosition      = Resolve("Input.GetMouseWorldPosition",      "()->Vector2",                          ref complete);
+        s_InputGetMouseDelta              = Resolve("Input.GetMouseDelta",              "()->Vector2",                          ref complete);
+        s_InputGetScrollDelta             = Resolve("Input.GetScrollDelta",             "()->Vector2",                          ref complete);
 
-        s_InputActionExists             = Resolve("InputAction.Exists",             "(String)->Bool",                       ref complete);
-        s_InputActionIsDown             = Resolve("InputAction.IsDown",             "(String)->Bool",                       ref complete);
-        s_InputActionWasPressed         = Resolve("InputAction.WasPressed",         "(String)->Bool",                       ref complete);
-        s_InputActionWasReleased        = Resolve("InputAction.WasReleased",        "(String)->Bool",                       ref complete);
-        s_InputActionReadValue          = Resolve("InputAction.ReadValue",          "(String)->Vector2",                    ref complete);
-        s_InputActionsEnableMap         = Resolve("InputActions.EnableMap",         "(String)->Void",                       ref complete);
-        s_InputActionsDisableMap        = Resolve("InputActions.DisableMap",        "(String)->Void",                       ref complete);
-        s_InputActionsIsMapEnabled      = Resolve("InputActions.IsMapEnabled",      "(String)->Bool",                       ref complete);
+        s_InputActionExists               = Resolve("InputAction.Exists",               "(String)->Bool",                       ref complete);
+        s_InputActionIsDown               = Resolve("InputAction.IsDown",               "(String)->Bool",                       ref complete);
+        s_InputActionWasPressed           = Resolve("InputAction.WasPressed",           "(String)->Bool",                       ref complete);
+        s_InputActionWasReleased          = Resolve("InputAction.WasReleased",          "(String)->Bool",                       ref complete);
+        s_InputActionReadValue            = Resolve("InputAction.ReadValue",            "(String)->Vector2",                    ref complete);
+        s_InputActionsEnableMap           = Resolve("InputActions.EnableMap",           "(String)->Void",                       ref complete);
+        s_InputActionsDisableMap          = Resolve("InputActions.DisableMap",          "(String)->Void",                       ref complete);
+        s_InputActionsIsMapEnabled        = Resolve("InputActions.IsMapEnabled",        "(String)->Bool",                       ref complete);
+
+        s_GamepadIsConnected              = Resolve("Gamepad.IsConnected",              "(Int)->Bool",                          ref complete);
+        s_GamepadGetName                  = Resolve("Gamepad.GetName",                  "(Int)->String",                        ref complete);
+        s_GamepadGetType                  = Resolve("Gamepad.GetType",                  "(Int)->Int",                           ref complete);
+        s_GamepadSupportsRumble           = Resolve("Gamepad.SupportsRumble",           "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsTriggerRumble    = Resolve("Gamepad.SupportsTriggerRumble",    "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsLed              = Resolve("Gamepad.SupportsLed",              "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsAdaptiveTriggers = Resolve("Gamepad.SupportsAdaptiveTriggers", "(Int)->Bool",                          ref complete);
+        s_GamepadRumble                   = Resolve("Gamepad.Rumble",                   "(Int,Float,Float,Float)->Bool",        ref complete);
+        s_GamepadRumbleTriggers           = Resolve("Gamepad.RumbleTriggers",           "(Int,Float,Float,Float)->Bool",        ref complete);
+        s_GamepadSetLed                   = Resolve("Gamepad.SetLed",                   "(Int,Vector3)->Bool",                  ref complete);
 
         return complete;
     }
@@ -462,6 +484,40 @@ internal static unsafe class ScriptAPI
 
     public static bool InputActions_IsMapEnabled(string name) =>
         CallWithText(s_InputActionsIsMapEnabled, name).Bool != 0;
+
+    // Gamepad
+
+    public static bool Gamepad_IsConnected(int gamepad) =>
+        Call(s_GamepadIsConnected, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static string Gamepad_GetName(int gamepad) =>
+        Call(s_GamepadGetName, new APIValue { Int = gamepad }).ReadText();
+
+    public static int Gamepad_GetType(int gamepad) =>
+        Call(s_GamepadGetType, new APIValue { Int = gamepad }).Int;
+
+    public static bool Gamepad_SupportsRumble(int gamepad) =>
+        Call(s_GamepadSupportsRumble, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsTriggerRumble(int gamepad) =>
+        Call(s_GamepadSupportsTriggerRumble, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsLed(int gamepad) =>
+        Call(s_GamepadSupportsLed, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsAdaptiveTriggers(int gamepad) =>
+        Call(s_GamepadSupportsAdaptiveTriggers, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_Rumble(int gamepad, float lowFrequency, float highFrequency, float duration) =>
+        Call(s_GamepadRumble, new APIValue { Int = gamepad }, new APIValue { Float = lowFrequency },
+             new APIValue { Float = highFrequency }, new APIValue { Float = duration }).Bool != 0;
+
+    public static bool Gamepad_RumbleTriggers(int gamepad, float left, float right, float duration) =>
+        Call(s_GamepadRumbleTriggers, new APIValue { Int = gamepad }, new APIValue { Float = left },
+             new APIValue { Float = right }, new APIValue { Float = duration }).Bool != 0;
+
+    public static bool Gamepad_SetLed(int gamepad, Vector3 color) =>
+        Call(s_GamepadSetLed, new APIValue { Int = gamepad }, new APIValue { Vector3 = color }).Bool != 0;
 
     // Plumbing
 

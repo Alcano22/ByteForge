@@ -1,5 +1,6 @@
 #include "Scripting/API/InputAPI.h"
 #include "Engine/Scripting/API/ScriptAPI.h"
+#include "Engine/Input/Input.h"
 #include "Engine/Input/InputActionSystem.h"
 #include "Engine/Scene/Scene.h"
 
@@ -78,6 +79,66 @@ namespace ByteForge
         {
             return RequireSystem(context).IsMapEnabled(name);
         }
+
+        u32 RequireGamepad(const i32 gamepad)
+        {
+            if (gamepad < 0 || gamepad >= static_cast<i32>(MaxGamepads))
+                throw ScriptError("{} is not a gamepad slot, use 0 to {}", gamepad, MaxGamepads - 1);
+
+            return static_cast<u32>(gamepad);
+        }
+
+        bool GamepadIsConnected(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::IsGamepadConnected(RequireGamepad(gamepad));
+        }
+
+        std::string GamepadGetName(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadName(RequireGamepad(gamepad));
+        }
+
+        GamepadType GamepadGetType(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadType(RequireGamepad(gamepad));
+        }
+
+        bool GamepadSupportsRumble(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Rumble;
+        }
+
+        bool GamepadSupportsTriggerRumble(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).TriggerRumble;
+        }
+
+        bool GamepadSupportsLed(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Led;
+        }
+
+        bool GamepadSupportsAdaptiveTriggers(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).AdaptiveTriggers;
+        }
+
+        bool GamepadRumble(const ScriptCallContext&, const i32 gamepad,
+                           const f32 lowFrequency, const f32 highFrequency, const f32 duration)
+        {
+            return Input::RumbleGamepad(lowFrequency, highFrequency, duration, RequireGamepad(gamepad));
+        }
+
+        bool GamepadRumbleTriggers(const ScriptCallContext&, const i32 gamepad,
+                                   const f32 left, const f32 right, const f32 duration)
+        {
+            return Input::RumbleGamepadTriggers(left, right, duration, RequireGamepad(gamepad));
+        }
+
+        bool GamepadSetLed(const ScriptCallContext&, const i32 gamepad, const glm::vec3& color)
+        {
+            return Input::SetGamepadLed(color, RequireGamepad(gamepad));
+        }
     }
 
     void RegisterInputAPI(ScriptAPI& api)
@@ -93,5 +154,17 @@ namespace ByteForge
         api.Register<&InputActionsEnableMap>("InputActions.EnableMap", "Enable Action Map", Impure, { "Map" });
         api.Register<&InputActionsDisableMap>("InputActions.DisableMap", "Disable Action Map", Impure, { "Map" });
         api.Register<&InputActionsIsMapEnabled>("InputActions.IsMapEnabled", "Is Action Map Enabled", Pure, { "Map" });
+
+        api.Register<&GamepadIsConnected>("Gamepad.IsConnected", "Is Gamepad Connected", Pure, { "Gamepad" });
+        api.Register<&GamepadGetName>("Gamepad.GetName", "Get Gamepad Name", Pure, { "Gamepad" });
+        api.Register<&GamepadGetType>("Gamepad.GetType", "Get Gamepad Type", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsRumble>("Gamepad.SupportsRumble", "Supports Rumble", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsTriggerRumble>("Gamepad.SupportsTriggerRumble", "Supports Trigger Rumble", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsLed>("Gamepad.SupportsLed", "Supports LED", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsAdaptiveTriggers>("Gamepad.SupportsAdaptiveTriggers", "Supports Adaptive Triggers", Pure, { "Gamepad" });
+
+        api.Register<&GamepadRumble>("Gamepad.Rumble", "Rumble", Impure, { "Gamepad", "Low Frequency", "High Frequency", "Duration" });
+        api.Register<&GamepadRumbleTriggers>("Gamepad.RumbleTriggers", "Rumble Triggers", Impure, { "Gamepad", "Left", "Right", "Duration" });
+        api.Register<&GamepadSetLed>("Gamepad.SetLed", "Set Gamepad LED", Impure, { "Gamepad", "Color" });
     }
 }

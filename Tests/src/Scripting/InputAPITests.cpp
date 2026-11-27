@@ -3,6 +3,7 @@
 #include <Engine/Event/KeyEvent.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/InputActionSystem.h>
+#include <Engine/Input/GamepadFeatures.h>
 #include <Engine/Scene/Scene.h>
 #include <Engine/Scripting/API/ScriptAPI.h>
 
@@ -103,4 +104,25 @@ TEST_CASE("Without input actions the script functions explain why", "[scripting]
     CHECK_FALSE(CallBool(context, "InputAction.Exists", "Gameplay/Jump"));
     CHECK_THROWS_AS(CallScript(context, "InputAction.IsDown", { Text("Gameplay/Jump") }), ScriptError);
     CHECK_THROWS_AS(CallScript(context, "InputActions.EnableMap", { Text("Gameplay") }), ScriptError);
+}
+
+TEST_CASE("Gamepad script functions validate the slot", "[scripting][input][gamepad]")
+{
+    const ScriptCallContext context{};
+
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.IsConnected", { -1 }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.IsConnected", { static_cast<i32>(MaxGamepads) }), ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.Rumble", { 7, 1.0f, 1.0f, 0.5f }), ScriptError);
+
+    CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.IsConnected", { static_cast<i32>(MaxGamepads) - 1 }));
+}
+
+TEST_CASE("Gamepad output from scripts does nothing without a connected gamepad", "[scripting][input][gamepad]")
+{
+    const ScriptCallContext context{};
+
+    CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.Rumble", { 0, 1.0f, 1.0f, 0.5f }));
+    CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.SetLed", { 0, glm::vec3(1.0f) }));
+    CHECK_FALSE(CallScriptAs<bool>(context, "Gamepad.SupportsAdaptiveTriggers", { 0 }));
+    CHECK(CallScriptAs<i32>(context, "Gamepad.GetType", { 0 }) == static_cast<i32>(GamepadType::Unknown));
 }
