@@ -24,7 +24,8 @@ public enum GamepadButton : ushort
     LeftBumper = 4, RightBumper = 5,
     Back = 6, Start = 7, Guide = 8,
     LeftThumb = 9, RightThumb = 10,
-    DPadUp = 11, DPadRight = 12, DPadDown = 13, DPadLeft = 14
+    DPadUp = 11, DPadRight = 12, DPadDown = 13, DPadLeft = 14,
+    Touchpad = 15, Misc = 16
 }
 
 /// <summary>Sticks are in [-1, 1] with Y pointing up, triggers in [0, 1].</summary>
@@ -41,7 +42,8 @@ public enum GamepadTrigger : byte
 }
 
 /// <summary>What a connected gamepad can do. Everything is false for a missing gamepad.</summary>
-public readonly record struct GamepadFeatures(bool Rumble, bool TriggerRumble, bool Led, bool AdaptiveTriggers);
+public readonly record struct GamepadFeatures(bool Rumble, bool TriggerRumble, bool Led, bool AdaptiveTriggers,
+                                              bool Touchpad, bool Gyro, bool Accelerometer);
 
 /// <summary>
 /// Direct access to gamepads by slot (0 to <see cref="MaxGamepads"/> - 1). Output functions return false
@@ -50,6 +52,7 @@ public readonly record struct GamepadFeatures(bool Rumble, bool TriggerRumble, b
 public static class Gamepad
 {
     public const int MaxGamepads = 4;
+    public const int MaxTouchFingers = 2;
 
     public static bool IsConnected(int gamepad = 0) => ScriptAPI.Gamepad_IsConnected(gamepad);
 
@@ -61,7 +64,10 @@ public static class Gamepad
         ScriptAPI.Gamepad_SupportsRumble(gamepad),
         ScriptAPI.Gamepad_SupportsTriggerRumble(gamepad),
         ScriptAPI.Gamepad_SupportsLed(gamepad),
-        ScriptAPI.Gamepad_SupportsAdaptiveTriggers(gamepad)
+        ScriptAPI.Gamepad_SupportsAdaptiveTriggers(gamepad),
+        ScriptAPI.Gamepad_SupportsTouchpad(gamepad),
+        ScriptAPI.Gamepad_SupportsGyro(gamepad),
+        ScriptAPI.Gamepad_SupportsAccelerometer(gamepad)
     );
 
     public static bool IsButtonDown(GamepadButton button, int gamepad = 0) =>
@@ -75,6 +81,33 @@ public static class Gamepad
 
     public static float GetAxis(GamepadAxis axis, int gamepad = 0) =>
         ScriptAPI.Gamepad_GetAxis(gamepad, (int)axis);
+
+    public static bool IsTouchDown(int finger = 0, int gamepad = 0) => ScriptAPI.Gamepad_IsTouchDown(gamepad, finger);
+
+    public static bool IsTouchPressed(int finger = 0, int gamepad = 0) =>
+        ScriptAPI.Gamepad_IsTouchPressed(gamepad, finger);
+
+    public static bool IsTouchReleased(int finger = 0, int gamepad = 0) =>
+        ScriptAPI.Gamepad_IsTouchReleased(gamepad, finger);
+
+    public static Vector2 GetTouchPosition(int finger = 0, int gamepad = 0) =>
+        ScriptAPI.Gamepad_GetTouchPosition(gamepad, finger);
+
+    /// <summary>Movement since the last frame, zero on the frame the finger lands.</summary>
+    public static Vector2 GetTouchDelta(int finger = 0, int gamepad = 0) =>
+        ScriptAPI.Gamepad_GetTouchDelta(gamepad, finger);
+
+    public static float GetTouchPressure(int finger = 0, int gamepad = 0) =>
+        ScriptAPI.Gamepad_GetTouchPressure(gamepad, finger);
+
+    /// <summary>Latest gyro reading in rad/s: X pitch, Y yaw, Z roll.</summary>
+    public static Vector3 GetAngularVelocity(int gamepad = 0) => ScriptAPI.Gamepad_GetAngularVelocity(gamepad);
+
+    /// <summary>Radians turned since the last frame, from every sample. Use this for gyro aiming.</summary>
+    public static Vector3 GetRotationDelta(int gamepad = 0) => ScriptAPI.Gamepad_GetRotationDelta(gamepad);
+
+    /// <summary>m/s² including gravity, about (0, 9.81, 0) while lying flat.</summary>
+    public static Vector3 GetAcceleration(int gamepad = 0) => ScriptAPI.Gamepad_GetAcceleration(gamepad);
 
     /// <summary>Intensities in [0, 1], duration in seconds. A new call replaces the running rumble, 0 stops it.</summary>
     public static bool Rumble(float lowFrequency, float highFrequency, float duration, int gamepad = 0) =>

@@ -148,3 +148,27 @@ TEST_CASE("Gamepad buttons and axes reach scripts", "[scripting][input][gamepad]
     Input::OnEvent(GamepadDisconnectedEvent(0));
     Input::EndFrame();
 }
+
+TEST_CASE("Touchpad and motion reach scripts", "[scripting][input][gamepad]")
+{
+    Input::SetGamepadBlocked(false);
+    Input::OnEvent(GamepadConnectedEvent(0, "Test Gamepad"));
+    Input::OnEvent(GamepadTouchEvent(0, 1, true, { 0.25f, 0.75f }, 1.0f));
+    Input::OnEvent(GamepadMotionEvent(0, { 0.0f, 2.0f, 0.0f }, { 0.0f, 0.1f, 0.0f }, { 0.0f, 9.81f, 0.0f }));
+
+    const ScriptCallContext context{};
+
+    CHECK(CallScriptAs<bool>(context, "Gamepad.IsTouchDown", { 0, 1 }));
+    CHECK(CallScriptAs<bool>(context, "Gamepad.IsTouchPressed", { 0, 1 }));
+    CHECK(CallScriptAs<glm::vec2>(context, "Gamepad.GetTouchPosition", { 0, 1 }) == glm::vec2(0.25f, 0.75f));
+    CHECK(CallScriptAs<glm::vec3>(context, "Gamepad.GetAngularVelocity", { 0 }) == glm::vec3(0.0f, 2.0f, 0.0f));
+    CHECK(CallScriptAs<glm::vec3>(context, "Gamepad.GetRotationDelta", { 0 }) == glm::vec3(0.0f, 0.1f, 0.0f));
+    CHECK(CallScriptAs<glm::vec3>(context, "Gamepad.GetAcceleration", { 0 }) == glm::vec3(0.0f, 9.81f, 0.0f));
+
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.IsTouchDown", { 0, static_cast<i32>(MaxGamepadTouchFingers) }),
+                    ScriptError);
+    CHECK_THROWS_AS(CallScript(context, "Gamepad.GetTouchDelta", { 0, -1 }), ScriptError);
+
+    Input::OnEvent(GamepadDisconnectedEvent(0));
+    Input::EndFrame();
+}

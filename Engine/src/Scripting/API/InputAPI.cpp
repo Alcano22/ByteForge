@@ -89,6 +89,14 @@ namespace ByteForge
             return static_cast<u32>(gamepad);
         }
 
+        u32 RequireFinger(const i32 finger)
+        {
+            if (finger < 0 || finger >= static_cast<i32>(MaxGamepadTouchFingers))
+                throw ScriptError("{} is not a touchpad finger, use 0 to {}", finger, MaxGamepadTouchFingers);
+
+            return static_cast<u32>(finger);
+        }
+
         bool GamepadIsConnected(const ScriptCallContext&, const i32 gamepad)
         {
             return Input::IsGamepadConnected(RequireGamepad(gamepad));
@@ -124,6 +132,51 @@ namespace ByteForge
             return Input::GetGamepadAxis(axis, RequireGamepad(gamepad));
         }
 
+        bool GamepadIsTouchDown(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::IsGamepadTouchDown(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        bool GamepadIsTouchPressed(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::IsGamepadTouchPressed(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        bool GamepadIsTouchReleased(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::IsGamepadTouchReleased(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        glm::vec2 GamepadGetTouchPosition(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::GetGamepadTouchPosition(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        glm::vec2 GamepadGetTouchDelta(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::GetGamepadTouchDelta(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        f32 GamepadGetTouchPressure(const ScriptCallContext&, const i32 gamepad, const i32 finger)
+        {
+            return Input::GetGamepadTouchPressure(RequireFinger(finger), RequireGamepad(gamepad));
+        }
+
+        glm::vec3 GamepadGetAngularVelocity(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadAngularVelocity(RequireGamepad(gamepad));
+        }
+
+        glm::vec3 GamepadGetRotationDelta(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadRotationDelta(RequireGamepad(gamepad));
+        }
+
+        glm::vec3 GamepadGetAcceleration(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadAcceleration(RequireGamepad(gamepad));
+        }
+
         bool GamepadSupportsRumble(const ScriptCallContext&, const i32 gamepad)
         {
             return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Rumble;
@@ -142,6 +195,21 @@ namespace ByteForge
         bool GamepadSupportsAdaptiveTriggers(const ScriptCallContext&, const i32 gamepad)
         {
             return Input::GetGamepadFeatures(RequireGamepad(gamepad)).AdaptiveTriggers;
+        }
+
+        bool GamepadSupportsTouchpad(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Touchpad;
+        }
+
+        bool GamepadSupportsGyro(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Gyro;
+        }
+
+        bool GamepadSupportsAccelerometer(const ScriptCallContext&, const i32 gamepad)
+        {
+            return Input::GetGamepadFeatures(RequireGamepad(gamepad)).Accelerometer;
         }
 
         bool GamepadRumble(const ScriptCallContext&, const i32 gamepad,
@@ -216,10 +284,22 @@ namespace ByteForge
         api.Register<&GamepadIsButtonPressed>("Gamepad.IsButtonPressed", "Is Gamepad Button Pressed", Pure, { "Gamepad", "Button" });
         api.Register<&GamepadIsButtonReleased>("Gamepad.IsButtonReleased", "Is Gamepad Button Released", Pure, { "Gamepad", "Button" });
         api.Register<&GamepadGetAxis>("Gamepad.GetAxis", "Get Gamepad Axis", Pure, { "Gamepad", "Axis" });
+        api.Register<&GamepadIsTouchDown>("Gamepad.IsTouchDown", "Is Touch Down", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadIsTouchPressed>("Gamepad.IsTouchPressed", "Is Touch Pressed", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadIsTouchReleased>("Gamepad.IsTouchReleased", "Is Touch Released", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadGetTouchPosition>("Gamepad.GetTouchPosition", "Get Touch Position", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadGetTouchDelta>("Gamepad.GetTouchDelta", "Get Touch Delta", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadGetTouchPressure>("Gamepad.GetTouchPressure", "Get Touch Pressure", Pure, { "Gamepad", "Finger" });
+        api.Register<&GamepadGetAngularVelocity>("Gamepad.GetAngularVelocity", "Get Angular Velocity", Pure, { "Gamepad" });
+        api.Register<&GamepadGetRotationDelta>("Gamepad.GetRotationDelta", "Get Rotation Delta", Pure, { "Gamepad" });
+        api.Register<&GamepadGetAcceleration>("Gamepad.GetAcceleration", "Get Acceleration", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsRumble>("Gamepad.SupportsRumble", "Supports Rumble", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsTriggerRumble>("Gamepad.SupportsTriggerRumble", "Supports Trigger Rumble", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsLed>("Gamepad.SupportsLed", "Supports LED", Pure, { "Gamepad" });
         api.Register<&GamepadSupportsAdaptiveTriggers>("Gamepad.SupportsAdaptiveTriggers", "Supports Adaptive Triggers", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsTouchpad>("Gamepad.SupportsTouchpad", "Supports Touchpad", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsGyro>("Gamepad.SupportsGyro", "Supports Gyro", Pure, { "Gamepad" });
+        api.Register<&GamepadSupportsAccelerometer>("Gamepad.SupportsAccelerometer", "Supports Accelerometer", Pure, { "Gamepad" });
 
         api.Register<&GamepadRumble>("Gamepad.Rumble", "Rumble", Impure, { "Gamepad", "Low Frequency", "High Frequency", "Duration" });
         api.Register<&GamepadRumbleTriggers>("Gamepad.RumbleTriggers", "Rumble Triggers", Impure, { "Gamepad", "Left", "Right", "Duration" });

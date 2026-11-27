@@ -104,10 +104,22 @@ internal static unsafe class ScriptAPI
     private static uint s_GamepadIsButtonPressed;
     private static uint s_GamepadIsButtonReleased;
     private static uint s_GamepadGetAxis;
+    private static uint s_GamepadIsTouchDown;
+    private static uint s_GamepadIsTouchPressed;
+    private static uint s_GamepadIsTouchReleased;
+    private static uint s_GamepadGetTouchPosition;
+    private static uint s_GamepadGetTouchDelta;
+    private static uint s_GamepadGetTouchPressure;
+    private static uint s_GamepadGetAngularVelocity;
+    private static uint s_GamepadGetRotationDelta;
+    private static uint s_GamepadGetAcceleration;
     private static uint s_GamepadSupportsRumble;
     private static uint s_GamepadSupportsTriggerRumble;
     private static uint s_GamepadSupportsLed;
     private static uint s_GamepadSupportsAdaptiveTriggers;
+    private static uint s_GamepadSupportsTouchpad;
+    private static uint s_GamepadSupportsGyro;
+    private static uint s_GamepadSupportsAccelerometer;
     private static uint s_GamepadRumble;
     private static uint s_GamepadRumbleTriggers;
     private static uint s_GamepadSetLed;
@@ -216,10 +228,22 @@ internal static unsafe class ScriptAPI
         s_GamepadIsButtonPressed          = Resolve("Gamepad.IsButtonPressed",          "(Int,Int)->Bool",                      ref complete);
         s_GamepadIsButtonReleased         = Resolve("Gamepad.IsButtonReleased",         "(Int,Int)->Bool",                      ref complete);
         s_GamepadGetAxis                  = Resolve("Gamepad.GetAxis",                  "(Int,Int)->Float",                     ref complete);
+        s_GamepadIsTouchDown              = Resolve("Gamepad.IsTouchDown",              "(Int,Int)->Bool",                      ref complete);
+        s_GamepadIsTouchPressed           = Resolve("Gamepad.IsTouchPressed",           "(Int,Int)->Bool",                      ref complete);
+        s_GamepadIsTouchReleased          = Resolve("Gamepad.IsTouchReleased",          "(Int,Int)->Bool",                      ref complete);
+        s_GamepadGetTouchPosition         = Resolve("Gamepad.GetTouchPosition",         "(Int,Int)->Vector2",                   ref complete);
+        s_GamepadGetTouchDelta            = Resolve("Gamepad.GetTouchDelta",            "(Int,Int)->Vector2",                   ref complete);
+        s_GamepadGetTouchPressure         = Resolve("Gamepad.GetTouchPressure",         "(Int,Int)->Float",                     ref complete);
+        s_GamepadGetAngularVelocity       = Resolve("Gamepad.GetAngularVelocity",       "(Int)->Vector3",                       ref complete);
+        s_GamepadGetRotationDelta         = Resolve("Gamepad.GetRotationDelta",         "(Int)->Vector3",                       ref complete);
+        s_GamepadGetAcceleration          = Resolve("Gamepad.GetAcceleration",          "(Int)->Vector3",                       ref complete);
         s_GamepadSupportsRumble           = Resolve("Gamepad.SupportsRumble",           "(Int)->Bool",                          ref complete);
         s_GamepadSupportsTriggerRumble    = Resolve("Gamepad.SupportsTriggerRumble",    "(Int)->Bool",                          ref complete);
         s_GamepadSupportsLed              = Resolve("Gamepad.SupportsLed",              "(Int)->Bool",                          ref complete);
         s_GamepadSupportsAdaptiveTriggers = Resolve("Gamepad.SupportsAdaptiveTriggers", "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsTouchpad         = Resolve("Gamepad.SupportsTouchpad",         "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsGyro             = Resolve("Gamepad.SupportsGyro",             "(Int)->Bool",                          ref complete);
+        s_GamepadSupportsAccelerometer    = Resolve("Gamepad.SupportsAccelerometer",    "(Int)->Bool",                          ref complete);
         s_GamepadRumble                   = Resolve("Gamepad.Rumble",                   "(Int,Float,Float,Float)->Bool",        ref complete);
         s_GamepadRumbleTriggers           = Resolve("Gamepad.RumbleTriggers",           "(Int,Float,Float,Float)->Bool",        ref complete);
         s_GamepadSetLed                   = Resolve("Gamepad.SetLed",                   "(Int,Vector3)->Bool",                  ref complete);
@@ -524,6 +548,33 @@ internal static unsafe class ScriptAPI
     public static float Gamepad_GetAxis(int gamepad, int axis) =>
         Call(s_GamepadGetAxis, new APIValue { Int = gamepad }, new APIValue { Int = axis }).Float;
 
+    public static bool Gamepad_IsTouchDown(int gamepad, int finger) =>
+        Call(s_GamepadIsTouchDown, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Bool != 0;
+
+    public static bool Gamepad_IsTouchPressed(int gamepad, int finger) =>
+        Call(s_GamepadIsTouchPressed, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Bool != 0;
+
+    public static bool Gamepad_IsTouchReleased(int gamepad, int finger) =>
+        Call(s_GamepadIsTouchReleased, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Bool != 0;
+
+    public static Vector2 Gamepad_GetTouchPosition(int gamepad, int finger) =>
+        Call(s_GamepadGetTouchPosition, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Vector2;
+
+    public static Vector2 Gamepad_GetTouchDelta(int gamepad, int finger) =>
+        Call(s_GamepadGetTouchDelta, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Vector2;
+
+    public static float Gamepad_GetTouchPressure(int gamepad, int finger) =>
+        Call(s_GamepadGetTouchPressure, new APIValue { Int = gamepad }, new APIValue { Int = finger }).Float;
+
+    public static Vector3 Gamepad_GetAngularVelocity(int gamepad) =>
+        Call(s_GamepadGetAngularVelocity, new APIValue { Int = gamepad }).Vector3;
+
+    public static Vector3 Gamepad_GetRotationDelta(int gamepad) =>
+        Call(s_GamepadGetRotationDelta, new APIValue { Int = gamepad }).Vector3;
+
+    public static Vector3 Gamepad_GetAcceleration(int gamepad) =>
+        Call(s_GamepadGetAcceleration, new APIValue { Int = gamepad }).Vector3;
+
     public static bool Gamepad_SupportsRumble(int gamepad) =>
         Call(s_GamepadSupportsRumble, new APIValue { Int = gamepad }).Bool != 0;
 
@@ -535,6 +586,15 @@ internal static unsafe class ScriptAPI
 
     public static bool Gamepad_SupportsAdaptiveTriggers(int gamepad) =>
         Call(s_GamepadSupportsAdaptiveTriggers, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsTouchpad(int gamepad) =>
+        Call(s_GamepadSupportsTouchpad, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsGyro(int gamepad) =>
+        Call(s_GamepadSupportsGyro, new APIValue { Int = gamepad }).Bool != 0;
+
+    public static bool Gamepad_SupportsAccelerometer(int gamepad) =>
+        Call(s_GamepadSupportsAccelerometer, new APIValue { Int = gamepad }).Bool != 0;
 
     public static bool Gamepad_Rumble(int gamepad, float lowFrequency, float highFrequency, float duration) =>
         Call(s_GamepadRumble, new APIValue { Int = gamepad }, new APIValue { Float = lowFrequency },
