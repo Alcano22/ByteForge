@@ -31,7 +31,8 @@ TEST_CASE("Controls survive a round trip", "[input][control]")
         InputControl::FromGamepadStick(GamepadStick::Left),
         InputControl::FromGamepadStick(GamepadStick::Right),
         InputControl::FromDelta(InputDelta::Mouse),
-        InputControl::FromDelta(InputDelta::Gyro)
+        InputControl::FromDelta(InputDelta::Gyro),
+        InputControl::FromDelta(InputDelta::Touchpad)
     };
 
     for (u16 button = 0; button <= static_cast<u16>(MouseButton::ButtonLast); ++button)

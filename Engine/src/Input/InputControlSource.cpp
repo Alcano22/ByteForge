@@ -74,6 +74,19 @@ namespace ByteForge
                     }
                     return strongest;
                 }
+
+                case InputDelta::Touchpad:
+                {
+                    glm::vec2 strongest(0.0f);
+                    for (u32 gamepad = 0; gamepad < MaxGamepads; ++gamepad)
+                    {
+                        const glm::vec2 swiped = Input::GetGamepadTouchDelta(0, gamepad);
+                        const glm::vec2 value{ swiped.x, -swiped.y };
+                        if (glm::dot(value, value) > glm::dot(strongest, strongest))
+                            strongest = value;
+                    }
+                    return strongest;
+                }
             }
             return glm::vec2(0.0f);
         }

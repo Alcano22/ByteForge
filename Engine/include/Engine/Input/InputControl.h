@@ -19,7 +19,7 @@ namespace ByteForge
 
     enum class InputDelta : u16
     {
-        Mouse = 0, Gyro = 1
+        Mouse = 0, Gyro = 1, Touchpad = 2
     };
 
     enum class InputControlType : u8

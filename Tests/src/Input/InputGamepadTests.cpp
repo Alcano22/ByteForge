@@ -319,3 +319,19 @@ TEST_CASE_METHOD(GamepadFixture, "The gyro delta control points right and up", "
 
     Disconnect();
 }
+
+TEST_CASE_METHOD(GamepadFixture, "The touchpad delta control points right and up", "[Input][Gamepad]")
+{
+    Connect();
+
+    Touch(0, true, { 0.2f, 0.5f });
+    Input::EndFrame();
+
+    Touch(0, true, { 0.3f, 0.4f });
+
+    const glm::vec2 value = RawInputSource{}.Read(InputControl::FromDelta(InputDelta::Touchpad));
+    CHECK(std::abs(value.x - 0.1f) < 1e-5f);
+    CHECK(std::abs(value.y - 0.1f) < 1e-5f);
+
+    Disconnect();
+}
