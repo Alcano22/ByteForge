@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Assets/AssetMetadata.h"
+#include "Engine/Text/FontAtlasFile.h"
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -9,6 +10,7 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -35,6 +37,11 @@ namespace ByteForge
         static constexpr const char* GameScriptsEntry = ".scripts/GameScripts.dll";
 
         static constexpr const char* MetaExtension = ".meta";
+
+        [[nodiscard]] static std::string FontAtlasEntry(const UUID font)
+        {
+            return std::format(".fonts/{:016x}{}", static_cast<u64>(font), FontAtlasExtension);
+        }
 
         [[nodiscard]] static bool IsMetaFile(const fs::path& path) { return path.extension() == MetaExtension; }
 

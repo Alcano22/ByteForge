@@ -3,10 +3,12 @@
 #include "Editor/FileDialogs.h"
 
 #include <Engine/Assets/AssetRegistry.h>
+#include <Engine/Assets/AssetManager.h>
 #include <Engine/Assets/Pak.h>
 #include <Engine/Core/DotNetLocator.h>
 #include <Engine/Core/JobSystem.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/FileSystem.h>
 #include <Engine/Core/Platform.h>
 #include <Engine/Core/RuntimePaths.h>
 #include <Engine/Project/Project.h>
@@ -203,15 +205,42 @@ namespace ByteForge
             return copied;
         }
 
+        Result<> PackFontAtlases(PakWriter& writer, const std::span<const ExportPlan::Font> fonts,
+                                 ExportProgress& progress)
+        {
+            for (const ExportPlan::Font& font : fonts)
+            {
+                if (progress.IsCancelled())
+                    return Cancelled();
+
+                const Result<std::vector<std::byte>> file = ReadBinaryFile(font.Source);
+                if (!file)
+                    return Unexpected("cannot read the font '{}': {}", ToGenericUtf8(font.Source), file.error());
+
+                const Result<FontAtlasData> atlas = LoadOrBuildFontAtlas(*file, font.Stored, font.Kind);
+                if (!atlas)
+                    return Unexpected("cannot build the atlas of '{}': {}", ToGenericUtf8(font.Source), atlas.error());
+
+                const std::vector<std::byte> data = SerializeFontAtlas(*atlas, MakeFontAtlasKey(*file));
+                if (const auto added = writer.Add(AssetRegistry::FontAtlasEntry(font.Handle), data); !added)
+                    return Unexpected(added.error());
+
+                progress.Advance();
+            }
+
+            return {};
+        }
+
         Result<PakStats> PackAssets(const fs::path& assetsDirectory, const fs::path& archive,
-                                    const std::optional<fs::path>& gameScripts, ExportProgress& progress)
+                                    const std::optional<fs::path>& gameScripts,
+                                    const std::span<const ExportPlan::Font> fonts, ExportProgress& progress)
         {
             const Result<std::vector<fs::path>> files = ListFiles(assetsDirectory,
                 [](const fs::path& relative) { return !IsScriptSource(relative); });
             if (!files)
                 return Unexpected(files.error());
 
-            progress.AddWork(files->size() + (gameScripts ? 1 : 0));
+            progress.AddWork(files->size() + (gameScripts ? 1 : 0) + fonts.size());
 
             Result<Scope<PakWriter>> writer = PakWriter::Create(archive);
             if (!writer)
@@ -235,6 +264,9 @@ namespace ByteForge
 
                 progress.Advance();
             }
+
+            if (const Result<> packed = PackFontAtlases(**writer, fonts, progress); !packed)
+                return Unexpected(packed.error());
 
             return (*writer)->Finish();
         }
@@ -365,6 +397,23 @@ namespace ByteForge
                      ToGenericUtf8(input));
         }
 
+        plan.Fonts.push_back({
+            .Handle = UUID(0),
+            .Source = plan.FontsDirectory / "inter_regular.ttf",
+            .Stored = plan.FontsDirectory / std::format("inter_regular{}", FontAtlasExtension),
+            .Kind   = StoredFontAtlas::Prebuilt
+        });
+
+        for (const AssetMetadata& font : AssetRegistry::GetAssetsOfType(AssetType::Font))
+        {
+            plan.Fonts.push_back({
+                .Handle = font.Handle,
+                .Source = plan.AssetsDirectory / font.Path,
+                .Stored = AssetManager::GetFontCacheFile(font.Handle),
+                .Kind   = StoredFontAtlas::Cache
+            });
+        }
+
         const bool hasScripts = !AssetRegistry::GetAssetsOfType(AssetType::Script).empty();
         const bool hasAssembly = fs::exists(gameScripts);
         if (hasScripts && !hasAssembly)
@@ -427,8 +476,11 @@ namespace ByteForge
             return Unexpected(scriptCore.error());
         result.FileCount += *scriptCore;
 
-        const auto fonts = CopyTree(plan.FontsDirectory, output / "fonts",
-            [](const fs::path&) { return true; }, progress);
+        const auto fonts = CopyTree(plan.FontsDirectory, output / "fonts", [](const fs::path& relative)
+        {
+            const fs::path extension = relative.extension();
+            return extension != ".ttf" && extension != FontAtlasExtension;
+        }, progress);
         if (!fonts)
             return Unexpected(fonts.error());
         result.FileCount += *fonts;
@@ -476,7 +528,8 @@ namespace ByteForge
 
         const fs::path archive = output / std::format("assets{}", PakExtension);
 
-        const Result<PakStats> packed = PackAssets(plan.AssetsDirectory, archive, plan.GameScripts, progress);
+        const Result<PakStats> packed = PackAssets(plan.AssetsDirectory, archive,
+                                                   plan.GameScripts, plan.Fonts, progress);
         if (!packed)
             return Unexpected(packed.error());
 

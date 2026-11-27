@@ -84,6 +84,8 @@ namespace ByteForge
 
         void OnAttach() override
         {
+            MountAssets();
+
             m_Renderer = MakeScope<Renderer2D>();
             m_UIRenderer = MakeScope<UIRenderer>();
             m_Splash = MakeScope<SplashScreen>();
@@ -152,8 +154,6 @@ namespace ByteForge
     private:
         void LoadGame()
         {
-            MountAssets();
-
             LoadInputActions();
             m_Scene.SetInputActions(&m_InputActions);
 

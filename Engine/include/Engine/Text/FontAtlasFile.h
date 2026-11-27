@@ -18,4 +18,16 @@ namespace ByteForge
 
     [[nodiscard]] BYTEFORGE_API Result<FontAtlasData> DeserializeFontAtlas(std::span<const std::byte> data,
                                                                            u64 expectedKey);
+
+    [[nodiscard]] BYTEFORGE_API Result<FontAtlasData> DeserializeFontAtlas(std::span<const std::byte> data);
+
+    enum class StoredFontAtlas : u8
+    {
+        Prebuilt,
+        Cache
+    };
+
+    [[nodiscard]] BYTEFORGE_API Result<FontAtlasData> LoadOrBuildFontAtlas(std::span<const std::byte> font,
+                                                                           const fs::path& stored,
+                                                                           StoredFontAtlas kind);
 }

@@ -1,9 +1,14 @@
 #include "Engine/Text/FontAtlasFile.h"
+#include "Engine/Core/FileSystem.h"
+#include "Engine/Core/Log.h"
+#include "Engine/Core/Utf8.h"
 #include "Core/ByteStream.h"
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <string_view>
+#include <system_error>
 #include <utility>
 
 namespace ByteForge
@@ -24,6 +29,81 @@ namespace ByteForge
         }
 
         glm::vec2 ReadVec2(ByteReader& reader) { return { reader.F32(), reader.F32() }; }
+
+        Result<FontAtlasData> ReadFontAtlas(const std::span<const std::byte> data,
+                                            const std::optional<u64> expectedKey)
+        {
+            ByteReader reader(data);
+
+            if (reader.String(Magic.size()) != std::string_view(Magic.data(), Magic.size()))
+                return Unexpected("not a ByteForge font atlas");
+
+            if (const u32 version = reader.U32(); version != FormatVersion)
+                return Unexpected("font atlas format {} is not supported (expected {})", version, FormatVersion);
+
+            const u64 key = reader.U64();
+            if (expectedKey && key != *expectedKey)
+                return Unexpected("the font atlas was built from another font, other options or an older builder");
+
+            FontAtlasData atlas;
+            atlas.Width = reader.U32();
+            atlas.Height = reader.U32();
+            atlas.GlyphSize = reader.F32();
+            atlas.DistanceRange = reader.F32();
+
+            if (atlas.Width == 0 || atlas.Height == 0 || atlas.Width > MaxAtlasSide || atlas.Height > MaxAtlasSide)
+                return Unexpected("the font atlas has an invalid size of {}x{}", atlas.Width, atlas.Height);
+
+            atlas.Metrics = {
+                .Ascender           = reader.F32(),
+                .Descender          = reader.F32(),
+                .LineHeight         = reader.F32(),
+                .UnderlineY         = reader.F32(),
+                .UnderlineThickness = reader.F32(),
+                .StrikethroughY     = reader.F32()
+            };
+
+            const u32 glyphCount = reader.U32();
+            if (glyphCount > MaxGlyphs)
+                return Unexpected("the font atlas claims {} glyphs", glyphCount);
+
+            atlas.Glyphs.reserve(glyphCount);
+            for (u32 i = 0; i < glyphCount && !reader.Failed(); ++i)
+            {
+                const auto character = static_cast<char32_t>(reader.U32());
+
+                Glyph glyph;
+                glyph.PlaneMin = ReadVec2(reader);
+                glyph.PlaneMax = ReadVec2(reader);
+                glyph.UVMin = ReadVec2(reader);
+                glyph.UVMax = ReadVec2(reader);
+                glyph.Advance = reader.F32();
+
+                atlas.Glyphs.insert_or_assign(character, glyph);
+            }
+
+            const u32 kerningCount = reader.U32();
+            if (kerningCount > MaxKerningPairs)
+                return Unexpected("the font atlas claims {} kerning pairs", kerningCount);
+
+            atlas.Kerning.reserve(kerningCount);
+            for (u32 i = 0; i < kerningCount && !reader.Failed(); ++i)
+            {
+                const u64 pair = reader.U64();
+                atlas.Kerning.insert_or_assign(pair, reader.F32());
+            }
+
+            const u64 pixelBytes = reader.U64();
+            if (pixelBytes != static_cast<u64>(atlas.Width) * atlas.Height * 4)
+                return Unexpected("the font atlas pixels do not match its size");
+
+            const std::span<const std::byte> pixels = reader.Bytes(static_cast<usize>(pixelBytes));
+            if (reader.Failed())
+                return Unexpected("the font atlas file is truncated");
+
+            atlas.Pixels.assign(pixels.begin(), pixels.end());
+            return atlas;
+        }
     }
 
     u64 MakeFontAtlasKey(const std::span<const std::byte> fontFile, const FontAtlasOptions& options)
@@ -96,74 +176,49 @@ namespace ByteForge
 
     Result<FontAtlasData> DeserializeFontAtlas(const std::span<const std::byte> data, const u64 expectedKey)
     {
-        ByteReader reader(data);
+        return ReadFontAtlas(data, expectedKey);
+    }
 
-        if (reader.String(Magic.size()) != std::string_view(Magic.data(), Magic.size()))
-            return Unexpected("not a ByteForge font atlas");
+    Result<FontAtlasData> DeserializeFontAtlas(const std::span<const std::byte> data)
+    {
+        return ReadFontAtlas(data, std::nullopt);
+    }
 
-        if (const u32 version = reader.U32(); version != FormatVersion)
-            return Unexpected("font atlas format {} is not supported (expected {})", version, FormatVersion);
+    Result<FontAtlasData> LoadOrBuildFontAtlas(const std::span<const std::byte> font,
+                                               const fs::path& stored, const StoredFontAtlas kind)
+    {
+        const FontAtlasOptions options;
+        const u64 key = MakeFontAtlasKey(font, options);
 
-        if (reader.U64() != expectedKey)
-            return Unexpected("the font atlas was built from another font, other options or an older builder");
-
-        FontAtlasData atlas;
-        atlas.Width = reader.U32();
-        atlas.Height = reader.U32();
-        atlas.GlyphSize = reader.F32();
-        atlas.DistanceRange = reader.F32();
-
-        if (atlas.Width == 0 || atlas.Height == 0 || atlas.Width > MaxAtlasSide || atlas.Height > MaxAtlasSide)
-            return Unexpected("the font atlas has an invalid size of {}x{}", atlas.Width, atlas.Height);
-
-        atlas.Metrics = {
-            .Ascender           = reader.F32(),
-            .Descender          = reader.F32(),
-            .LineHeight         = reader.F32(),
-            .UnderlineY         = reader.F32(),
-            .UnderlineThickness = reader.F32(),
-            .StrikethroughY     = reader.F32()
-        };
-
-        const u32 glyphCount = reader.U32();
-        if (glyphCount > MaxGlyphs)
-            return Unexpected("the font atlas claims {} glyphs", glyphCount);
-
-        atlas.Glyphs.reserve(glyphCount);
-        for (u32 i = 0; i < glyphCount && !reader.Failed(); ++i)
+        std::error_code error;
+        if (!stored.empty() && fs::exists(stored, error))
         {
-            const auto character = static_cast<char32_t>(reader.U32());
+            const Result<std::vector<std::byte>> file = ReadBinaryFile(stored);
+            Result<FontAtlasData> atlas = file ? DeserializeFontAtlas(*file, key)
+                                               : Result<FontAtlasData>(Unexpected(file.error()));
+            if (atlas)
+            {
+                CORE_DEBUG("Loaded the font atlas '{}'", ToGenericUtf8(stored));
+                return atlas;
+            }
 
-            Glyph glyph;
-            glyph.PlaneMin = ReadVec2(reader);
-            glyph.PlaneMax = ReadVec2(reader);
-            glyph.UVMin = ReadVec2(reader);
-            glyph.UVMax = ReadVec2(reader);
-            glyph.Advance = reader.F32();
-
-            atlas.Glyphs.insert_or_assign(character, glyph);
+            if (kind == StoredFontAtlas::Prebuilt)
+                CORE_WARN("Ignoring the prebuilt font atlas '{}', building it instead: {}",
+                          ToGenericUtf8(stored), atlas.error());
+            else
+                CORE_DEBUG("The cached font atlas '{}' is out of date, rebuilding it: {}",
+                           ToGenericUtf8(stored), atlas.error());
         }
 
-        const u32 kerningCount = reader.U32();
-        if (kerningCount > MaxKerningPairs)
-            return Unexpected("the font atlas claims {} kerning pairs", kerningCount);
+        Result<FontAtlasData> built = BuildFontAtlas(font, options);
 
-        atlas.Kerning.reserve(kerningCount);
-        for (u32 i = 0; i < kerningCount && !reader.Failed(); ++i)
+        if (built && kind == StoredFontAtlas::Cache && !stored.empty())
         {
-            const u64 pair = reader.U64();
-            atlas.Kerning.insert_or_assign(pair, reader.F32());
+            fs::create_directories(stored.parent_path(), error);
+            if (const Result<> written = WriteFileAtomic(stored, SerializeFontAtlas(*built, key)); !written)
+                CORE_WARN("Cannot cache the font atlas in '{}': {}", ToGenericUtf8(stored), written.error());
         }
 
-        const u64 pixelBytes = reader.U64();
-        if (pixelBytes != static_cast<u64>(atlas.Width) * atlas.Height * 4)
-            return Unexpected("the font atlas pixels do not match its size");
-
-        const std::span<const std::byte> pixels = reader.Bytes(static_cast<usize>(pixelBytes));
-        if (reader.Failed())
-            return Unexpected("the font atlas file is truncated");
-
-        atlas.Pixels.assign(pixels.begin(), pixels.end());
-        return atlas;
+        return built;
     }
 }

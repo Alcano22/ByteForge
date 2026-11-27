@@ -3,6 +3,8 @@
 #include "Editor/PopupManager.h"
 
 #include <Engine/Assets/Pak.h>
+#include <Engine/Scene/UUID.h>
+#include <Engine/Text/FontAtlasFile.h>
 
 #include <algorithm>
 #include <atomic>
@@ -29,6 +31,14 @@ namespace ByteForge
 
     struct ExportPlan
     {
+        struct Font
+        {
+            UUID Handle{ 0 };
+            fs::path Source;
+            fs::path Stored;
+            StoredFontAtlas Kind = StoredFontAtlas::Cache;
+        };
+
         fs::path PlayerDirectory;
         fs::path ScriptCoreDirectory;
         fs::path FontsDirectory;
@@ -38,6 +48,8 @@ namespace ByteForge
         std::optional<fs::path> GameScripts;
         fs::path Output;
         std::string ExecutableName;
+
+        std::vector<Font> Fonts;
     };
 
     class ExportProgress

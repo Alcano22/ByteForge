@@ -95,3 +95,16 @@ TEST_CASE("The atlas key follows the font and the options", "[text][atlas]")
     CHECK(MakeFontAtlasKey(font) != MakeFontAtlasKey(other));
     CHECK(MakeFontAtlasKey(font) != MakeFontAtlasKey(font, { .GlyphSize = 16.0f }));
 }
+
+TEST_CASE("An atlas from an archive is read without checking its key", "[text][atlas]")
+{
+    const std::vector<std::byte> file = SerializeFontAtlas(MakeAtlas(), Key);
+
+    const Result<FontAtlasData> loaded = DeserializeFontAtlas(file);
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->Glyphs.size() == 2);
+
+    std::vector<std::byte> damaged = file;
+    damaged.resize(10);
+    CHECK_FALSE(DeserializeFontAtlas(damaged).has_value());
+}
