@@ -42,6 +42,8 @@ namespace ByteForge
 
     [[nodiscard]] BYTEFORGE_API std::span<const CharacterRange> GetDefaultCharacterRanges();
 
+    inline constexpr u32 FontAtlasBuilderVersion = 1;
+
     struct FontAtlasOptions
     {
         f32 GlyphSize = 48.0f;

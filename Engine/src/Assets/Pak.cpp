@@ -1,4 +1,5 @@
 #include "Engine/Assets/Pak.h"
+#include "Core/ByteStream.h"
 
 #include <zstd.h>
 
@@ -20,95 +21,6 @@ namespace ByteForge
         constexpr usize MaxPathLength = std::numeric_limits<u16>::max();
         constexpr u64 MaxEntrySize = static_cast<u64>(1) << 32;
         constexpr u64 MaxTocSize = static_cast<u64>(64) << 20;
-
-        class ByteWriter
-        {
-        public:
-            void U8(const u8 value) { m_Data.push_back(static_cast<std::byte>(value)); }
-            void U16(const u16 value) { Unsigned(value, 2); }
-            void U32(const u32 value) { Unsigned(value, 4); }
-            void U64(const u64 value) { Unsigned(value, 8); }
-
-            void Bytes(const void* data, const usize size)
-            {
-                const auto* bytes = static_cast<const std::byte*>(data);
-                m_Data.insert(m_Data.end(), bytes, bytes + size);
-            }
-
-            [[nodiscard]] const std::vector<std::byte>& GetData() const { return m_Data; }
-
-        private:
-            void Unsigned(const u64 value, const usize size)
-            {
-                for (usize i = 0; i < size; ++i)
-                    m_Data.push_back(static_cast<std::byte>((value >> (8 * i)) & 0xFF));
-            }
-
-        private:
-            std::vector<std::byte> m_Data;
-        };
-
-        class ByteReader
-        {
-        public:
-            explicit ByteReader(const std::span<const std::byte> data)
-                : m_Data(data) {}
-
-            u8 U8() { return static_cast<u8>(Unsigned(1)); }
-            u16 U16() { return static_cast<u16>(Unsigned(2)); }
-            u32 U32() { return static_cast<u32>(Unsigned(4)); }
-            u64 U64() { return Unsigned(8); }
-
-            std::string String(const usize size)
-            {
-                if (!Has(size))
-                {
-                    m_Failed = true;
-                    return {};
-                }
-
-                std::string text(reinterpret_cast<const char*>(m_Data.data() + m_Position), size);
-                m_Position += size;
-                return text;
-            }
-
-            [[nodiscard]] bool Failed() const { return m_Failed; }
-
-        private:
-            [[nodiscard]] bool Has(const usize size) const { return !m_Failed && m_Data.size() - m_Position >= size; }
-
-            u64 Unsigned(const usize size)
-            {
-                if (!Has(size))
-                {
-                    m_Failed = true;
-                    return 0;
-                }
-
-                u64 value = 0;
-                for (usize i = 0; i < size; ++i)
-                    value |= std::to_integer<u64>(m_Data[m_Position + i]) << (8 * i);
-
-                m_Position += size;
-                return value;
-            }
-
-        private:
-            std::span<const std::byte> m_Data;
-            usize m_Position = 0;
-            bool m_Failed = false;
-        };
-
-        u64 HashBytes(const std::span<const std::byte> data)
-        {
-            u64 hash = 0xCBF29CE484222325ull;
-            for (const std::byte b : data)
-            {
-                hash ^= std::to_integer<u64>(b);
-                hash *= 0x100000001b3ull;
-            }
-            return hash;
-        }
 
         bool WriteBytes(std::ostream& stream, const std::span<const std::byte> data)
         {

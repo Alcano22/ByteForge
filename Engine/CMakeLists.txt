@@ -158,6 +158,7 @@ add_library(Engine SHARED
         src/Renderer/ShaderLibrary.cpp
         src/Renderer/Light2D.cpp
         src/Text/FontAtlas.cpp
+        src/Text/FontAtlasFile.cpp
         src/Text/Font.cpp
         src/Text/TextLayout.cpp
         src/Text/TextLayoutCache.cpp

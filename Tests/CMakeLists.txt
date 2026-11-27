@@ -42,6 +42,7 @@ add_executable(ByteForgeTests
         src/Input/DualSenseTriggerEffectTests.cpp
         src/UI/GameUITests.cpp
         src/Text/FontAtlasTests.cpp
+        src/Text/FontAtlasFileTests.cpp
         src/Text/TextLayoutTests.cpp
         src/Text/TextLayoutCacheTests.cpp
         src/Text/RichTextTests.cpp
