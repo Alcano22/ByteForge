@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Branding/icons/256/byteforge.png" alt="ByteForge logo" width="128">
+  <img src="Branding/icons/128/byteforge.png" alt="ByteForge logo" width="128">
 </p>
 
 <h1 align="center">ByteForge</h1>
@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Alcano22/ByteForge/actions/workflows/build.yml">
-    <img src="https://github.com/Alcano22/ByteForge/actions/workflows/build.yml/badge.svg" alt="Build">
+    <img src="https://github.com/Alcano22/ByteForge/actions/workflows/build.yml/badge.svg?branch=main" alt="Build">
   </a>
   <a href="https://github.com/Alcano22/ByteForge/releases/latest">
     <img src="https://img.shields.io/github/v/release/Alcano22/ByteForge?include_prereleases" alt="Latest release">
