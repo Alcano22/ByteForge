@@ -145,6 +145,8 @@ more physics shapes and joints, more UI controls, and stable script APIs.
 
 ## License
 
-<!-- TODO: choose a license, see below -->
+ByteForge is released under the [MIT License](LICENSE).
 
-ByteForge ships the [Inter](https://rsms.me/inter/) font under the SIL Open Font License.
+It ships the [Inter](https://rsms.me/inter/) font under the SIL Open Font License, and builds on
+open-source libraries with their own licenses, among them GLFW, SDL, Box2D, EnTT, Dear ImGui, spdlog,
+miniaudio, msdfgen and Qt.
